@@ -44,9 +44,21 @@ export function initializeDb(db: Database.Database): void {
       last_updated TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS service_changelog (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service_id TEXT NOT NULL REFERENCES services(id),
+      change_date TEXT NOT NULL,
+      change_type TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      details TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_outcomes_service ON outcomes(service_id);
     CREATE INDEX IF NOT EXISTS idx_outcomes_created ON outcomes(created_at);
     CREATE INDEX IF NOT EXISTS idx_services_category ON services(category);
+    CREATE INDEX IF NOT EXISTS idx_changelog_service ON service_changelog(service_id);
+    CREATE INDEX IF NOT EXISTS idx_changelog_date ON service_changelog(change_date);
   `);
 
   // FTS5 virtual table for full-text search on services

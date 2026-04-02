@@ -5,6 +5,8 @@ import { register as registerSearchServices } from "./tools/search-services.js";
 import { register as registerGetRecipe } from "./tools/get-recipe.js";
 import { register as registerReportOutcome } from "./tools/report-outcome.js";
 import { register as registerGetInsights } from "./tools/get-insights.js";
+import { register as registerFindCombinations } from "./tools/find-combinations.js";
+import { register as registerCheckUpdates } from "./tools/check-updates.js";
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -21,6 +23,8 @@ export function createServer(): McpServer {
   registerGetRecipe(server, db);
   registerReportOutcome(server, db);
   registerGetInsights(server, db);
+  registerFindCombinations(server, db);
+  registerCheckUpdates(server, db);
 
   return server;
 }
