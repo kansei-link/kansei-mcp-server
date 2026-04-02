@@ -27,6 +27,9 @@ All text submitted via `context` field is processed through PII masking before s
 | Japanese phone numbers (03-xxxx-xxxx, 090-xxxx-xxxx) | `[PHONE]` |
 | International phone numbers (+81-x-xxxx-xxxx) | `[PHONE]` |
 | IP addresses | `[IP]` |
+| Japanese kanji names with honorific (〇〇さん/様/氏) | `[NAME]` |
+| Japanese full names with space (田中 太郎) | `[NAME]` |
+| Common Japanese surnames + given name (50 surnames) | `[NAME]` |
 | Katakana full names | `[NAME]` |
 
 **Policy**: Raw text with PII is never persisted to disk. Masking occurs in-memory before any database write.
