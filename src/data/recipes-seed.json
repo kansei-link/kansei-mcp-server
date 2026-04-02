@@ -1,0 +1,138 @@
+[
+  {
+    "id": "new-employee-onboarding",
+    "goal": "New employee onboarding workflow",
+    "description": "Automate the process of onboarding a new hire: register in HR system, set up attendance tracking, and notify the team.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "smarthr",
+        "action": "Create employee record with personal info, department, and start date",
+        "input_mapping": { "from": "user_input", "fields": ["name", "email", "department", "start_date"] },
+        "output_mapping": { "employee_id": "step1.employee_id" },
+        "error_hint": "Check if employee email already exists in SmartHR"
+      },
+      {
+        "order": 2,
+        "service_id": "kingoftime",
+        "action": "Register employee for attendance tracking and assign default shift pattern",
+        "input_mapping": { "employee_id": "step1.employee_id", "shift_pattern": "default_9to18" },
+        "output_mapping": { "attendance_id": "step2.attendance_id" },
+        "error_hint": "Ensure KING OF TIME employee ID format matches SmartHR export"
+      },
+      {
+        "order": 3,
+        "service_id": "chatwork",
+        "action": "Send welcome message to team room and create introduction task",
+        "input_mapping": { "room_id": "config.team_room_id", "message": "Welcome {{name}} to the team!" },
+        "output_mapping": { "message_id": "step3.message_id" },
+        "error_hint": "Verify bot has permission to post in the target room"
+      }
+    ],
+    "required_services": ["smarthr", "kingoftime", "chatwork"]
+  },
+  {
+    "id": "invoice-processing",
+    "goal": "Invoice creation and accounting sync",
+    "description": "Create an invoice for a client and sync the transaction to the accounting system.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "freee",
+        "action": "Create invoice with line items, tax calculation, and payment terms",
+        "input_mapping": { "from": "user_input", "fields": ["client_name", "items", "due_date"] },
+        "output_mapping": { "invoice_id": "step1.invoice_id", "amount": "step1.total_amount" },
+        "error_hint": "Ensure tax rate matches current Japanese consumption tax (10% standard, 8% reduced)"
+      },
+      {
+        "order": 2,
+        "service_id": "moneyforward",
+        "action": "Record the receivable entry in the accounting ledger",
+        "input_mapping": { "amount": "step1.total_amount", "client": "user_input.client_name", "invoice_ref": "step1.invoice_id" },
+        "output_mapping": { "journal_id": "step2.journal_id" },
+        "error_hint": "Check fiscal year period is still open before posting"
+      }
+    ],
+    "required_services": ["freee", "moneyforward"]
+  },
+  {
+    "id": "customer-followup",
+    "goal": "Customer follow-up after meeting",
+    "description": "After a business meeting, look up the contact, send a follow-up message, and create a follow-up task.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "sansan",
+        "action": "Look up contact by name or company to get email and meeting history",
+        "input_mapping": { "from": "user_input", "fields": ["contact_name", "company"] },
+        "output_mapping": { "contact_email": "step1.email", "contact_id": "step1.contact_id" },
+        "error_hint": "If multiple matches, prefer the most recently scanned business card"
+      },
+      {
+        "order": 2,
+        "service_id": "chatwork",
+        "action": "Send internal follow-up note to the sales team room",
+        "input_mapping": { "room_id": "config.sales_room_id", "message": "Met with {{contact_name}} from {{company}}. Action items: {{notes}}" },
+        "output_mapping": { "message_id": "step2.message_id" },
+        "error_hint": "Keep message under 5000 characters (Chatwork limit)"
+      },
+      {
+        "order": 3,
+        "service_id": "backlog",
+        "action": "Create a follow-up task with deadline and assign to account owner",
+        "input_mapping": { "project_id": "config.sales_project_id", "summary": "Follow up: {{contact_name}}", "due_date": "+7days" },
+        "output_mapping": { "issue_id": "step3.issue_id" },
+        "error_hint": "Ensure assignee has access to the sales project"
+      }
+    ],
+    "required_services": ["sansan", "chatwork", "backlog"]
+  },
+  {
+    "id": "ecommerce-order-notification",
+    "goal": "E-commerce order notification to team",
+    "description": "When a new order comes in, fetch order details and notify the fulfillment team.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "base-ec",
+        "action": "Get latest order details including items, customer info, and shipping address",
+        "input_mapping": { "from": "trigger", "fields": ["order_id"] },
+        "output_mapping": { "order_details": "step1.order", "customer_name": "step1.order.customer_name" },
+        "error_hint": "Order may be in 'pending' status if payment not yet confirmed"
+      },
+      {
+        "order": 2,
+        "service_id": "lineworks",
+        "action": "Send order notification to fulfillment group with item list and shipping info",
+        "input_mapping": { "group_id": "config.fulfillment_group_id", "message": "New order #{{order_id}} from {{customer_name}}: {{items}}" },
+        "output_mapping": { "message_id": "step2.message_id" },
+        "error_hint": "Check LINE WORKS bot is added to the fulfillment group"
+      }
+    ],
+    "required_services": ["base-ec", "lineworks"]
+  },
+  {
+    "id": "project-status-report",
+    "goal": "Weekly project status report",
+    "description": "Collect project metrics from the PM tool and share a summary with the team.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "backlog",
+        "action": "Get sprint summary: open issues, completed this week, blockers, burndown",
+        "input_mapping": { "project_id": "config.project_id", "period": "last_7_days" },
+        "output_mapping": { "summary": "step1.sprint_summary", "open_count": "step1.open_issues", "done_count": "step1.completed_issues" },
+        "error_hint": "Ensure milestone/sprint is set correctly for the current iteration"
+      },
+      {
+        "order": 2,
+        "service_id": "chatwork",
+        "action": "Post formatted status report to the project room",
+        "input_mapping": { "room_id": "config.project_room_id", "message": "Weekly Report:\nDone: {{done_count}}\nOpen: {{open_count}}\nBlockers: {{blockers}}" },
+        "output_mapping": { "message_id": "step2.message_id" },
+        "error_hint": "Use [info] tags for Chatwork rich formatting"
+      }
+    ],
+    "required_services": ["backlog", "chatwork"]
+  }
+]
