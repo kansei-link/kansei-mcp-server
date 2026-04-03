@@ -427,5 +427,38 @@
       "Rate limit is low (3/s) — cache database schemas and batch reads where possible."
     ],
     "docs_url": "https://developers.notion.com/reference"
+  },
+  {
+    "service_id": "freee-hr",
+    "base_url": "https://api.freee.co.jp/hr/api/v1/",
+    "api_version": "v1",
+    "auth_overview": "Same OAuth 2.0 as freee Accounting (shared MCP server). Register app at freee Developer Portal. The freee MCP server (npx @freee/mcp-server) covers both accounting and HR domains — 28 API files for HR alone.",
+    "auth_token_url": "https://accounts.secure.freee.co.jp/public_api/token",
+    "auth_scopes": "read,write",
+    "auth_setup_hint": "Use the same freee app credentials as accounting. HR API shares the same OAuth token. Easiest: npx @freee/mcp-server handles both domains automatically.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "GET", "path": "/employees", "description": "List employees with company_id", "auth_required": true},
+      {"method": "GET", "path": "/employees/{id}", "description": "Get employee detail (profile, dependents, bank account)", "auth_required": true},
+      {"method": "GET", "path": "/employees/{id}/time_clocks", "description": "Get attendance records (clock in/out)", "auth_required": true},
+      {"method": "POST", "path": "/employees/{id}/time_clocks", "description": "Record clock in/out", "auth_required": true},
+      {"method": "GET", "path": "/employees/{id}/payroll_statements", "description": "Get payslips (給与明細)", "auth_required": true},
+      {"method": "GET", "path": "/year_end_adjustments/{year}/employees", "description": "Year-end adjustment (年末調整) data", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "offset: use 'offset' and 'limit' params (max 100). Response includes total_count.",
+    "rate_limit": "3,600 requests/hour (shared with accounting API). HR endpoints: same rate pool.",
+    "error_format": "JSON: {\"status_code\":400,\"errors\":[{\"type\":\"validation\",\"messages\":[\"...\"]}]}",
+    "quickstart_example": "GET /hr/api/v1/employees?company_id=123&limit=10 HTTP/1.1\nHost: api.freee.co.jp\nAuthorization: Bearer {access_token}\n\nResponse: {\"employees\":[{\"id\":1,\"last_name\":\"田中\",\"first_name\":\"太郎\",\"num\":\"EMP001\",\"email\":\"tanaka@example.com\"}]}",
+    "agent_tips": [
+      "Shares OAuth credentials with freee Accounting — same app, same token, same MCP server.",
+      "company_id required for all endpoints (same as accounting).",
+      "Employee names: last_name/first_name separate fields. Japanese order (姓→名).",
+      "Attendance (勤怠): time_clocks endpoint for raw punch data, work_records for calculated hours.",
+      "Payroll is read-only via API. Payslip generation must be triggered in freee UI.",
+      "Year-end adjustment (年末調整): 28 API files cover the full workflow — from employee data collection to tax document generation.",
+      "Social insurance (社会保険) calculations are automatic based on employee data. Verify employee dependents are up to date."
+    ],
+    "docs_url": "https://developer.freee.co.jp/docs/hr/reference"
   }
 ]
