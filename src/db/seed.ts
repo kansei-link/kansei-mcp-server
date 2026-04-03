@@ -185,8 +185,9 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
 
   seedAll();
 
-  // Rebuild FTS index
+  // Rebuild FTS indexes
   db.exec("INSERT INTO services_fts(services_fts) VALUES ('rebuild')");
+  db.exec("INSERT INTO services_fts_trigram(services_fts_trigram) VALUES ('rebuild')");
 
   const serviceCount = db
     .prepare("SELECT count(*) as count FROM services")

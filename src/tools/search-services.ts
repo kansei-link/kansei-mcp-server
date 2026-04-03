@@ -227,13 +227,16 @@ const CATEGORY_BOOST = 0.5;
 
 /**
  * Detect likely categories from an intent string by scanning for keyword
- * signals. Returns a Set of category names (may be empty).
+ * signals. For Latin text, splits on whitespace. For CJK text, scans the
+ * full string for keyword substrings (Japanese has no word separators).
+ * Returns a Set of category names (may be empty).
  */
 function detectIntentCategories(intent: string): Set<string> {
   const categories = new Set<string>();
   const lower = intent.toLowerCase();
-  const tokens = lower.split(/\s+/);
 
+  // Latin token matching (space-separated)
+  const tokens = lower.split(/\s+/);
   for (const token of tokens) {
     const mapped = INTENT_CATEGORY_MAP[token];
     if (mapped) {
@@ -241,7 +244,21 @@ function detectIntentCategories(intent: string): Set<string> {
     }
   }
 
+  // CJK substring matching — scan for every keyword inside the intent string
+  for (const [keyword, cats] of Object.entries(INTENT_CATEGORY_MAP)) {
+    if (lower.includes(keyword)) {
+      for (const cat of cats) categories.add(cat);
+    }
+  }
+
   return categories;
+}
+
+/** Detect whether a string contains CJK characters (Japanese, Chinese, Korean) */
+const CJK_REGEX = /[\u3000-\u9fff\uf900-\ufaff\u{20000}-\u{2fa1f}]/u;
+
+function hasCJK(text: string): boolean {
+  return CJK_REGEX.test(text);
 }
 
 export function searchServices(
@@ -252,11 +269,14 @@ export function searchServices(
 ): object[] {
   const intentCategories = detectIntentCategories(intent);
   const intentLower = intent.toLowerCase();
+  const containsCJK = hasCJK(intent);
 
-  // Run FTS search
-  const ftsResults = ftsSearch(db, intent, category, limit, intentCategories, intentLower);
+  // Run FTS search — use trigram table for CJK, unicode61 for Latin
+  const ftsResults = containsCJK
+    ? trigramSearch(db, intent, category, limit, intentCategories, intentLower)
+    : ftsSearch(db, intent, category, limit, intentCategories, intentLower);
 
-  // Run LIKE search (catches Japanese text + partial matches FTS misses)
+  // Run LIKE search (catches partial matches both tables miss)
   const likeResults = likeSearch(db, intent, category, limit, intentCategories, intentLower);
 
   // When intent categories are detected, also fetch top services from those
@@ -418,6 +438,148 @@ function ftsSearch(
   }
 }
 
+function trigramSearch(
+  db: Database.Database,
+  intent: string,
+  category: string | undefined,
+  limit: number,
+  intentCategories: Set<string>,
+  intentLower: string = ""
+): ScoredResult[] {
+  // Extract CJK substrings (3+ chars) for trigram MATCH, and all tokens for scoring
+  const cjkMatches = intent.match(/[\u3000-\u9fff\uf900-\ufaff]+/gu) ?? [];
+  // Trigram requires 3+ chars; collect shorter ones for LIKE fallback within this function
+  const trigramTokens = cjkMatches.filter((t) => t.length >= 3);
+  const shortTokens = cjkMatches.filter((t) => t.length < 3 && t.length > 0);
+
+  // Also extract Latin tokens for trigram (works for English too, 3+ chars)
+  const latinTokens = intent
+    .split(/\s+/)
+    .filter((t) => t.length >= 3 && !CJK_REGEX.test(t));
+
+  const allTrigramTokens = [...trigramTokens, ...latinTokens];
+
+  if (allTrigramTokens.length === 0 && shortTokens.length === 0) return [];
+
+  const fetchLimit = Math.max(limit * 3, 15);
+  let results: ScoredResult[] = [];
+
+  // Trigram FTS search for 3+ char tokens
+  if (allTrigramTokens.length > 0) {
+    try {
+      // Trigram MATCH uses substring matching — no need for prefix *
+      const matchExpr = allTrigramTokens.map((t) => `"${t}"`).join(" OR ");
+
+      let query = `
+        SELECT s.*, ss.total_calls, ss.success_rate, fts.rank as fts_rank
+        FROM services_fts_trigram fts
+        JOIN services s ON s.rowid = fts.rowid
+        LEFT JOIN service_stats ss ON s.id = ss.service_id
+        WHERE services_fts_trigram MATCH ?
+      `;
+      const params: unknown[] = [matchExpr];
+
+      if (category) {
+        query += ` AND s.category = ?`;
+        params.push(category);
+      }
+
+      query += ` ORDER BY fts.rank LIMIT ?`;
+      params.push(fetchLimit);
+
+      const services = db.prepare(query).all(...params) as (ServiceRow & { fts_rank: number })[];
+
+      results = services.map((s) => {
+        const baseScore = 1 / (1 + Math.abs(s.fts_rank)) + s.trust_score * 0.3;
+        const categoryBoost =
+          intentCategories.size > 0 && s.category && intentCategories.has(s.category)
+            ? CATEGORY_BOOST
+            : 0;
+        return formatResult(s, baseScore + categoryBoost, intentLower);
+      });
+    } catch {
+      // FTS query may fail on certain inputs
+    }
+  }
+
+  // For short CJK tokens (1-2 chars like 人事, 経費), use LIKE as supplement
+  if (shortTokens.length > 0) {
+    const conditions = shortTokens.map(
+      () => `(s.name LIKE ? OR s.description LIKE ? OR s.tags LIKE ?)`
+    );
+    const params: unknown[] = [];
+    for (const token of shortTokens) {
+      const pattern = `%${token}%`;
+      params.push(pattern, pattern, pattern);
+    }
+
+    let query = `
+      SELECT s.*, ss.total_calls, ss.success_rate
+      FROM services s
+      LEFT JOIN service_stats ss ON s.id = ss.service_id
+      WHERE (${conditions.join(" OR ")})
+    `;
+    if (category) {
+      query += ` AND s.category = ?`;
+      params.push(category);
+    }
+    query += ` ORDER BY s.trust_score DESC LIMIT ?`;
+    params.push(fetchLimit);
+
+    const services = db.prepare(query).all(...params) as ServiceRow[];
+    for (const s of services) {
+      const categoryBoost =
+        intentCategories.size > 0 && s.category && intentCategories.has(s.category)
+          ? CATEGORY_BOOST
+          : 0;
+      results.push(formatResult(s, s.trust_score + categoryBoost, intentLower));
+    }
+  }
+
+  // Deduplicate within trigram results, keep highest score
+  const deduped = new Map<string, ScoredResult>();
+  for (const r of results) {
+    const existing = deduped.get(r.service_id);
+    if (!existing || r.relevance_score > existing.relevance_score) {
+      deduped.set(r.service_id, r);
+    }
+  }
+
+  return [...deduped.values()]
+    .sort((a, b) => b.relevance_score - a.relevance_score)
+    .slice(0, limit);
+}
+
+/**
+ * Extract search tokens from intent, handling both Latin (space-separated)
+ * and CJK (no spaces — split into overlapping 2-char bigrams for LIKE).
+ */
+function extractSearchTokens(intent: string): string[] {
+  const tokens: string[] = [];
+
+  // Latin tokens (space-separated)
+  const latin = intent.replace(/[\u3000-\u9fff\uf900-\ufaff]/g, " ");
+  for (const t of latin.split(/\s+/)) {
+    if (t.length > 1) tokens.push(t);
+  }
+
+  // CJK: extract contiguous runs, then split into 2-char bigrams
+  const cjkRuns = intent.match(/[\u3000-\u9fff\uf900-\ufaff]+/gu) ?? [];
+  for (const run of cjkRuns) {
+    if (run.length <= 3) {
+      // Short run — use as-is
+      tokens.push(run);
+    } else {
+      // Longer run — split into 2-char bigrams for broader matching
+      for (let i = 0; i < run.length - 1; i++) {
+        tokens.push(run.slice(i, i + 2));
+      }
+    }
+  }
+
+  return tokens;
+}
+
 function likeSearch(
   db: Database.Database,
   intent: string,
@@ -426,7 +588,7 @@ function likeSearch(
   intentCategories: Set<string>,
   intentLower: string = ""
 ): ScoredResult[] {
-  const words = intent.split(/\s+/).filter((t) => t.length > 1);
+  const words = extractSearchTokens(intent);
   if (words.length === 0) return [];
 
   // Fetch more rows so we can re-rank after category boost

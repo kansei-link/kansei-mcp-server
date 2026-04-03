@@ -100,4 +100,40 @@ export function initializeDb(db: Database.Database): void {
       END;
     `);
   }
+
+  // Trigram FTS table for CJK (Japanese) substring search
+  const trigramExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='services_fts_trigram'"
+    )
+    .get();
+
+  if (!trigramExists) {
+    db.exec(`
+      CREATE VIRTUAL TABLE services_fts_trigram USING fts5(
+        name, description, tags, category,
+        content=services, content_rowid=rowid,
+        tokenize='trigram'
+      );
+    `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS services_ai_tri AFTER INSERT ON services BEGIN
+        INSERT INTO services_fts_trigram(rowid, name, description, tags, category)
+        VALUES (new.rowid, new.name, new.description, new.tags, new.category);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS services_ad_tri AFTER DELETE ON services BEGIN
+        INSERT INTO services_fts_trigram(services_fts_trigram, rowid, name, description, tags, category)
+        VALUES ('delete', old.rowid, old.name, old.description, old.tags, old.category);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS services_au_tri AFTER UPDATE ON services BEGIN
+        INSERT INTO services_fts_trigram(services_fts_trigram, rowid, name, description, tags, category)
+        VALUES ('delete', old.rowid, old.name, old.description, old.tags, old.category);
+        INSERT INTO services_fts_trigram(rowid, name, description, tags, category)
+        VALUES (new.rowid, new.name, new.description, new.tags, new.category);
+      END;
+    `);
+  }
 }
