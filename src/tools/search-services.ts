@@ -144,7 +144,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   // CRM
   lead:          ["crm"],
   leads:         ["crm"],
-  customer:      ["crm"],
+  customer:      ["crm", "support"],
   customers:     ["crm"],
   deal:          ["crm"],
   deals:         ["crm"],
@@ -163,7 +163,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   sprint:        ["project_management"],
   board:         ["project_management"],
   kanban:        ["project_management"],
-  ticket:        ["project_management"],
+  ticket:        ["project_management", "support"],
   backlog:       ["project_management"],
   milestone:     ["project_management"],
   app:           ["project_management", "groupware"],
@@ -175,7 +175,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   products:      ["ecommerce"],
   order:         ["ecommerce"],
   orders:        ["ecommerce"],
-  shipping:      ["ecommerce"],
+  shipping:      ["ecommerce", "logistics"],
   inventory:     ["ecommerce"],
   cart:          ["ecommerce"],
   store:         ["ecommerce"],
@@ -212,7 +212,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   schedule:      ["groupware"],
   groupware:     ["groupware"],
   workspace:     ["groupware"],
-  document:      ["groupware"],
+  document:      ["groupware", "storage"],
   notes:         ["groupware"],
 
   // Productivity
@@ -220,6 +220,72 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   survey:        ["productivity"],
   recording:     ["productivity"],
   transcript:    ["productivity"],
+  monitoring:    ["productivity"],
+  alert:         ["productivity"],
+  alerts:        ["productivity"],
+  error:         ["productivity"],
+  debug:         ["productivity"],
+  "監視":        ["productivity"],
+  "エラー":      ["productivity"],
+  "ログ":        ["productivity"],
+
+  // Storage / file management
+  file:          ["storage"],
+  files:         ["storage"],
+  storage:       ["storage"],
+  drive:         ["storage"],
+  upload:        ["storage"],
+  download:      ["storage"],
+  folder:        ["storage"],
+
+  "ファイル":    ["storage"],
+  "ストレージ":  ["storage"],
+
+  // Customer support
+  support:       ["support"],
+  tickets:       ["support"],
+  helpdesk:      ["support"],
+  "問い合わせ":  ["support"],
+  "サポート":    ["support"],
+  "ヘルプ":      ["support"],
+  "カスタマー":  ["support", "crm"],
+
+  // Payment
+  pay:           ["payment", "accounting"],
+  checkout:      ["payment"],
+  subscription:  ["payment"],
+  charge:        ["payment"],
+  pos:           ["payment", "reservation"],
+  "決済":        ["payment"],
+  "支払":        ["payment", "accounting"],
+  "課金":        ["payment"],
+
+  // Logistics / shipping
+  ship:          ["logistics"],
+  delivery:      ["logistics"],
+  tracking:      ["logistics"],
+  label:         ["logistics"],
+  "配送":        ["logistics"],
+  "発送":        ["logistics"],
+  "物流":        ["logistics"],
+  "追跡":        ["logistics"],
+
+  // Reservation / booking
+  reservation:   ["reservation"],
+  booking:       ["reservation"],
+  appointment:   ["reservation"],
+  reserve:       ["reservation"],
+  "予約":        ["reservation"],
+  "来店":        ["reservation"],
+
+  // Data integration / iPaaS
+  integration:   ["data_integration"],
+  ipaas:         ["data_integration"],
+  sync:          ["data_integration"],
+  connect:       ["data_integration"],
+  zap:           ["data_integration"],
+  "連携":        ["data_integration", "communication"],
+  "自動化":      ["data_integration"],
 };
 
 /** Category boost added to relevance_score when service category matches intent */
