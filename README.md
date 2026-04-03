@@ -29,14 +29,16 @@ Or add to your MCP client config:
 
 - **50 Japanese SaaS services** across 10 categories
 - **19 workflow recipes** including 7 kintone hub-pattern integrations
+- **15 API connection guides** with auth setup, endpoints, rate limits, and agent tips
+- **Japanese search**: FTS5 trigram + CJK intent detection (「従業員の勤怠管理」→ HR services)
 - **3-way search engine**: FTS5 + LIKE fallback + category direct search
-- **Intent→category mapping** with Japanese keyword support (人事, 経費, 勤怠, etc.)
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
 | `search_services` | Find Japanese SaaS MCPs by intent — 3-way search with category boost and name matching |
+| `get_service_detail` | **NEW** Get full API connection guide: auth, endpoints, rate limits, quickstart, agent tips |
 | `get_recipe` | Get workflow patterns combining multiple services (kintone hub patterns, accounting flows, etc.) |
 | `find_combinations` | Reverse lookup — find recipes containing a specific service |
 | `check_updates` | Check recent changes and breaking updates for a service |
@@ -52,14 +54,15 @@ CRM, Project Management, Communication, Accounting, HR, E-commerce, Legal, Marke
 ```
 Agent ←→ KanseiLink MCP Server ←→ SQLite (local)
               ↓
-         search_services   → FTS5 + LIKE + category direct (3-way merge)
-                             intent→category mapping (EN + JP keywords)
-                             name-match boost + trust-score weighting
-         get_recipe        → Workflow pattern matching (19 recipes)
-         find_combinations → Reverse recipe lookup
-         check_updates     → Changelog query
-         report_outcome    → PII masking → outcomes table
-         get_insights      → Aggregation + confidence scoring
+         search_services    → FTS5 + trigram (JP) + LIKE + category direct
+                              intent→category mapping (EN + JP keywords)
+                              name-match boost + trust-score weighting
+         get_service_detail → API guide: auth, endpoints, quickstart, tips
+         get_recipe         → Workflow pattern matching (19 recipes)
+         find_combinations  → Reverse recipe lookup
+         check_updates      → Changelog query
+         report_outcome     → PII masking → outcomes table
+         get_insights       → Aggregation + confidence scoring
 ```
 
 ## Development
@@ -67,7 +70,7 @@ Agent ←→ KanseiLink MCP Server ←→ SQLite (local)
 ```bash
 npm install
 npm run build
-npm run seed    # populate with 50 Japanese SaaS services + 19 recipes
+npm run seed    # populate with 50 services + 19 recipes + 15 API guides
 npm start       # start stdio server
 ```
 

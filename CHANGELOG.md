@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.4.0 (2026-04-03)
+
+### New Tool: `get_service_detail`
+- Full API connection guide for any service — auth setup, key endpoints, rate limits, quickstart example, and agent tips
+- **15 services covered**: freee, freee HR, SmartHR, Chatwork, kintone, Backlog, Slack, Shopify, KING OF TIME, Money Forward, CloudSign, Sansan, LINE Messaging, HubSpot, Notion
+- Includes recent changelog entries for breaking change awareness
+- Graceful fallback for services without guides
+
+### Japanese Search
+- **FTS5 trigram tokenizer** for Japanese substring search (3+ character CJK queries)
+- **CJK intent detection**: `detectIntentCategories` now scans for Japanese keywords via substring matching (日本語にはスペースがないため)
+- **Bigram LIKE search**: Japanese text split into 2-character overlapping tokens for broader matching
+- Queries like "従業員の勤怠管理" → HR services, "請求書を送りたい" → Accounting services
+
 ## v0.3.0 (2026-04-03)
 
 ### Services
