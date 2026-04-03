@@ -22,6 +22,9 @@ interface ServiceSeed {
   category: string;
   tags: string;
   mcp_endpoint: string;
+  mcp_status: string;
+  api_url?: string;
+  api_auth_method?: string;
   trust_score: number;
 }
 
@@ -97,11 +100,44 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     // jooto
     { service_id: "jooto", change_date: "2026-03-14", change_type: "feature", summary: "Board template cloning tool added" },
     { service_id: "jooto", change_date: "2026-02-15", change_type: "fix", summary: "Label color sync issue resolved" },
+
+    // kintone
+    { service_id: "kintone", change_date: "2026-03-30", change_type: "feature", summary: "Process management API support added", details: "Agents can now advance workflow status and retrieve process history via MCP." },
+    { service_id: "kintone", change_date: "2026-03-10", change_type: "feature", summary: "Desktop Extension available", details: "kintone MCP can now be installed as a Desktop Extension in addition to npm/Docker." },
+
+    // garoon
+    { service_id: "garoon", change_date: "2026-03-20", change_type: "feature", summary: "Schedule search and conflict detection added" },
+
+    // shopify-jp
+    { service_id: "shopify-jp", change_date: "2026-03-25", change_type: "feature", summary: "Storefront MCP endpoint built into every store", details: "Every Shopify store now exposes /api/mcp endpoint by default." },
+    { service_id: "shopify-jp", change_date: "2026-03-15", change_type: "feature", summary: "Checkout Extensions MCP server added" },
+
+    // cloudsign
+    { service_id: "cloudsign", change_date: "2026-03-28", change_type: "feature", summary: "Bulk contract sending API added", details: "Send up to 50 contracts in a single API call." },
+    { service_id: "cloudsign", change_date: "2026-03-05", change_type: "feature", summary: "Webhook support for contract status changes" },
+
+    // slack
+    { service_id: "slack", change_date: "2026-03-30", change_type: "feature", summary: "Native MCP server released", details: "Official Slack MCP server respects existing workspace permissions and channel access." },
+
+    // notion
+    { service_id: "notion", change_date: "2026-03-22", change_type: "feature", summary: "Database query filtering via MCP", details: "Agents can now filter and sort Notion database queries through MCP tools." },
+
+    // line-messaging
+    { service_id: "line-messaging", change_date: "2026-03-18", change_type: "feature", summary: "Flex Message v2 support added", details: "Rich interactive message templates now supported via MCP." },
+
+    // salesgo
+    { service_id: "salesgo", change_date: "2026-03-25", change_type: "feature", summary: "GoZeeta AI agent integration announced", details: "SALES GO's AI agent will use MCP for autonomous sales activity management." },
+
+    // treasure-data
+    { service_id: "treasure-data", change_date: "2026-03-28", change_type: "feature", summary: "Natural language SQL query support", details: "Agents can write SQL queries by describing what they want in natural language." },
+
+    // freee-hr
+    { service_id: "freee-hr", change_date: "2026-03-20", change_type: "feature", summary: "Year-end adjustment (年末調整) workflow support", details: "28 API files covering the full year-end adjustment process for Japanese employers." },
   ];
 
   const insertService = db.prepare(`
-    INSERT OR IGNORE INTO services (id, name, namespace, description, category, tags, mcp_endpoint, trust_score)
-    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @trust_score)
+    INSERT OR IGNORE INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score)
+    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score)
   `);
 
   const insertStats = db.prepare(`
@@ -120,7 +156,11 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
 
   const seedAll = db.transaction(() => {
     for (const service of services) {
-      insertService.run(service);
+      insertService.run({
+        ...service,
+        api_url: service.api_url ?? null,
+        api_auth_method: service.api_auth_method ?? null,
+      });
       insertStats.run({ service_id: service.id });
     }
 

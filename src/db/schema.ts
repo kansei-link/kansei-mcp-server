@@ -10,6 +10,9 @@ export function initializeDb(db: Database.Database): void {
       category TEXT,
       tags TEXT,
       mcp_endpoint TEXT,
+      mcp_status TEXT DEFAULT 'official',
+      api_url TEXT,
+      api_auth_method TEXT,
       trust_score REAL DEFAULT 0.5,
       usage_count INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))

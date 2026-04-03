@@ -10,6 +10,9 @@ interface ServiceRow {
   category: string | null;
   tags: string | null;
   mcp_endpoint: string | null;
+  mcp_status: string | null;
+  api_url: string | null;
+  api_auth_method: string | null;
   trust_score: number;
   usage_count: number;
   total_calls: number | null;
@@ -35,7 +38,7 @@ export function register(server: McpServer, db: Database.Database): void {
         category: z
           .string()
           .optional()
-          .describe("Filter by category: crm, project_management, communication, accounting, hr, ecommerce"),
+          .describe("Filter by category: crm, project_management, communication, accounting, hr, ecommerce, legal, marketing, groupware, productivity"),
         limit: z
           .number()
           .optional()
@@ -91,21 +94,39 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   profit:        ["accounting"],
   refund:        ["accounting"],
   reimbursement: ["accounting"],
+  "請求":        ["accounting"],
+  "経費":        ["accounting"],
+  "会計":        ["accounting"],
+  "確定申告":    ["accounting"],
 
   // HR
   employee:      ["hr"],
   employees:     ["hr"],
+  staff:         ["hr"],
+  personnel:     ["hr"],
   attendance:    ["hr"],
   leave:         ["hr"],
   hiring:        ["hr"],
   recruit:       ["hr"],
   recruitment:   ["hr"],
   onboarding:    ["hr"],
+  offboarding:   ["hr"],
   talent:        ["hr"],
   hr:            ["hr"],
   workforce:     ["hr"],
   shift:         ["hr"],
   timecard:      ["hr"],
+  overtime:      ["hr"],
+  clock:         ["hr"],
+  "人事":        ["hr"],
+  "労務":        ["hr"],
+  "社員":        ["hr"],
+  "従業員":      ["hr"],
+  "勤怠":        ["hr"],
+  "給与":        ["accounting", "hr"],
+  "年末調整":    ["hr"],
+  "year-end":    ["hr", "accounting"],
+  adjustment:    ["hr"],
 
   // Communication / messaging
   message:       ["communication"],
@@ -117,6 +138,8 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   call:          ["communication"],
   meeting:       ["communication"],
   video:         ["communication"],
+  "連絡":        ["communication"],
+  "チャット":    ["communication"],
 
   // CRM
   lead:          ["crm"],
@@ -143,6 +166,9 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   ticket:        ["project_management"],
   backlog:       ["project_management"],
   milestone:     ["project_management"],
+  app:           ["project_management", "groupware"],
+  workflow:      ["project_management", "hr"],
+  automation:    ["project_management"],
 
   // E-commerce
   product:       ["ecommerce"],
@@ -155,10 +181,49 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   store:         ["ecommerce"],
   shop:          ["ecommerce"],
   catalog:       ["ecommerce"],
+  marketplace:   ["ecommerce"],
+
+  // Legal / contract
+  contract:      ["legal"],
+  contracts:     ["legal"],
+  sign:          ["legal"],
+  signature:     ["legal"],
+  esignature:    ["legal"],
+  agreement:     ["legal"],
+  nda:           ["legal"],
+  legal:         ["legal"],
+  "契約":        ["legal"],
+  "電子署名":    ["legal"],
+
+  // Marketing
+  email:         ["marketing", "communication"],
+  campaign:      ["marketing"],
+  newsletter:    ["marketing"],
+  analytics:     ["marketing"],
+  data:          ["marketing"],
+  segment:       ["marketing"],
+  marketing:     ["marketing"],
+  outreach:      ["marketing"],
+  broadcast:     ["marketing", "communication"],
+
+  // Groupware / collaboration
+  wiki:          ["groupware", "project_management"],
+  calendar:      ["groupware", "communication"],
+  schedule:      ["groupware"],
+  groupware:     ["groupware"],
+  workspace:     ["groupware"],
+  document:      ["groupware"],
+  notes:         ["groupware"],
+
+  // Productivity
+  form:          ["productivity"],
+  survey:        ["productivity"],
+  recording:     ["productivity"],
+  transcript:    ["productivity"],
 };
 
 /** Category boost added to relevance_score when service category matches intent */
-const CATEGORY_BOOST = 0.3;
+const CATEGORY_BOOST = 0.5;
 
 /**
  * Detect likely categories from an intent string by scanning for keyword
@@ -186,16 +251,109 @@ export function searchServices(
   limit: number = 5
 ): object[] {
   const intentCategories = detectIntentCategories(intent);
+  const intentLower = intent.toLowerCase();
 
-  // Try FTS5 search first
-  let results = ftsSearch(db, intent, category, limit, intentCategories);
+  // Run FTS search
+  const ftsResults = ftsSearch(db, intent, category, limit, intentCategories, intentLower);
 
-  // Fallback to LIKE search if FTS returns nothing
-  if (results.length === 0) {
-    results = likeSearch(db, intent, category, limit, intentCategories);
+  // Run LIKE search (catches Japanese text + partial matches FTS misses)
+  const likeResults = likeSearch(db, intent, category, limit, intentCategories, intentLower);
+
+  // When intent categories are detected, also fetch top services from those
+  // categories directly — ensures category-relevant services appear even when
+  // FTS tokenization misses them (e.g. "manage" vs "management")
+  const categoryResults = intentCategories.size > 0 && !category
+    ? categorySearch(db, intentCategories, limit, intentCategories, intentLower)
+    : [];
+
+  // Merge and deduplicate: FTS > LIKE > category, keep highest score per service
+  const merged = new Map<string, ScoredResult>();
+  for (const list of [ftsResults, likeResults, categoryResults]) {
+    for (const r of list) {
+      const existing = merged.get(r.service_id);
+      if (!existing || r.relevance_score > existing.relevance_score) {
+        merged.set(r.service_id, r);
+      }
+    }
   }
 
-  return results;
+  return [...merged.values()]
+    .sort((a, b) => b.relevance_score - a.relevance_score)
+    .slice(0, limit);
+}
+
+interface ScoredResult {
+  service_id: string;
+  name: string;
+  namespace: string | null;
+  description: string | null;
+  category: string | null;
+  mcp_endpoint: string | null;
+  mcp_status: string;
+  api_url: string | null;
+  api_auth_method: string | null;
+  trust_score: number;
+  usage_count: number;
+  success_rate: number | null;
+  relevance_score: number;
+}
+
+/** Bonus when the user's intent mentions a service by name */
+const NAME_MATCH_BOOST = 0.6;
+
+function nameMatchBonus(service: ServiceRow, intentLower: string): number {
+  const name = service.name.toLowerCase();
+  const id = service.id.toLowerCase();
+  // Check if any significant part of the service name appears in the intent
+  // e.g. "LINE" in "send LINE message", "shopify" in "Shopify inventory"
+  const nameTokens = name.split(/[\s()（）/]+/).filter((t) => t.length > 2);
+  for (const token of nameTokens) {
+    if (intentLower.includes(token)) return NAME_MATCH_BOOST;
+  }
+  if (intentLower.includes(id)) return NAME_MATCH_BOOST;
+  return 0;
+}
+
+function formatResult(s: ServiceRow, score: number, intentLower?: string): ScoredResult {
+  const nameBonus = intentLower ? nameMatchBonus(s, intentLower) : 0;
+  return {
+    service_id: s.id,
+    name: s.name,
+    namespace: s.namespace,
+    description: s.description,
+    category: s.category,
+    mcp_endpoint: s.mcp_endpoint || null,
+    mcp_status: s.mcp_status ?? "official",
+    api_url: s.api_url ?? null,
+    api_auth_method: s.api_auth_method ?? null,
+    trust_score: s.trust_score,
+    usage_count: s.total_calls ?? 0,
+    success_rate: s.success_rate ?? null,
+    relevance_score: Math.round((score + nameBonus) * 100) / 100,
+  };
+}
+
+function categorySearch(
+  db: Database.Database,
+  intentCategories: Set<string>,
+  limit: number,
+  _intentCategories: Set<string>,
+  intentLower: string = ""
+): ScoredResult[] {
+  const cats = [...intentCategories];
+  const placeholders = cats.map(() => "?").join(", ");
+  const query = `
+    SELECT s.*, ss.total_calls, ss.success_rate
+    FROM services s
+    LEFT JOIN service_stats ss ON s.id = ss.service_id
+    WHERE s.category IN (${placeholders})
+    ORDER BY s.trust_score DESC
+    LIMIT ?
+  `;
+  const services = db.prepare(query).all(...cats, limit * 2) as ServiceRow[];
+  return services.map((s) =>
+    formatResult(s, s.trust_score + CATEGORY_BOOST, intentLower)
+  );
 }
 
 function ftsSearch(
@@ -203,13 +361,14 @@ function ftsSearch(
   intent: string,
   category: string | undefined,
   limit: number,
-  intentCategories: Set<string>
-): object[] {
-  // Tokenize intent for FTS query (simple word splitting)
+  intentCategories: Set<string>,
+  intentLower: string = ""
+): ScoredResult[] {
+  // Tokenize intent for FTS query — use prefix matching (manage* matches management)
   const tokens = intent
     .split(/\s+/)
     .filter((t) => t.length > 1)
-    .map((t) => `"${t}"`)
+    .map((t) => `"${t}"*`)
     .join(" OR ");
 
   if (!tokens) return [];
@@ -247,18 +406,7 @@ function ftsSearch(
         intentCategories.size > 0 && s.category && intentCategories.has(s.category)
           ? CATEGORY_BOOST
           : 0;
-      return {
-        service_id: s.id,
-        name: s.name,
-        namespace: s.namespace,
-        description: s.description,
-        category: s.category,
-        mcp_endpoint: s.mcp_endpoint,
-        trust_score: s.trust_score,
-        usage_count: s.total_calls ?? 0,
-        success_rate: s.success_rate ?? null,
-        relevance_score: Math.round((baseScore + categoryBoost) * 100) / 100,
-      };
+      return formatResult(s, baseScore + categoryBoost, intentLower);
     });
 
     scored.sort((a, b) => b.relevance_score - a.relevance_score);
@@ -275,8 +423,9 @@ function likeSearch(
   intent: string,
   category: string | undefined,
   limit: number,
-  intentCategories: Set<string>
-): object[] {
+  intentCategories: Set<string>,
+  intentLower: string = ""
+): ScoredResult[] {
   const words = intent.split(/\s+/).filter((t) => t.length > 1);
   if (words.length === 0) return [];
 
@@ -314,18 +463,7 @@ function likeSearch(
       intentCategories.size > 0 && s.category && intentCategories.has(s.category)
         ? CATEGORY_BOOST
         : 0;
-    return {
-      service_id: s.id,
-      name: s.name,
-      namespace: s.namespace,
-      description: s.description,
-      category: s.category,
-      mcp_endpoint: s.mcp_endpoint,
-      trust_score: s.trust_score,
-      usage_count: s.total_calls ?? 0,
-      success_rate: s.success_rate ?? null,
-      relevance_score: Math.round((s.trust_score + categoryBoost) * 100) / 100,
-    };
+    return formatResult(s, s.trust_score + categoryBoost, intentLower);
   });
 
   scored.sort((a, b) => b.relevance_score - a.relevance_score);
