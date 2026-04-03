@@ -7,11 +7,12 @@ import { register as registerReportOutcome } from "./tools/report-outcome.js";
 import { register as registerGetInsights } from "./tools/get-insights.js";
 import { register as registerFindCombinations } from "./tools/find-combinations.js";
 import { register as registerCheckUpdates } from "./tools/check-updates.js";
+import { register as registerGetServiceDetail } from "./tools/get-service-detail.js";
 
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "kansei-link",
-    version: "0.1.0",
+    version: "0.3.0",
   });
 
   // Initialize database
@@ -21,6 +22,7 @@ export function createServer(): McpServer {
   // Register all tools
   registerSearchServices(server, db);
   registerGetRecipe(server, db);
+  registerGetServiceDetail(server, db);
   registerReportOutcome(server, db);
   registerGetInsights(server, db);
   registerFindCombinations(server, db);

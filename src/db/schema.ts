@@ -62,6 +62,26 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_services_category ON services(category);
     CREATE INDEX IF NOT EXISTS idx_changelog_service ON service_changelog(service_id);
     CREATE INDEX IF NOT EXISTS idx_changelog_date ON service_changelog(change_date);
+
+    CREATE TABLE IF NOT EXISTS service_api_guides (
+      service_id TEXT PRIMARY KEY REFERENCES services(id),
+      base_url TEXT NOT NULL,
+      api_version TEXT,
+      auth_overview TEXT NOT NULL,
+      auth_token_url TEXT,
+      auth_scopes TEXT,
+      auth_setup_hint TEXT,
+      sandbox_url TEXT,
+      key_endpoints TEXT NOT NULL,
+      request_content_type TEXT DEFAULT 'application/json',
+      pagination_style TEXT,
+      rate_limit TEXT,
+      error_format TEXT,
+      quickstart_example TEXT NOT NULL,
+      agent_tips TEXT,
+      docs_url TEXT,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   // FTS5 virtual table for full-text search on services

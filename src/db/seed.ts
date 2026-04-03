@@ -36,6 +36,25 @@ interface RecipeSeed {
   required_services: string[];
 }
 
+interface ApiGuideSeed {
+  service_id: string;
+  base_url: string;
+  api_version: string | null;
+  auth_overview: string;
+  auth_token_url: string | null;
+  auth_scopes: string | null;
+  auth_setup_hint: string | null;
+  sandbox_url: string | null;
+  key_endpoints: unknown[];
+  request_content_type: string;
+  pagination_style: string | null;
+  rate_limit: string | null;
+  error_format: string | null;
+  quickstart_example: string;
+  agent_tips: string[];
+  docs_url: string | null;
+}
+
 function loadJson<T>(filename: string): T {
   // Look in src/data first (dev), then dist/data (built)
   const srcPath = path.join(__dirname, "..", "..", "src", "data", filename);
@@ -47,6 +66,7 @@ function loadJson<T>(filename: string): T {
 export function seedDatabase(db: ReturnType<typeof getDb>): void {
   const services = loadJson<ServiceSeed[]>("services-seed.json");
   const recipes = loadJson<RecipeSeed[]>("recipes-seed.json");
+  const apiGuides = loadJson<ApiGuideSeed[]>("api-guides-seed.json");
 
   const changelogEntries: ChangelogSeed[] = [
     // freee
@@ -154,6 +174,11 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     VALUES (@service_id, @change_date, @change_type, @summary, @details)
   `);
 
+  const insertApiGuide = db.prepare(`
+    INSERT OR IGNORE INTO service_api_guides (service_id, base_url, api_version, auth_overview, auth_token_url, auth_scopes, auth_setup_hint, sandbox_url, key_endpoints, request_content_type, pagination_style, rate_limit, error_format, quickstart_example, agent_tips, docs_url)
+    VALUES (@service_id, @base_url, @api_version, @auth_overview, @auth_token_url, @auth_scopes, @auth_setup_hint, @sandbox_url, @key_endpoints, @request_content_type, @pagination_style, @rate_limit, @error_format, @quickstart_example, @agent_tips, @docs_url)
+  `);
+
   const seedAll = db.transaction(() => {
     for (const service of services) {
       insertService.run({
@@ -181,6 +206,23 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         details: entry.details ?? null,
       });
     }
+
+    for (const guide of apiGuides) {
+      insertApiGuide.run({
+        ...guide,
+        api_version: guide.api_version ?? null,
+        auth_token_url: guide.auth_token_url ?? null,
+        auth_scopes: guide.auth_scopes ?? null,
+        auth_setup_hint: guide.auth_setup_hint ?? null,
+        sandbox_url: guide.sandbox_url ?? null,
+        key_endpoints: JSON.stringify(guide.key_endpoints),
+        pagination_style: guide.pagination_style ?? null,
+        rate_limit: guide.rate_limit ?? null,
+        error_format: guide.error_format ?? null,
+        agent_tips: JSON.stringify(guide.agent_tips),
+        docs_url: guide.docs_url ?? null,
+      });
+    }
   });
 
   seedAll();
@@ -196,8 +238,12 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     .prepare("SELECT count(*) as count FROM recipes")
     .get() as { count: number };
 
+  const guideCount = db
+    .prepare("SELECT count(*) as count FROM service_api_guides")
+    .get() as { count: number };
+
   console.log(
-    `Seeded ${serviceCount.count} services and ${recipeCount.count} recipes.`
+    `Seeded ${serviceCount.count} services, ${recipeCount.count} recipes, and ${guideCount.count} API guides.`
   );
 }
 

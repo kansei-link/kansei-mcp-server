@@ -1,0 +1,431 @@
+[
+  {
+    "service_id": "freee",
+    "base_url": "https://api.freee.co.jp/api/1/",
+    "api_version": "v1",
+    "auth_overview": "OAuth 2.0 Authorization Code + PKCE. Register app at freee Developer Portal. Exchange auth code for access_token (expires 24h). Use refresh_token (expires 90 days) to renew. MCP server handles auth automatically via npx @freee/mcp-server.",
+    "auth_token_url": "https://accounts.secure.freee.co.jp/public_api/token",
+    "auth_scopes": "read,write",
+    "auth_setup_hint": "1. Register at app.secure.freee.co.jp/developers. 2. Create app, set redirect_uri. 3. Get company_id from GET /companies. 4. Most endpoints require company_id param. 5. Or just use: npx @freee/mcp-server (handles OAuth automatically).",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "GET", "path": "/companies", "description": "List accessible companies (get company_id first)", "auth_required": true},
+      {"method": "GET", "path": "/deals", "description": "List deals (invoices/transactions)", "auth_required": true},
+      {"method": "POST", "path": "/deals", "description": "Create a new deal (invoice, expense, etc.)", "auth_required": true},
+      {"method": "GET", "path": "/journals", "description": "List journal entries", "auth_required": true},
+      {"method": "POST", "path": "/invoices", "description": "Create and send invoice", "auth_required": true},
+      {"method": "GET", "path": "/account_items", "description": "List account items (勘定科目)", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "offset: use 'offset' and 'limit' params (max 100). Response includes total_count.",
+    "rate_limit": "3,600 requests/hour per access token. Wallets/deals endpoints: 300/5min. HTTP 429 with rate-limit headers.",
+    "error_format": "JSON: {\"status_code\":400,\"errors\":[{\"type\":\"validation\",\"messages\":[\"...\"]}]}",
+    "quickstart_example": "GET /api/1/companies HTTP/1.1\nHost: api.freee.co.jp\nAuthorization: Bearer {access_token}\nAccept: application/json\n\nResponse: {\"companies\":[{\"id\":123,\"display_name\":\"テスト株式会社\",\"role\":\"admin\"}]}",
+    "agent_tips": [
+      "Almost every endpoint requires company_id — always call GET /companies first to get it.",
+      "Amount fields are integers in JPY (no decimal). 1000 = ¥1,000.",
+      "Date format: YYYY-MM-DD. All dates are JST (UTC+9).",
+      "The MCP server covers 5 domains: accounting, HR, payroll, expenses, invoicing. Use npx @freee/mcp-server for the easiest setup.",
+      "For tax filing (確定申告), use the /taxes endpoint group. Fiscal year closing requires specific workflow.",
+      "Deal types: income (収入), expense (支出), transfer (振替). Use 'type' field."
+    ],
+    "docs_url": "https://developer.freee.co.jp/docs/accounting/reference"
+  },
+  {
+    "service_id": "smarthr",
+    "base_url": "https://api.smarthr.jp/v1/",
+    "api_version": "v1",
+    "auth_overview": "OAuth 2.0 Authorization Code flow. Register application at developer.smarthr.jp to obtain client_id and client_secret. Exchange authorization code for access_token via POST /oauth/token. Access tokens expire in 1 hour; use refresh_token to renew.",
+    "auth_token_url": "https://api.smarthr.jp/oauth/token",
+    "auth_scopes": "employees.read,employees.write,documents.read,documents.write",
+    "auth_setup_hint": "1. Register at developer.smarthr.jp/apps. 2. Set redirect_uri. 3. Use sandbox environment for testing. 4. Request production access after verification.",
+    "sandbox_url": "https://sandbox.smarthr.jp/",
+    "key_endpoints": [
+      {"method": "GET", "path": "/employees", "description": "List all employees with pagination", "auth_required": true},
+      {"method": "POST", "path": "/employees", "description": "Create a new employee record", "auth_required": true},
+      {"method": "GET", "path": "/employees/{id}", "description": "Get employee details by ID", "auth_required": true},
+      {"method": "GET", "path": "/documents", "description": "List social insurance and tax documents", "auth_required": true},
+      {"method": "POST", "path": "/year_end_adjustments", "description": "Start year-end adjustment (年末調整) workflow", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "cursor-based: include 'cursor' param from response 'next_cursor' field. Default page size 25, max 100.",
+    "rate_limit": "600 requests/10 minutes per access token. HTTP 429 with Retry-After header.",
+    "error_format": "JSON: {\"errors\":[{\"code\":\"invalid_parameter\",\"field\":\"email\",\"message\":\"...\"}]}",
+    "quickstart_example": "GET /v1/employees HTTP/1.1\nHost: api.smarthr.jp\nAuthorization: Bearer {access_token}\nAccept: application/json\n\nResponse: {\"data\":[{\"id\":\"abc123\",\"last_name\":\"田中\",\"first_name\":\"太郎\",\"email\":\"tanaka@example.com\"}],\"next_cursor\":\"xyz789\"}",
+    "agent_tips": [
+      "Employee names are in separate last_name/first_name fields. Japanese order: last_name first (田中 太郎).",
+      "Date fields use ISO 8601 (YYYY-MM-DD), interpreted as JST.",
+      "Sandbox has pre-populated test employees — no need to create test data.",
+      "For year-end adjustment (年末調整), use /year_end_adjustments endpoint group.",
+      "Bulk operations: POST /employees/bulk_import with CSV payload for 10+ employees.",
+      "Social insurance (社会保険) documents require employee's My Number — handle with care (PII)."
+    ],
+    "docs_url": "https://developer.smarthr.jp/api/"
+  },
+  {
+    "service_id": "chatwork",
+    "base_url": "https://api.chatwork.com/v2/",
+    "api_version": "v2",
+    "auth_overview": "API token (simplest) or OAuth 2.0. API token: generate at chatwork.com/service/packages/chatwork/subpackages/api/token. Include as X-ChatWorkToken header. OAuth: register app at developer.chatwork.com.",
+    "auth_token_url": "https://oauth.chatwork.com/token",
+    "auth_scopes": "rooms.all:read_write,contacts.all:read",
+    "auth_setup_hint": "Easiest: Go to chatwork.com > Settings > API Token > generate. Use X-ChatWorkToken header. No app registration needed for personal token.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "GET", "path": "/me", "description": "Get your own account info", "auth_required": true},
+      {"method": "GET", "path": "/rooms", "description": "List chat rooms you belong to", "auth_required": true},
+      {"method": "POST", "path": "/rooms/{room_id}/messages", "description": "Send a message to a room", "auth_required": true},
+      {"method": "GET", "path": "/rooms/{room_id}/messages", "description": "Get messages from a room", "auth_required": true},
+      {"method": "POST", "path": "/rooms/{room_id}/tasks", "description": "Create a task in a room", "auth_required": true}
+    ],
+    "request_content_type": "application/x-www-form-urlencoded",
+    "pagination_style": "No standard pagination. Messages: use force=1 to get latest 100. Tasks: returned as full list.",
+    "rate_limit": "300 requests/5 minutes. HTTP 429 response. Check X-RateLimit-Remaining header.",
+    "error_format": "JSON: {\"errors\":[\"message string\"]}",
+    "quickstart_example": "POST /v2/rooms/123456/messages HTTP/1.1\nHost: api.chatwork.com\nX-ChatWorkToken: {your_token}\nContent-Type: application/x-www-form-urlencoded\n\nbody=Hello+from+agent!\n\nResponse: {\"message_id\":\"789\"}",
+    "agent_tips": [
+      "POST body uses application/x-www-form-urlencoded, NOT JSON. This is unusual — most agents default to JSON and get 400 errors.",
+      "Message body supports [info][title]Title[/title]Content[/info] tags for formatted messages. Use [To:account_id] for mentions.",
+      "Room IDs are numeric. Get them from GET /rooms first.",
+      "Task deadlines use Unix timestamps (seconds, not milliseconds).",
+      "Rate limit is strict (300/5min) — batch operations carefully."
+    ],
+    "docs_url": "https://developer.chatwork.com/reference"
+  },
+  {
+    "service_id": "kintone",
+    "base_url": "https://{subdomain}.cybozu.com/k/v1/",
+    "api_version": "v1",
+    "auth_overview": "Three auth methods: 1) API Token (per-app, simplest), 2) Password auth (username:password base64 in X-Cybozu-Authorization header), 3) OAuth 2.0 (register at developer.cybozu.io). API Token is recommended for agent use.",
+    "auth_token_url": "https://{subdomain}.cybozu.com/oauth2/token",
+    "auth_scopes": "k:app_record:read,k:app_record:write",
+    "auth_setup_hint": "Easiest: In kintone app settings > API Token > generate token with needed permissions. Include as X-Cybozu-API-Token header. For multiple apps, combine tokens with comma.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "GET", "path": "/records.json", "description": "Get records from an app (supports query)", "auth_required": true},
+      {"method": "POST", "path": "/records.json", "description": "Add new records to an app", "auth_required": true},
+      {"method": "PUT", "path": "/records.json", "description": "Update existing records", "auth_required": true},
+      {"method": "GET", "path": "/record.json", "description": "Get a single record by ID", "auth_required": true},
+      {"method": "GET", "path": "/app/form/fields.json", "description": "Get app field definitions (schema)", "auth_required": true},
+      {"method": "GET", "path": "/apps.json", "description": "List accessible apps", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "offset: 'offset' param with 'totalCount: true' in query. Default limit 100, max 500.",
+    "rate_limit": "10,000 requests/day for standard plan. No per-minute limit documented, but concurrent connections limited to 10.",
+    "error_format": "JSON: {\"code\":\"GAIA_IL26\",\"id\":\"xxx\",\"message\":\"The record is not found.\"}",
+    "quickstart_example": "GET /k/v1/records.json?app=1&query=status%3D%22Open%22 HTTP/1.1\nHost: example.cybozu.com\nX-Cybozu-API-Token: {api_token}\n\nResponse: {\"records\":[{\"$id\":{\"value\":\"1\"},\"title\":{\"value\":\"タスクA\"}}],\"totalCount\":\"42\"}",
+    "agent_tips": [
+      "Every field value is wrapped in {\"value\": \"...\"} — even numbers. Always access record.field_code.value.",
+      "Field codes (フィールドコード) are the API names — different from display labels. Get them from /app/form/fields.json first.",
+      "Base URL requires customer's subdomain: https://{subdomain}.cybozu.com. Ask the user for their subdomain.",
+      "Query syntax is similar to SQL WHERE: 'status = \"Open\" and created_time > \"2026-01-01\"'. Use URL encoding.",
+      "For multiple API tokens across apps, join with comma: 'X-Cybozu-API-Token: token1,token2'.",
+      "Bulk operations: POST /records.json accepts up to 100 records at once.",
+      "Process management (プロセス管理): use /record/status.json to advance workflow status."
+    ],
+    "docs_url": "https://cybozu.dev/ja/kintone/docs/rest-api/"
+  },
+  {
+    "service_id": "backlog",
+    "base_url": "https://{space}.backlog.com/api/v2/",
+    "api_version": "v2",
+    "auth_overview": "Two methods: 1) API Key — generate at Backlog settings, pass as ?apiKey= query param. 2) OAuth 2.0 — register at developer.nulab.com. API key is simpler for agents.",
+    "auth_token_url": "https://{space}.backlog.com/api/v2/oauth2/token",
+    "auth_scopes": null,
+    "auth_setup_hint": "1. Log into Backlog > Personal Settings > API. 2. Generate API key. 3. Append ?apiKey={key} to every request URL. No header needed.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "GET", "path": "/issues", "description": "List issues with filters (project, status, assignee)", "auth_required": true},
+      {"method": "POST", "path": "/issues", "description": "Create a new issue", "auth_required": true},
+      {"method": "PATCH", "path": "/issues/{issueIdOrKey}", "description": "Update an issue (status, assignee, etc.)", "auth_required": true},
+      {"method": "GET", "path": "/projects", "description": "List all projects", "auth_required": true},
+      {"method": "GET", "path": "/wikis", "description": "List wiki pages in a project", "auth_required": true}
+    ],
+    "request_content_type": "application/x-www-form-urlencoded",
+    "pagination_style": "offset: 'offset' and 'count' params (max 100). No total count in response — fetch until empty.",
+    "rate_limit": "Varies by plan. Typically no strict rate limit for API key access, but heavy use may be throttled.",
+    "error_format": "JSON: {\"errors\":[{\"message\":\"No such issue.\",\"code\":6,\"moreInfo\":\"\"}]}",
+    "quickstart_example": "GET /api/v2/issues?projectId[]=1&statusId[]=1&apiKey={key} HTTP/1.1\nHost: myspace.backlog.com\n\nResponse: [{\"id\":1,\"issueKey\":\"PROJ-1\",\"summary\":\"バグ修正\",\"status\":{\"id\":1,\"name\":\"Open\"}}]",
+    "agent_tips": [
+      "POST/PATCH use application/x-www-form-urlencoded, not JSON. Common source of 400 errors.",
+      "Issue keys like 'PROJ-1' can be used instead of numeric IDs in most endpoints.",
+      "Array params use bracket notation: projectId[]=1&projectId[]=2.",
+      "Base URL requires space name: https://{space}.backlog.com. Ask user for their Backlog space name.",
+      "Webhook support: POST /projects/{projectId}/webhooks for real-time issue updates."
+    ],
+    "docs_url": "https://developer.nulab.com/docs/backlog/"
+  },
+  {
+    "service_id": "slack",
+    "base_url": "https://slack.com/api/",
+    "api_version": null,
+    "auth_overview": "OAuth 2.0 with Bot Token. Install Slack app to workspace, get xoxb- bot token. Include as Bearer token in Authorization header. Or use official Slack MCP server.",
+    "auth_token_url": "https://slack.com/api/oauth.v2.access",
+    "auth_scopes": "chat:write,channels:read,channels:history,users:read",
+    "auth_setup_hint": "1. Create app at api.slack.com/apps. 2. Add Bot Token Scopes (chat:write, channels:read, etc.). 3. Install to workspace. 4. Copy xoxb- Bot User OAuth Token. Or use MCP: npx @anthropic/slack-mcp.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "POST", "path": "/chat.postMessage", "description": "Send a message to a channel", "auth_required": true},
+      {"method": "GET", "path": "/conversations.list", "description": "List channels the bot can see", "auth_required": true},
+      {"method": "GET", "path": "/conversations.history", "description": "Get message history from a channel", "auth_required": true},
+      {"method": "GET", "path": "/users.list", "description": "List workspace members", "auth_required": true},
+      {"method": "POST", "path": "/reactions.add", "description": "Add emoji reaction to a message", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "cursor-based: response has 'response_metadata.next_cursor'. Pass cursor= param. Default limit 100.",
+    "rate_limit": "Tier-based: Tier 1 (1/min), Tier 2 (20/min), Tier 3 (50/min), Tier 4 (100/min). chat.postMessage is Tier 3. HTTP 429 with Retry-After.",
+    "error_format": "JSON: {\"ok\":false,\"error\":\"channel_not_found\"}. Always check 'ok' field — HTTP status is always 200.",
+    "quickstart_example": "POST /api/chat.postMessage HTTP/1.1\nHost: slack.com\nAuthorization: Bearer xoxb-your-token\nContent-Type: application/json\n\n{\"channel\":\"C01234567\",\"text\":\"Hello from agent!\"}\n\nResponse: {\"ok\":true,\"channel\":\"C01234567\",\"ts\":\"1234567890.123456\"}",
+    "agent_tips": [
+      "CRITICAL: Slack API always returns HTTP 200 even on errors. Always check response.ok field, not HTTP status code.",
+      "Channel IDs start with C (public), G (private group), D (DM). Use conversations.list to get IDs — channel names don't work in API calls.",
+      "Message timestamps ('ts') are unique message IDs. Use them for replies (thread_ts), reactions, and updates.",
+      "Bot must be invited to a channel before it can post. Use conversations.join or invite manually.",
+      "Rate limits vary by method tier. chat.postMessage is Tier 3 (50/min) — enough for most agent use."
+    ],
+    "docs_url": "https://api.slack.com/methods"
+  },
+  {
+    "service_id": "shopify-jp",
+    "base_url": "https://{store}.myshopify.com/admin/api/2024-10/",
+    "api_version": "2024-10",
+    "auth_overview": "OAuth 2.0 for custom apps, or Admin API access token for private apps. Create app in Shopify Partners or store admin. Access token in X-Shopify-Access-Token header.",
+    "auth_token_url": "https://{store}.myshopify.com/admin/oauth/access_token",
+    "auth_scopes": "read_products,write_products,read_orders,write_orders",
+    "auth_setup_hint": "Easiest: Store admin > Settings > Apps > Develop apps > Create app > Configure API scopes > Install. Copy Admin API access token.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "GET", "path": "/products.json", "description": "List products with pagination", "auth_required": true},
+      {"method": "POST", "path": "/products.json", "description": "Create a new product", "auth_required": true},
+      {"method": "GET", "path": "/orders.json", "description": "List orders", "auth_required": true},
+      {"method": "GET", "path": "/inventory_levels.json", "description": "Get inventory levels for items", "auth_required": true},
+      {"method": "POST", "path": "/graphql.json", "description": "GraphQL Admin API (more powerful)", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "cursor-based via Link header: follow rel='next' URL. REST default 50, max 250. GraphQL uses pageInfo cursor.",
+    "rate_limit": "REST: 40 requests/second (2 per second for some plans). GraphQL: 1000 cost points/second. Check X-Shopify-Shop-Api-Call-Limit header.",
+    "error_format": "JSON: {\"errors\":{\"title\":[\"can't be blank\"]}} or {\"errors\":\"Not Found\"}",
+    "quickstart_example": "GET /admin/api/2024-10/products.json?limit=5 HTTP/1.1\nHost: mystore.myshopify.com\nX-Shopify-Access-Token: {access_token}\n\nResponse: {\"products\":[{\"id\":123,\"title\":\"商品A\",\"variants\":[{\"price\":\"1500.00\"}]}]}",
+    "agent_tips": [
+      "GraphQL Admin API is preferred over REST for complex queries — single request instead of multiple REST calls.",
+      "Product prices are strings, not numbers ('1500.00'). Parse carefully.",
+      "API version is in the URL path. Use the latest stable version. Old versions are deprecated on a rolling basis.",
+      "For Japanese stores: product titles and descriptions may contain full-width characters. Handle encoding correctly.",
+      "Inventory management requires location_id — get locations first via /locations.json.",
+      "Webhook support: /webhooks.json for real-time order/product updates."
+    ],
+    "docs_url": "https://shopify.dev/docs/api/admin-rest"
+  },
+  {
+    "service_id": "kingoftime",
+    "base_url": "https://api.kingtime.jp/v1/",
+    "api_version": "v1",
+    "auth_overview": "API Token. Generate at KING OF TIME admin console > Settings > API. Include as Authorization: Bearer {token} header.",
+    "auth_token_url": null,
+    "auth_scopes": null,
+    "auth_setup_hint": "1. Admin login to KING OF TIME. 2. Settings > 外部サービス連携 > API. 3. Generate access token. 4. Use as Bearer token.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "GET", "path": "/daily_workings/{date}", "description": "Get all employees' attendance for a date", "auth_required": true},
+      {"method": "GET", "path": "/employees", "description": "List all employees", "auth_required": true},
+      {"method": "GET", "path": "/daily_workings/{employee_id}/{date}", "description": "Get specific employee attendance", "auth_required": true},
+      {"method": "GET", "path": "/overtime_requests", "description": "List overtime requests", "auth_required": true},
+      {"method": "GET", "path": "/leave_requests", "description": "List leave/PTO requests", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "offset: 'offset' and 'limit' params. Default limit 100.",
+    "rate_limit": "Not publicly documented. Recommended: max 10 requests/second.",
+    "error_format": "JSON: {\"errors\":[{\"code\":\"404\",\"message\":\"Resource not found\"}]}",
+    "quickstart_example": "GET /v1/daily_workings/2026-04-01 HTTP/1.1\nHost: api.kingtime.jp\nAuthorization: Bearer {token}\nAccept: application/json\n\nResponse: [{\"employee_id\":\"001\",\"date\":\"2026-04-01\",\"clock_in\":\"09:00\",\"clock_out\":\"18:00\",\"overtime_minutes\":0}]",
+    "agent_tips": [
+      "Date format: YYYY-MM-DD. All times are in JST (UTC+9).",
+      "Overtime is in minutes, not hours. 60 = 1 hour overtime.",
+      "Read-only API in most plans. Write operations (clock in/out) require premium API access.",
+      "Employee IDs are company-specific codes, not universal IDs. Get the mapping from GET /employees.",
+      "Japanese labor law compliance: 36協定 (Article 36 agreement) limits apply. overtime_minutes reflects legal overtime."
+    ],
+    "docs_url": "https://developer.kingtime.jp/"
+  },
+  {
+    "service_id": "moneyforward",
+    "base_url": "https://accounting.moneyforward.com/api/v3/",
+    "api_version": "v3",
+    "auth_overview": "OAuth 2.0 Authorization Code flow. Register app at MF Developer Portal. Or use official MCP server: npx @moneyforward/mcp-server (handles auth).",
+    "auth_token_url": "https://accounting.moneyforward.com/oauth/token",
+    "auth_scopes": "mfc/accounting/read,mfc/accounting/write",
+    "auth_setup_hint": "Easiest: npx @moneyforward/mcp-server (Remote MCP available to all plans since March 2026). Manual: register at developer.moneyforward.com, get client_id/secret.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "GET", "path": "/offices", "description": "List offices (事業所) — get office_id first", "auth_required": true},
+      {"method": "GET", "path": "/journals", "description": "List journal entries (仕訳)", "auth_required": true},
+      {"method": "POST", "path": "/journals", "description": "Create journal entry", "auth_required": true},
+      {"method": "GET", "path": "/deal_categories", "description": "List account items for deals", "auth_required": true},
+      {"method": "GET", "path": "/trial_balance", "description": "Get trial balance (試算表)", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "page-based: 'page' and 'per_page' params (max 100). Response includes total_count and total_pages.",
+    "rate_limit": "300 requests/5 minutes per token. HTTP 429 with Retry-After.",
+    "error_format": "JSON: {\"error_messages\":[\"...\"],\"errors\":{\"field\":[\"message\"]}}",
+    "quickstart_example": "GET /api/v3/offices HTTP/1.1\nHost: accounting.moneyforward.com\nAuthorization: Bearer {access_token}\n\nResponse: {\"offices\":[{\"id\":123,\"display_name\":\"テスト事務所\"}]}",
+    "agent_tips": [
+      "office_id is required for most endpoints — always call GET /offices first (same pattern as freee's company_id).",
+      "Journal entries (仕訳): debit/credit sides must balance. Use deal_categories to get valid account item IDs.",
+      "AI categorization: POST /auto_journal_entries for automatic ML-powered expense categorization.",
+      "Amount fields are integers in JPY, no decimals.",
+      "MCP server (March 2026) supports all plans — Remote MCP is the easiest integration path."
+    ],
+    "docs_url": "https://developer.moneyforward.com/docs/accounting"
+  },
+  {
+    "service_id": "cloudsign",
+    "base_url": "https://api.cloudsign.jp/v1/",
+    "api_version": "v1",
+    "auth_overview": "API Key + Client ID. Generate at CloudSign admin > Settings > API. Include X-Api-Key and X-Client-Id headers in every request.",
+    "auth_token_url": null,
+    "auth_scopes": null,
+    "auth_setup_hint": "1. Admin login to CloudSign. 2. Settings > API連携. 3. Generate API Key and Client ID. 4. Use both in request headers.",
+    "sandbox_url": "https://api-sandbox.cloudsign.jp/v1/",
+    "key_endpoints": [
+      {"method": "POST", "path": "/documents", "description": "Create a new contract document", "auth_required": true},
+      {"method": "GET", "path": "/documents", "description": "List all documents with status filter", "auth_required": true},
+      {"method": "POST", "path": "/documents/{id}/participants", "description": "Add signers to a document", "auth_required": true},
+      {"method": "POST", "path": "/documents/{id}/send", "description": "Send document for signing", "auth_required": true},
+      {"method": "GET", "path": "/documents/{id}/files", "description": "Download signed PDF", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "page-based: 'page' and 'per_page' params.",
+    "rate_limit": "100 requests/minute. HTTP 429 on exceed.",
+    "error_format": "JSON: {\"error\":{\"code\":\"invalid_request\",\"message\":\"...\"}}",
+    "quickstart_example": "GET /v1/documents?status=waiting HTTP/1.1\nHost: api.cloudsign.jp\nX-Api-Key: {api_key}\nX-Client-Id: {client_id}\n\nResponse: {\"documents\":[{\"id\":\"doc_123\",\"title\":\"業務委託契約書\",\"status\":\"waiting\"}]}",
+    "agent_tips": [
+      "Requires BOTH X-Api-Key AND X-Client-Id headers. Missing either returns 401.",
+      "Document workflow: create → add participants → upload PDF → send → wait for signing.",
+      "Sandbox environment available — use it for testing. Documents in sandbox are not legally binding.",
+      "Signed documents are legally valid under Japanese electronic signature law (電子署名法).",
+      "Bulk send: POST /documents/bulk_send for sending up to 50 contracts at once (new in March 2026)."
+    ],
+    "docs_url": "https://developer.cloudsign.jp/"
+  },
+  {
+    "service_id": "sansan",
+    "base_url": "https://api.sansan.com/v8/",
+    "api_version": "v8",
+    "auth_overview": "OAuth 2.0 (since March 2026, replacing API key auth). Register at developer.sansan.com. Client credentials or Authorization Code flow.",
+    "auth_token_url": "https://api.sansan.com/oauth/token",
+    "auth_scopes": "bizcard:read,user:read",
+    "auth_setup_hint": "1. Register at developer.sansan.com. 2. Create OAuth application. 3. Note: API key auth was removed in March 2026 — must use OAuth 2.0 now.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "GET", "path": "/bizcards", "description": "Search business cards", "auth_required": true},
+      {"method": "GET", "path": "/bizcards/{id}", "description": "Get business card details", "auth_required": true},
+      {"method": "GET", "path": "/users", "description": "List company users", "auth_required": true},
+      {"method": "GET", "path": "/tags", "description": "List tags for organizing contacts", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "cursor-based: response includes 'hasMore' and 'nextPageToken'. Pass as pageToken param.",
+    "rate_limit": "1,000 requests/hour. HTTP 429 with Retry-After.",
+    "error_format": "JSON: {\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"...\",\"details\":[]}}",
+    "quickstart_example": "GET /v8/bizcards?name=田中&limit=10 HTTP/1.1\nHost: api.sansan.com\nAuthorization: Bearer {access_token}\n\nResponse: {\"data\":[{\"id\":\"bc_123\",\"personName\":{\"lastName\":\"田中\",\"firstName\":\"太郎\"},\"companyName\":\"株式会社テスト\",\"email\":\"tanaka@test.co.jp\"}]}",
+    "agent_tips": [
+      "BREAKING CHANGE (March 2026): Authentication switched from API key to OAuth 2.0. Old API keys no longer work.",
+      "Business card OCR accuracy is 98% — but always verify critical fields like email/phone for programmatic use.",
+      "Name search supports both kanji (田中) and reading (たなか). Use 'name' param for both.",
+      "Personal information (個人情報) handling: Sansan data contains real contact info. Comply with Japan's APPI (個人情報保護法).",
+      "Read-only API — you cannot create or modify business card records via API."
+    ],
+    "docs_url": "https://developer.sansan.com/docs/"
+  },
+  {
+    "service_id": "line-messaging",
+    "base_url": "https://api.line.me/v2/bot/",
+    "api_version": "v2",
+    "auth_overview": "Channel Access Token. Create a LINE Messaging API channel in LINE Developers Console. Use the long-lived or stateless channel access token in Authorization: Bearer header.",
+    "auth_token_url": "https://api.line.me/oauth2/v3/token",
+    "auth_scopes": null,
+    "auth_setup_hint": "1. Go to developers.line.biz. 2. Create Provider > Create Messaging API Channel. 3. Issue channel access token (long-lived). 4. Set webhook URL for receiving messages.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "POST", "path": "/message/push", "description": "Send push message to a user", "auth_required": true},
+      {"method": "POST", "path": "/message/reply", "description": "Reply to a user message (via replyToken)", "auth_required": true},
+      {"method": "POST", "path": "/message/broadcast", "description": "Send message to all friends", "auth_required": true},
+      {"method": "GET", "path": "/profile/{userId}", "description": "Get user profile", "auth_required": true},
+      {"method": "POST", "path": "/message/multicast", "description": "Send to multiple specific users", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Not applicable for messaging. For group members: continuationToken param.",
+    "rate_limit": "Push: 100,000/min. Reply: unlimited. Broadcast: depends on plan (free plan: 200/month total messages).",
+    "error_format": "JSON: {\"message\":\"The request body has 1 error(s)\",\"details\":[{\"message\":\"...\",\"property\":\"...\"}]}",
+    "quickstart_example": "POST /v2/bot/message/push HTTP/1.1\nHost: api.line.me\nAuthorization: Bearer {channel_access_token}\nContent-Type: application/json\n\n{\"to\":\"U1234567890abcdef\",\"messages\":[{\"type\":\"text\",\"text\":\"Hello!\"}]}\n\nResponse: {}  (200 OK, empty body on success)",
+    "agent_tips": [
+      "User IDs start with 'U' and are 33 chars. They're channel-specific — same user has different IDs across channels.",
+      "Reply tokens expire in 1 minute. For async responses, use push message instead of reply.",
+      "Flex Messages (v2): rich interactive layouts. JSON structure is complex — use the Flex Message Simulator to build templates.",
+      "Free plan limits: 200 push messages/month. Development: use reply messages (unlimited) during testing.",
+      "Webhook required: LINE sends user messages to your webhook URL. No polling API for incoming messages.",
+      "Japanese users heavily use LINE — it's the #1 messaging platform in Japan with 96M monthly users."
+    ],
+    "docs_url": "https://developers.line.biz/en/docs/messaging-api/"
+  },
+  {
+    "service_id": "hubspot-jp",
+    "base_url": "https://api.hubapi.com/",
+    "api_version": "v3",
+    "auth_overview": "OAuth 2.0 or Private App access token. Private app token is simplest — generate in HubSpot Settings > Integrations > Private Apps. Use as Bearer token.",
+    "auth_token_url": "https://api.hubapi.com/oauth/v1/token",
+    "auth_scopes": "crm.objects.contacts.read,crm.objects.contacts.write,crm.objects.deals.read",
+    "auth_setup_hint": "Easiest: Settings > Integrations > Private Apps > Create. Select scopes needed. Copy access token. Use as: Authorization: Bearer {token}.",
+    "sandbox_url": "https://developers.hubspot.com/docs/api/creating-test-accounts",
+    "key_endpoints": [
+      {"method": "GET", "path": "/crm/v3/objects/contacts", "description": "List contacts", "auth_required": true},
+      {"method": "POST", "path": "/crm/v3/objects/contacts", "description": "Create a contact", "auth_required": true},
+      {"method": "GET", "path": "/crm/v3/objects/deals", "description": "List deals in pipeline", "auth_required": true},
+      {"method": "POST", "path": "/crm/v3/objects/deals", "description": "Create a deal", "auth_required": true},
+      {"method": "POST", "path": "/crm/v3/objects/contacts/search", "description": "Search contacts with filters", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "cursor-based: response has 'paging.next.after' value. Pass as 'after' param. Default limit 10, max 100.",
+    "rate_limit": "Private apps: 100 requests/10 seconds. OAuth apps: 100/10s. HTTP 429 with Retry-After.",
+    "error_format": "JSON: {\"status\":\"error\",\"message\":\"...\",\"correlationId\":\"...\",\"category\":\"VALIDATION_ERROR\"}",
+    "quickstart_example": "GET /crm/v3/objects/contacts?limit=10&properties=email,firstname,lastname HTTP/1.1\nHost: api.hubapi.com\nAuthorization: Bearer {token}\n\nResponse: {\"results\":[{\"id\":\"123\",\"properties\":{\"email\":\"tanaka@example.com\",\"firstname\":\"太郎\",\"lastname\":\"田中\"}}]}",
+    "agent_tips": [
+      "Properties must be explicitly requested via 'properties' param — only default fields are returned otherwise.",
+      "Search API (POST /search) is more powerful than list with filters. Supports complex filter groups.",
+      "Deal pipeline stages are customizable per account. Get pipeline config via GET /crm/v3/pipelines/deals.",
+      "Japanese contacts: firstname/lastname order may vary. HubSpot stores as-entered, not enforcing order.",
+      "Default limit is only 10 — always set 'limit=100' for batch operations.",
+      "Association API: link contacts↔deals↔companies via /crm/v4/associations."
+    ],
+    "docs_url": "https://developers.hubspot.com/docs/api/crm"
+  },
+  {
+    "service_id": "notion",
+    "base_url": "https://api.notion.com/v1/",
+    "api_version": "2022-06-28",
+    "auth_overview": "Internal integration token (simplest) or OAuth 2.0. Create integration at notion.so/my-integrations. Token starts with 'ntn_' or 'secret_'. Set Notion-Version header.",
+    "auth_token_url": "https://api.notion.com/v1/oauth/token",
+    "auth_scopes": null,
+    "auth_setup_hint": "1. Go to notion.so/my-integrations. 2. Create New Integration. 3. Copy Internal Integration Secret. 4. IMPORTANT: Share target pages/databases with the integration in Notion UI (click '...' > 'Connections' > add your integration).",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "POST", "path": "/databases/{id}/query", "description": "Query a database with filters and sorts", "auth_required": true},
+      {"method": "POST", "path": "/pages", "description": "Create a new page or database row", "auth_required": true},
+      {"method": "PATCH", "path": "/pages/{id}", "description": "Update page properties", "auth_required": true},
+      {"method": "GET", "path": "/blocks/{id}/children", "description": "Get page content as blocks", "auth_required": true},
+      {"method": "POST", "path": "/search", "description": "Search across all shared pages and databases", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "cursor-based: response has 'has_more' and 'next_cursor'. Pass start_cursor param. Max page_size 100.",
+    "rate_limit": "3 requests/second average. Burst allowed. HTTP 429 with Retry-After.",
+    "error_format": "JSON: {\"object\":\"error\",\"status\":400,\"code\":\"validation_error\",\"message\":\"...\"}",
+    "quickstart_example": "POST /v1/databases/{database_id}/query HTTP/1.1\nHost: api.notion.com\nAuthorization: Bearer {token}\nNotion-Version: 2022-06-28\nContent-Type: application/json\n\n{\"filter\":{\"property\":\"Status\",\"select\":{\"equals\":\"Done\"}}}\n\nResponse: {\"results\":[{\"id\":\"page_123\",\"properties\":{\"Name\":{\"title\":[{\"text\":{\"content\":\"タスクA\"}}]}}}]}",
+    "agent_tips": [
+      "CRITICAL: Integration must be explicitly shared with each page/database in Notion UI. Without this, API returns 404 even with valid IDs.",
+      "Notion-Version header is required. Use '2022-06-28' (latest stable).",
+      "Property values are deeply nested: properties.Name.title[0].text.content. Familiarize with the block/property type system.",
+      "Database queries use POST (not GET) with JSON filter body — unusual pattern.",
+      "Page content is returned as 'blocks', not raw text. Each paragraph, heading, list item is a separate block.",
+      "Rate limit is low (3/s) — cache database schemas and batch reads where possible."
+    ],
+    "docs_url": "https://developers.notion.com/reference"
+  }
+]
