@@ -339,6 +339,23 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "認証":        ["security"],
   "セキュリティ": ["security"],
   "パスワード":  ["security"],
+
+  // Ambiguous / cross-domain concepts (曖昧クエリ対応)
+  "ペーパーレス":  ["legal", "accounting"],
+  "リモートワーク": ["communication", "groupware"],
+  "リモート":     ["communication", "groupware"],
+  "テレワーク":   ["communication", "groupware"],
+  "バックオフィス": ["accounting", "hr"],
+  "DX":          ["data_integration", "accounting"],
+  "効率化":       ["data_integration", "accounting"],
+  "自動":        ["data_integration"],
+  "一括":        ["accounting"],
+  "取引先":       ["crm", "accounting"],
+  "議事録":       ["productivity", "communication"],
+  "ウェビナー":   ["reservation", "communication"],
+  "セミナー":     ["reservation"],
+  "API":         ["data_integration"],
+  "統合":        ["data_integration"],
 };
 
 /** Category boost added to relevance_score when service category matches intent */
