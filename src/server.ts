@@ -13,6 +13,7 @@ import { register as registerGetServiceTips } from "./tools/get-service-tips.js"
 import { register as registerGetInspectionQueue } from "./tools/get-inspection-queue.js";
 import { register as registerSubmitInspection } from "./tools/submit-inspection.js";
 import { register as registerGenerateAeoReport } from "./tools/generate-aeo-report.js";
+import { register as registerGenerateAeoArticle } from "./tools/generate-aeo-article.js";
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
 import { recalculateTrustScores } from "./utils/trust-recalc.js";
@@ -41,6 +42,7 @@ export function createServer(): McpServer {
   registerGetInspectionQueue(server, db);
   registerSubmitInspection(server, db);
   registerGenerateAeoReport(server, db);
+  registerGenerateAeoArticle(server, db);
 
   // Register prompts (LobeHub Grade A)
   registerPrompts(server);
