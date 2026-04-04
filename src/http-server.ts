@@ -19,7 +19,7 @@ import { createServer } from "./server.js";
 import { closeDb } from "./db/connection.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
-const HOST = process.env.KANSEI_HOST ?? "127.0.0.1";
+const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
 
 // For remote deployment, bind to 0.0.0.0 with allowed hosts
 const isLocalhost = ["127.0.0.1", "localhost", "::1"].includes(HOST);
