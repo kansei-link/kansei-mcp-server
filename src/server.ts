@@ -20,7 +20,7 @@ import { recalculateTrustScores } from "./utils/trust-recalc.js";
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "kansei-link",
-    version: "0.9.1",
+    version: "0.12.0",
   });
 
   // Initialize database, seed data, and recalculate trust scores

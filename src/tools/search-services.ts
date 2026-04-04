@@ -39,6 +39,10 @@ export function register(server: McpServer, db: Database.Database): void {
           .string()
           .optional()
           .describe("Filter by category: crm, project_management, communication, accounting, hr, ecommerce, legal, marketing, groupware, productivity, storage, support, payment, logistics, reservation, data_integration, bi_analytics, security"),
+        agent_ready: z
+          .enum(["verified", "connectable", "info_only"])
+          .optional()
+          .describe("Filter by agent readiness: 'verified' (🟢 battle-tested, success rate ≥80%), 'connectable' (🟡 API/MCP exists but unproven), 'info_only' (⚪ no API). Omit for all."),
         limit: z
           .number()
           .optional()
@@ -50,8 +54,8 @@ export function register(server: McpServer, db: Database.Database): void {
         openWorldHint: false,
       },
     },
-    async ({ intent, category, limit }) => {
-      const results = searchServices(db, intent, category, limit ?? 5);
+    async ({ intent, category, agent_ready, limit }) => {
+      const results = searchServices(db, intent, category, limit ?? 5, agent_ready);
       return {
         content: [
           {
@@ -419,7 +423,8 @@ export function searchServices(
   db: Database.Database,
   intent: string,
   category?: string,
-  limit: number = 5
+  limit: number = 5,
+  agentReadyFilter?: "verified" | "connectable" | "info_only"
 ): object[] {
   const intentCategories = detectIntentCategories(intent);
   const intentLower = intent.toLowerCase();
@@ -451,9 +456,41 @@ export function searchServices(
     }
   }
 
-  return [...merged.values()]
-    .sort((a, b) => b.relevance_score - a.relevance_score)
-    .slice(0, limit);
+  let results = [...merged.values()]
+    .sort((a, b) => b.relevance_score - a.relevance_score);
+
+  // Filter by agent readiness level if specified
+  if (agentReadyFilter) {
+    if (agentReadyFilter === "verified") {
+      // Only verified services
+      results = results.filter((r) => r.agent_ready === "verified");
+    } else if (agentReadyFilter === "connectable") {
+      // Connectable or better (verified + connectable)
+      results = results.filter((r) => r.agent_ready !== "info_only");
+    }
+    // "info_only" = no filter (show everything including info_only)
+  }
+
+  return results.slice(0, limit);
+}
+
+/**
+ * Agent readiness classification:
+ *   "verified"    🟢 — MCP exists + agent success rate ≥ 80% (battle-tested)
+ *   "connectable" 🟡 — MCP or API exists, but not yet proven by agents
+ *   "info_only"   ⚪ — Information only, no connection method available
+ */
+type AgentReady = "verified" | "connectable" | "info_only";
+
+function classifyAgentReady(s: ServiceRow): AgentReady {
+  const hasMcp = !!s.mcp_endpoint;
+  const hasApi = !!s.api_url;
+  const hasEnoughData = (s.total_calls ?? 0) >= 3;
+  const highSuccess = (s.success_rate ?? 0) >= 0.8;
+
+  if ((hasMcp || hasApi) && hasEnoughData && highSuccess) return "verified";
+  if (hasMcp || hasApi) return "connectable";
+  return "info_only";
 }
 
 interface ScoredResult {
@@ -462,6 +499,7 @@ interface ScoredResult {
   namespace: string | null;
   description: string | null;
   category: string | null;
+  agent_ready: AgentReady;
   mcp_endpoint: string | null;
   mcp_status: string;
   api_url: string | null;
@@ -496,6 +534,7 @@ function formatResult(s: ServiceRow, score: number, intentLower?: string): Score
     namespace: s.namespace,
     description: s.description,
     category: s.category,
+    agent_ready: classifyAgentReady(s),
     mcp_endpoint: s.mcp_endpoint || null,
     mcp_status: s.mcp_status ?? "official",
     api_url: s.api_url ?? null,
