@@ -38,7 +38,7 @@ export function register(server: McpServer, db: Database.Database): void {
         category: z
           .string()
           .optional()
-          .describe("Filter by category: crm, project_management, communication, accounting, hr, ecommerce, legal, marketing, groupware, productivity, storage, support, payment, logistics, reservation, data_integration"),
+          .describe("Filter by category: crm, project_management, communication, accounting, hr, ecommerce, legal, marketing, groupware, productivity, storage, support, payment, logistics, reservation, data_integration, bi_analytics, security"),
         limit: z
           .number()
           .optional()
@@ -199,8 +199,8 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   email:         ["marketing", "communication"],
   campaign:      ["marketing"],
   newsletter:    ["marketing"],
-  analytics:     ["marketing"],
-  data:          ["marketing"],
+  analytics:     ["marketing", "bi_analytics"],
+  data:          ["marketing", "bi_analytics"],
   segment:       ["marketing"],
   marketing:     ["marketing"],
   outreach:      ["marketing"],
@@ -220,7 +220,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   survey:        ["productivity"],
   recording:     ["productivity"],
   transcript:    ["productivity"],
-  monitoring:    ["productivity"],
+  monitoring:    ["productivity", "bi_analytics"],
   alert:         ["productivity"],
   alerts:        ["productivity"],
   error:         ["productivity"],
@@ -286,6 +286,30 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   zap:           ["data_integration"],
   "連携":        ["data_integration", "communication"],
   "自動化":      ["data_integration"],
+
+  // BI / Analytics
+  bi:            ["bi_analytics"],
+  dashboard:     ["bi_analytics"],
+  visualization: ["bi_analytics"],
+  report:        ["bi_analytics", "accounting"],
+  reports:       ["bi_analytics"],
+  kpi:           ["bi_analytics"],
+  metrics:       ["bi_analytics"],
+  "可視化":      ["bi_analytics"],
+  "ダッシュボード": ["bi_analytics"],
+  "分析":        ["bi_analytics", "marketing"],
+  "レポート":    ["bi_analytics"],
+
+  // Security / Identity
+  sso:           ["security"],
+  auth:          ["security"],
+  authentication: ["security"],
+  identity:      ["security"],
+  password:      ["security"],
+  mfa:           ["security"],
+  "認証":        ["security"],
+  "セキュリティ": ["security"],
+  "パスワード":  ["security"],
 };
 
 /** Category boost added to relevance_score when service category matches intent */

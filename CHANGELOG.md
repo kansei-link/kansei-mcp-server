@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.6.0 (2026-04-04)
+
+### 100 Services Milestone
+- Expanded from 73 to **100 services** across **18 categories**
+- 2 new categories: **BI/Analytics** (Tableau, Looker, Metabase), **Security** (HENNGE One, Auth0, 1Password Business)
+- 27 new services added across all categories:
+  - Marketing: SATORI, b→dash, Marketo
+  - Accounting: バクラク請求書, invox受取請求書
+  - HR: Talentio, オフィスステーション
+  - Ecommerce: EC-CUBE, カラーミーショップ
+  - Reservation: TableCheck, SELECTTYPE
+  - Logistics: 日本郵便, ロジレス
+  - Support: チャネルトーク
+  - Payment: LINE Pay, Paidy
+  - Groupware: Confluence
+  - Productivity: ClickUp, Todoist
+  - Legal: freeeサイン
+  - CRM: Zoho CRM
+
+### Search
+- Intent→category mapping expanded with BI/Analytics and Security keywords (ダッシュボード, 可視化, 分析, レポート, 認証, セキュリティ, パスワード)
+- Cross-category keyword refinements (analytics → marketing + bi_analytics, monitoring → productivity + bi_analytics)
+
 ## v0.5.0 (2026-04-04)
 
 ### Services & Categories
