@@ -10,6 +10,8 @@ import { register as registerFindCombinations } from "./tools/find-combinations.
 import { register as registerCheckUpdates } from "./tools/check-updates.js";
 import { register as registerGetServiceDetail } from "./tools/get-service-detail.js";
 import { register as registerGetServiceTips } from "./tools/get-service-tips.js";
+import { register as registerGetInspectionQueue } from "./tools/get-inspection-queue.js";
+import { register as registerSubmitInspection } from "./tools/submit-inspection.js";
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
 
@@ -33,6 +35,8 @@ export function createServer(): McpServer {
   registerFindCombinations(server, db);
   registerCheckUpdates(server, db);
   registerGetServiceTips(server, db);
+  registerGetInspectionQueue(server, db);
+  registerSubmitInspection(server, db);
 
   // Register prompts (LobeHub Grade A)
   registerPrompts(server);

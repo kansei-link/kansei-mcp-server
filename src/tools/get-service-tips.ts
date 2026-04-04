@@ -265,6 +265,22 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
       }
     : null;
 
+  // Check for active inspections (anomaly warnings)
+  const activeInspections = db
+    .prepare(
+      `SELECT anomaly_type, severity, description, status
+       FROM inspections
+       WHERE service_id = ? AND status IN ('open', 'in_progress')
+       ORDER BY CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END
+       LIMIT 5`
+    )
+    .all(serviceId) as Array<{
+    anomaly_type: string;
+    severity: string;
+    description: string;
+    status: string;
+  }>;
+
   // Assemble tips
   const tips: Record<string, unknown> = {
     service_id: service.id,
@@ -297,6 +313,16 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
 
     // Recent activity
     recent_activity: recentActivity,
+
+    // Active anomaly warnings (scout ant alerts)
+    active_warnings: activeInspections.length > 0
+      ? activeInspections.map((i) => ({
+          type: i.anomaly_type,
+          severity: i.severity,
+          description: i.description,
+          status: i.status,
+        }))
+      : undefined,
   };
 
   // Add rate limit and agent tips from guide

@@ -64,6 +64,25 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_changelog_service ON service_changelog(service_id);
     CREATE INDEX IF NOT EXISTS idx_changelog_date ON service_changelog(change_date);
 
+    -- Inspection queue: anomalies flagged for verification by scout agents
+    CREATE TABLE IF NOT EXISTS inspections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service_id TEXT NOT NULL REFERENCES services(id),
+      anomaly_type TEXT NOT NULL,
+      severity TEXT NOT NULL DEFAULT 'medium',
+      description TEXT NOT NULL,
+      evidence TEXT,
+      status TEXT NOT NULL DEFAULT 'open',
+      resolution TEXT,
+      resolved_by TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      resolved_at TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_inspections_status ON inspections(status);
+    CREATE INDEX IF NOT EXISTS idx_inspections_service ON inspections(service_id);
+    CREATE INDEX IF NOT EXISTS idx_inspections_severity ON inspections(severity);
+
     CREATE TABLE IF NOT EXISTS service_api_guides (
       service_id TEXT PRIMARY KEY REFERENCES services(id),
       base_url TEXT NOT NULL,

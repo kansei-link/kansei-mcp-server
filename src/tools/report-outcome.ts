@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { maskPii } from "../utils/pii-masker.js";
+import { detectAnomalies } from "../utils/anomaly-detector.js";
 
 export function register(server: McpServer, db: Database.Database): void {
   server.registerTool(
@@ -144,6 +145,9 @@ export function reportOutcome(
     | { total_calls: number; success_rate: number; avg_latency_ms: number }
     | undefined;
 
+  // Run anomaly detection (scout ant dispatch)
+  const anomalies = detectAnomalies(db, input.service_id);
+
   return {
     recorded: true,
     service_id: input.service_id,
@@ -155,6 +159,13 @@ export function reportOutcome(
           success_rate: Math.round(updatedStats.success_rate * 100) / 100,
           avg_latency_ms: Math.round(updatedStats.avg_latency_ms),
         }
+      : undefined,
+    anomalies_detected: anomalies.length > 0
+      ? anomalies.map((a) => ({
+          type: a.anomaly_type,
+          severity: a.severity,
+          description: a.description,
+        }))
       : undefined,
     message: input.workaround
       ? "Thanks! Your workaround will help other agents avoid the same issue."
