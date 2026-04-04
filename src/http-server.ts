@@ -21,13 +21,9 @@ import { closeDb } from "./db/connection.js";
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
 
-// For remote deployment, bind to 0.0.0.0 with allowed hosts
-const isLocalhost = ["127.0.0.1", "localhost", "::1"].includes(HOST);
-const app = createMcpExpressApp(
-  isLocalhost
-    ? { host: HOST }
-    : { host: HOST, allowedHosts: [HOST, "localhost"] }
-);
+// For cloud deployment: no allowedHosts restriction when binding to 0.0.0.0
+// DNS rebinding protection is auto-enabled only for localhost bindings
+const app = createMcpExpressApp({ host: HOST });
 
 // Health check endpoint
 app.get("/health", (_req: Request, res: Response) => {
