@@ -127,6 +127,10 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "年末調整":    ["hr"],
   "year-end":    ["hr", "accounting"],
   adjustment:    ["hr"],
+  "採用":        ["hr"],
+  "応募":        ["hr"],
+  "打刻":        ["hr"],
+  "オンボーディング": ["hr"],
 
   // Communication / messaging
   message:       ["communication"],
@@ -140,6 +144,10 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   video:         ["communication"],
   "連絡":        ["communication"],
   "チャット":    ["communication"],
+  "メッセージ":  ["communication"],
+  "通知":        ["communication"],
+  "送信":        ["communication"],
+  "社内":        ["communication", "groupware"],
 
   // CRM
   lead:          ["crm"],
@@ -154,6 +162,10 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   prospect:      ["crm"],
   sales:         ["crm"],
   crm:           ["crm"],
+  "顧客":        ["crm"],
+  "営業":        ["crm"],
+  "名刺":        ["crm"],
+  "商談":        ["crm"],
 
   // Project management
   task:          ["project_management"],
@@ -166,6 +178,14 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   ticket:        ["project_management", "support"],
   backlog:       ["project_management"],
   milestone:     ["project_management"],
+  bug:           ["project_management"],
+  issue:         ["project_management"],
+  issues:        ["project_management"],
+  "課題":        ["project_management"],
+  "タスク":      ["project_management"],
+  "プロジェクト": ["project_management"],
+  "バグ":        ["project_management"],
+  "進捗":        ["project_management"],
   app:           ["project_management", "groupware"],
   workflow:      ["project_management", "hr"],
   automation:    ["project_management"],
@@ -182,6 +202,11 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   shop:          ["ecommerce"],
   catalog:       ["ecommerce"],
   marketplace:   ["ecommerce"],
+  "注文":        ["ecommerce"],
+  "在庫":        ["ecommerce", "logistics"],
+  "EC":          ["ecommerce"],
+  "ショップ":    ["ecommerce"],
+  "商品":        ["ecommerce"],
 
   // Legal / contract
   contract:      ["legal"],
@@ -203,6 +228,9 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   data:          ["marketing", "bi_analytics"],
   segment:       ["marketing"],
   marketing:     ["marketing"],
+  "マーケティング": ["marketing"],
+  "メール配信":  ["marketing"],
+  "MA":          ["marketing"],
   outreach:      ["marketing"],
   broadcast:     ["marketing", "communication"],
 
@@ -249,6 +277,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "サポート":    ["support"],
   "ヘルプ":      ["support"],
   "カスタマー":  ["support", "crm"],
+  "チケット":    ["support", "project_management"],
 
   // Payment
   pay:           ["payment", "accounting"],
