@@ -12,8 +12,10 @@ import { register as registerGetServiceDetail } from "./tools/get-service-detail
 import { register as registerGetServiceTips } from "./tools/get-service-tips.js";
 import { register as registerGetInspectionQueue } from "./tools/get-inspection-queue.js";
 import { register as registerSubmitInspection } from "./tools/submit-inspection.js";
+import { register as registerGenerateAeoReport } from "./tools/generate-aeo-report.js";
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
+import { recalculateTrustScores } from "./utils/trust-recalc.js";
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -21,10 +23,11 @@ export function createServer(): McpServer {
     version: "0.9.1",
   });
 
-  // Initialize database and seed data
+  // Initialize database, seed data, and recalculate trust scores
   const db = getDb();
   initializeDb(db);
   seedDatabase(db);
+  recalculateTrustScores(db);
 
   // Register all tools
   registerSearchServices(server, db);
@@ -37,6 +40,7 @@ export function createServer(): McpServer {
   registerGetServiceTips(server, db);
   registerGetInspectionQueue(server, db);
   registerSubmitInspection(server, db);
+  registerGenerateAeoReport(server, db);
 
   // Register prompts (LobeHub Grade A)
   registerPrompts(server);
