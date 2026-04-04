@@ -9,13 +9,14 @@ import { register as registerGetInsights } from "./tools/get-insights.js";
 import { register as registerFindCombinations } from "./tools/find-combinations.js";
 import { register as registerCheckUpdates } from "./tools/check-updates.js";
 import { register as registerGetServiceDetail } from "./tools/get-service-detail.js";
+import { register as registerGetServiceTips } from "./tools/get-service-tips.js";
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
 
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "kansei-link",
-    version: "0.8.0",
+    version: "0.9.0",
   });
 
   // Initialize database and seed data
@@ -31,6 +32,7 @@ export function createServer(): McpServer {
   registerGetInsights(server, db);
   registerFindCombinations(server, db);
   registerCheckUpdates(server, db);
+  registerGetServiceTips(server, db);
 
   // Register prompts (LobeHub Grade A)
   registerPrompts(server);

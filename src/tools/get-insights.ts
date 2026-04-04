@@ -17,9 +17,19 @@ interface ErrorRow {
   count: number;
 }
 
+interface WorkaroundRow {
+  error_type: string;
+  workaround: string;
+  count: number;
+}
+
 interface TrendRow {
   period: string;
   calls: number;
+}
+
+interface RecentSuccessRow {
+  success_rate: number;
 }
 
 export function register(server: McpServer, db: Database.Database): void {
@@ -96,6 +106,27 @@ export function getInsights(db: Database.Database, serviceId: string): object {
     )
     .all(serviceId) as ErrorRow[];
 
+  // Workarounds: most reported solutions per error type
+  const workarounds = db
+    .prepare(
+      `SELECT error_type, workaround, count(*) as count
+       FROM outcomes
+       WHERE service_id = ? AND workaround IS NOT NULL
+       GROUP BY error_type, workaround
+       ORDER BY count DESC
+       LIMIT 10`
+    )
+    .all(serviceId) as WorkaroundRow[];
+
+  // Recent success rate (last 7 days) for trend comparison
+  const recentSuccess = db
+    .prepare(
+      `SELECT avg(success) as success_rate
+       FROM outcomes
+       WHERE service_id = ? AND created_at >= datetime('now', '-7 days')`
+    )
+    .get(serviceId) as RecentSuccessRow | undefined;
+
   // Usage trend: compare last 7 days vs previous 7 days
   const trends = db
     .prepare(
@@ -124,6 +155,18 @@ export function getInsights(db: Database.Database, serviceId: string): object {
     else usageTrend = "stable";
   }
 
+  // Build error details with workarounds attached
+  const errorDetails = errors.map((e) => {
+    const fixes = workarounds
+      .filter((w) => w.error_type === e.error_type)
+      .map((w) => ({ fix: w.workaround, reported_count: w.count }));
+    return {
+      type: e.error_type,
+      count: e.count,
+      known_workarounds: fixes.length > 0 ? fixes : undefined,
+    };
+  });
+
   // Confidence score
   const confidence = calculateConfidence(
     stats.unique_agents,
@@ -131,20 +174,33 @@ export function getInsights(db: Database.Database, serviceId: string): object {
     stats.last_updated
   );
 
+  // Determine reliability trend
+  const recentRate = recentSuccess?.success_rate;
+  let reliabilityTrend: string;
+  if (recentRate == null) {
+    reliabilityTrend = "no_recent_data";
+  } else if (recentRate > stats.success_rate + 0.05) {
+    reliabilityTrend = "improving";
+  } else if (recentRate < stats.success_rate - 0.05) {
+    reliabilityTrend = "degrading";
+  } else {
+    reliabilityTrend = "stable";
+  }
+
   return {
     service_id: serviceId,
     service_name: service.name,
     namespace: service.namespace,
     trust_score: service.trust_score,
-    total_calls: stats.total_calls,
+    total_reports: stats.total_calls,
     success_rate: Math.round(stats.success_rate * 100) / 100,
+    recent_success_rate: recentRate != null ? Math.round(recentRate * 100) / 100 : null,
+    reliability_trend: reliabilityTrend,
     avg_latency_ms: Math.round(stats.avg_latency_ms),
     unique_agents: stats.unique_agents,
-    common_errors:
-      errors.length > 0
-        ? errors.map((e) => ({ type: e.error_type, count: e.count }))
-        : [],
+    common_errors: errorDetails.length > 0 ? errorDetails : [],
     usage_trend: usageTrend,
+    usage_details: { recent_7d: recentCalls, previous_7d: previousCalls },
     confidence_score: Math.round(confidence * 100) / 100,
     last_updated: stats.last_updated,
   };

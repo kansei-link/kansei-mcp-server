@@ -34,6 +34,7 @@ export function initializeDb(db: Database.Database): void {
       success INTEGER NOT NULL,
       latency_ms INTEGER,
       error_type TEXT,
+      workaround TEXT,
       context_masked TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
@@ -83,6 +84,14 @@ export function initializeDb(db: Database.Database): void {
       updated_at TEXT DEFAULT (datetime('now'))
     );
   `);
+
+  // Migration: add workaround column if it doesn't exist (for existing databases)
+  const hasWorkaround = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('outcomes') WHERE name = 'workaround'")
+    .get() as { cnt: number };
+  if (hasWorkaround.cnt === 0) {
+    db.exec("ALTER TABLE outcomes ADD COLUMN workaround TEXT");
+  }
 
   // FTS5 virtual table for full-text search on services
   // Check if it already exists first (CREATE VIRTUAL TABLE IF NOT EXISTS not supported in all SQLite builds)

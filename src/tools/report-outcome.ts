@@ -24,7 +24,11 @@ export function register(server: McpServer, db: Database.Database): void {
         error_type: z
           .string()
           .optional()
-          .describe("Error category if failed (e.g., 'auth_error', 'timeout', 'rate_limit', 'invalid_input')"),
+          .describe("Error category if failed (e.g., 'auth_error', 'timeout', 'rate_limit', 'invalid_input', 'schema_mismatch')"),
+        workaround: z
+          .string()
+          .optional()
+          .describe("How you resolved the issue, if any (e.g., 'Refreshed OAuth token', 'Used v2 endpoint instead'). Helps future agents."),
         context: z
           .string()
           .optional()
@@ -35,12 +39,13 @@ export function register(server: McpServer, db: Database.Database): void {
         idempotentHint: false,
       },
     },
-    async ({ service_id, success, latency_ms, error_type, context }) => {
+    async ({ service_id, success, latency_ms, error_type, workaround, context }) => {
       const result = reportOutcome(db, {
         service_id,
         success,
         latency_ms,
         error_type,
+        workaround,
         context,
       });
       return {
@@ -60,6 +65,7 @@ interface OutcomeInput {
   success: boolean;
   latency_ms?: number;
   error_type?: string;
+  workaround?: string;
   context?: string;
 }
 
@@ -79,24 +85,33 @@ export function reportOutcome(
     };
   }
 
-  // Mask PII in context
+  // Mask PII in context and workaround
   let contextMasked: string | null = null;
+  let workaroundMasked: string | null = null;
   let maskedFields: string[] = [];
   if (input.context) {
     const result = maskPii(input.context);
     contextMasked = result.masked;
     maskedFields = result.maskedFields;
   }
+  if (input.workaround) {
+    const result = maskPii(input.workaround);
+    workaroundMasked = result.masked;
+    if (result.maskedFields.length > 0) {
+      maskedFields.push(...result.maskedFields);
+    }
+  }
 
   // Insert outcome
   db.prepare(
-    `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, context_masked)
-     VALUES (?, 'anonymous', ?, ?, ?, ?)`
+    `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked)
+     VALUES (?, 'anonymous', ?, ?, ?, ?, ?)`
   ).run(
     input.service_id,
     input.success ? 1 : 0,
     input.latency_ms ?? null,
     input.error_type ?? null,
+    workaroundMasked,
     contextMasked
   );
 
@@ -120,10 +135,29 @@ export function reportOutcome(
     input.service_id
   );
 
+  // Fetch updated stats to give feedback
+  const updatedStats = db
+    .prepare(
+      `SELECT total_calls, success_rate, avg_latency_ms FROM service_stats WHERE service_id = ?`
+    )
+    .get(input.service_id) as
+    | { total_calls: number; success_rate: number; avg_latency_ms: number }
+    | undefined;
+
   return {
     recorded: true,
     service_id: input.service_id,
     service_name: service.name,
     masked_fields: maskedFields.length > 0 ? maskedFields : undefined,
+    community_stats: updatedStats
+      ? {
+          total_reports: updatedStats.total_calls,
+          success_rate: Math.round(updatedStats.success_rate * 100) / 100,
+          avg_latency_ms: Math.round(updatedStats.avg_latency_ms),
+        }
+      : undefined,
+    message: input.workaround
+      ? "Thanks! Your workaround will help other agents avoid the same issue."
+      : "Thanks! Your report helps other agents make better decisions.",
   };
 }
