@@ -5,14 +5,17 @@ WORKDIR /app
 # Install build tools for better-sqlite3 native module
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
-# Copy package files and install
+# Copy package files and install all deps (dev needed for tsc build)
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Copy source and build
 COPY tsconfig.json ./
 COPY src/ ./src/
 RUN npm run build
+
+# Remove dev dependencies after build to slim down image
+RUN npm prune --omit=dev
 
 # Expose port (default 3000, overridable via PORT env)
 ENV PORT=3000
