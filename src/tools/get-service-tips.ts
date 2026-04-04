@@ -40,6 +40,16 @@ interface PitfallRow {
   workaround: string | null;
 }
 
+interface WorkaroundDetailRow {
+  error_type: string;
+  workaround: string;
+  total_reports: number;
+  success_after: number;
+  failure_after: number;
+  oldest_report: string;
+  newest_report: string;
+}
+
 interface RecentOutcomeRow {
   success: number;
   latency_ms: number | null;
@@ -103,20 +113,48 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     .prepare("SELECT total_calls, success_rate, avg_latency_ms, unique_agents FROM service_stats WHERE service_id = ?")
     .get(serviceId) as StatsRow | undefined;
 
-  // Get top pitfalls with workarounds
+  // Get top pitfalls (error frequency)
   const pitfalls = db
     .prepare(
-      `SELECT o.error_type, count(*) as count,
-              (SELECT w.workaround FROM outcomes w
-               WHERE w.service_id = ? AND w.error_type = o.error_type AND w.workaround IS NOT NULL
-               ORDER BY w.created_at DESC LIMIT 1) as workaround
-       FROM outcomes o
-       WHERE o.service_id = ? AND o.error_type IS NOT NULL
-       GROUP BY o.error_type
+      `SELECT error_type, count(*) as count
+       FROM outcomes
+       WHERE service_id = ? AND error_type IS NOT NULL
+       GROUP BY error_type
        ORDER BY count DESC
        LIMIT 5`
     )
-    .all(serviceId, serviceId) as PitfallRow[];
+    .all(serviceId) as { error_type: string; count: number }[];
+
+  // Get workaround details with verification signals
+  // For each workaround, check: how many agents reported it,
+  // and did outcomes AFTER that workaround trend success or failure?
+  const workaroundDetails = db
+    .prepare(
+      `SELECT
+         w.error_type,
+         w.workaround,
+         count(*) as total_reports,
+         -- Count successes reported AFTER this workaround was first shared
+         (SELECT count(*) FROM outcomes o2
+          WHERE o2.service_id = ? AND o2.success = 1
+          AND o2.created_at > (SELECT min(o3.created_at) FROM outcomes o3
+            WHERE o3.service_id = ? AND o3.workaround = w.workaround)
+         ) as success_after,
+         (SELECT count(*) FROM outcomes o4
+          WHERE o4.service_id = ? AND o4.success = 0
+          AND o4.error_type = w.error_type
+          AND o4.created_at > (SELECT min(o5.created_at) FROM outcomes o5
+            WHERE o5.service_id = ? AND o5.workaround = w.workaround)
+         ) as failure_after,
+         min(w.created_at) as oldest_report,
+         max(w.created_at) as newest_report
+       FROM outcomes w
+       WHERE w.service_id = ? AND w.workaround IS NOT NULL
+       GROUP BY w.error_type, w.workaround
+       ORDER BY total_reports DESC
+       LIMIT 10`
+    )
+    .all(serviceId, serviceId, serviceId, serviceId, serviceId) as WorkaroundDetailRow[];
 
   // Get most recent outcomes for freshness signal
   const recentOutcomes = db
@@ -145,12 +183,61 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     auth.note = "Auth method not documented yet.";
   }
 
-  // Build pitfalls section
-  const commonPitfalls = pitfalls.map((p) => ({
-    issue: p.error_type,
-    frequency: p.count,
-    fix: p.workaround ?? "No workaround reported yet",
-  }));
+  // Build pitfalls section with anti-spiral safeguards
+  const VERIFICATION_THRESHOLD = 2; // min reports before showing as "verified"
+  const STALENESS_DAYS = 30; // workarounds older than this get freshness warning
+  const now = Date.now();
+
+  const commonPitfalls = pitfalls.map((p) => {
+    const fixes = workaroundDetails
+      .filter((w) => w.error_type === p.error_type)
+      .map((w) => {
+        const ageDays = (now - new Date(w.newest_report).getTime()) / (1000 * 60 * 60 * 24);
+        const isStale = ageDays > STALENESS_DAYS;
+
+        // Contradiction detection: if failure_after > success_after for same error,
+        // the workaround may be wrong (ant death spiral risk)
+        const totalAfter = w.success_after + w.failure_after;
+        const hasContradiction = totalAfter >= 3 && w.failure_after > w.success_after;
+
+        // Verification level
+        let verification: string;
+        if (w.total_reports >= VERIFICATION_THRESHOLD * 2 && !hasContradiction) {
+          verification = "confirmed"; // Multiple agents agree, no contradictions
+        } else if (w.total_reports >= VERIFICATION_THRESHOLD) {
+          verification = "verified";  // At least 2 reports
+        } else {
+          verification = "unverified"; // Single report — use with caution
+        }
+
+        const fix: Record<string, unknown> = {
+          workaround: w.workaround,
+          reported_by: `${w.total_reports} agent(s)`,
+          verification,
+        };
+
+        // Freshness warning (pheromone evaporation)
+        if (isStale) {
+          fix.freshness = "stale";
+          fix.freshness_warning = `Last reported ${Math.round(ageDays)} days ago. May be outdated.`;
+        } else {
+          fix.freshness = "fresh";
+        }
+
+        // Contradiction warning (death spiral prevention)
+        if (hasContradiction) {
+          fix.contradiction_warning = `⚠ After this workaround was shared, ${w.failure_after} failures vs ${w.success_after} successes were reported for the same error. This fix may not work — verify independently.`;
+        }
+
+        return fix;
+      });
+
+    return {
+      issue: p.error_type,
+      frequency: p.count,
+      workarounds: fixes.length > 0 ? fixes : "No workaround reported yet. If you find a fix, report_outcome with a workaround to help others.",
+    };
+  });
 
   // Build reliability summary
   let reliabilityLabel: string;

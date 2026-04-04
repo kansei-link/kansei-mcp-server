@@ -155,11 +155,23 @@ export function getInsights(db: Database.Database, serviceId: string): object {
     else usageTrend = "stable";
   }
 
-  // Build error details with workarounds attached
+  // Build error details with workarounds + verification signals
+  const VERIFICATION_THRESHOLD = 2;
   const errorDetails = errors.map((e) => {
     const fixes = workarounds
       .filter((w) => w.error_type === e.error_type)
-      .map((w) => ({ fix: w.workaround, reported_count: w.count }));
+      .map((w) => {
+        const verification = w.count >= VERIFICATION_THRESHOLD * 2
+          ? "confirmed"
+          : w.count >= VERIFICATION_THRESHOLD
+            ? "verified"
+            : "unverified";
+        return {
+          fix: w.workaround,
+          reported_count: w.count,
+          verification,
+        };
+      });
     return {
       type: e.error_type,
       count: e.count,
