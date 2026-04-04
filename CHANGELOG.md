@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.5.0 (2026-04-04)
+
+### Services & Categories
+- Expanded from 50 to **73 services** across **16 categories**
+- 6 new categories: **Storage** (Box, Drive, Dropbox), **Support** (Zendesk, Freshdesk, KARTE, Intercom), **Payment** (PAY.JP, GMO PG, Square), **Logistics** (ヤマト運輸, 佐川急便), **Reservation** (スマレジ, RESERVA, Airリザーブ), **Data Integration** (Yoom, Zapier, Make)
+- Also added: Twilio, Amazon SES, Google Analytics, Sentry, Datadog
+
+### Recipes
+- Expanded from 19 to **25 workflow recipes** with cross-category patterns:
+  - Shopify → ヤマト運輸 shipping label automation
+  - Zendesk → HubSpot support-to-upsell pipeline
+  - Square POS → freee daily sales accounting
+  - RESERVA → LINE booking confirmation
+  - kintone → Twilio SMS thank-you on deal close
+  - CloudSign → Box contract archiving
+
+### API Guides
+- Added **3 new guides**: Zendesk, Twilio, Square (18 total)
+
+### Search
+- Intent→category mapping expanded with Japanese keywords for all new categories (配送, 決済, 予約, 監視, ファイル, サポート, 連携, 自動化)
+
 ## v0.4.0 (2026-04-03)
 
 ### New Tool: `get_service_detail`
