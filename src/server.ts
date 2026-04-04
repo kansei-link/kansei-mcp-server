@@ -8,11 +8,13 @@ import { register as registerGetInsights } from "./tools/get-insights.js";
 import { register as registerFindCombinations } from "./tools/find-combinations.js";
 import { register as registerCheckUpdates } from "./tools/check-updates.js";
 import { register as registerGetServiceDetail } from "./tools/get-service-detail.js";
+import { registerPrompts } from "./prompts.js";
+import { registerResources } from "./resources.js";
 
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "kansei-link",
-    version: "0.6.0",
+    version: "0.7.0",
   });
 
   // Initialize database
@@ -27,6 +29,12 @@ export function createServer(): McpServer {
   registerGetInsights(server, db);
   registerFindCombinations(server, db);
   registerCheckUpdates(server, db);
+
+  // Register prompts (LobeHub Grade A)
+  registerPrompts(server);
+
+  // Register resources (LobeHub Grade A)
+  registerResources(server, db);
 
   return server;
 }

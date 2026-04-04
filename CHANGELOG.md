@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.7.0 (2026-04-04)
+
+### MCP Prompts
+- 3 pre-built prompt templates for common agent workflows:
+  - `find-service` — Find the best Japanese SaaS for a task
+  - `build-workflow` — Design multi-service automation workflows
+  - `connect-service` — Get step-by-step API connection guide
+
+### MCP Resources
+- 3 resources for structured data access:
+  - `kansei://categories` — All 18 categories with service counts
+  - `kansei://mcp-status` — MCP adoption summary (official/third-party/api-only)
+  - `kansei://service/{serviceId}` — Dynamic service detail with autocomplete
+
+### LobeHub Grade A
+- Prompts + Resources complete all 7 scoring criteria for maximum quality score
+
 ## v0.6.0 (2026-04-04)
 
 ### 100 Services Milestone
