@@ -131,6 +131,9 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "応募":        ["hr"],
   "打刻":        ["hr"],
   "オンボーディング": ["hr"],
+  "源泉徴収":    ["hr", "accounting"],
+  "面接":        ["hr"],
+  "有給":        ["hr"],
 
   // Communication / messaging
   message:       ["communication"],
@@ -230,6 +233,8 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   marketing:     ["marketing"],
   "マーケティング": ["marketing"],
   "メール配信":  ["marketing"],
+  "メールマガジン": ["marketing"],
+  "メルマガ":    ["marketing"],
   "MA":          ["marketing"],
   outreach:      ["marketing"],
   broadcast:     ["marketing", "communication"],
@@ -242,6 +247,12 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   workspace:     ["groupware"],
   document:      ["groupware", "storage"],
   notes:         ["groupware"],
+  knowledge:     ["groupware"],
+  "ナレッジ":    ["groupware"],
+  "社内wiki":    ["groupware"],
+  "ノーコード":  ["groupware", "project_management"],
+  "申請":        ["groupware", "hr"],
+  "フォーム":    ["groupware", "productivity"],
 
   // Productivity
   form:          ["productivity"],
@@ -268,6 +279,8 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
 
   "ファイル":    ["storage"],
   "ストレージ":  ["storage"],
+  "クラウド":    ["storage", "data_integration"],
+  "共有":        ["storage", "groupware"],
 
   // Customer support
   support:       ["support"],
@@ -288,6 +301,10 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "決済":        ["payment"],
   "支払":        ["payment", "accounting"],
   "課金":        ["payment"],
+  "クレジットカード": ["payment"],
+  "POS":         ["payment", "reservation"],
+  "レジ":        ["payment"],
+  "売上":        ["payment", "accounting"],
 
   // Logistics / shipping
   ship:          ["logistics"],
@@ -306,6 +323,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   reserve:       ["reservation"],
   "予約":        ["reservation"],
   "来店":        ["reservation"],
+  "店舗":        ["reservation", "payment"],
 
   // Data integration / iPaaS
   integration:   ["data_integration"],
