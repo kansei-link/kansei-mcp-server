@@ -16,7 +16,7 @@ import { registerResources } from "./resources.js";
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "kansei-link",
-    version: "0.9.0",
+    version: "0.9.1",
   });
 
   // Initialize database and seed data
