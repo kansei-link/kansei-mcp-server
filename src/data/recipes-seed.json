@@ -566,5 +566,197 @@
       }
     ],
     "required_services": ["stripe-jp", "freee", "slack"]
+  },
+  {
+    "id": "shopify-yamato-shipping",
+    "goal": "Shopify order to Yamato shipping label",
+    "description": "When a Shopify order is placed, automatically create a Yamato B2 Cloud shipping label and update the order with tracking number. Essential for Japanese e-commerce operations.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "shopify-jp",
+        "action": "Get new unfulfilled orders with shipping address details",
+        "input_mapping": { "status": "unfulfilled", "fields": ["id", "shipping_address", "line_items", "customer"] },
+        "output_mapping": { "orders": "step1.orders", "order_id": "step1.orders[0].id", "address": "step1.orders[0].shipping_address" },
+        "error_hint": "Japanese addresses: use address1 for 都道府県+市区町村, address2 for 番地+建物名. zip format: 123-4567"
+      },
+      {
+        "order": 2,
+        "service_id": "yamato-b2",
+        "action": "Create shipping label with recipient address and package details",
+        "input_mapping": { "recipient": "step1.address", "size": "config.default_package_size", "delivery_date": "config.delivery_days_from_now" },
+        "output_mapping": { "tracking_number": "step2.tracking_number", "label_pdf": "step2.label_url" },
+        "error_hint": "ヤマト B2: delivery time slots are Japanese standard: 午前中/14-16/16-18/18-20/19-21. Specify お届け希望時間帯."
+      },
+      {
+        "order": 3,
+        "service_id": "shopify-jp",
+        "action": "Update order with tracking number and mark as fulfilled",
+        "input_mapping": { "order_id": "step1.order_id", "tracking_number": "step2.tracking_number", "tracking_company": "Yamato Transport" },
+        "output_mapping": { "fulfillment_id": "step3.fulfillment_id" },
+        "error_hint": "Shopify automatically sends tracking email to customer on fulfillment"
+      }
+    ],
+    "required_services": ["shopify-jp", "yamato-b2"]
+  },
+  {
+    "id": "zendesk-hubspot-support-to-crm",
+    "goal": "Zendesk support ticket escalation to HubSpot deal",
+    "description": "When a Zendesk ticket reveals an upsell opportunity (e.g., customer asks about features on higher plan), create a deal in HubSpot and notify the account owner.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "zendesk",
+        "action": "Get ticket details with customer info and conversation history",
+        "input_mapping": { "ticket_id": "trigger.ticket_id", "include": ["requester", "comments"] },
+        "output_mapping": { "customer_email": "step1.requester.email", "company": "step1.requester.organization", "subject": "step1.subject", "summary": "step1.description" },
+        "error_hint": "Zendesk requester may not have organization set — fall back to email domain for company identification"
+      },
+      {
+        "order": 2,
+        "service_id": "hubspot-jp",
+        "action": "Find or create contact, then create deal in upsell pipeline",
+        "input_mapping": { "email": "step1.customer_email", "company": "step1.company", "deal_name": "Upsell: {{subject}}", "pipeline": "config.upsell_pipeline" },
+        "output_mapping": { "deal_id": "step2.deal_id", "deal_url": "step2.deal_url", "owner": "step2.deal_owner" },
+        "error_hint": "Use HubSpot search API to find existing contact by email before creating a new one (avoid duplicates)"
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Notify account owner about upsell opportunity with ticket context",
+        "input_mapping": { "channel": "config.sales_channel", "message": "Upsell opportunity from support: {{company}} — {{subject}}. Deal: {{deal_url}}" },
+        "output_mapping": { "message_ts": "step3.ts" },
+        "error_hint": "Tag the deal owner with @mention using their Slack user ID"
+      }
+    ],
+    "required_services": ["zendesk", "hubspot-jp", "slack"]
+  },
+  {
+    "id": "square-freee-pos-accounting",
+    "goal": "Square POS daily sales to freee journal entry",
+    "description": "At end of day, aggregate Square POS sales and create a daily revenue journal entry in freee. Common pattern for retail shops and restaurants in Japan.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "square",
+        "action": "Get today's payment transactions aggregated by payment method",
+        "input_mapping": { "location_id": "config.store_location", "date": "today", "group_by": "payment_type" },
+        "output_mapping": { "total_sales": "step1.total", "cash": "step1.cash_total", "card": "step1.card_total", "qr": "step1.qr_total", "transaction_count": "step1.count" },
+        "error_hint": "Square amounts are in JPY (integer). Separate cash vs card vs QR (PayPay, etc.) for accurate accounting"
+      },
+      {
+        "order": 2,
+        "service_id": "freee",
+        "action": "Create compound journal entry with split by payment method",
+        "input_mapping": { "date": "today", "entries": [{"debit": "現金", "amount": "step1.cash"}, {"debit": "売掛金", "amount": "step1.card"}, {"credit": "売上高", "amount": "step1.total_sales"}] },
+        "output_mapping": { "journal_id": "step2.journal_id" },
+        "error_hint": "Card payments: debit 売掛金 (accounts receivable). Cash: debit 現金. QR payments (PayPay etc.): debit 売掛金 with sub-account."
+      },
+      {
+        "order": 3,
+        "service_id": "chatwork",
+        "action": "Post daily sales summary to store management room",
+        "input_mapping": { "room_id": "config.store_room", "message": "[info][title]本日の売上[/title]合計: ¥{{total_sales}} ({{transaction_count}}件)\n現金: ¥{{cash}} / カード: ¥{{card}} / QR: ¥{{qr}}[/info]" },
+        "output_mapping": { "message_id": "step3.message_id" },
+        "error_hint": "Use Chatwork [info] tags for formatted summary. Include comparison with yesterday if available."
+      }
+    ],
+    "required_services": ["square", "freee", "chatwork"]
+  },
+  {
+    "id": "reserva-line-booking-notify",
+    "goal": "RESERVA booking to LINE notification",
+    "description": "When a new reservation is made on RESERVA, send a confirmation message to the customer via LINE and notify staff via Chatwork. Common for clinics, salons, and fitness studios.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "reserva",
+        "action": "Get new booking details (customer, date/time, service, staff)",
+        "input_mapping": { "status": "confirmed", "since": "last_check" },
+        "output_mapping": { "customer_name": "step1.customer_name", "line_id": "step1.customer_line_id", "datetime": "step1.reservation_datetime", "service": "step1.service_name", "staff": "step1.staff_name" },
+        "error_hint": "RESERVA webhook or polling. Customer LINE ID must be linked in advance via RESERVA's LINE連携 feature."
+      },
+      {
+        "order": 2,
+        "service_id": "line-messaging",
+        "action": "Send booking confirmation Flex Message to customer",
+        "input_mapping": { "to": "step1.line_id", "template": "booking_confirm", "date": "step1.datetime", "service": "step1.service" },
+        "output_mapping": { "sent": "step2.ok" },
+        "error_hint": "Use Flex Message for rich confirmation card (date, time, service, cancel link). Reply messages are free; push messages count against quota."
+      },
+      {
+        "order": 3,
+        "service_id": "chatwork",
+        "action": "Notify staff room about new booking",
+        "input_mapping": { "room_id": "config.staff_room", "message": "[info][title]新規予約[/title]{{customer_name}}様\n{{datetime}} / {{service}} / 担当: {{staff}}[/info]" },
+        "output_mapping": { "message_id": "step3.message_id" },
+        "error_hint": "Tag the assigned staff member with [To:account_id]. Include direct link to RESERVA admin for easy management."
+      }
+    ],
+    "required_services": ["reserva", "line-messaging", "chatwork"]
+  },
+  {
+    "id": "twilio-kintone-sms-followup",
+    "goal": "kintone deal close to SMS thank-you via Twilio",
+    "description": "When a deal is closed-won in kintone, send a personalized thank-you SMS to the customer via Twilio and log the activity. Japanese business courtesy automation.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "kintone",
+        "action": "Get closed-won deal details with customer phone number",
+        "input_mapping": { "app_id": "config.deals_app", "query": "status = '受注' AND sms_sent = ''" },
+        "output_mapping": { "customer_name": "step1.customer_name", "phone": "step1.phone", "deal_name": "step1.deal_name", "record_id": "step1.record_id" },
+        "error_hint": "Japanese phone numbers: mobile starts with 070/080/090. Format as +81XXXXXXXXX (drop leading 0)."
+      },
+      {
+        "order": 2,
+        "service_id": "twilio",
+        "action": "Send personalized thank-you SMS",
+        "input_mapping": { "to": "step1.phone", "body": "{{customer_name}}様、この度はご契約ありがとうございます。今後ともよろしくお願いいたします。", "from": "config.twilio_number" },
+        "output_mapping": { "sms_sid": "step2.sid", "status": "step2.status" },
+        "error_hint": "Twilio JP: use +81 format. Japanese SMS has 670 char limit (Shift_JIS). Keep under 70 chars for single segment."
+      },
+      {
+        "order": 3,
+        "service_id": "kintone",
+        "action": "Update deal record with SMS sent timestamp",
+        "input_mapping": { "app_id": "config.deals_app", "record_id": "step1.record_id", "sms_sent": "now()", "sms_sid": "step2.sms_sid" },
+        "output_mapping": { "updated": "step3.success" },
+        "error_hint": "Mark as sent to prevent duplicate SMS. Use kintone's revision field for optimistic concurrency."
+      }
+    ],
+    "required_services": ["kintone", "twilio"]
+  },
+  {
+    "id": "box-cloudsign-contract-archive",
+    "goal": "CloudSign signed contract to Box archive",
+    "description": "When a contract is signed in CloudSign, download the signed PDF and archive it in the correct Box folder organized by client and year. Automated contract management.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "cloudsign",
+        "action": "Get newly signed contract document with PDF",
+        "input_mapping": { "status": "completed", "since": "last_check" },
+        "output_mapping": { "document_id": "step1.id", "title": "step1.title", "pdf_url": "step1.files[0].url", "client_name": "step1.participants[0].organization" },
+        "error_hint": "CloudSign returns signed PDF via /documents/{id}/files. Download within 30 days of signing."
+      },
+      {
+        "order": 2,
+        "service_id": "box-jp",
+        "action": "Upload signed PDF to client folder organized by year",
+        "input_mapping": { "folder_path": "contracts/{{client_name}}/2026/", "file_name": "{{title}}_signed.pdf", "content": "step1.pdf_url" },
+        "output_mapping": { "file_id": "step2.file_id", "shared_link": "step2.shared_link" },
+        "error_hint": "Create folder if not exists. Box folder names: use client company name (株式会社 prefix is common in Japan)."
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Notify legal team about archived contract",
+        "input_mapping": { "channel": "config.legal_channel", "message": "Contract archived: {{title}} ({{client_name}}) → Box: {{shared_link}}" },
+        "output_mapping": { "message_ts": "step3.ts" },
+        "error_hint": "Include Box shared link for quick access. Set link expiry per company policy."
+      }
+    ],
+    "required_services": ["cloudsign", "box-jp", "slack"]
   }
 ]

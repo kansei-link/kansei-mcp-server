@@ -27,9 +27,9 @@ Or add to your MCP client config:
 
 ## What's Inside
 
-- **50 Japanese SaaS services** across 10 categories
-- **19 workflow recipes** including 7 kintone hub-pattern integrations
-- **15 API connection guides** with auth setup, endpoints, rate limits, and agent tips
+- **73 Japanese SaaS services** across 16 categories
+- **25 workflow recipes** including kintone hub-patterns, EC→shipping, POS→accounting flows
+- **18 API connection guides** with auth setup, endpoints, rate limits, and agent tips
 - **Japanese search**: FTS5 trigram + CJK intent detection (「従業員の勤怠管理」→ HR services)
 - **3-way search engine**: FTS5 + LIKE fallback + category direct search
 
@@ -47,7 +47,7 @@ Or add to your MCP client config:
 
 ## Categories
 
-CRM, Project Management, Communication, Accounting, HR, E-commerce, Legal, Marketing, Groupware, Productivity
+CRM, Project Management, Communication, Accounting, HR, E-commerce, Legal, Marketing, Groupware, Productivity, Storage, Support, Payment, Logistics, Reservation, Data Integration
 
 ## Architecture
 
@@ -70,7 +70,7 @@ Agent ←→ KanseiLink MCP Server ←→ SQLite (local)
 ```bash
 npm install
 npm run build
-npm run seed    # populate with 50 services + 19 recipes + 15 API guides
+npm run seed    # populate with 73 services + 25 recipes + 18 API guides
 npm start       # start stdio server
 ```
 

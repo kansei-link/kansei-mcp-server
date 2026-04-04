@@ -38,7 +38,7 @@ export function register(server: McpServer, db: Database.Database): void {
         category: z
           .string()
           .optional()
-          .describe("Filter by category: crm, project_management, communication, accounting, hr, ecommerce, legal, marketing, groupware, productivity"),
+          .describe("Filter by category: crm, project_management, communication, accounting, hr, ecommerce, legal, marketing, groupware, productivity, storage, support, payment, logistics, reservation, data_integration"),
         limit: z
           .number()
           .optional()

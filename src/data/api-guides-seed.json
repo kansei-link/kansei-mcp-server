@@ -460,5 +460,98 @@
       "Social insurance (社会保険) calculations are automatic based on employee data. Verify employee dependents are up to date."
     ],
     "docs_url": "https://developer.freee.co.jp/docs/hr/reference"
+  },
+  {
+    "service_id": "zendesk",
+    "base_url": "https://{subdomain}.zendesk.com/api/v2/",
+    "api_version": "v2",
+    "auth_overview": "Three methods: 1) API Token — generate in Admin > Channels > API. Use as {email}/token:{api_token} with Basic Auth. 2) OAuth 2.0 for third-party apps. 3) Password auth (not recommended). API Token is simplest for agents.",
+    "auth_token_url": "https://{subdomain}.zendesk.com/oauth/tokens",
+    "auth_scopes": "read,write",
+    "auth_setup_hint": "1. Admin Center > Apps and integrations > APIs > Zendesk API. 2. Enable Token Access. 3. Add API Token. 4. Use Basic Auth: base64({email}/token:{api_token}).",
+    "sandbox_url": "https://{subdomain}.zendesk.com/agent/admin/sandbox",
+    "key_endpoints": [
+      {"method": "GET", "path": "/tickets", "description": "List tickets with filters (status, assignee, etc.)", "auth_required": true},
+      {"method": "POST", "path": "/tickets", "description": "Create a new ticket", "auth_required": true},
+      {"method": "PUT", "path": "/tickets/{id}", "description": "Update ticket (status, assignee, tags, etc.)", "auth_required": true},
+      {"method": "GET", "path": "/search.json?query={query}", "description": "Search tickets, users, organizations", "auth_required": true},
+      {"method": "GET", "path": "/users/{id}", "description": "Get user/requester details", "auth_required": true},
+      {"method": "GET", "path": "/tickets/{id}/comments", "description": "Get ticket conversation history", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "cursor-based: response has 'meta.has_more' and 'links.next'. Use CBP (cursor-based pagination) for /tickets. Offset pagination being deprecated.",
+    "rate_limit": "400 requests/minute (Team), 700/min (Professional), 2500/min (Enterprise). HTTP 429 with Retry-After header.",
+    "error_format": "JSON: {\"error\":\"RecordNotFound\",\"description\":\"Not found\"}",
+    "quickstart_example": "GET /api/v2/tickets?status=open&sort_by=created_at&sort_order=desc HTTP/1.1\nHost: mycompany.zendesk.com\nAuthorization: Basic {base64(email/token:api_token)}\nAccept: application/json\n\nResponse: {\"tickets\":[{\"id\":123,\"subject\":\"ログインできない\",\"status\":\"open\",\"requester_id\":456}]}",
+    "agent_tips": [
+      "Auth format is unusual: email/token:{api_token} (note the /token literal). Base64 encode the whole string for Basic Auth header.",
+      "Base URL requires customer's subdomain: https://{subdomain}.zendesk.com. Ask user for their Zendesk subdomain.",
+      "Search syntax: 'type:ticket status:open assignee:me' — supports complex queries with boolean operators.",
+      "Ticket comments include both public replies and internal notes. Check 'public' field to distinguish.",
+      "Sandbox environment available on Professional+ plans. Test API changes safely before production.",
+      "Japanese-specific: many Japanese companies use Zendesk with Japanese locale — ticket subjects and comments will be in Japanese."
+    ],
+    "docs_url": "https://developer.zendesk.com/api-reference/"
+  },
+  {
+    "service_id": "twilio",
+    "base_url": "https://api.twilio.com/2010-04-01/",
+    "api_version": "2010-04-01",
+    "auth_overview": "HTTP Basic Auth with Account SID and Auth Token. Find both at twilio.com/console. Account SID starts with 'AC'. Auth Token is the secret.",
+    "auth_token_url": null,
+    "auth_scopes": null,
+    "auth_setup_hint": "1. Sign up at twilio.com. 2. Get Account SID and Auth Token from Console Dashboard. 3. Buy a Japanese phone number (+81). 4. Use Basic Auth: base64(AccountSID:AuthToken).",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {"method": "POST", "path": "/Accounts/{AccountSid}/Messages.json", "description": "Send an SMS message", "auth_required": true},
+      {"method": "GET", "path": "/Accounts/{AccountSid}/Messages.json", "description": "List sent/received messages", "auth_required": true},
+      {"method": "POST", "path": "/Accounts/{AccountSid}/Calls.json", "description": "Make a phone call", "auth_required": true},
+      {"method": "GET", "path": "/Accounts/{AccountSid}/IncomingPhoneNumbers.json", "description": "List your phone numbers", "auth_required": true}
+    ],
+    "request_content_type": "application/x-www-form-urlencoded",
+    "pagination_style": "page-based: response has 'next_page_uri'. Follow the URI for next page.",
+    "rate_limit": "SMS: 1 message/second per number (can increase). API: no strict rate limit but concurrent connections limited.",
+    "error_format": "JSON: {\"code\":21211,\"message\":\"The 'To' number is not a valid phone number.\",\"status\":400}",
+    "quickstart_example": "POST /2010-04-01/Accounts/{AccountSid}/Messages.json HTTP/1.1\nHost: api.twilio.com\nAuthorization: Basic {base64(AccountSid:AuthToken)}\nContent-Type: application/x-www-form-urlencoded\n\nTo=%2B819012345678&From=%2B815012345678&Body=Hello+from+agent!\n\nResponse: {\"sid\":\"SM123...\",\"status\":\"queued\"}",
+    "agent_tips": [
+      "POST body uses application/x-www-form-urlencoded, NOT JSON. Common mistake for agents.",
+      "Japanese phone numbers: +81 prefix, drop leading 0. Mobile: +8190/80/70XXXXXXXX.",
+      "SMS to Japanese mobile: 670 chars max. Single segment is 70 chars (Shift_JIS). Stay under 70 for lowest cost.",
+      "Japanese carrier filtering: some carriers block messages from unknown numbers. Register your use case with Twilio for better deliverability.",
+      "Trial account: can only send to verified numbers. Upgrade to send to any number.",
+      "Twilio has no Japanese free trial number. Must purchase a +81 number ($4.50/month) for Japan SMS."
+    ],
+    "docs_url": "https://www.twilio.com/docs/sms/api/message-resource"
+  },
+  {
+    "service_id": "square",
+    "base_url": "https://connect.squareup.com/v2/",
+    "api_version": "v2",
+    "auth_overview": "OAuth 2.0 or Personal Access Token. For agents, use Personal Access Token (generate in Square Developer Dashboard). Include as Bearer token in Authorization header.",
+    "auth_token_url": "https://connect.squareup.com/oauth2/token",
+    "auth_scopes": "PAYMENTS_READ,PAYMENTS_WRITE,ORDERS_READ,ITEMS_READ,INVENTORY_READ",
+    "auth_setup_hint": "1. Create app at developer.squareup.com. 2. For testing: use Sandbox Access Token (no real money). 3. For production: generate Personal Access Token in Developer Dashboard. 4. Use as: Authorization: Bearer {token}.",
+    "sandbox_url": "https://connect.squareupsandbox.com/v2/",
+    "key_endpoints": [
+      {"method": "GET", "path": "/locations", "description": "List store locations (get location_id first)", "auth_required": true},
+      {"method": "POST", "path": "/payments", "description": "Create a payment (charge a card)", "auth_required": true},
+      {"method": "POST", "path": "/orders/search", "description": "Search orders by date, status, etc.", "auth_required": true},
+      {"method": "GET", "path": "/catalog/list", "description": "List product catalog items", "auth_required": true},
+      {"method": "POST", "path": "/inventory/changes/batch-create", "description": "Batch update inventory counts", "auth_required": true}
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "cursor-based: response has 'cursor' field. Pass as query param for next page.",
+    "rate_limit": "Varies by endpoint. Most: 30 requests/second. Batch endpoints: 10/second. HTTP 429 with Retry-After.",
+    "error_format": "JSON: {\"errors\":[{\"category\":\"INVALID_REQUEST_ERROR\",\"code\":\"NOT_FOUND\",\"detail\":\"...\"}]}",
+    "quickstart_example": "GET /v2/locations HTTP/1.1\nHost: connect.squareup.com\nAuthorization: Bearer {access_token}\nAccept: application/json\n\nResponse: {\"locations\":[{\"id\":\"LOC123\",\"name\":\"渋谷店\",\"address\":{\"country\":\"JP\"},\"currency\":\"JPY\"}]}",
+    "agent_tips": [
+      "location_id is required for most endpoints — always call GET /locations first (same pattern as freee's company_id).",
+      "Sandbox available with separate base URL (squareupsandbox.com). Test payments without real charges.",
+      "Amounts are in the smallest currency unit. JPY is already integer, so ¥1000 = 1000 (no conversion needed, unlike USD).",
+      "Square in Japan supports IC card payments (Suica, PASMO) and QR code (PayPay). These show as different tender types in the API.",
+      "Idempotency: POST requests require 'Idempotency-Key' header to prevent duplicate charges. Always include it.",
+      "Catalog items have variations (sizes, colors). Access via catalog/search with type filter."
+    ],
+    "docs_url": "https://developer.squareup.com/reference/square"
   }
 ]
