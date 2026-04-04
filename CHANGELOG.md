@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.8.0 (2026-04-04)
+
+### Remote MCP Server (HTTP Transport)
+- New `http-server.ts` entry point with **Streamable HTTP** transport
+- Stateless mode: each request gets a fresh server instance (shared SQLite DB)
+- `POST /mcp` — MCP JSON-RPC endpoint
+- `GET /health` — Health check endpoint
+- Configurable via `PORT` and `KANSEI_HOST` environment variables
+- Run with `npm run start:http` or `npx kansei-link-mcp-http`
+
+### Infrastructure
+- `seedDatabase` now called from `createServer()` — ensures data is available in both stdio and HTTP modes
+- Seed auto-run only when invoked directly as script (`npm run seed`)
+
 ## v0.7.0 (2026-04-04)
 
 ### MCP Prompts

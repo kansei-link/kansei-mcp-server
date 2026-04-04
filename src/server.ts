@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getDb } from "./db/connection.js";
 import { initializeDb } from "./db/schema.js";
+import { seedDatabase } from "./db/seed.js";
 import { register as registerSearchServices } from "./tools/search-services.js";
 import { register as registerGetRecipe } from "./tools/get-recipe.js";
 import { register as registerReportOutcome } from "./tools/report-outcome.js";
@@ -14,12 +15,13 @@ import { registerResources } from "./resources.js";
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "kansei-link",
-    version: "0.7.0",
+    version: "0.8.0",
   });
 
-  // Initialize database
+  // Initialize database and seed data
   const db = getDb();
   initializeDb(db);
+  seedDatabase(db);
 
   // Register all tools
   registerSearchServices(server, db);

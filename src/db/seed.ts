@@ -247,8 +247,11 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   );
 }
 
-// Run directly
-const db = getDb();
-initializeDb(db);
-seedDatabase(db);
-db.close();
+// Run directly when invoked as a script (npm run seed)
+const isDirectRun = process.argv[1]?.includes("seed");
+if (isDirectRun) {
+  const db = getDb();
+  initializeDb(db);
+  seedDatabase(db);
+  db.close();
+}
