@@ -83,6 +83,21 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_inspections_service ON inspections(service_id);
     CREATE INDEX IF NOT EXISTS idx_inspections_severity ON inspections(severity);
 
+    CREATE TABLE IF NOT EXISTS agent_feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agent_id TEXT,
+      feedback_type TEXT NOT NULL DEFAULT 'suggestion',
+      service_id TEXT REFERENCES services(id),
+      subject TEXT NOT NULL,
+      body TEXT NOT NULL,
+      priority TEXT DEFAULT 'normal',
+      status TEXT DEFAULT 'open',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_feedback_status ON agent_feedback(status);
+    CREATE INDEX IF NOT EXISTS idx_feedback_type ON agent_feedback(feedback_type);
+
     CREATE TABLE IF NOT EXISTS service_api_guides (
       service_id TEXT PRIMARY KEY REFERENCES services(id),
       base_url TEXT NOT NULL,
