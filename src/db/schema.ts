@@ -98,6 +98,26 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_feedback_status ON agent_feedback(status);
     CREATE INDEX IF NOT EXISTS idx_feedback_type ON agent_feedback(feedback_type);
 
+    -- Pending updates: PR-model proposals from agents for service data changes
+    CREATE TABLE IF NOT EXISTS pending_updates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service_id TEXT NOT NULL REFERENCES services(id),
+      proposer_agent_id TEXT DEFAULT 'anonymous',
+      change_type TEXT NOT NULL DEFAULT 'update',
+      field_changes TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      evidence_url TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      reviewed_by TEXT,
+      review_note TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      reviewed_at TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_pending_status ON pending_updates(status);
+    CREATE INDEX IF NOT EXISTS idx_pending_service ON pending_updates(service_id);
+    CREATE INDEX IF NOT EXISTS idx_pending_created ON pending_updates(created_at);
+
     CREATE TABLE IF NOT EXISTS service_api_guides (
       service_id TEXT PRIMARY KEY REFERENCES services(id),
       base_url TEXT NOT NULL,

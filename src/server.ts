@@ -15,6 +15,7 @@ import { register as registerSubmitInspection } from "./tools/submit-inspection.
 import { register as registerGenerateAeoReport } from "./tools/generate-aeo-report.js";
 import { register as registerGenerateAeoArticle } from "./tools/generate-aeo-article.js";
 import { register as registerFeedback } from "./tools/submit-feedback.js";
+import { register as registerProposeUpdate } from "./tools/propose-update.js";
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
 import { recalculateTrustScores } from "./utils/trust-recalc.js";
@@ -22,7 +23,7 @@ import { recalculateTrustScores } from "./utils/trust-recalc.js";
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "kansei-link",
-    version: "0.12.0",
+    version: "0.14.0",
   });
 
   // Initialize database, seed data, and recalculate trust scores
@@ -45,6 +46,7 @@ export function createServer(): McpServer {
   registerGenerateAeoReport(server, db);
   registerGenerateAeoArticle(server, db);
   registerFeedback(server, db);
+  registerProposeUpdate(server, db);
 
   // Register prompts (LobeHub Grade A)
   registerPrompts(server);
