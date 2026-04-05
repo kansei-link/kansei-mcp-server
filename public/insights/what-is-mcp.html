@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCPとは？ — Model Context Protocol がAI時代のSaaS連携を変える | KanseiLink</title>
+  <meta name="description" content="MCP（Model Context Protocol）とは、AIエージェントと外部サービスをつなぐオープンプロトコルです。仕組み・日本SaaSの対応状況・開発方法を徹底解説。">
+  <meta name="keywords" content="MCP とは, Model Context Protocol, MCPとは, MCP 仕組み, MCP Server, AIエージェント, MCP 日本語, Anthropic MCP, AAIF, KanseiLink">
+  <meta name="author" content="KanseiLink by Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/what-is-mcp">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCPとは？ — Model Context Protocol がAI時代のSaaS連携を変える">
+  <meta property="og:description" content="MCP（Model Context Protocol）の仕組み、日本SaaSの対応状況、MCP Serverの作り方を徹底解説。AIエージェント時代の標準プロトコルを理解する。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/what-is-mcp">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="article:published_time" content="2026-04-05">
+  <meta property="article:modified_time" content="2026-04-05">
+  <meta property="article:section" content="Technology">
+  <meta property="article:tag" content="MCP">
+  <meta property="article:tag" content="Model Context Protocol">
+  <meta property="article:tag" content="AIエージェント">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCPとは？ — Model Context Protocol がAI時代のSaaS連携を変える">
+  <meta name="twitter:description" content="MCP（Model Context Protocol）の仕組み・日本SaaSの対応状況・開発方法を徹底解説。">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCPとは？ — Model Context Protocol がAI時代のSaaS連携を変える",
+    "description": "MCP（Model Context Protocol）の仕組み、日本SaaSの対応状況、MCP Serverの作り方を徹底解説。",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink",
+      "url": "https://kansei-link.com"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-05",
+    "dateModified": "2026-04-05",
+    "mainEntityOfPage": "https://kansei-link.com/insights/what-is-mcp",
+    "keywords": ["MCP", "Model Context Protocol", "AIエージェント", "MCP Server", "AAIF"],
+    "articleSection": "Technology",
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "MCPとは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCP（Model Context Protocol）は、AIエージェントと外部サービス（SaaS、データベース、ファイルシステムなど）を標準化された方法で接続するためのオープンプロトコルです。Anthropicが2024年11月に発表し、2025年12月にLinux Foundation傘下のAgentic AI Foundation（AAIF）に移管されました。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPとAPIの違いは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "APIはサービスごとに異なる仕様・認証方式・データ形式を持ちますが、MCPは統一されたプロトコルで全てのサービスに同じ方法で接続できます。USB-Cが充電器を統一したように、MCPはAIエージェントとサービスの接続方法を統一します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPのHost、Client、Serverとは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Host はClaudeやChatGPTなどAIエージェントのアプリケーション本体、ClientはHost内でMCP接続を管理するコンポーネント、ServerはSaaSやデータソース側でMCPリクエストを処理するプログラムです。Host → Client → Serverの順で通信します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "日本のSaaSはMCPに対応していますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLinkの100社調査によると、公式MCP Server提供が約35%、サードパーティMCPが約15%、API Onlyが約40%、MCP未対応が約10%です。Notion、Slack、freee、kintone、Backlogなどは公式MCP Serverを提供しています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCP Serverはどうやって作りますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "@modelcontextprotocol/sdk（TypeScript）またはmcp（Python）パッケージを使用します。McpServerクラスをインスタンス化し、.tool()メソッドでツールを登録、StdioServerTransport で接続するのが最小構成です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPのセキュリティリスクは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "主なリスクとして、Rug-Pull攻撃（MCP Serverが途中で悪意のある動作に切り替える）、Tool Poisoning（ツール説明文に隠れた指示を埋め込む）、認証情報の漏洩があります。OAuth 2.1の統合標準化が進行中で、セキュリティフレームワークの整備が進んでいます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AAIFとは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AAIF（Agentic AI Foundation）はLinux Foundation傘下の団体で、2025年12月にMCPの管理を引き継ぎました。Anthropic、OpenAI、Google、Microsoft、AWSなど主要AI企業が支援しており、MCPのオープンスタンダードとしての発展を推進しています。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://kansei-link.com/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Insights",
+        "item": "https://kansei-link.com/insights"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "MCPとは？",
+        "item": "https://kansei-link.com/insights/what-is-mcp"
+      }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ========================================
+       MSCI-STYLE DESIGN SYSTEM
+       ======================================== */
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+      --grade-aaa: #065F46;
+      --grade-aa: #059669;
+      --grade-a: #0891B2;
+      --grade-bbb: #D97706;
+      --grade-bb: #EA580C;
+      --grade-b: #DC2626;
+      --grade-ccc: #991B1B;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== UTILITY BAR ===== */
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a {
+      color: var(--black);
+      text-decoration: none;
+      font-weight: 400;
+    }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    /* ===== MAIN NAV ===== */
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+      flex: 1;
+    }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+      display: inline-block;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-teal {
+      background: var(--teal);
+      color: var(--black);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+      display: inline-block;
+    }
+    .btn-teal:hover { opacity: 0.9; }
+
+    /* ===== LAYOUT ===== */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 80px;
+    }
+
+    /* ===== ARTICLE HERO ===== */
+    .article-hero {
+      background: var(--white);
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--gray-mid);
+    }
+    .breadcrumb {
+      font-size: 14px;
+      color: var(--gray-text);
+      margin-bottom: 32px;
+    }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 8px; color: var(--gray-text); }
+    .article-hero h1 {
+      font-size: 42px;
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -1.5px;
+      color: var(--black);
+      max-width: 800px;
+      margin-bottom: 16px;
+    }
+    .article-meta {
+      font-size: 14px;
+      color: var(--gray-text);
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .article-meta .tag {
+      display: inline-block;
+      background: var(--lavender);
+      color: var(--blue);
+      padding: 2px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* ===== ARTICLE BODY ===== */
+    .article-layout {
+      display: flex;
+      gap: 64px;
+      padding: 48px 0 80px;
+    }
+    .article-body {
+      max-width: 800px;
+      flex: 1;
+    }
+    .article-sidebar {
+      width: 260px;
+      flex-shrink: 0;
+    }
+
+    /* Typography */
+    .article-body p {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--gray-dark);
+      margin-bottom: 24px;
+    }
+    .article-body h2 {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--black);
+      margin: 48px 0 16px;
+      padding-top: 16px;
+      letter-spacing: -0.5px;
+      border-top: 2px solid var(--lavender);
+    }
+    .article-body h2:first-of-type {
+      margin-top: 0;
+      border-top: none;
+      padding-top: 0;
+    }
+    .article-body h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--black);
+      margin: 32px 0 12px;
+    }
+    .article-body ul, .article-body ol {
+      margin: 0 0 24px 24px;
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--gray-dark);
+    }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: none; }
+    .article-body a:hover { text-decoration: underline; }
+
+    /* Key insight box */
+    .key-insight {
+      background: var(--lavender);
+      border-left: 4px solid var(--blue);
+      padding: 20px 24px;
+      margin: 24px 0 32px;
+      border-radius: 0 8px 8px 0;
+    }
+    .key-insight p {
+      margin: 0;
+      font-size: 15px;
+      color: var(--black);
+      font-weight: 400;
+    }
+    .key-insight .label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--blue);
+      margin-bottom: 8px;
+    }
+
+    /* Architecture diagram (CSS) */
+    .arch-diagram {
+      background: var(--gray-light);
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 32px 24px;
+      margin: 24px 0 32px;
+      text-align: center;
+    }
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .arch-box {
+      background: var(--white);
+      border: 2px solid var(--blue);
+      border-radius: 8px;
+      padding: 16px 20px;
+      min-width: 140px;
+      text-align: center;
+    }
+    .arch-box.host { border-color: var(--blue); }
+    .arch-box.client { border-color: var(--blue-light); }
+    .arch-box.server { border-color: var(--teal); }
+    .arch-box .box-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .arch-box.host .box-title { color: var(--blue); }
+    .arch-box.client .box-title { color: var(--blue-light); }
+    .arch-box.server .box-title { color: #00A89D; }
+    .arch-box .box-desc {
+      font-size: 13px;
+      color: var(--gray-text);
+    }
+    .arch-arrow {
+      font-size: 24px;
+      color: var(--gray-text);
+      font-weight: 300;
+    }
+    .arch-caption {
+      font-size: 13px;
+      color: var(--gray-text);
+      margin-top: 8px;
+    }
+    .arch-features {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .arch-feat {
+      background: var(--white);
+      border: 1px solid var(--gray-mid);
+      border-radius: 8px;
+      padding: 12px 20px;
+      text-align: center;
+    }
+    .arch-feat .feat-icon { font-size: 20px; margin-bottom: 4px; }
+    .arch-feat .feat-name { font-size: 13px; font-weight: 600; color: var(--black); }
+    .arch-feat .feat-desc { font-size: 12px; color: var(--gray-text); }
+
+    /* Comparison table */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0 32px;
+      font-size: 14px;
+    }
+    .comparison-table th {
+      background: var(--lavender);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--black);
+      border-bottom: 2px solid var(--blue);
+    }
+    .comparison-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      color: var(--gray-dark);
+      vertical-align: top;
+    }
+    .comparison-table tr:last-child td { border-bottom: none; }
+    .comparison-table .highlight { background: rgba(0,196,179,0.06); }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 24px 0 32px;
+    }
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--gray-mid);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-card .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+    .stat-card .stat-label {
+      font-size: 13px;
+      color: var(--gray-text);
+      margin-top: 4px;
+    }
+    .stat-card.official .stat-value { color: var(--grade-aaa); }
+    .stat-card.third-party .stat-value { color: var(--grade-a); }
+    .stat-card.api-only .stat-value { color: var(--grade-bbb); }
+    .stat-card.none .stat-value { color: var(--grade-ccc); }
+
+    /* Grade bar */
+    .grade-distribution {
+      margin: 24px 0 32px;
+    }
+    .grade-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .grade-label {
+      width: 48px;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: right;
+      margin-right: 12px;
+    }
+    .grade-bar-bg {
+      flex: 1;
+      height: 24px;
+      background: var(--gray-light);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .grade-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding-left: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    /* Code blocks */
+    .code-block {
+      background: #1E1E2E;
+      color: #CDD6F4;
+      border-radius: 8px;
+      padding: 24px;
+      margin: 16px 0 24px;
+      overflow-x: auto;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .code-block .comment { color: #6C7086; }
+    .code-block .keyword { color: #CBA6F7; }
+    .code-block .string { color: #A6E3A1; }
+    .code-block .func { color: #89B4FA; }
+    .code-block .const { color: #F9E2AF; }
+    .code-block .filename {
+      display: block;
+      font-size: 12px;
+      color: #6C7086;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #313244;
+    }
+
+    /* FAQ */
+    .faq-section {
+      margin: 48px 0 32px;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 20px 0;
+    }
+    .faq-item:first-child { border-top: 1px solid var(--gray-mid); }
+    .faq-q {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--black);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .faq-q::after {
+      content: '+';
+      font-size: 20px;
+      font-weight: 300;
+      color: var(--gray-text);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .faq-item.open .faq-q::after {
+      content: '-';
+    }
+    .faq-a {
+      display: none;
+      padding-top: 12px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--gray-dark);
+    }
+    .faq-item.open .faq-a { display: block; }
+
+    /* Sidebar TOC */
+    .toc {
+      position: sticky;
+      top: 88px;
+    }
+    .toc-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gray-text);
+      margin-bottom: 16px;
+    }
+    .toc-list {
+      list-style: none;
+    }
+    .toc-list li {
+      margin-bottom: 8px;
+    }
+    .toc-list a {
+      font-size: 14px;
+      color: var(--gray-text);
+      text-decoration: none;
+      display: block;
+      padding: 4px 0 4px 12px;
+      border-left: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .toc-list a:hover,
+    .toc-list a.active {
+      color: var(--blue);
+      border-left-color: var(--blue);
+    }
+
+    /* CTA Banner */
+    .cta-banner {
+      background: var(--blue);
+      border-radius: 12px;
+      padding: 48px;
+      text-align: center;
+      margin: 48px 0;
+    }
+    .cta-banner h3 {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    .cta-banner p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 24px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .cta-banner .btn-teal {
+      font-size: 16px;
+      padding: 14px 40px;
+      font-weight: 600;
+    }
+
+    /* Related articles */
+    .related-section {
+      padding: 64px 0;
+      border-top: 1px solid var(--gray-mid);
+    }
+    .related-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 32px;
+      letter-spacing: -0.5px;
+    }
+    .related-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .related-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+      text-decoration: none;
+    }
+    .related-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    .related-card-color {
+      height: 6px;
+    }
+    .related-card-body {
+      padding: 24px;
+    }
+    .related-card-tag {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--blue);
+      margin-bottom: 8px;
+    }
+    .related-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--black);
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .related-card-desc {
+      font-size: 14px;
+      color: var(--gray-text);
+      line-height: 1.5;
+    }
+
+    /* Agent-readable section */
+    .agent-section {
+      background: var(--gray-light);
+      border: 1px solid var(--gray-mid);
+      border-radius: 8px;
+      padding: 24px;
+      margin: 32px 0;
+      font-size: 14px;
+    }
+    .agent-section .agent-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gray-text);
+      margin-bottom: 12px;
+    }
+    .agent-section code {
+      background: var(--white);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--black);
+      color: rgba(255,255,255,0.5);
+      padding: 48px 0 32px;
+      font-size: 14px;
+    }
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+    .footer-logo {
+      color: var(--white);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer-links a {
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .footer-links a:hover { color: var(--white); }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-social {
+      display: flex;
+      gap: 16px;
+    }
+    .footer-social a {
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      font-size: 16px;
+    }
+    .footer-social a:hover { color: var(--white); }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .article-sidebar { display: none; }
+      .article-body { max-width: 100%; }
+    }
+    @media (max-width: 900px) {
+      .container { padding: 0 24px; }
+      .main-nav .inner, .utility-bar .inner { padding: 0 24px; }
+      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .related-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .utility-bar { display: none; }
+      .cta-banner { padding: 32px 24px; }
+      .cta-banner h3 { font-size: 22px; }
+      .footer-top { flex-direction: column; gap: 24px; }
+      .footer-bottom { flex-direction: column; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Utility Bar -->
+<div class="utility-bar">
+  <div class="inner">
+    <a href="#">日本語</a>
+    <span class="sep">|</span>
+    <a href="#">Support</a>
+    <span class="sep">|</span>
+    <a href="#">Agent Log In</a>
+  </div>
+</div>
+
+<!-- Main Navigation -->
+<nav class="main-nav">
+  <div class="inner">
+    <a href="/" class="logo">
+      <span class="logo-icon">K</span>
+      KanseiLink
+    </a>
+    <ul class="nav-links">
+      <li><a href="/">AEO Ratings</a></li>
+      <li><a href="/#ranking">Rankings</a></li>
+      <li><a href="/#methodology">Methodology</a></li>
+      <li><a href="/insights" class="active">Insights</a></li>
+      <li><a href="/#about">About</a></li>
+    </ul>
+    <div class="nav-right">
+      <a href="mailto:contact@synapsearrows.com" class="btn-primary">Get in touch</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ARTICLE HERO -->
+<section class="article-hero">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Home</a><span class="sep">/</span><a href="/insights">Insights</a><span class="sep">/</span>MCP Guide
+    </div>
+    <h1>MCPとは？ &#8212; Model Context Protocol がAI時代のSaaS連携を変える</h1>
+    <div class="article-meta">
+      <span>Published: April 5, 2026</span>
+      <span>Reading time: 12 min</span>
+      <span class="tag">MCP</span>
+      <span class="tag">Protocol</span>
+      <span class="tag">AIエージェント</span>
+    </div>
+  </div>
+</section>
+
+<!-- ARTICLE CONTENT -->
+<div class="container">
+  <div class="article-layout">
+
+    <!-- Main body -->
+    <article class="article-body">
+
+      <!-- Section 1: MCPの概要 -->
+      <h2 id="overview">1. MCPの概要 &#8212; AIエージェントと外部サービスをつなぐ標準規格</h2>
+
+      <p><strong>MCP（Model Context Protocol）</strong>は、AIエージェントと外部サービス（SaaS、データベース、ファイルシステムなど）を標準化された方法で接続するための<strong>オープンプロトコル</strong>です。</p>
+
+      <div class="key-insight">
+        <div class="label">Key Takeaway</div>
+        <p>MCPは「AIエージェントのためのUSB-C」 &#8212; 異なるサービスに対して、1つの統一された接続方法を提供する標準規格です。</p>
+      </div>
+
+      <p>MCPの主要な経緯:</p>
+      <ul>
+        <li><strong>2024年11月</strong> &#8212; Anthropicがオープンソースプロトコルとして<strong>MCP（Model Context Protocol）を発表</strong>。Claude DesktopがMCPの初のHostとなる。</li>
+        <li><strong>2025年3月</strong> &#8212; OpenAIがChatGPTとAgents SDKでMCPサポートを発表。事実上の業界標準化が加速。</li>
+        <li><strong>2025年12月</strong> &#8212; MCPの管理が<strong>Linux Foundation傘下のAgentic AI Foundation（AAIF）</strong>に移管。ベンダー中立のガバナンスへ移行。</li>
+      </ul>
+
+      <p>AAIFには<strong>Anthropic、OpenAI、Google、Microsoft、AWS</strong>をはじめとする主要AI企業・クラウドプロバイダーが参加しており、MCPをAIエージェント時代のインフラ標準として推進しています。</p>
+
+      <p>MCPの目的を一言で表現すると: <strong>「AIエージェントと外部サービスをつなぐ標準規格」</strong>です。従来はサービスごとにバラバラだったAPI統合を、統一されたプロトコルに置き換えることで、エージェントが任意のサービスに接続できるようになります。</p>
+
+
+      <!-- Section 2: MCPの仕組み -->
+      <h2 id="architecture">2. MCPの仕組み &#8212; Host / Client / Server アーキテクチャ</h2>
+
+      <p>MCPは3つのコンポーネントで構成されるクライアント-サーバーアーキテクチャを採用しています。</p>
+
+      <div class="arch-diagram">
+        <div class="arch-flow">
+          <div class="arch-box host">
+            <div class="box-title">Host</div>
+            <div class="box-desc">Claude Desktop<br>ChatGPT, Cursor</div>
+          </div>
+          <div class="arch-arrow">&#8594;</div>
+          <div class="arch-box client">
+            <div class="box-title">Client</div>
+            <div class="box-desc">MCP Client<br>(Host内のコンポーネント)</div>
+          </div>
+          <div class="arch-arrow">&#8594;</div>
+          <div class="arch-box server">
+            <div class="box-title">Server</div>
+            <div class="box-desc">MCP Server<br>(SaaS / データソース)</div>
+          </div>
+        </div>
+        <div class="arch-caption">JSON-RPC 2.0 over stdio / Streamable HTTP</div>
+        <div class="arch-features">
+          <div class="arch-feat">
+            <div class="feat-icon">&#128295;</div>
+            <div class="feat-name">Tools</div>
+            <div class="feat-desc">関数呼び出し</div>
+          </div>
+          <div class="arch-feat">
+            <div class="feat-icon">&#128196;</div>
+            <div class="feat-name">Resources</div>
+            <div class="feat-desc">データ参照</div>
+          </div>
+          <div class="arch-feat">
+            <div class="feat-icon">&#128172;</div>
+            <div class="feat-name">Prompts</div>
+            <div class="feat-desc">テンプレート</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>各コンポーネントの役割</h3>
+      <ul>
+        <li><strong>Host（ホスト）</strong> &#8212; Claude Desktop、ChatGPT、Cursorなど、AIエージェントのアプリケーション本体。ユーザーとの対話を管理し、MCPクライアントを内包します。</li>
+        <li><strong>Client（クライアント）</strong> &#8212; Host内で動作するコンポーネント。MCP Serverとの接続を管理し、1つのClientは1つのServerと1:1で通信します。</li>
+        <li><strong>Server（サーバー）</strong> &#8212; SaaSやデータソース側で動作するプログラム。Tools（関数呼び出し）、Resources（データ参照）、Prompts（テンプレート）の3つの機能をAIエージェントに公開します。</li>
+      </ul>
+
+      <h3>MCPの3つの機能</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>機能</th>
+            <th>説明</th>
+            <th>例</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Tools</strong></td>
+            <td>AIエージェントが呼び出せる関数。副作用を伴う操作が可能。</td>
+            <td>メッセージ送信、レコード作成、ファイルアップロード</td>
+          </tr>
+          <tr>
+            <td><strong>Resources</strong></td>
+            <td>読み取り専用のデータ参照。コンテキストとしてAIに提供。</td>
+            <td>ドキュメント一覧、設定値、ログデータ</td>
+          </tr>
+          <tr>
+            <td><strong>Prompts</strong></td>
+            <td>再利用可能なプロンプトテンプレート。</td>
+            <td>レポート生成テンプレート、分析クエリ</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>トランスポート方式</h3>
+      <p>MCPは2つのトランスポート方式をサポートしています:</p>
+      <ul>
+        <li><strong>stdio（標準入出力）</strong> &#8212; ローカルで動作するMCP Serverとの通信に使用。プロセス間でJSON-RPCメッセージをやり取りします。</li>
+        <li><strong>Streamable HTTP</strong> &#8212; リモートのMCP Serverとの通信に使用。HTTP POSTでリクエストを送信し、Server-Sent Events (SSE) でレスポンスをストリーミングします。</li>
+      </ul>
+
+      <h3>接続例</h3>
+      <p>Claude DesktopでMCP Serverを使う場合の設定例:</p>
+
+      <div class="code-block">
+        <span class="filename">claude_desktop_config.json</span>
+<span class="comment">// Claude Desktop の MCP Server 設定</span>
+{
+  <span class="string">"mcpServers"</span>: {
+    <span class="string">"notion"</span>: {
+      <span class="string">"command"</span>: <span class="string">"npx"</span>,
+      <span class="string">"args"</span>: [<span class="string">"@notionhq/mcp-server"</span>],
+      <span class="string">"env"</span>: {
+        <span class="string">"NOTION_API_KEY"</span>: <span class="string">"ntn_xxxxx"</span>
+      }
+    }
+  }
+}
+      </div>
+
+
+      <!-- Section 3: なぜMCPが必要か -->
+      <h2 id="why-mcp">3. なぜMCPが必要か &#8212; Before / After で理解する</h2>
+
+      <p>MCPが登場する以前、AIエージェントが外部サービスを利用するには、サービスごとに個別のAPI統合が必要でした。MCPはこの課題を根本から解決します。</p>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th style="width:50%">Before MCP（従来）</th>
+            <th style="width:50%">After MCP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>サービスごとに異なるAPI仕様を学習</td>
+            <td class="highlight">1つのプロトコルで全サービスに接続</td>
+          </tr>
+          <tr>
+            <td>認証方式がバラバラ（APIキー、OAuth、Basic認証...）</td>
+            <td class="highlight">統一された認証フロー（OAuth 2.1統合が進行中）</td>
+          </tr>
+          <tr>
+            <td>N個のサービス x M個のエージェント = N*M の統合</td>
+            <td class="highlight">N + M の統合で済む（各自がMCPに対応するだけ）</td>
+          </tr>
+          <tr>
+            <td>エラーハンドリングがサービスごとに異なる</td>
+            <td class="highlight">標準化されたエラーレスポンス</td>
+          </tr>
+          <tr>
+            <td>ドキュメントの品質がサービスに依存</td>
+            <td class="highlight">MCPスキーマでツールが自己記述的</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="key-insight">
+        <div class="label">USB-Cのアナロジー</div>
+        <p>かつてスマートフォンの充電器はメーカーごとにバラバラでした。USB-Cが登場し、1つのケーブルで全てのデバイスを充電できるようになりました。MCPはAIエージェントの世界で同じことを実現します &#8212; 1つのプロトコルで、あらゆるサービスに接続できる世界です。</p>
+      </div>
+
+      <p>この標準化により、SaaSプロバイダーは一度MCPに対応すれば全てのAIエージェントから利用可能になり、AIエージェント開発者は一度MCPクライアントを実装すれば全てのMCP対応サービスに接続できます。</p>
+
+
+      <!-- Section 4: 日本のSaaSにおけるMCP対応状況 -->
+      <h2 id="japan-saas">4. 日本のSaaSにおけるMCP対応状況</h2>
+
+      <p>KanseiLinkは日本市場の<strong>主要SaaS 100サービス</strong>を対象に、AIエージェント対応力（AEO Score）を定量評価しています。MCP対応状況の調査結果は以下の通りです。</p>
+
+      <div class="stats-grid">
+        <div class="stat-card official">
+          <div class="stat-value">35%</div>
+          <div class="stat-label">Official MCP</div>
+        </div>
+        <div class="stat-card third-party">
+          <div class="stat-value">15%</div>
+          <div class="stat-label">Third-party MCP</div>
+        </div>
+        <div class="stat-card api-only">
+          <div class="stat-value">40%</div>
+          <div class="stat-label">API Only</div>
+        </div>
+        <div class="stat-card none">
+          <div class="stat-value">10%</div>
+          <div class="stat-label">MCP未対応</div>
+        </div>
+      </div>
+
+      <h3>AEO格付け分布</h3>
+      <p>KanseiLinkの独自格付けシステムでは、MCP対応状況・API品質・エージェント成功率を総合的に評価し、AAA（最高）からCCC（最低）の7段階で格付けしています。</p>
+
+      <div class="grade-distribution">
+        <div class="grade-row">
+          <div class="grade-label" style="color: var(--grade-aaa);">AAA</div>
+          <div class="grade-bar-bg">
+            <div class="grade-bar-fill" style="width: 8%; background: var(--grade-aaa);">4</div>
+          </div>
+        </div>
+        <div class="grade-row">
+          <div class="grade-label" style="color: var(--grade-aa);">AA</div>
+          <div class="grade-bar-bg">
+            <div class="grade-bar-fill" style="width: 12%; background: var(--grade-aa);">6</div>
+          </div>
+        </div>
+        <div class="grade-row">
+          <div class="grade-label" style="color: var(--grade-a);">A</div>
+          <div class="grade-bar-bg">
+            <div class="grade-bar-fill" style="width: 18%; background: var(--grade-a);">9</div>
+          </div>
+        </div>
+        <div class="grade-row">
+          <div class="grade-label" style="color: var(--grade-bbb);">BBB</div>
+          <div class="grade-bar-bg">
+            <div class="grade-bar-fill" style="width: 30%; background: var(--grade-bbb);">15</div>
+          </div>
+        </div>
+        <div class="grade-row">
+          <div class="grade-label" style="color: var(--grade-bb);">BB</div>
+          <div class="grade-bar-bg">
+            <div class="grade-bar-fill" style="width: 24%; background: var(--grade-bb);">12</div>
+          </div>
+        </div>
+        <div class="grade-row">
+          <div class="grade-label" style="color: var(--grade-b);">B</div>
+          <div class="grade-bar-bg">
+            <div class="grade-bar-fill" style="width: 20%; background: var(--grade-b);">10</div>
+          </div>
+        </div>
+        <div class="grade-row">
+          <div class="grade-label" style="color: var(--grade-ccc);">CCC</div>
+          <div class="grade-bar-bg">
+            <div class="grade-bar-fill" style="width: 8%; background: var(--grade-ccc);">4</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>カテゴリ別MCP対応率</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>カテゴリ</th>
+            <th>MCP対応率</th>
+            <th>主要サービス</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>プロジェクト管理</strong></td>
+            <td class="highlight">75%</td>
+            <td>Notion, Backlog, kintone, Asana</td>
+          </tr>
+          <tr>
+            <td><strong>コミュニケーション</strong></td>
+            <td class="highlight">67%</td>
+            <td>Slack, Chatwork, LINE Messaging</td>
+          </tr>
+          <tr>
+            <td><strong>会計・経理</strong></td>
+            <td>60%</td>
+            <td>freee, Money Forward Cloud</td>
+          </tr>
+          <tr>
+            <td><strong>CRM・営業</strong></td>
+            <td>50%</td>
+            <td>Sansan, HubSpot Japan, Salesforce</td>
+          </tr>
+          <tr>
+            <td><strong>人事・労務</strong></td>
+            <td>40%</td>
+            <td>SmartHR, KING OF TIME, freee人事労務</td>
+          </tr>
+          <tr>
+            <td><strong>法務・契約</strong></td>
+            <td>25%</td>
+            <td>CloudSign</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>詳細なAEO格付けデータは <a href="/">AEO Ratings ページ</a> で確認できます。各サービスのMCP対応状況、API品質、エージェント成功率を個別に検索・閲覧できます。</p>
+
+
+      <!-- Section 5: MCPの課題と今後 -->
+      <h2 id="challenges">5. MCPの課題と今後</h2>
+
+      <p>MCPは急速に普及しつつありますが、プロダクション環境での運用にはいくつかの課題が残っています。</p>
+
+      <h3>5.1 認証の標準化</h3>
+      <p>現在、MCP Serverごとに認証方式がバラバラです（APIキー、OAuth 2.0、Basic認証など）。AAIF主導で<strong>OAuth 2.1のMCP統合仕様</strong>が策定中であり、統一された認証フローの実現が期待されています。これが完成すれば、ユーザーはサービスごとに異なる認証設定を行う必要がなくなります。</p>
+
+      <h3>5.2 セキュリティリスク</h3>
+      <p>MCP特有のセキュリティリスクとして、以下が知られています:</p>
+      <ul>
+        <li><strong>Rug-Pull攻撃</strong> &#8212; MCP Serverが途中で悪意のある動作に切り替える攻撃。初回は正常に動作し、信頼を得た後に不正な操作を実行します。</li>
+        <li><strong>Tool Poisoning</strong> &#8212; ツールの説明文（description）に隠された指示を埋め込み、AIエージェントの動作を操作する攻撃。人間には見えないが、LLMには読み取れる指示が含まれます。</li>
+        <li><strong>認証情報の漏洩</strong> &#8212; MCP Server経由でAPIキーやOAuthトークンが意図せず外部に送信されるリスク。</li>
+      </ul>
+
+      <div class="key-insight">
+        <div class="label">セキュリティの原則</div>
+        <p>MCP Serverは「信頼できるソース」からのみインストールすること。公式リポジトリ、またはKanseiLinkの<strong>AEO Verified</strong>マークが付いたサービスの利用を推奨します。</p>
+      </div>
+
+      <h3>5.3 日本語ドキュメントの不足</h3>
+      <p>MCPの公式ドキュメントは英語が中心であり、日本語の技術資料が不足しています。日本のSaaSプロバイダーがMCP対応を進める際の大きな障壁となっており、KanseiLinkではこの課題に対して日本語ガイドの整備を進めています。</p>
+
+      <h3>5.4 AIエージェント間の相互運用性</h3>
+      <p>MCPはAIエージェントとサービスの接続を標準化しますが、<strong>AIエージェント同士の連携</strong>（Agent-to-Agent通信）は現時点でスコープ外です。GoogleのA2A（Agent-to-Agent）プロトコルなど、補完的な標準化の動きも進んでおり、今後のエコシステム全体の発展が注目されます。</p>
+
+
+      <!-- Section 6: 開発者向け: MCP Server を作る方法 -->
+      <h2 id="build-mcp">6. 開発者向け: MCP Server を作る方法</h2>
+
+      <p>自社サービスをMCPに対応させたい開発者向けに、MCP Serverの構築方法を解説します。</p>
+
+      <h3>6.1 公式SDK</h3>
+      <p>MCP Serverの開発には公式SDKを利用します:</p>
+      <ul>
+        <li><strong>TypeScript</strong>: <code>@modelcontextprotocol/sdk</code></li>
+        <li><strong>Python</strong>: <code>mcp</code></li>
+        <li><strong>Java / Kotlin</strong>: <code>io.modelcontextprotocol:sdk</code></li>
+      </ul>
+
+      <h3>6.2 最小限のMCP Server（TypeScript）</h3>
+
+      <div class="code-block">
+        <span class="filename">src/index.ts</span>
+<span class="keyword">import</span> { <span class="const">McpServer</span> } <span class="keyword">from</span> <span class="string">"@modelcontextprotocol/sdk/server/mcp.js"</span>;
+<span class="keyword">import</span> { <span class="const">StdioServerTransport</span> } <span class="keyword">from</span> <span class="string">"@modelcontextprotocol/sdk/server/stdio.js"</span>;
+<span class="keyword">import</span> { z } <span class="keyword">from</span> <span class="string">"zod"</span>;
+
+<span class="comment">// 1. MCP Server インスタンスを作成</span>
+<span class="keyword">const</span> server = <span class="keyword">new</span> <span class="func">McpServer</span>({
+  name: <span class="string">"my-saas-mcp"</span>,
+  version: <span class="string">"1.0.0"</span>,
+});
+
+<span class="comment">// 2. ツールを登録</span>
+server.<span class="func">tool</span>(
+  <span class="string">"get_customers"</span>,
+  <span class="string">"顧客一覧を取得する"</span>,
+  {
+    limit: z.<span class="func">number</span>().<span class="func">optional</span>().<span class="func">describe</span>(<span class="string">"取得件数の上限"</span>),
+    status: z.<span class="func">enum</span>([<span class="string">"active"</span>, <span class="string">"inactive"</span>]).<span class="func">optional</span>(),
+  },
+  <span class="keyword">async</span> ({ limit, status }) => {
+    <span class="keyword">const</span> customers = <span class="keyword">await</span> <span class="func">fetchCustomers</span>({ limit, status });
+    <span class="keyword">return</span> {
+      content: [{
+        type: <span class="string">"text"</span>,
+        text: JSON.<span class="func">stringify</span>(customers, <span class="keyword">null</span>, 2),
+      }],
+    };
+  }
+);
+
+<span class="comment">// 3. stdio トランスポートで接続</span>
+<span class="keyword">const</span> transport = <span class="keyword">new</span> <span class="func">StdioServerTransport</span>();
+<span class="keyword">await</span> server.<span class="func">connect</span>(transport);
+      </div>
+
+      <h3>6.3 主要な構成要素</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>要素</th>
+            <th>説明</th>
+            <th>必須</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>McpServer</strong></td>
+            <td>MCP Serverのメインクラス。name と version を指定。</td>
+            <td>必須</td>
+          </tr>
+          <tr>
+            <td><strong>.tool()</strong></td>
+            <td>ツールを登録。名前、説明、パラメータスキーマ、ハンドラを指定。</td>
+            <td>推奨</td>
+          </tr>
+          <tr>
+            <td><strong>.resource()</strong></td>
+            <td>リソースを登録。URI テンプレートとハンドラを指定。</td>
+            <td>任意</td>
+          </tr>
+          <tr>
+            <td><strong>.prompt()</strong></td>
+            <td>プロンプトテンプレートを登録。</td>
+            <td>任意</td>
+          </tr>
+          <tr>
+            <td><strong>Transport</strong></td>
+            <td>通信方式。StdioServerTransport（ローカル）またはStreamableHTTPServerTransport（リモート）。</td>
+            <td>必須</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>6.4 KanseiLink MCP Server の構造</h3>
+      <p>KanseiLink自体もMCP Serverとして機能しており、AIエージェントがAEOデータを直接クエリできます。提供するツール:</p>
+
+      <div class="code-block">
+        <span class="filename">KanseiLink MCP Server &#8212; 主要ツール</span>
+<span class="func">search_services</span>      <span class="comment">// サービス名・カテゴリで検索</span>
+<span class="func">get_service_detail</span>   <span class="comment">// 個別サービスのAEO詳細を取得</span>
+<span class="func">get_insights</span>         <span class="comment">// 市場トレンド・分析データ</span>
+<span class="func">find_combinations</span>    <span class="comment">// 最適なサービス組み合わせを提案</span>
+<span class="func">generate_aeo_report</span>  <span class="comment">// AEOレポートを自動生成</span>
+<span class="func">submit_inspection</span>    <span class="comment">// 新規サービスの評価申請</span>
+      </div>
+
+      <div class="agent-section">
+        <div class="agent-title">Agent-Readable: KanseiLink MCP Server</div>
+        <p>KanseiLink MCP Serverに接続するには:</p>
+        <p style="margin-top: 8px;"><code>npx @anthropic/kansei-link-mcp</code></p>
+        <p style="margin-top: 8px;">Available tools: <code>search_services</code>, <code>get_service_detail</code>, <code>get_insights</code>, <code>find_combinations</code>, <code>generate_aeo_report</code>, <code>get_service_tips</code>, <code>submit_inspection</code>, <code>check_updates</code>, <code>report_outcome</code></p>
+        <p style="margin-top: 8px;">Protocol: MCP (Model Context Protocol) | Transport: stdio | Auth: None (public data)</p>
+      </div>
+
+
+      <!-- Section 7: FAQ -->
+      <h2 id="faq">7. よくある質問（FAQ）</h2>
+
+      <div class="faq-section">
+        <div class="faq-item open">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">MCPとは何ですか？</div>
+          <div class="faq-a">MCP（Model Context Protocol）は、AIエージェントと外部サービス（SaaS、データベース、ファイルシステムなど）を標準化された方法で接続するためのオープンプロトコルです。Anthropicが2024年11月に発表し、2025年12月にLinux Foundation傘下のAgentic AI Foundation（AAIF）に移管されました。JSON-RPC 2.0ベースで、Tools・Resources・Promptsの3つの機能を提供します。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">MCPとAPIの違いは何ですか？</div>
+          <div class="faq-a">APIはサービスごとに異なる仕様・認証方式・データ形式を持ちますが、MCPは統一されたプロトコルで全てのサービスに同じ方法で接続できます。APIが「個別の道路」だとすれば、MCPは「高速道路ネットワーク」のようなものです。N個のサービスとM個のエージェントがある場合、従来はN*Mの統合が必要でしたが、MCPならN+Mで済みます。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">MCPは無料で使えますか？</div>
+          <div class="faq-a">はい。MCPはオープンプロトコルであり、仕様もSDKもオープンソース（MIT / Apache 2.0ライセンス）で公開されています。誰でも無料でMCP ServerやMCP Clientを実装できます。ただし、接続先のSaaSサービス自体の利用料金は別途発生します。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">日本のSaaSはMCPに対応していますか？</div>
+          <div class="faq-a">KanseiLinkの100社調査によると、公式MCP Server提供が約35%、サードパーティMCPが約15%、API Onlyが約40%、MCP未対応が約10%です。Notion、Slack、freee、kintone、Backlog、Money Forward Cloud、Chatworkなどは公式MCP Serverを提供しています。プロジェクト管理ツールの対応率が最も高く（75%）、法務・契約分野が最も低い（25%）状況です。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">MCP Serverはどうやって作りますか？</div>
+          <div class="faq-a">公式SDKを使用します。TypeScriptの場合は<code>@modelcontextprotocol/sdk</code>パッケージをインストールし、McpServerクラスをインスタンス化、.tool()メソッドでツールを登録、StdioServerTransportで接続するのが最小構成です。Pythonの場合は<code>mcp</code>パッケージを使用します。本記事のセクション6に具体的なコード例があります。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">MCPのセキュリティリスクは何ですか？</div>
+          <div class="faq-a">主なリスクとして、Rug-Pull攻撃（MCP Serverが途中で悪意のある動作に切り替える）、Tool Poisoning（ツール説明文に隠れた指示を埋め込む）、認証情報の漏洩があります。対策として、信頼できるソースからのMCP Serverのみを使用すること、定期的なセキュリティ監査、OAuth 2.1統合仕様への移行が推奨されます。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">AAIFとは何ですか？MCPとの関係は？</div>
+          <div class="faq-a">AAIF（Agentic AI Foundation）はLinux Foundation傘下の団体で、2025年12月にAnthropicからMCPの管理を引き継ぎました。Anthropic、OpenAI、Google、Microsoft、AWSなど主要AI企業が参加しており、MCPをベンダー中立のオープンスタンダードとして推進しています。MCPの仕様策定、SDKの開発、セキュリティフレームワークの整備がAAIFの下で行われています。</div>
+        </div>
+      </div>
+
+
+      <!-- CTA Banner -->
+      <div class="cta-banner">
+        <h3>日本のMCP対応状況を確認する</h3>
+        <p>100社のSaaSサービスをAIエージェント対応力で格付け。あなたが使うサービスのAEOスコアを確認しましょう。</p>
+        <a href="/" class="btn-teal">AEO Ratings を見る &#8594;</a>
+      </div>
+
+    </article>
+
+    <!-- Sidebar -->
+    <aside class="article-sidebar">
+      <nav class="toc">
+        <div class="toc-title">Contents</div>
+        <ul class="toc-list">
+          <li><a href="#overview">1. MCPの概要</a></li>
+          <li><a href="#architecture">2. MCPの仕組み</a></li>
+          <li><a href="#why-mcp">3. なぜMCPが必要か</a></li>
+          <li><a href="#japan-saas">4. 日本SaaSのMCP対応</a></li>
+          <li><a href="#challenges">5. MCPの課題と今後</a></li>
+          <li><a href="#build-mcp">6. MCP Serverを作る</a></li>
+          <li><a href="#faq">7. FAQ</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+  </div>
+</div>
+
+<!-- Related Articles -->
+<section class="related-section">
+  <div class="container">
+    <h2 class="related-title">Related Insights</h2>
+    <div class="related-grid">
+      <a href="/" class="related-card">
+        <div class="related-card-color" style="background: var(--blue);"></div>
+        <div class="related-card-body">
+          <div class="related-card-tag">AEO Ratings</div>
+          <div class="related-card-title">日本SaaS AIエージェント対応力格付け 2026 Q2</div>
+          <div class="related-card-desc">100社のSaaSサービスをAEOスコアで評価。MCP対応・API品質・エージェント成功率の総合ランキング。</div>
+        </div>
+      </a>
+      <a href="#" class="related-card">
+        <div class="related-card-color" style="background: var(--teal);"></div>
+        <div class="related-card-body">
+          <div class="related-card-tag">Methodology</div>
+          <div class="related-card-title">AEOスコアの算出方法 &#8212; 評価基準と格付けプロセス</div>
+          <div class="related-card-desc">MCP対応状況、APIドキュメント品質、エージェント成功率の3軸評価。独自の定量化手法を解説。</div>
+        </div>
+      </a>
+      <a href="#" class="related-card">
+        <div class="related-card-color" style="background: var(--grade-bbb);"></div>
+        <div class="related-card-body">
+          <div class="related-card-tag">Developer Guide</div>
+          <div class="related-card-title">AEOスコアを改善するためのSaaSプロバイダーガイド</div>
+          <div class="related-card-desc">MCP Server公式提供、APIドキュメント整備、認証ガイド公開など、AEOスコア向上のアクション。</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-logo">KanseiLink</div>
+      <div class="footer-links">
+        <a href="#">Terms of Use</a>
+        <a href="#">Privacy Notice</a>
+        <a href="/#methodology">Methodology</a>
+        <a href="mailto:contact@synapsearrows.com">Contact Us</a>
+        <a href="#">Resources for SaaS Providers</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2026 KanseiLink by Synapse Arrows PTE. LTD. All rights reserved.</div>
+      <div class="footer-social">
+        <a href="#">X</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">GitHub</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Smooth scroll & TOC active state -->
+<script>
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    const href = this.getAttribute('href');
+    if (href.length > 1) {
+      e.preventDefault();
+      const target = document.querySelector(href);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.pushState(null, null, href);
+      }
+    }
+  });
+});
+
+// TOC active state on scroll
+const tocLinks = document.querySelectorAll('.toc-list a');
+const sections = Array.from(tocLinks).map(link => {
+  const id = link.getAttribute('href').slice(1);
+  return document.getElementById(id);
+}).filter(Boolean);
+
+function updateTOC() {
+  const scrollPos = window.scrollY + 120;
+  let current = '';
+  sections.forEach(section => {
+    if (section.offsetTop <= scrollPos) {
+      current = section.id;
+    }
+  });
+  tocLinks.forEach(link => {
+    link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+  });
+}
+window.addEventListener('scroll', updateTOC, { passive: true });
+updateTOC();
+</script>
+
+</body>
+</html>

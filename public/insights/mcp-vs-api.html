@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCPとAPIの違い — エージェント時代の技術選択ガイド | KanseiLink</title>
+  <meta name="description" content="MCPとAPIの本質的な違いを接続方式・発見方法・認証・スキーマ・ユースケースの観点から比較。エージェント対応のための技術選択ガイド。">
+  <meta name="keywords" content="MCP API 違い, Model Context Protocol, API比較, AIエージェント, MCP Server, KanseiLink">
+  <meta name="author" content="KanseiLink by Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-vs-api.html">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCPとAPIの違い — エージェント時代の技術選択ガイド">
+  <meta property="og:description" content="MCPとAPIの本質的な違いを比較。エージェント対応のための技術選択ガイド。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-vs-api.html">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="article:published_time" content="2026-04-03">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCPとAPIの違い — エージェント時代の技術選択ガイド">
+  <meta name="twitter:description" content="MCPとAPIの本質的な違いを比較。エージェント対応のための技術選択ガイド。">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCPとAPIの違い — エージェント時代の技術選択ガイド",
+    "description": "MCPとAPIの本質的な違いを接続方式・発見方法・認証・スキーマ・ユースケースの観点から比較。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-03",
+    "dateModified": "2026-04-03",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-vs-api.html",
+    "keywords": ["MCP", "API", "Model Context Protocol", "AIエージェント", "技術比較"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "MCPとAPIの最も大きな違いは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "APIは人間の開発者が統合コードを書く「Request-Response型」であるのに対し、MCPはAIエージェントが自動的に接続・操作できる「Protocol型」です。MCPはディスカバリー機能と標準化されたスキーマにより、エージェントが事前のカスタムコードなしでサービスを利用できます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPはAPIを置き換えるものですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "いいえ。MCPはAPIの上に構築されるレイヤーです。MCP Server内部では既存のAPIを呼んでおり、MCPはAPIのラッパー＋ディスカバリー＋標準化の役割を果たします。既存のAPIを活かしつつMCP対応することが推奨されます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "SaaS企業はMCPとAPIのどちらに投資すべきですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "両方やるのがベストです。既存システム統合にはAPIが必要で、AIエージェント対応にはMCPが必要です。AEOスコアの観点では、Official MCPがBase 0.50、API OnlyがBase 0.30と、MCPの有無で1-2グレードの差が生まれます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPのAEOスコアへの影響はどれくらいですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Official MCP Serverを提供した場合のベーススコアは0.50、API Onlyの場合は0.30です。この0.20の差はAEOグレードで1〜2段階の差に相当します。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== UTILITY BAR ===== */
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    /* ===== MAIN NAV ===== */
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+      flex: 1;
+    }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+
+    /* ===== ARTICLE LAYOUT ===== */
+    .article-hero {
+      background: var(--white);
+      padding: 64px 0 32px;
+    }
+    .article-hero .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    .breadcrumb {
+      font-size: 14px;
+      color: var(--gray-text);
+      margin-bottom: 32px;
+    }
+    .breadcrumb a { color: var(--black); text-decoration: underline; }
+    .article-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+      background: #FCE7F3;
+      color: #9D174D;
+    }
+    .article-hero h1 {
+      font-size: 40px;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -1.5px;
+      color: var(--black);
+      margin-bottom: 16px;
+    }
+    .article-meta {
+      font-size: 14px;
+      color: var(--gray-text);
+      margin-bottom: 8px;
+    }
+
+    .article-body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 40px 80px;
+    }
+    .article-body h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--black);
+      margin: 48px 0 16px;
+      letter-spacing: -0.5px;
+    }
+    .article-body h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--gray-dark);
+      margin: 32px 0 12px;
+    }
+    .article-body p {
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--gray-dark);
+      margin-bottom: 16px;
+    }
+    .article-body ul, .article-body ol {
+      margin: 0 0 16px 24px;
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--gray-dark);
+    }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--black); }
+
+    /* Comparison Table */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0 32px;
+      font-size: 14px;
+    }
+    .comparison-table thead th {
+      background: var(--blue);
+      color: var(--white);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .comparison-table thead th:first-child {
+      border-radius: 8px 0 0 0;
+    }
+    .comparison-table thead th:last-child {
+      border-radius: 0 8px 0 0;
+    }
+    .comparison-table tbody td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      vertical-align: top;
+    }
+    .comparison-table tbody tr:nth-child(even) {
+      background: var(--lavender);
+    }
+    .comparison-table .label-cell {
+      font-weight: 600;
+      color: var(--black);
+      white-space: nowrap;
+    }
+
+    /* Architecture Diagram */
+    .diagram-box {
+      background: var(--lavender);
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 32px;
+      margin: 24px 0 32px;
+      text-align: center;
+    }
+    .diagram-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--gray-dark);
+    }
+    .diagram-node {
+      background: var(--white);
+      border: 2px solid var(--blue);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-weight: 600;
+      color: var(--blue);
+    }
+    .diagram-node.highlight {
+      background: var(--blue);
+      color: var(--white);
+    }
+    .diagram-arrow {
+      font-size: 20px;
+      color: var(--teal);
+      font-weight: 700;
+    }
+
+    /* Decision Flow */
+    .decision-box {
+      background: var(--lavender);
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin: 24px 0 32px;
+    }
+    .decision-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .decision-item:last-child { margin-bottom: 0; }
+    .decision-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .icon-mcp { background: #D1FAE5; color: #065F46; }
+    .icon-api { background: #DBEAFE; color: #1E40AF; }
+    .icon-both { background: #EDE9FE; color: #5B21B6; }
+    .decision-text h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .decision-text p {
+      font-size: 14px;
+      margin-bottom: 0;
+    }
+
+    /* Score Impact */
+    .score-impact {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 24px 0 32px;
+    }
+    .score-card {
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+    .score-card.mcp {
+      background: #D1FAE5;
+      border: 2px solid #065F46;
+    }
+    .score-card.api {
+      background: #FEF3C7;
+      border: 2px solid #92400E;
+    }
+    .score-card .score-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .score-card .score-value {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .score-card .score-desc {
+      font-size: 13px;
+      color: var(--gray-text);
+    }
+    .score-card.mcp .score-label { color: #065F46; }
+    .score-card.mcp .score-value { color: #065F46; }
+    .score-card.api .score-label { color: #92400E; }
+    .score-card.api .score-value { color: #92400E; }
+
+    .callout {
+      background: var(--lavender);
+      border-left: 4px solid var(--blue);
+      padding: 20px 24px;
+      margin: 24px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .callout p {
+      margin-bottom: 0;
+      font-size: 15px;
+    }
+
+    /* ===== CTA ===== */
+    .article-cta {
+      background: var(--lavender);
+      padding: 48px 0;
+      text-align: center;
+    }
+    .article-cta h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 12px;
+    }
+    .article-cta p {
+      font-size: 16px;
+      color: var(--gray-dark);
+      margin-bottom: 24px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 48px 0 32px;
+    }
+    .footer .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 80px;
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 32px;
+      margin-bottom: 32px;
+    }
+    .footer-brand .footer-logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--teal);
+      margin-bottom: 8px;
+    }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #9CA3AF;
+      margin-bottom: 12px;
+    }
+    .footer-links a {
+      display: block;
+      color: var(--white);
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom {
+      border-top: 1px solid #374151;
+      padding-top: 24px;
+      font-size: 13px;
+      color: #9CA3AF;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .article-hero .container, .article-body { padding: 0 24px; }
+      .article-hero h1 { font-size: 28px; }
+      .main-nav .inner, .utility-bar .inner { padding: 0 24px; }
+      .score-impact { grid-template-columns: 1fr; }
+      .footer .container { padding: 0 24px; }
+      .footer-inner { flex-direction: column; }
+      .diagram-flow { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="#">日本語</a>
+      <span class="sep">|</span>
+      <a href="#">Support</a>
+      <span class="sep">|</span>
+      <a href="#">Agent Log In</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <span class="logo-icon">K</span>
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="#">Solutions</a></li>
+        <li><a href="#">About</a></li>
+      </ul>
+      <div class="nav-right">
+        <a href="#" class="btn-primary">Get AEO Score</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Article Hero -->
+  <section class="article-hero">
+    <div class="container">
+      <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; <a href="index.html">Insights</a> &gt; MCPとAPIの違い
+      </div>
+      <span class="article-tag">Technical Guide</span>
+      <h1>MCPとAPIの違い — エージェント時代の技術選択ガイド</h1>
+      <div class="article-meta">2026-04-03 &middot; By KanseiLink Research &middot; 読了時間: 8分</div>
+    </div>
+  </section>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <p>
+      「MCPとAPIは何が違うのか？」 — AIエージェントの時代において、SaaS企業が最も頻繁に直面する技術的な問いのひとつです。本ガイドでは、MCPとAPIの本質的な違い、なぜMCPが必要なのか、そしてどちらに投資すべきかを解説します。
+    </p>
+
+    <!-- Section 1 -->
+    <h2>1. MCPとAPIの基本的な違い</h2>
+
+    <p>
+      まず、APIとMCPの根本的なアーキテクチャの違いを整理しましょう。
+    </p>
+
+    <h3>API（Application Programming Interface）</h3>
+    <p>
+      APIは<strong>Request-Response型</strong>の仕組みです。人間の開発者がドキュメントを読み、統合コードを書き、エンドポイントを呼び出します。RESTやGraphQLなど複数の形式があり、各サービスごとに仕様が異なります。
+    </p>
+
+    <h3>MCP（Model Context Protocol）</h3>
+    <p>
+      MCPは<strong>Protocol型</strong>の接続規格です。AIエージェントが自動的にサービスを発見し、利用可能なツール（関数）を理解し、実行できます。Anthropicが策定し、現在はLinux Foundation傘下のAAIF（Agentic AI Foundation）が管理するオープン標準です。
+    </p>
+
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>比較項目</th>
+          <th>API</th>
+          <th>MCP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="label-cell">接続方式</td>
+          <td>Request-Response（REST / GraphQL）</td>
+          <td>Protocol型（JSON-RPC 2.0ベース）</td>
+        </tr>
+        <tr>
+          <td class="label-cell">発見方法</td>
+          <td>人間がドキュメントを読む</td>
+          <td>エージェントが自動ディスカバリー</td>
+        </tr>
+        <tr>
+          <td class="label-cell">認証</td>
+          <td>各社バラバラ（OAuth, API Key, etc.）</td>
+          <td>標準化された認証フロー</td>
+        </tr>
+        <tr>
+          <td class="label-cell">スキーマ</td>
+          <td>OpenAPI / 独自仕様</td>
+          <td>Tool定義（JSON Schema）標準化</td>
+        </tr>
+        <tr>
+          <td class="label-cell">主なユーザー</td>
+          <td>人間の開発者</td>
+          <td>AIエージェント</td>
+        </tr>
+        <tr>
+          <td class="label-cell">ユースケース</td>
+          <td>既存システム統合・バックエンド連携</td>
+          <td>AIエージェントによる自動操作</td>
+        </tr>
+        <tr>
+          <td class="label-cell">エラー処理</td>
+          <td>HTTPステータスコード（非標準的なbody）</td>
+          <td>標準化されたエラーレスポンス</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Section 2 -->
+    <h2>2. なぜAPIだけでは不十分か</h2>
+
+    <p>
+      APIは人間の開発者が使うことを前提に設計されています。AIエージェントがAPIを利用する場合、以下の問題が発生します。
+    </p>
+
+    <h3>エージェントはAPIドキュメントを「読んで理解」する必要がある</h3>
+    <p>
+      各APIのドキュメントは形式がバラバラです。エージェントがSwagger UIを解析し、エンドポイントの意味を推測し、正しいパラメータを構築する必要があります。これは非常にエラーが起きやすいプロセスです。
+    </p>
+
+    <h3>各サービスでバラバラな仕様</h3>
+    <ul>
+      <li>認証方式: OAuth 2.0、API Key、Bearer Token、Basic Auth...各社で異なる</li>
+      <li>ページネーション: cursor-based、offset-based、page-number...統一されていない</li>
+      <li>レスポンス形式: エンベロープの有無、エラーフォーマット、日付形式...すべてバラバラ</li>
+    </ul>
+
+    <h3>エラーハンドリングの非標準化</h3>
+    <p>
+      APIのエラーレスポンスは各社で大きく異なります。あるサービスは <code>{"error": "message"}</code>、別のサービスは <code>{"errors": [{"code": 123}]}</code>。エージェントはサービスごとにエラーパターンを学習する必要があり、汎用的な対応が困難です。
+    </p>
+
+    <div class="callout">
+      <p><strong>ポイント:</strong> APIは「人間のための接続規格」、MCPは「エージェントのための接続規格」。APIが悪いわけではなく、使う主体が変わったことで新しい規格が必要になった、ということです。</p>
+    </div>
+
+    <!-- Section 3 -->
+    <h2>3. MCPがAPIの上に構築されるもの</h2>
+
+    <p>
+      重要な誤解を解きましょう。<strong>MCPはAPIを置き換えるものではありません。</strong> MCP Server内部では、既存のAPIを呼んでいます。
+    </p>
+
+    <p>
+      MCPの役割は以下の3つです:
+    </p>
+
+    <ul>
+      <li><strong>ラッパー:</strong> APIの複雑さを隠蔽し、エージェントに分かりやすいTool定義を提供</li>
+      <li><strong>ディスカバリー:</strong> エージェントが利用可能な機能を自動的に発見できる仕組み</li>
+      <li><strong>標準化:</strong> 認証、エラー処理、スキーマをプロトコルレベルで統一</li>
+    </ul>
+
+    <h3>アーキテクチャ図</h3>
+
+    <div class="diagram-box">
+      <p style="font-size: 13px; color: var(--gray-text); margin-bottom: 16px;">MCP アーキテクチャ フロー</p>
+      <div class="diagram-flow">
+        <div class="diagram-node">User</div>
+        <span class="diagram-arrow">&rarr;</span>
+        <div class="diagram-node highlight">AI Agent</div>
+        <span class="diagram-arrow">&rarr;</span>
+        <div class="diagram-node highlight">MCP Server</div>
+        <span class="diagram-arrow">&rarr;</span>
+        <div class="diagram-node">API</div>
+        <span class="diagram-arrow">&rarr;</span>
+        <div class="diagram-node">SaaS</div>
+      </div>
+      <p style="font-size: 13px; color: var(--gray-text); margin-top: 16px;">
+        MCP ServerはAPIのラッパーとして機能し、エージェントに標準化されたインターフェースを提供
+      </p>
+    </div>
+
+    <p>
+      つまり、SaaS企業がMCP対応する際に必要なのは、<strong>既存のAPIの上にMCP Serverを構築する</strong>ことです。APIを作り直す必要はありません。
+    </p>
+
+    <!-- Section 4 -->
+    <h2>4. どちらを選ぶべきか（判断フロー）</h2>
+
+    <p>
+      SaaS企業が「MCPとAPIのどちらに投資すべきか」を判断するためのフローです。
+    </p>
+
+    <div class="decision-box">
+      <div class="decision-item">
+        <div class="decision-icon icon-mcp">M</div>
+        <div class="decision-text">
+          <h4>AIエージェント対応が目標 → MCP</h4>
+          <p>AIエージェントに自社サービスを使ってもらいたい場合、MCP Server提供が最短ルート。ディスカバリーと標準スキーマにより、エージェントが即座に利用開始できます。</p>
+        </div>
+      </div>
+      <div class="decision-item">
+        <div class="decision-icon icon-api">A</div>
+        <div class="decision-text">
+          <h4>既存システム統合 → API</h4>
+          <p>人間の開発者による従来型のシステム連携（バックエンド同士の接続、Webhook、ETLなど）にはAPIが最適。MCPに置き換える必要はありません。</p>
+        </div>
+      </div>
+      <div class="decision-item">
+        <div class="decision-icon icon-both">+</div>
+        <div class="decision-text">
+          <h4>両方やるのがベスト</h4>
+          <p>現実には、APIとMCPの両方を提供するのが最も強いポジションです。既存の開発者エコシステムを維持しつつ、AIエージェント時代の新しい顧客チャネルを開拓できます。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 5 -->
+    <h2>5. AEOスコアへの影響</h2>
+
+    <p>
+      KanseiLinkのAEOスコアリングにおいて、MCPとAPIの対応状況はベーススコアに大きく影響します。
+    </p>
+
+    <div class="score-impact">
+      <div class="score-card mcp">
+        <div class="score-label">Official MCP</div>
+        <div class="score-value">0.50</div>
+        <div class="score-desc">ベーススコア</div>
+      </div>
+      <div class="score-card api">
+        <div class="score-label">API Only</div>
+        <div class="score-value">0.30</div>
+        <div class="score-desc">ベーススコア</div>
+      </div>
+    </div>
+
+    <p>
+      この<strong>0.20の差</strong>は、AEOグレードで<strong>1〜2段階の差</strong>に相当します。例えば、同等のAPI品質を持つ2社があった場合:
+    </p>
+
+    <ul>
+      <li>Official MCPを提供 → <strong>AA</strong>（0.80）到達の可能性</li>
+      <li>API Onlyで止まる → <strong>BBB</strong>（0.60）が上限</li>
+    </ul>
+
+    <div class="callout">
+      <p><strong>結論:</strong> AIエージェント時代のSaaS企業にとって、MCP対応は「あれば嬉しい」ではなく「グレードを決定づける」要素です。まだAPI Onlyの状態であれば、MCP Server構築を次の四半期の技術ロードマップに加えることを強く推奨します。</p>
+    </div>
+
+    <h2>まとめ</h2>
+
+    <p>
+      MCPとAPIは対立するものではなく、<strong>補完関係</strong>にあります。APIは人間向けの接続基盤として引き続き重要であり、MCPはその上にエージェント向けの標準レイヤーを追加します。
+    </p>
+
+    <p>
+      エージェント・エコノミーの本格到来を前に、SaaS企業が取るべきアクションは明確です:
+    </p>
+
+    <ol>
+      <li>既存APIの品質を維持・向上させる</li>
+      <li>その上にOfficial MCP Serverを構築する</li>
+      <li>KanseiLinkのAEOスコアで自社の立ち位置を確認する</li>
+    </ol>
+
+  </article>
+
+  <!-- CTA -->
+  <section class="article-cta">
+    <div>
+      <h2>自社のAEOスコアを確認する</h2>
+      <p>MCPとAPIの対応状況を含め、AIエージェント対応力を無料で診断。</p>
+      <a href="../index.html" class="btn-primary" style="display: inline-block;">AEO Ratings を見る</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="#">Solutions</a>
+          <a href="#">API</a>
+        </div>
+        <div class="footer-links">
+          <h4>Company</h4>
+          <a href="#">About</a>
+          <a href="#">Contact</a>
+          <a href="#">Privacy Policy</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research & Insights | AEO・MCP・AIエージェント | KanseiLink</title>
+  <meta name="description" content="AEO・MCP・AIエージェント連携に関する最新リサーチとインサイト。KanseiLinkリサーチチームによる分析レポート、ガイド、ランキングを公開。">
+  <meta name="keywords" content="AEO, MCP, AIエージェント, リサーチ, インサイト, 日本SaaS, KanseiLink">
+  <meta name="author" content="KanseiLink by Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Research & Insights | KanseiLink">
+  <meta property="og:description" content="AEO・MCP・AIエージェント連携に関する最新リサーチとインサイト。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kansei-link.com/insights/">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Research & Insights | KanseiLink">
+  <meta name="twitter:description" content="AEO・MCP・AIエージェント連携に関する最新リサーチとインサイト。">
+
+  <!-- JSON-LD: CollectionPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Research & Insights",
+    "description": "AEO・MCP・AIエージェント連携に関する最新リサーチとインサイト",
+    "url": "https://kansei-link.com/insights/",
+    "publisher": {
+      "@type": "Organization",
+      "name": "KanseiLink",
+      "legalName": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "mainEntity": {
+      "@type": "ItemList",
+      "numberOfItems": 6,
+      "itemListElement": [
+        {"@type": "ListItem", "position": 1, "url": "https://kansei-link.com/insights/what-is-aeo.html", "name": "AEOとは？ — Agent Engine Optimization 完全ガイド"},
+        {"@type": "ListItem", "position": 2, "url": "https://kansei-link.com/insights/what-is-mcp.html", "name": "MCPとは？ — Model Context Protocol がAI時代のSaaS連携を変える"},
+        {"@type": "ListItem", "position": 3, "url": "https://kansei-link.com/insights/agent-voice-q2-2026.html", "name": "AIエージェントの本音 — 日本SaaS 100社を使ってみた Q2 2026"},
+        {"@type": "ListItem", "position": 4, "url": "https://kansei-link.com/insights/mcp-common-issues.html", "name": "MCP導入でよくある問題と解決策"},
+        {"@type": "ListItem", "position": 5, "url": "https://kansei-link.com/insights/mcp-vs-api.html", "name": "MCPとAPIの違い — エージェント時代の技術選択"},
+        {"@type": "ListItem", "position": 6, "url": "https://kansei-link.com/insights/aeo-ranking-q2-2026.html", "name": "AEO Readiness Ranking Q2 2026 — 日本SaaS 100社格付けレポート"}
+      ]
+    }
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== UTILITY BAR ===== */
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a {
+      color: var(--black);
+      text-decoration: none;
+      font-weight: 400;
+    }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    /* ===== MAIN NAV ===== */
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+      flex: 1;
+    }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-teal {
+      background: var(--teal);
+      color: var(--black);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-teal:hover { opacity: 0.9; }
+
+    /* ===== LAYOUT ===== */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 80px;
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      background: var(--white);
+      padding: 64px 0 48px;
+    }
+    .breadcrumb {
+      font-size: 14px;
+      color: var(--gray-text);
+      margin-bottom: 32px;
+    }
+    .breadcrumb a { color: var(--black); text-decoration: underline; }
+    .hero h1 {
+      font-size: 56px;
+      font-weight: 600;
+      line-height: 1.1;
+      letter-spacing: -3px;
+      color: var(--blue);
+      margin-bottom: 16px;
+    }
+    .hero .subtitle {
+      font-size: 20px;
+      font-weight: 400;
+      line-height: 1.6;
+      color: var(--gray-dark);
+      max-width: 700px;
+    }
+
+    /* ===== SUBSCRIBE CTA ===== */
+    .subscribe-section {
+      background: var(--lavender);
+      padding: 40px 0;
+      margin-bottom: 48px;
+    }
+    .subscribe-inner {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .subscribe-text {
+      flex: 1;
+      min-width: 280px;
+    }
+    .subscribe-text h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--black);
+      margin-bottom: 4px;
+    }
+    .subscribe-text p {
+      font-size: 15px;
+      color: var(--gray-text);
+    }
+    .subscribe-form {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .subscribe-form input {
+      padding: 12px 20px;
+      border: 2px solid var(--gray-mid);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      width: 320px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .subscribe-form input:focus { border-color: var(--blue); }
+    .subscribe-form input::placeholder { color: var(--gray-text); }
+
+    /* ===== ARTICLE CARDS ===== */
+    .articles-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      padding-bottom: 80px;
+    }
+    .article-card {
+      background: var(--white);
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 32px;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .article-card:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      border-color: var(--blue-light);
+    }
+    .article-card .tag {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+    .tag-aeo { background: #DBEAFE; color: #1E40AF; }
+    .tag-mcp { background: #D1FAE5; color: #065F46; }
+    .tag-agent { background: #FEF3C7; color: #92400E; }
+    .tag-report { background: #EDE9FE; color: #5B21B6; }
+    .tag-technical { background: #FCE7F3; color: #9D174D; }
+    .article-card h3 {
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 8px;
+      color: var(--black);
+    }
+    .article-card h3 a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .article-card h3 a:hover { color: var(--blue); }
+    .article-card .meta {
+      font-size: 13px;
+      color: var(--gray-text);
+      margin-bottom: 12px;
+    }
+    .article-card .desc {
+      font-size: 15px;
+      color: var(--gray-dark);
+      line-height: 1.6;
+      margin-bottom: 16px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .article-card .read-more {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .article-card .read-more:hover { text-decoration: underline; }
+
+    /* ===== FOR AI AGENTS ===== */
+    .agent-section {
+      background: var(--lavender);
+      padding: 48px 0;
+    }
+    .agent-section h2 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--blue);
+      margin-bottom: 12px;
+    }
+    .agent-section p {
+      font-size: 15px;
+      color: var(--gray-dark);
+      line-height: 1.7;
+      max-width: 700px;
+    }
+    .agent-section code {
+      background: var(--white);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      border: 1px solid var(--gray-mid);
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 48px 0 32px;
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 32px;
+      margin-bottom: 32px;
+    }
+    .footer-brand .footer-logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--teal);
+      margin-bottom: 8px;
+    }
+    .footer-brand p {
+      font-size: 13px;
+      color: #9CA3AF;
+      max-width: 300px;
+    }
+    .footer-links h4 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #9CA3AF;
+      margin-bottom: 12px;
+    }
+    .footer-links a {
+      display: block;
+      color: var(--white);
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom {
+      border-top: 1px solid #374151;
+      padding-top: 24px;
+      font-size: 13px;
+      color: #9CA3AF;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .container { padding: 0 24px; }
+      .main-nav .inner, .utility-bar .inner { padding: 0 24px; }
+      .hero h1 { font-size: 36px; letter-spacing: -1.5px; }
+      .articles-grid { grid-template-columns: 1fr; }
+      .subscribe-form input { width: 100%; }
+      .footer-inner { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="#">日本語</a>
+      <span class="sep">|</span>
+      <a href="#">Support</a>
+      <span class="sep">|</span>
+      <a href="#">Agent Log In</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <span class="logo-icon">K</span>
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="#">Solutions</a></li>
+        <li><a href="#">About</a></li>
+      </ul>
+      <div class="nav-right">
+        <a href="#" class="btn-primary">Get AEO Score</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="breadcrumb">
+        <a href="../index.html">Home</a> &gt; Research &amp; Insights
+      </div>
+      <h1>Research &amp; Insights</h1>
+      <p class="subtitle">AEO・MCP・AIエージェント連携に関する最新リサーチとインサイト</p>
+    </div>
+  </section>
+
+  <!-- Subscribe CTA -->
+  <section class="subscribe-section">
+    <div class="container">
+      <div class="subscribe-inner">
+        <div class="subscribe-text">
+          <h3>最新レポートをメールで受け取る</h3>
+          <p>AEOランキング更新、新規リサーチ公開時にお届けします。</p>
+        </div>
+        <form class="subscribe-form" onsubmit="return false;">
+          <input type="email" placeholder="メールアドレスを入力">
+          <button type="submit" class="btn-primary">Subscribe</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Articles Grid -->
+  <section>
+    <div class="container">
+      <div class="articles-grid">
+
+        <!-- Article 1 -->
+        <div class="article-card">
+          <span class="tag tag-aeo">AEO Guide</span>
+          <h3><a href="what-is-aeo.html">AEOとは？ — Agent Engine Optimization 完全ガイド</a></h3>
+          <div class="meta">2026-04-05 &middot; By KanseiLink Research</div>
+          <p class="desc">AIエージェントがSaaSサービスを選ぶ時代。AEO（Agent Engine Optimization）の概念、評価基準、そしてスコア改善の具体的アクションを解説。</p>
+          <a href="what-is-aeo.html" class="read-more">Read more &rarr;</a>
+        </div>
+
+        <!-- Article 2 -->
+        <div class="article-card">
+          <span class="tag tag-mcp">MCP Guide</span>
+          <h3><a href="what-is-mcp.html">MCPとは？ — Model Context Protocol がAI時代のSaaS連携を変える</a></h3>
+          <div class="meta">2026-04-05 &middot; By KanseiLink Research</div>
+          <p class="desc">Anthropic発のオープンプロトコル「MCP」を徹底解説。AIエージェントと外部サービスの標準接続規格がなぜ重要なのかを分かりやすく紹介。</p>
+          <a href="what-is-mcp.html" class="read-more">Read more &rarr;</a>
+        </div>
+
+        <!-- Article 3 -->
+        <div class="article-card">
+          <span class="tag tag-agent">Agent Voice</span>
+          <h3><a href="agent-voice-q2-2026.html">AIエージェントの本音 — 日本SaaS 100社を使ってみた Q2 2026</a></h3>
+          <div class="meta">2026-04-05 &middot; By KanseiLink Research</div>
+          <p class="desc">AIエージェントが実際に日本のSaaS 100社に接続し、操作した結果をレポート。成功率、つまずきポイント、改善提案をエージェント視点で公開。</p>
+          <a href="agent-voice-q2-2026.html" class="read-more">Read more &rarr;</a>
+        </div>
+
+        <!-- Article 4 -->
+        <div class="article-card">
+          <span class="tag tag-technical">MCP Technical</span>
+          <h3><a href="mcp-common-issues.html">MCP導入でよくある問題と解決策</a></h3>
+          <div class="meta">2026-04-05 &middot; By KanseiLink Research</div>
+          <p class="desc">MCP Server導入時に頻出するエラーパターンとその解決方法。認証フロー、スキーマ設計、エラーハンドリングのベストプラクティスを網羅。</p>
+          <a href="mcp-common-issues.html" class="read-more">Read more &rarr;</a>
+        </div>
+
+        <!-- Article 5 -->
+        <div class="article-card">
+          <span class="tag tag-technical">Technical Guide</span>
+          <h3><a href="mcp-vs-api.html">MCPとAPIの違い — エージェント時代の技術選択</a></h3>
+          <div class="meta">2026-04-03 &middot; By KanseiLink Research</div>
+          <p class="desc">MCPとAPIの本質的な違いを技術・ユースケース・AEOスコアの観点から比較。エージェント対応の技術選択に迷うSaaS企業向けの判断ガイド。</p>
+          <a href="mcp-vs-api.html" class="read-more">Read more &rarr;</a>
+        </div>
+
+        <!-- Article 6 -->
+        <div class="article-card">
+          <span class="tag tag-report">Industry Report</span>
+          <h3><a href="aeo-ranking-q2-2026.html">AEO Readiness Ranking Q2 2026 — 日本SaaS 100社格付けレポート</a></h3>
+          <div class="meta">2026-04-01 &middot; By KanseiLink Research</div>
+          <p class="desc">日本市場の主要SaaS 100社をAIエージェント対応力で格付け。AAA〜CCC のグレード分布、カテゴリ別分析、注目トレンドを総まとめ。</p>
+          <a href="aeo-ranking-q2-2026.html" class="read-more">Read more &rarr;</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="container">
+      <h2>For AI Agents</h2>
+      <p>
+        KanseiLinkのリサーチデータはMCPサーバー経由でもアクセスできます。
+        AIエージェントの方は <code>kansei-link</code> MCP Serverに接続することで、
+        AEOスコア検索、サービス詳細取得、レポート生成などのツールをご利用いただけます。
+        対応エンドポイント: <code>search_services</code>, <code>get_service_detail</code>,
+        <code>get_insights</code>, <code>generate_aeo_report</code>
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="#">Solutions</a>
+          <a href="#">API</a>
+        </div>
+        <div class="footer-links">
+          <h4>Company</h4>
+          <a href="#">About</a>
+          <a href="#">Contact</a>
+          <a href="#">Privacy Policy</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

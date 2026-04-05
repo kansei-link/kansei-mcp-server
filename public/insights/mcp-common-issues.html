@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP導入でよくある問題と解決策 — 開発者・SaaS企業向け | KanseiLink</title>
+  <meta name="description" content="MCP（Model Context Protocol）導入時によくある問題TOP10と解決策。認証エラー、CORS問題、Rate Limit超過、文字化け、セキュリティ対策まで、コード例付きで解説。">
+  <meta name="keywords" content="MCP 問題, MCP トラブル, MCP エラー, Model Context Protocol, MCP導入, MCP Server, 開発者ガイド, KanseiLink">
+  <meta name="author" content="KanseiLink / Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-common-issues">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCP導入でよくある問題と解決策 — 開発者・SaaS企業向け">
+  <meta property="og:description" content="MCP導入時のよくある問題TOP10と解決策。認証エラー、CORS、Rate Limit、文字化けなどコード例付きで解説。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-common-issues">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="article:published_time" content="2026-04-05">
+  <meta property="article:section" content="Technical Guide">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCP導入でよくある問題と解決策 — 開発者・SaaS企業向け">
+  <meta name="twitter:description" content="MCP導入時のよくある問題TOP10と解決策をコード例付きで解説。">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCP導入でよくある問題と解決策 — 開発者・SaaS企業向け",
+    "description": "MCP導入時によくある問題TOP10と解決策。認証エラー、CORS問題、Rate Limit超過、文字化け、セキュリティ対策まで解説。",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-05",
+    "dateModified": "2026-04-05",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-common-issues",
+    "keywords": ["MCP", "Model Context Protocol", "MCP問題", "MCP トラブル", "MCP エラー", "開発者ガイド"],
+    "articleSection": "Technical Guide",
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <!-- JSON-LD: HowTo -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "MCP導入の問題を解決する方法",
+    "description": "MCP（Model Context Protocol）導入時に発生する一般的な問題10件の原因と解決手順をステップバイステップで解説。",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "position": 1,
+        "name": "認証エラーの解決",
+        "text": "OAuth tokenの期限切れを検知し、自動リフレッシュロジックを実装する。tokenExpiresAtを保持し、リクエスト前に有効期限を確認する。"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 2,
+        "name": "CORS問題の解決",
+        "text": "MCP ServerをHTTP Transportで公開する場合、適切なCORSヘッダーを設定する。プロキシサーバー経由での接続も検討する。"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 3,
+        "name": "Rate Limit対策",
+        "text": "Exponential Backoffとリトライロジックを実装する。X-RateLimit-Remainingヘッダーを監視し、制限に近づいたらリクエスト頻度を自動調整する。"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 4,
+        "name": "Transport選択",
+        "text": "ローカル実行にはstdio、リモート接続にはStreamable HTTP Transportを選択する。2025年仕様でSSEは非推奨となったため、新規実装はStreamable HTTPを使用する。"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 5,
+        "name": "日本語文字化け対策",
+        "text": "UTF-8 BOM（EF BB BF）を除去し、Content-Typeヘッダーにcharset=utf-8を明記する。APIパラメータ名はASCIIに統一する。"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 6,
+        "name": "Tool定義の修正",
+        "text": "Zod schemaのバリデーションエラーを確認し、inputSchemaのJSON Schema形式が正しいことを検証する。必須パラメータにはrequiredを明記する。"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 7,
+        "name": "タイムアウト対策",
+        "text": "大量データの返却にはページネーションを実装する。MCP Serverのタイムアウト値を適切に設定し、クライアント側にもタイムアウトハンドリングを追加する。"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 8,
+        "name": "バージョン管理",
+        "text": "package.jsonのMCP SDK依存バージョンを固定し、更新時にはCHANGELOGを確認する。Breaking changesがある場合は段階的に移行する。"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 9,
+        "name": "セキュリティ対策",
+        "text": "API Keyは環境変数で管理し、.envファイルを.gitignoreに追加する。クライアントサイドコードにAPI Keyを含めない。"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 10,
+        "name": "テスト環境構築",
+        "text": "MCP Inspectorを使用してTool定義を検証する。Jest/Vitestでのユニットテスト、E2Eテストの自動化パイプラインを構築する。"
+      }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== UTILITY BAR ===== */
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a {
+      color: var(--black);
+      text-decoration: none;
+      font-weight: 400;
+    }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    /* ===== MAIN NAV ===== */
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+      flex: 1;
+    }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+
+    /* ===== BREADCRUMB ===== */
+    .breadcrumb {
+      max-width: 800px;
+      margin: 24px auto 0;
+      padding: 0 24px;
+      font-size: 14px;
+      color: var(--gray-text);
+    }
+    .breadcrumb a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    /* ===== ARTICLE ===== */
+    .article {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .article-meta {
+      margin: 32px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .article-meta .tag {
+      background: var(--lavender);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .article-meta .date {
+      font-size: 14px;
+      color: var(--gray-text);
+    }
+    .article-meta .reading-time {
+      font-size: 14px;
+      color: var(--gray-text);
+    }
+
+    .article h1 {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 16px 0 24px;
+      letter-spacing: -1px;
+    }
+
+    .article .lead {
+      font-size: 20px;
+      line-height: 1.7;
+      color: var(--gray-dark);
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--gray-mid);
+    }
+
+    .article h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 56px 0 20px;
+      letter-spacing: -0.5px;
+      color: var(--black);
+    }
+
+    .article h3 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 40px 0 16px;
+      color: var(--black);
+    }
+
+    .article h4 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 32px 0 12px;
+      color: var(--black);
+    }
+
+    .article p {
+      margin-bottom: 20px;
+      line-height: 1.7;
+    }
+
+    .article ul, .article ol {
+      margin: 0 0 20px 24px;
+    }
+    .article li {
+      margin-bottom: 8px;
+      line-height: 1.7;
+    }
+
+    /* Code blocks */
+    .code-block {
+      background: #1E293B;
+      color: #E2E8F0;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+      overflow-x: auto;
+      font-family: 'Fira Code', 'SF Mono', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .code-block .code-label {
+      display: block;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .code-block code {
+      font-family: inherit;
+      white-space: pre;
+    }
+    .code-block .comment { color: #64748B; }
+    .code-block .keyword { color: #C084FC; }
+    .code-block .string { color: #34D399; }
+    .code-block .func { color: #60A5FA; }
+    .code-block .number { color: #FB923C; }
+
+    /* Issue card */
+    .issue-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 28px;
+      margin: 24px 0;
+      transition: box-shadow 0.2s;
+    }
+    .issue-card:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .issue-card .issue-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .issue-card .issue-number {
+      background: var(--blue);
+      color: var(--white);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .issue-card .issue-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .issue-card .issue-severity {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .issue-card .severity-high {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+    .issue-card .severity-medium {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+    .issue-card .severity-low {
+      background: #DBEAFE;
+      color: #1E40AF;
+    }
+
+    .cause-solution {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 16px 0;
+    }
+    .cause-box, .solution-box {
+      padding: 16px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .cause-box {
+      background: #FEF2F2;
+      border-left: 3px solid #DC2626;
+    }
+    .cause-box .label {
+      font-weight: 700;
+      color: #991B1B;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .solution-box {
+      background: #F0FDF4;
+      border-left: 3px solid #16A34A;
+    }
+    .solution-box .label {
+      font-weight: 700;
+      color: #166534;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    /* Checklist */
+    .checklist {
+      list-style: none;
+      margin: 24px 0;
+      padding: 0;
+    }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px 20px;
+      border: 1px solid var(--gray-mid);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 15px;
+      transition: background 0.2s;
+    }
+    .checklist li:hover {
+      background: var(--lavender);
+    }
+    .checklist .check-icon {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--blue);
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--blue);
+    }
+
+    /* Best practice card */
+    .bp-card {
+      background: var(--lavender);
+      border-radius: 12px;
+      padding: 28px;
+      margin: 20px 0;
+    }
+    .bp-card h4 {
+      color: var(--blue);
+      font-size: 17px;
+      font-weight: 700;
+      margin: 0 0 12px;
+    }
+    .bp-card p {
+      font-size: 15px;
+      color: var(--gray-dark);
+      margin-bottom: 12px;
+    }
+    .bp-card p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* CTA */
+    .cta-section {
+      background: linear-gradient(135deg, var(--blue) 0%, #2A1FA0 100%);
+      color: var(--white);
+      border-radius: 16px;
+      padding: 48px;
+      margin: 56px 0 40px;
+      text-align: center;
+    }
+    .cta-section h2 {
+      color: var(--white);
+      font-size: 28px;
+      margin: 0 0 12px;
+    }
+    .cta-section p {
+      font-size: 16px;
+      opacity: 0.9;
+      margin-bottom: 28px;
+    }
+    .cta-section .btn-cta {
+      display: inline-block;
+      background: var(--teal);
+      color: var(--black);
+      font-size: 16px;
+      font-weight: 600;
+      padding: 14px 40px;
+      border-radius: 9999px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .cta-section .btn-cta:hover { opacity: 0.9; }
+
+    /* Related articles */
+    .related-section {
+      margin: 40px 0 0;
+      padding-top: 40px;
+      border-top: 1px solid var(--gray-mid);
+    }
+    .related-section h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+    .related-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .related-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 24px;
+      text-decoration: none;
+      color: var(--black);
+      transition: box-shadow 0.2s;
+    }
+    .related-card:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .related-card .rc-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .related-card .rc-title {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .related-card .rc-desc {
+      font-size: 14px;
+      color: var(--gray-text);
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 48px 0 32px;
+      margin-top: 80px;
+    }
+    .footer .inner {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .footer .footer-brand {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--teal);
+    }
+    .footer .footer-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 24px;
+    }
+    .footer .footer-copy {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .article h1 { font-size: 28px; }
+      .article h2 { font-size: 22px; }
+      .article .lead { font-size: 17px; }
+      .cause-solution { grid-template-columns: 1fr; }
+      .related-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 32px 24px; }
+      .main-nav .inner { padding: 0 16px; }
+      .utility-bar .inner { padding: 0 16px; }
+      .nav-links { display: none; }
+      .code-block { font-size: 12px; padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="/">Home</a>
+      <span class="sep">|</span>
+      <a href="/insights/">Insights</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@kansei-link.com">Contact</a>
+    </div>
+  </div>
+
+  <!-- Main Nav -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">K</span>
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="/">AEO Ratings</a></li>
+        <li><a href="/insights/">Insights</a></li>
+        <li><a href="/insights/mcp-common-issues.html" class="active">MCP Guide</a></li>
+      </ul>
+      <div class="nav-right">
+        <a href="mailto:contact@kansei-link.com" class="btn-primary">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="/">KanseiLink</a>
+    <span class="sep">/</span>
+    <a href="/insights/">Insights</a>
+    <span class="sep">/</span>
+    MCP導入 問題と解決策
+  </div>
+
+  <!-- Article -->
+  <article class="article">
+
+    <div class="article-meta">
+      <span class="tag">Technical Guide</span>
+      <span class="date">2026-04-05</span>
+      <span class="reading-time">20 min read</span>
+    </div>
+
+    <h1>MCP導入でよくある問題と解決策 &#8212; 開発者・SaaS企業向け</h1>
+
+    <p class="lead">
+      MCP（Model Context Protocol）はAIエージェントと外部サービスを接続する標準プロトコルとして急速に普及している。しかし、導入時に多くの開発者が同じ問題に直面している。<br>
+      本記事では、KanseiLinkが14ツールのMCP Server運用で蓄積した実践知をもとに、よくある問題TOP 10とその解決策をコード例付きで解説する。
+    </p>
+
+    <!-- Section 1: TOP 10 -->
+    <h2>1. MCP導入時のよくある問題 TOP 10</h2>
+
+    <p>以下は、KanseiLinkのサポートデータと開発者コミュニティのフィードバックから集計した、MCP導入時に最も頻繁に報告される問題のランキングである。</p>
+
+    <!-- Issue 1: 認証エラー -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">1</span>
+        <span class="issue-title">認証エラー（OAuth token期限切れ）</span>
+        <span class="issue-severity severity-high">HIGH</span>
+      </div>
+      <p>最も報告が多い問題。MCP ServerがOAuth 2.0でSaaSに接続する際、アクセストークンの有効期限が切れているにもかかわらず、リフレッシュ処理が実装されていないケースが頻発。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>access_tokenの有効期限（通常1時間）後にリクエストを送信。refresh_tokenによる自動更新ロジックが未実装。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>リクエスト前にtoken有効期限を確認し、期限切れの場合は自動でrefresh_tokenを使って更新する。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">TypeScript - Token Auto-Refresh</span>
+<code><span class="keyword">class</span> <span class="func">TokenManager</span> {
+  <span class="keyword">private</span> accessToken: <span class="keyword">string</span>;
+  <span class="keyword">private</span> refreshToken: <span class="keyword">string</span>;
+  <span class="keyword">private</span> expiresAt: <span class="keyword">number</span>;
+
+  <span class="keyword">async</span> <span class="func">getValidToken</span>(): Promise&lt;<span class="keyword">string</span>&gt; {
+    <span class="comment">// 有効期限の5分前にリフレッシュ</span>
+    <span class="keyword">if</span> (Date.<span class="func">now</span>() &gt;= <span class="keyword">this</span>.expiresAt - <span class="number">300000</span>) {
+      <span class="keyword">await</span> <span class="keyword">this</span>.<span class="func">refresh</span>();
+    }
+    <span class="keyword">return</span> <span class="keyword">this</span>.accessToken;
+  }
+
+  <span class="keyword">private async</span> <span class="func">refresh</span>(): Promise&lt;<span class="keyword">void</span>&gt; {
+    <span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(<span class="string">'https://oauth.example.com/token'</span>, {
+      method: <span class="string">'POST'</span>,
+      body: <span class="keyword">new</span> URLSearchParams({
+        grant_type: <span class="string">'refresh_token'</span>,
+        refresh_token: <span class="keyword">this</span>.refreshToken,
+        client_id: process.env.<span class="func">CLIENT_ID</span>!,
+      }),
+    });
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>();
+    <span class="keyword">this</span>.accessToken = data.access_token;
+    <span class="keyword">this</span>.expiresAt = Date.<span class="func">now</span>() + data.expires_in * <span class="number">1000</span>;
+  }
+}</code>
+      </div>
+    </div>
+
+    <!-- Issue 2: CORS -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">2</span>
+        <span class="issue-title">CORS問題（ブラウザからのMCP接続）</span>
+        <span class="issue-severity severity-high">HIGH</span>
+      </div>
+      <p>ブラウザベースのMCPクライアントからHTTP TransportのMCP Serverに接続する際、CORSポリシーによりリクエストがブロックされる。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>MCP ServerにCORSヘッダーが設定されていない。ブラウザのプリフライトリクエスト（OPTIONS）が拒否される。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>MCP ServerにCORSミドルウェアを追加する。または、サーバーサイドプロキシ経由で接続する。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">TypeScript - CORS設定（Express）</span>
+<code><span class="keyword">import</span> cors <span class="keyword">from</span> <span class="string">'cors'</span>;
+
+app.<span class="func">use</span>(<span class="func">cors</span>({
+  origin: [
+    <span class="string">'https://your-app.com'</span>,
+    <span class="string">'http://localhost:3000'</span>
+  ],
+  methods: [<span class="string">'GET'</span>, <span class="string">'POST'</span>, <span class="string">'OPTIONS'</span>],
+  allowedHeaders: [
+    <span class="string">'Content-Type'</span>,
+    <span class="string">'Authorization'</span>,
+    <span class="string">'X-MCP-Session'</span>
+  ],
+  credentials: <span class="keyword">true</span>,
+}));</code>
+      </div>
+    </div>
+
+    <!-- Issue 3: Rate Limit -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">3</span>
+        <span class="issue-title">Rate Limit超過</span>
+        <span class="issue-severity severity-high">HIGH</span>
+      </div>
+      <p>エージェントが高頻度でAPIを呼び出し、Rate Limitに達してリクエストがブロックされる。429エラーが連続し、タスク全体が失敗する。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>リトライロジック未実装、Rate Limit値の未確認、バースト的なリクエスト送信。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>Exponential Backoff + ヘッダー監視による自動スロットリング。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">TypeScript - Exponential Backoff</span>
+<code><span class="keyword">async function</span> <span class="func">fetchWithRetry</span>(
+  url: <span class="keyword">string</span>,
+  options: RequestInit,
+  maxRetries = <span class="number">3</span>
+): Promise&lt;Response&gt; {
+  <span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i &lt; maxRetries; i++) {
+    <span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(url, options);
+
+    <span class="keyword">if</span> (res.status === <span class="number">429</span>) {
+      <span class="keyword">const</span> retryAfter = res.headers.<span class="func">get</span>(<span class="string">'Retry-After'</span>);
+      <span class="keyword">const</span> delay = retryAfter
+        ? <span class="func">parseInt</span>(retryAfter) * <span class="number">1000</span>
+        : Math.<span class="func">pow</span>(<span class="number">2</span>, i) * <span class="number">1000</span>; <span class="comment">// 1s, 2s, 4s</span>
+
+      console.<span class="func">warn</span>(<span class="string">`Rate limited. Retry in ${delay}ms`</span>);
+      <span class="keyword">await</span> <span class="keyword">new</span> Promise(r =&gt; <span class="func">setTimeout</span>(r, delay));
+      <span class="keyword">continue</span>;
+    }
+
+    <span class="keyword">return</span> res;
+  }
+  <span class="keyword">throw new</span> Error(<span class="string">'Max retries exceeded'</span>);
+}</code>
+      </div>
+    </div>
+
+    <!-- Issue 4: Transport -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">4</span>
+        <span class="issue-title">stdio vs HTTP Transport選択ミス</span>
+        <span class="issue-severity severity-medium">MEDIUM</span>
+      </div>
+      <p>ローカル実行にHTTP Transportを使用したり、リモート接続にstdioを使用する設計ミス。パフォーマンスの低下や接続不能の原因になる。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>MCP仕様の2つのTransport（stdio / Streamable HTTP）の使い分けを理解していない。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>ローカル実行 = stdio、リモート/マルチユーザー = Streamable HTTP。SSEは非推奨（2025仕様）。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">判断フロー</span>
+<code><span class="comment">// Transport選択の判断基準</span>
+<span class="comment">//</span>
+<span class="comment">// Q: MCP Serverはどこで動作する？</span>
+<span class="comment">//   ├─ ローカルマシン上 → stdio Transport</span>
+<span class="comment">//   │   ✓ 低レイテンシ、認証不要、シンプル</span>
+<span class="comment">//   │</span>
+<span class="comment">//   └─ リモートサーバー → Streamable HTTP Transport</span>
+<span class="comment">//       ✓ マルチユーザー対応、ファイアウォール越え</span>
+<span class="comment">//       ✓ セッション管理、認証ヘッダー対応</span>
+<span class="comment">//</span>
+<span class="comment">// ⚠️ SSE Transport は 2025年MCP仕様で非推奨</span>
+<span class="comment">//    新規実装ではStreamable HTTPを使用すること</span></code>
+      </div>
+    </div>
+
+    <!-- Issue 5: UTF-8 -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">5</span>
+        <span class="issue-title">日本語文字化け（UTF-8 BOM問題）</span>
+        <span class="issue-severity severity-medium">MEDIUM</span>
+      </div>
+      <p>日本語を含むAPIリクエスト・レスポンスで文字化けが発生。特にWindows環境でのBOM付きUTF-8ファイルが原因となるケースが多い。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>UTF-8 BOM（EF BB BF）がJSONパーサーに渡される。Content-Typeにcharsetが未指定。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>BOM除去処理の追加、Content-Typeヘッダーへのcharset=utf-8明記。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">TypeScript - BOM除去</span>
+<code><span class="keyword">function</span> <span class="func">removeBOM</span>(text: <span class="keyword">string</span>): <span class="keyword">string</span> {
+  <span class="comment">// UTF-8 BOM (EF BB BF) をバイト列で除去</span>
+  <span class="keyword">if</span> (text.<span class="func">charCodeAt</span>(<span class="number">0</span>) === <span class="number">0xFEFF</span>) {
+    <span class="keyword">return</span> text.<span class="func">slice</span>(<span class="number">1</span>);
+  }
+  <span class="keyword">return</span> text;
+}
+
+<span class="comment">// MCP Server側のレスポンスヘッダー</span>
+res.<span class="func">setHeader</span>(
+  <span class="string">'Content-Type'</span>,
+  <span class="string">'application/json; charset=utf-8'</span>
+);</code>
+      </div>
+    </div>
+
+    <!-- Issue 6: Zod Schema -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">6</span>
+        <span class="issue-title">Tool定義の不備（Zod schemaエラー）</span>
+        <span class="issue-severity severity-medium">MEDIUM</span>
+      </div>
+      <p>MCP ServerのTool定義でZod schemaを使用する際、inputSchemaの型定義ミスにより、クライアントがToolを呼び出せない。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>Zodスキーマの定義がJSON Schemaとして正しく変換されない。optionalとrequiredの混在。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>zodToJsonSchemaでの変換結果を必ず検証。MCP Inspectorでツール定義をテスト。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">TypeScript - 正しいTool定義</span>
+<code><span class="keyword">import</span> { z } <span class="keyword">from</span> <span class="string">'zod'</span>;
+
+<span class="comment">// 正しい: descriptionを全フィールドに付与</span>
+<span class="keyword">const</span> SearchSchema = z.<span class="func">object</span>({
+  query: z.<span class="func">string</span>()
+    .<span class="func">describe</span>(<span class="string">'検索キーワード（日本語可）'</span>),
+  category: z.<span class="func">enum</span>([<span class="string">'crm'</span>, <span class="string">'accounting'</span>, <span class="string">'hr'</span>])
+    .<span class="func">optional</span>()
+    .<span class="func">describe</span>(<span class="string">'サービスカテゴリで絞り込み'</span>),
+  limit: z.<span class="func">number</span>()
+    .<span class="func">min</span>(<span class="number">1</span>).<span class="func">max</span>(<span class="number">50</span>)
+    .<span class="func">default</span>(<span class="number">10</span>)
+    .<span class="func">describe</span>(<span class="string">'取得件数（1-50, デフォルト10）'</span>),
+});
+
+server.<span class="func">tool</span>(
+  <span class="string">'search_services'</span>,
+  <span class="string">'SaaSサービスをキーワードで検索'</span>,
+  SearchSchema,
+  <span class="keyword">async</span> ({ query, category, limit }) =&gt; {
+    <span class="comment">// Tool実装</span>
+  }
+);</code>
+      </div>
+    </div>
+
+    <!-- Issue 7: Timeout -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">7</span>
+        <span class="issue-title">タイムアウト（大量データ返却時）</span>
+        <span class="issue-severity severity-medium">MEDIUM</span>
+      </div>
+      <p>MCP Serverが大量のデータを返却する際、クライアント側のタイムアウトに達して接続が切断される。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>ページネーション未実装で全データを一括返却。レスポンスサイズが数MBに達する。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>ページネーション実装 + レスポンスサイズ制限。大量データはcursorベースページネーションが推奨。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">TypeScript - Cursor Pagination</span>
+<code><span class="comment">// Tool定義にcursorパラメータを追加</span>
+<span class="keyword">const</span> ListSchema = z.<span class="func">object</span>({
+  cursor: z.<span class="func">string</span>().<span class="func">optional</span>()
+    .<span class="func">describe</span>(<span class="string">'次ページのカーソル'</span>),
+  limit: z.<span class="func">number</span>().<span class="func">default</span>(<span class="number">20</span>)
+    .<span class="func">describe</span>(<span class="string">'1ページあたりの件数'</span>),
+});
+
+<span class="comment">// レスポンスに次ページ情報を含める</span>
+<span class="keyword">return</span> {
+  content: [{
+    type: <span class="string">'text'</span>,
+    text: JSON.<span class="func">stringify</span>({
+      items: results,
+      nextCursor: hasMore ? lastId : <span class="keyword">null</span>,
+      totalCount: total,
+    }),
+  }],
+};</code>
+      </div>
+    </div>
+
+    <!-- Issue 8: Version -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">8</span>
+        <span class="issue-title">バージョン不整合（SDK更新時）</span>
+        <span class="issue-severity severity-low">LOW</span>
+      </div>
+      <p>MCP SDKをアップデートした際に、APIの破壊的変更により既存のMCP Serverが動作しなくなる。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>package.jsonで^（キャレット）指定によりマイナーバージョンが自動更新。CHANGELOG未確認。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>SDKバージョンを固定（~ではなく正確なバージョン指定）。更新前にCHANGELOGを確認。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">package.json - バージョン固定</span>
+<code>{
+  <span class="string">"dependencies"</span>: {
+    <span class="comment">// NG: メジャー互換の範囲で自動更新</span>
+    <span class="string">"@modelcontextprotocol/sdk"</span>: <span class="string">"^1.12.0"</span>,
+
+    <span class="comment">// OK: 正確なバージョンを固定</span>
+    <span class="string">"@modelcontextprotocol/sdk"</span>: <span class="string">"1.12.0"</span>
+  }
+}</code>
+      </div>
+    </div>
+
+    <!-- Issue 9: Security -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">9</span>
+        <span class="issue-title">セキュリティ（API Key露出）</span>
+        <span class="issue-severity severity-high">HIGH</span>
+      </div>
+      <p>MCP ServerのソースコードやクライアントサイドコードにAPI Keyがハードコードされ、GitHubリポジトリ経由で漏洩するケース。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>API Keyをソースコードに直接記述。.envファイルをコミット。フロントエンドにAPI Keyを埋め込み。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>環境変数管理 + .gitignore設定 + サーバーサイド専用のシークレット管理。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">セキュリティチェックリスト</span>
+<code><span class="comment"># .gitignore に必ず追加</span>
+.env
+.env.local
+.env.production
+
+<span class="comment"># 環境変数で管理（コードに直接書かない）</span>
+<span class="comment"># .env ファイル</span>
+SAAS_API_KEY=sk-xxxxxxxxxxxxx
+OAUTH_CLIENT_SECRET=cs-xxxxxxxxxxxxx
+
+<span class="comment"># コード側</span>
+<span class="keyword">const</span> apiKey = process.env.SAAS_API_KEY;
+<span class="keyword">if</span> (!apiKey) {
+  <span class="keyword">throw new</span> Error(<span class="string">'SAAS_API_KEY is not set'</span>);
+}</code>
+      </div>
+    </div>
+
+    <!-- Issue 10: Testing -->
+    <div class="issue-card">
+      <div class="issue-header">
+        <span class="issue-number">10</span>
+        <span class="issue-title">テスト環境の不足</span>
+        <span class="issue-severity severity-medium">MEDIUM</span>
+      </div>
+      <p>MCP Serverのテスト方法がわからず、手動テストのみで品質が安定しない。本番環境で直接テストしてしまうリスク。</p>
+      <div class="cause-solution">
+        <div class="cause-box">
+          <div class="label">原因</div>
+          <p>MCP専用のテストフレームワークの認知度が低い。SaaS側にsandbox環境がない。</p>
+        </div>
+        <div class="solution-box">
+          <div class="label">解決策</div>
+          <p>MCP Inspector + ユニットテスト + モックサーバーの3層テスト戦略。</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="code-label">テスト戦略</span>
+<code><span class="comment">// 1. MCP Inspector でTool定義を検証</span>
+<span class="comment">//    npx @modelcontextprotocol/inspector</span>
+
+<span class="comment">// 2. ユニットテスト（Vitest）</span>
+<span class="keyword">import</span> { describe, it, expect } <span class="keyword">from</span> <span class="string">'vitest'</span>;
+
+<span class="func">describe</span>(<span class="string">'search_services tool'</span>, () =&gt; {
+  <span class="func">it</span>(<span class="string">'returns results for valid query'</span>, <span class="keyword">async</span> () =&gt; {
+    <span class="keyword">const</span> result = <span class="keyword">await</span> <span class="func">searchServices</span>({
+      query: <span class="string">'会計'</span>,
+      limit: <span class="number">5</span>,
+    });
+    <span class="func">expect</span>(result.items.length).<span class="func">toBeLessThanOrEqual</span>(<span class="number">5</span>);
+    <span class="func">expect</span>(result.items[<span class="number">0</span>]).<span class="func">toHaveProperty</span>(<span class="string">'name'</span>);
+  });
+});
+
+<span class="comment">// 3. モックサーバーで外部API依存を排除</span>
+<span class="keyword">import</span> { setupServer } <span class="keyword">from</span> <span class="string">'msw/node'</span>;
+<span class="keyword">const</span> mockServer = <span class="func">setupServer</span>(
+  <span class="func">http.get</span>(<span class="string">'https://api.saas.com/v1/*'</span>, () =&gt; {
+    <span class="keyword">return</span> HttpResponse.<span class="func">json</span>({ data: mockData });
+  })
+);</code>
+      </div>
+    </div>
+
+    <!-- Section 2: Deeper Solutions (already covered inline above) -->
+
+    <!-- Section 3: Checklist -->
+    <h2>2. SaaS企業がMCP対応する際のチェックリスト</h2>
+
+    <p>自社SaaSをMCP対応（エージェント対応）する際、以下のチェックリストを確認してください。全項目をクリアすることで、AEOスコアの大幅な改善が期待できます。</p>
+
+    <ul class="checklist">
+      <li>
+        <span class="check-icon">&#x2610;</span>
+        <div>
+          <strong>OpenAPI仕様は最新か</strong><br>
+          <span style="font-size:14px; color:var(--gray-dark);">APIの全エンドポイントがOpenAPI 3.0+仕様で文書化され、実際の挙動と一致している。Swagger UIで公開されていることが望ましい。</span>
+        </div>
+      </li>
+      <li>
+        <span class="check-icon">&#x2610;</span>
+        <div>
+          <strong>認証フローのドキュメントはあるか</strong><br>
+          <span style="font-size:14px; color:var(--gray-dark);">OAuth 2.0の認可エンドポイント、トークンエンドポイント、スコープ一覧、リフレッシュトークンの使い方が明確に文書化されている。</span>
+        </div>
+      </li>
+      <li>
+        <span class="check-icon">&#x2610;</span>
+        <div>
+          <strong>エラーレスポンスはJSON形式か</strong><br>
+          <span style="font-size:14px; color:var(--gray-dark);">全てのエラーレスポンスが構造化されたJSON形式（error_code, message, details）で返される。HTMLエラーページではなく。</span>
+        </div>
+      </li>
+      <li>
+        <span class="check-icon">&#x2610;</span>
+        <div>
+          <strong>Rate Limitはドキュメントに記載されているか</strong><br>
+          <span style="font-size:14px; color:var(--gray-dark);">エンドポイントごとのRate Limit値（リクエスト数/時間）が文書化されている。レスポンスヘッダーにX-RateLimit-Remaining等を含む。</span>
+        </div>
+      </li>
+      <li>
+        <span class="check-icon">&#x2610;</span>
+        <div>
+          <strong>Sandbox環境は提供されているか</strong><br>
+          <span style="font-size:14px; color:var(--gray-dark);">開発者・エージェントがテスト用データで安全にAPIを検証できるsandbox環境が提供されている。</span>
+        </div>
+      </li>
+      <li>
+        <span class="check-icon">&#x2610;</span>
+        <div>
+          <strong>APIバージョニングは明確か</strong><br>
+          <span style="font-size:14px; color:var(--gray-dark);">URLパスまたはヘッダーでAPIバージョンが指定される。非推奨化のポリシー（最低3ヶ月の猶予期間）が文書化されている。</span>
+        </div>
+      </li>
+      <li>
+        <span class="check-icon">&#x2610;</span>
+        <div>
+          <strong>MCP Serverの公式提供または推奨があるか</strong><br>
+          <span style="font-size:14px; color:var(--gray-dark);">公式MCP Serverパッケージの提供、またはコミュニティ製MCP Serverの品質検証・推奨を行っている。</span>
+        </div>
+      </li>
+      <li>
+        <span class="check-icon">&#x2610;</span>
+        <div>
+          <strong>Webhook/イベント通知はあるか</strong><br>
+          <span style="font-size:14px; color:var(--gray-dark);">ポーリング不要でリアルタイム通知を受け取れるWebhookまたはイベントストリームが提供されている。</span>
+        </div>
+      </li>
+    </ul>
+
+    <!-- Section 4: KanseiLink Best Practices -->
+    <h2>3. KanseiLink MCPの実装例から学ぶベストプラクティス</h2>
+
+    <p>KanseiLinkは14のMCP Toolを提供する実運用MCP Serverである。ここでは、その設計から得られたベストプラクティスを共有する。</p>
+
+    <h3>14ツールの設計パターン</h3>
+
+    <p>KanseiLinkのMCP Serverは以下の14ツールで構成されている。各ツールは<strong>単一責任の原則</strong>に基づき、1つのツールが1つの明確な目的を持つ。</p>
+
+    <div class="code-block">
+      <span class="code-label">KanseiLink MCP - 14 Tools Architecture</span>
+<code><span class="comment">// 検索・発見系</span>
+search_services      <span class="comment">// SaaSサービス検索（FTS5全文検索）</span>
+get_service_detail   <span class="comment">// サービス詳細取得</span>
+find_combinations    <span class="comment">// サービス組み合わせ提案</span>
+get_recipe           <span class="comment">// 自動化レシピ取得</span>
+
+<span class="comment">// インテリジェンス系</span>
+get_insights         <span class="comment">// AEO分析・市場インサイト</span>
+get_service_tips     <span class="comment">// サービス活用Tips</span>
+check_updates        <span class="comment">// 更新情報チェック</span>
+
+<span class="comment">// 品質管理系</span>
+get_inspection_queue <span class="comment">// 検査キュー取得</span>
+submit_inspection    <span class="comment">// 検査結果提出</span>
+report_outcome       <span class="comment">// 実行結果レポート</span>
+
+<span class="comment">// コンテンツ生成系</span>
+generate_aeo_report  <span class="comment">// AEOレポート生成</span>
+generate_aeo_article <span class="comment">// AEO記事生成</span>
+
+<span class="comment">// 設計原則:</span>
+<span class="comment">// 1. 1ツール = 1目的（Single Responsibility）</span>
+<span class="comment">// 2. 全ツールに日本語description</span>
+<span class="comment">// 3. inputSchemaに詳細なdescribe()付与</span>
+<span class="comment">// 4. エラーはisError: trueで明示的に返却</span></code>
+    </div>
+
+    <h3>PIIマスキング</h3>
+
+    <div class="bp-card">
+      <h4>個人情報保護のためのマスキング実装</h4>
+      <p>KanseiLinkのMCP Serverは、全てのレスポンスに対してPII（個人識別情報）マスキングを適用する。メールアドレス、電話番号、クレジットカード番号などは、出力前に自動的にマスクされる。</p>
+      <p>これにより、エージェントが意図せず個人情報をLLMに送信するリスクを最小化している。MCP Server側でのマスキングは、クライアント側の実装に依存しないため、より堅牢なセキュリティを実現する。</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">TypeScript - PII Masking Pattern</span>
+<code><span class="keyword">const</span> PII_PATTERNS = [
+  { regex: <span class="string">/[\w.-]+@[\w.-]+\.\w+/g</span>,  replace: <span class="string">'[EMAIL]'</span> },
+  { regex: <span class="string">/\d{3}-\d{4}-\d{4}/g</span>,     replace: <span class="string">'[PHONE]'</span> },
+  { regex: <span class="string">/\d{4}-\d{4}-\d{4}-\d{4}/g</span>, replace: <span class="string">'[CARD]'</span> },
+];
+
+<span class="keyword">function</span> <span class="func">maskPII</span>(text: <span class="keyword">string</span>): <span class="keyword">string</span> {
+  <span class="keyword">let</span> masked = text;
+  <span class="keyword">for</span> (<span class="keyword">const</span> { regex, replace } <span class="keyword">of</span> PII_PATTERNS) {
+    masked = masked.<span class="func">replaceAll</span>(regex, replace);
+  }
+  <span class="keyword">return</span> masked;
+}
+
+<span class="comment">// MCP Serverのレスポンス生成時に適用</span>
+<span class="keyword">return</span> {
+  content: [{
+    type: <span class="string">'text'</span>,
+    text: <span class="func">maskPII</span>(JSON.<span class="func">stringify</span>(data)),
+  }],
+};</code>
+    </div>
+
+    <h3>FTS5全文検索</h3>
+
+    <div class="bp-card">
+      <h4>SQLite FTS5による高速日本語検索</h4>
+      <p>KanseiLinkのsearch_servicesツールは、SQLite FTS5（Full-Text Search 5）エンジンを使用した全文検索を実装している。日本語のトークナイズにはtrigramを使用し、部分一致検索にも対応。</p>
+      <p>これにより、エージェントが「会計 クラウド」「経費精算 自動化」などの日本語キーワードで高速に検索でき、1,000件以上のサービスデータから10ms以下でヒットする。</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">SQL - FTS5 Table Setup</span>
+<code><span class="comment">-- FTS5仮想テーブルの作成</span>
+<span class="keyword">CREATE VIRTUAL TABLE</span> services_fts <span class="keyword">USING</span> fts5(
+  name,
+  description,
+  category,
+  tags,
+  content=<span class="string">'services'</span>,
+  content_rowid=<span class="string">'id'</span>,
+  tokenize=<span class="string">'trigram'</span>
+);
+
+<span class="comment">-- 検索クエリ（ランキング付き）</span>
+<span class="keyword">SELECT</span>
+  s.*,
+  <span class="func">rank</span> <span class="keyword">AS</span> relevance
+<span class="keyword">FROM</span> services_fts
+<span class="keyword">JOIN</span> services s <span class="keyword">ON</span> services_fts.rowid = s.id
+<span class="keyword">WHERE</span> services_fts <span class="keyword">MATCH</span> <span class="string">'会計 OR クラウド'</span>
+<span class="keyword">ORDER BY</span> <span class="func">rank</span>
+<span class="keyword">LIMIT</span> <span class="number">10</span>;</code>
+    </div>
+
+    <h3>エラーハンドリングのパターン</h3>
+
+    <div class="bp-card">
+      <h4>MCP仕様に準拠したエラー返却</h4>
+      <p>KanseiLinkでは、ツール実行時のエラーをMCP仕様のisErrorフラグで明示的に返却する。これにより、LLMがエラーを正しく認識し、ユーザーへの適切なフィードバックやリトライ判断が可能になる。</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">TypeScript - Error Handling Pattern</span>
+<code>server.<span class="func">tool</span>(
+  <span class="string">'get_service_detail'</span>,
+  <span class="string">'サービスの詳細情報を取得'</span>,
+  { slug: z.<span class="func">string</span>().<span class="func">describe</span>(<span class="string">'サービスのslug'</span>) },
+  <span class="keyword">async</span> ({ slug }) =&gt; {
+    <span class="keyword">try</span> {
+      <span class="keyword">const</span> service = <span class="keyword">await</span> db.<span class="func">getService</span>(slug);
+
+      <span class="keyword">if</span> (!service) {
+        <span class="keyword">return</span> {
+          content: [{
+            type: <span class="string">'text'</span>,
+            text: <span class="string">`サービス "${slug}" は見つかりませんでした。`</span>,
+          }],
+          isError: <span class="keyword">true</span>,
+        };
+      }
+
+      <span class="keyword">return</span> {
+        content: [{
+          type: <span class="string">'text'</span>,
+          text: <span class="func">maskPII</span>(JSON.<span class="func">stringify</span>(service)),
+        }],
+      };
+    } <span class="keyword">catch</span> (error) {
+      <span class="keyword">return</span> {
+        content: [{
+          type: <span class="string">'text'</span>,
+          text: <span class="string">`内部エラー: ${error.message}`</span>,
+        }],
+        isError: <span class="keyword">true</span>,
+      };
+    }
+  }
+);</code>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <h2>MCP対応でお困りですか？</h2>
+      <p>KanseiLinkはSaaS企業のMCP対応・AEOスコア改善を支援しています。<br>14ツールの実運用知見をベースにした実践的なコンサルティング。</p>
+      <a href="/" class="btn-cta">AEO Ratings を見る</a>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="related-section">
+      <h3>関連記事</h3>
+      <div class="related-grid">
+        <a href="/insights/agent-voice-q2-2026.html" class="related-card">
+          <div class="rc-tag">Agent Real Voice</div>
+          <div class="rc-title">AIエージェントの本音 &#8212; 日本SaaS 100社を使ってみた Q2 2026</div>
+          <div class="rc-desc">AIエージェントが100の日本SaaSを実際に使い、率直にレビュー。使いやすいサービス、使いにくいサービス、そしてSaaS企業への提言。</div>
+        </a>
+        <a href="/" class="related-card">
+          <div class="rc-tag">AEO Ratings</div>
+          <div class="rc-title">AEO Ratings &#8212; 日本SaaS AIエージェント対応力格付け</div>
+          <div class="rc-desc">日本市場の主要SaaS 100サービスをAEOスコアで格付け。MCP対応状況、API品質、エージェント成功率を評価。</div>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-brand">KanseiLink</div>
+      <div class="footer-desc">AEO (Agent Engine Optimization) Intelligence Layer for Agent Economy</div>
+      <div class="footer-copy">&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</div>
+    </div>
+  </footer>
+
+</body>
+</html>

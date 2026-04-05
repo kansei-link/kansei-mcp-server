@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEOとは？ Agent Engine Optimization 完全ガイド | KanseiLink</title>
+  <meta name="description" content="AEO（Agent Engine Optimization）とは、SaaSサービスがAIエージェントにとって使いやすいかを定量評価・最適化する新概念。スコアの仕組み、改善方法、SEOとの違いを徹底解説。">
+  <meta name="keywords" content="AEO とは, Agent Engine Optimization, AEOスコア, AIエージェント, MCP, Model Context Protocol, エージェント経済, SaaS最適化, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/what-is-aeo">
+
+  <!-- OGP -->
+  <meta property="og:title" content="AEOとは？ Agent Engine Optimization 完全ガイド">
+  <meta property="og:description" content="AEO（Agent Engine Optimization）とは、SaaSがAIエージェントに選ばれるための新しい最適化概念。スコアリング手法、改善ステップ、SEO/ASOとの比較を網羅的に解説。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/what-is-aeo">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/images/aeo-guide-og.png">
+  <meta property="article:published_time" content="2026-04-05">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="AEO Insights">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AEOとは？ Agent Engine Optimization 完全ガイド">
+  <meta name="twitter:description" content="AIエージェントに選ばれるSaaSになるための新概念「AEO」を徹底解説。スコアの仕組みから改善方法まで。">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "AEOとは？ — Agent Engine Optimization 完全ガイド",
+    "description": "AEO（Agent Engine Optimization）とは、SaaSサービスがAIエージェントにとって使いやすいかを定量評価・最適化する新概念。スコアの仕組み、改善方法、SEOとの違いを徹底解説。",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink Research",
+      "url": "https://kansei-link.com"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://kansei-link.com/images/logo.png"
+      }
+    },
+    "datePublished": "2026-04-05",
+    "dateModified": "2026-04-05",
+    "mainEntityOfPage": "https://kansei-link.com/insights/what-is-aeo",
+    "image": "https://kansei-link.com/images/aeo-guide-og.png",
+    "keywords": ["AEO", "Agent Engine Optimization", "AIエージェント", "MCP", "SaaS"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "AEO（Agent Engine Optimization）とは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AEO（Agent Engine Optimization）とは、SaaSサービスがAIエージェントにとってどれだけ発見・接続・利用しやすいかを定量的に評価し、最適化するための概念です。SEOが人間の検索エンジン向けの最適化であるのに対し、AEOはAIエージェント向けの最適化を指します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AEOスコアはどのように計算されますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AEOスコアは0.00〜1.00の範囲で算出されます。Base Scoreとして、Official MCP対応（0.50）、Third-party MCP（0.40）、API Only（0.30）、No API（0.10）が設定され、ドキュメント整備、認証ガイド、スペシャリスト対応、エージェントデータ提供、高成功率にそれぞれ+0.10のボーナスが加算されます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AEOとSEOの違いは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "SEOは人間がGoogle等の検索エンジンでサービスを見つけやすくするための最適化です。AEOはAIエージェントがサービスを発見し、APIやMCPを通じて自動的に利用できるようにするための最適化です。対象がユーザーからエージェントに変わる点が根本的な違いです。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "自社SaaSのAEOスコアを改善するにはどうすればいいですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "最も効果的なステップは、(1) MCP Serverを公開する（+0.10〜0.20）、(2) APIドキュメントを整備する（+0.10）、(3) 認証セットアップガイドを提供する（+0.10）、(4) エージェント開発者コミュニティと連携する、(5) 成功率80%以上を達成する（+0.10）です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AEOスコアのグレードにはどのような段階がありますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AEOスコアは7段階のグレードで評価されます。AAA（0.90以上）、AA（0.80〜0.89）、A（0.70〜0.79）、BBB（0.60〜0.69）、BB（0.50〜0.59）、B（0.40〜0.49）、CCC（0.40未満）。さらにLEADER、AVERAGE、LAGGARDの3ティアに分類されます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCP（Model Context Protocol）とは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCP（Model Context Protocol）は、AIエージェントと外部サービスを標準化された方法で接続するオープンプロトコルです。Anthropic社が提唱し、現在はLinux Foundation傘下のAgentic AI Foundationが管理しています。AEOスコアにおいてMCP対応は最も重要な評価項目です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AEOは日本独自の概念ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AEO（Agent Engine Optimization）はKanseiLinkが提唱するグローバルな概念ですが、日本市場においてはSaaS浸透率と独自のビジネスSaaS文化を背景に、特に重要性が高まっています。日本のAI事業者ガイドラインv1.2でもエージェント接続先の評価が議論されています。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://kansei-link.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Insights",
+        "item": "https://kansei-link.com/insights"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "AEOとは？完全ガイド",
+        "item": "https://kansei-link.com/insights/what-is-aeo"
+      }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ========================================
+       MSCI-STYLE DESIGN SYSTEM
+       ======================================== */
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+      --grade-aaa: #065F46;
+      --grade-aa: #059669;
+      --grade-a: #0891B2;
+      --grade-bbb: #D97706;
+      --grade-bb: #EA580C;
+      --grade-b: #DC2626;
+      --grade-ccc: #991B1B;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== UTILITY BAR ===== */
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a {
+      color: var(--black);
+      text-decoration: none;
+      font-weight: 400;
+    }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    /* ===== MAIN NAV ===== */
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+      flex: 1;
+    }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+      display: inline-block;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-teal {
+      background: var(--teal);
+      color: var(--black);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+      display: inline-block;
+    }
+    .btn-teal:hover { opacity: 0.9; }
+
+    /* ===== BREADCRUMB ===== */
+    .breadcrumb-bar {
+      background: var(--gray-light);
+      padding: 12px 0;
+      font-size: 14px;
+      color: var(--gray-text);
+    }
+    .breadcrumb-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    .breadcrumb-bar a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .separator {
+      margin: 0 8px;
+      color: var(--gray-mid);
+    }
+
+    /* ===== ARTICLE HERO ===== */
+    .article-hero {
+      background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 60%, #00C4B3 100%);
+      padding: 80px 0 64px;
+      color: var(--white);
+    }
+    .article-hero .inner {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    .article-hero .tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: var(--white);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      margin-bottom: 24px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .article-hero h1 {
+      font-size: 42px;
+      font-weight: 600;
+      letter-spacing: -2.1px;
+      line-height: 1.2;
+      margin-bottom: 24px;
+    }
+    .article-hero .subtitle {
+      font-size: 18px;
+      font-weight: 300;
+      line-height: 1.7;
+      opacity: 0.9;
+      margin-bottom: 32px;
+    }
+    .article-meta {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    .article-meta .divider {
+      width: 1px;
+      height: 16px;
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* ===== ARTICLE BODY ===== */
+    .article-body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 48px 40px 80px;
+      color: var(--gray-dark);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .article-body h2 {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--black);
+      letter-spacing: -1px;
+      margin-top: 56px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--lavender);
+    }
+    .article-body h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--black);
+      margin-top: 36px;
+      margin-bottom: 12px;
+    }
+    .article-body p {
+      margin-bottom: 20px;
+    }
+    .article-body ul, .article-body ol {
+      margin-bottom: 20px;
+      padding-left: 24px;
+    }
+    .article-body li {
+      margin-bottom: 8px;
+    }
+    .article-body strong {
+      color: var(--black);
+      font-weight: 600;
+    }
+    .article-body a {
+      color: var(--blue);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .article-body a:hover {
+      border-bottom-color: var(--blue);
+    }
+
+    /* ===== KEY CONCEPT BOX ===== */
+    .key-concept {
+      background: var(--lavender);
+      border-left: 4px solid var(--blue);
+      padding: 24px 28px;
+      margin: 28px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .key-concept .label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .key-concept p {
+      margin-bottom: 0;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ===== ANALOGY BOX ===== */
+    .analogy-box {
+      background: var(--white);
+      border: 1px solid var(--gray-mid);
+      border-radius: 8px;
+      padding: 28px;
+      margin: 28px 0;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 20px;
+      align-items: center;
+    }
+    .analogy-item {
+      text-align: center;
+    }
+    .analogy-item .icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .analogy-item .title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--black);
+    }
+    .analogy-item .desc {
+      font-size: 13px;
+      color: var(--gray-text);
+      margin-top: 4px;
+    }
+    .analogy-arrow {
+      font-size: 24px;
+      color: var(--gray-mid);
+    }
+
+    /* ===== SCORE TABLE ===== */
+    .score-table-wrap {
+      margin: 28px 0;
+      overflow-x: auto;
+    }
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .score-table thead th {
+      background: var(--black);
+      color: var(--white);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 500;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+    .score-table thead th:first-child {
+      border-radius: 8px 0 0 0;
+    }
+    .score-table thead th:last-child {
+      border-radius: 0 8px 0 0;
+    }
+    .score-table tbody td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      vertical-align: top;
+    }
+    .score-table tbody tr:hover {
+      background: var(--lavender);
+    }
+    .score-table .grade-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--white);
+    }
+    .grade-aaa { background: var(--grade-aaa); }
+    .grade-aa { background: var(--grade-aa); }
+    .grade-a { background: var(--grade-a); }
+    .grade-bbb { background: var(--grade-bbb); }
+    .grade-bb { background: var(--grade-bb); }
+    .grade-b { background: var(--grade-b); }
+    .grade-ccc { background: var(--grade-ccc); }
+
+    /* ===== COMPARISON TABLE ===== */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 28px 0;
+    }
+    .comparison-table thead th {
+      background: var(--lavender);
+      padding: 14px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--black);
+      border-bottom: 2px solid var(--blue);
+    }
+    .comparison-table tbody td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      vertical-align: top;
+    }
+    .comparison-table tbody tr:hover {
+      background: var(--gray-light);
+    }
+
+    /* ===== STEP CARD ===== */
+    .step-card {
+      background: var(--white);
+      border: 1px solid var(--gray-mid);
+      border-radius: 8px;
+      padding: 24px 28px;
+      margin: 20px 0;
+      position: relative;
+      padding-left: 80px;
+    }
+    .step-card .step-num {
+      position: absolute;
+      left: 24px;
+      top: 24px;
+      width: 40px;
+      height: 40px;
+      background: var(--blue);
+      color: var(--white);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .step-card h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--black);
+      margin-bottom: 8px;
+    }
+    .step-card .bonus {
+      display: inline-block;
+      background: #ECFDF5;
+      color: #065F46;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      margin-left: 8px;
+    }
+    .step-card p {
+      font-size: 15px;
+      margin-bottom: 0;
+    }
+
+    /* ===== FAQ ===== */
+    .faq-section {
+      margin-top: 56px;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 24px 0;
+    }
+    .faq-item:first-of-type {
+      border-top: 1px solid var(--gray-mid);
+    }
+    .faq-q {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--black);
+      margin-bottom: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .faq-q::before {
+      content: "Q";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      background: var(--blue);
+      color: var(--white);
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .faq-a {
+      font-size: 15px;
+      color: var(--gray-dark);
+      padding-left: 40px;
+      line-height: 1.7;
+    }
+
+    /* ===== CTA BANNER ===== */
+    .cta-banner {
+      background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%);
+      border-radius: 12px;
+      padding: 48px 40px;
+      margin: 56px 0;
+      text-align: center;
+      color: var(--white);
+    }
+    .cta-banner h3 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 12px;
+    }
+    .cta-banner p {
+      font-size: 16px;
+      opacity: 0.85;
+      margin-bottom: 28px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .cta-banner .btn-teal {
+      font-size: 16px;
+      font-weight: 500;
+      padding: 14px 40px;
+    }
+
+    /* ===== RELATED ARTICLES ===== */
+    .related-section {
+      border-top: 2px solid var(--gray-mid);
+      padding-top: 48px;
+      margin-top: 56px;
+    }
+    .related-section h2 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--black);
+      margin-bottom: 24px;
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-top: 0;
+    }
+    .related-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .related-card {
+      background: var(--gray-light);
+      border-radius: 8px;
+      padding: 24px;
+      text-decoration: none;
+      transition: box-shadow 0.2s, transform 0.2s;
+      display: block;
+    }
+    .related-card:hover {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+    .related-card .tag {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .related-card h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--black);
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .related-card p {
+      font-size: 14px;
+      color: var(--gray-text);
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+
+    /* ===== FOOTER ===== */
+    .site-footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 64px 0 32px;
+    }
+    .site-footer .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 48px;
+    }
+    .footer-brand .logo-text {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+    .footer-brand p {
+      font-size: 14px;
+      color: #9CA3AF;
+      line-height: 1.6;
+    }
+    .footer-col h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--white);
+    }
+    .footer-col a {
+      display: block;
+      color: #9CA3AF;
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 10px;
+      transition: color 0.2s;
+    }
+    .footer-col a:hover { color: var(--white); }
+    .footer-bottom {
+      border-top: 1px solid #374151;
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #9CA3AF;
+    }
+
+    /* ===== TABLE OF CONTENTS (sidebar-style at top) ===== */
+    .toc-box {
+      background: var(--gray-light);
+      border-radius: 8px;
+      padding: 24px 28px;
+      margin-bottom: 40px;
+    }
+    .toc-box h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--black);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .toc-box ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      counter-reset: toc;
+    }
+    .toc-box li {
+      counter-increment: toc;
+      margin-bottom: 6px;
+    }
+    .toc-box li::before {
+      content: counter(toc) ".";
+      color: var(--blue);
+      font-weight: 600;
+      margin-right: 8px;
+      font-size: 13px;
+    }
+    .toc-box a {
+      color: var(--gray-dark);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    .toc-box a:hover {
+      color: var(--blue);
+    }
+
+    /* ===== TIER VISUAL ===== */
+    .tier-visual {
+      display: flex;
+      gap: 0;
+      margin: 28px 0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .tier-block {
+      flex: 1;
+      padding: 20px 16px;
+      text-align: center;
+      color: var(--white);
+    }
+    .tier-block.leader { background: var(--grade-aaa); }
+    .tier-block.average { background: var(--grade-bbb); }
+    .tier-block.laggard { background: var(--grade-b); }
+    .tier-block .tier-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .tier-block .tier-grades {
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    /* ===== CODE BLOCK ===== */
+    .code-block {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+      font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+    .code-block .comment { color: #6B7280; }
+    .code-block .keyword { color: #7882DC; }
+    .code-block .string { color: #00C4B3; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-body { padding: 32px 20px 60px; }
+      .article-body h2 { font-size: 22px; }
+      .utility-bar .inner,
+      .main-nav .inner,
+      .breadcrumb-bar .inner { padding: 0 20px; }
+      .article-hero .inner { padding: 0 20px; }
+      .nav-links { display: none; }
+      .analogy-box { grid-template-columns: 1fr; }
+      .analogy-arrow { transform: rotate(90deg); text-align: center; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+      .step-card { padding-left: 24px; padding-top: 72px; }
+      .step-card .step-num { top: 20px; }
+      .article-meta { flex-direction: column; gap: 8px; }
+      .article-meta .divider { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== UTILITY BAR ===== -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="/ja/insights/what-is-aeo">日本語</a>
+      <span class="sep">|</span>
+      <a href="/support">Support</a>
+      <span class="sep">|</span>
+      <a href="/agent-login">Agent Log In</a>
+    </div>
+  </div>
+
+  <!-- ===== MAIN NAV ===== -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">K</span>
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="/aeo-ratings">AEO Ratings</a></li>
+        <li><a href="/insights" class="active">Insights</a></li>
+        <li><a href="/methodology">Methodology</a></li>
+        <li><a href="/for-saas">For SaaS</a></li>
+        <li><a href="/about">About</a></li>
+      </ul>
+      <div class="nav-right">
+        <a href="/contact" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== BREADCRUMB ===== -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="/">Home</a>
+      <span class="separator">/</span>
+      <a href="/insights">Insights</a>
+      <span class="separator">/</span>
+      <span>AEO Guide</span>
+    </div>
+  </div>
+
+  <!-- ===== ARTICLE HERO ===== -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Definitive Guide</span>
+      <h1>AEOとは？ &mdash; Agent Engine Optimization 完全ガイド</h1>
+      <p class="subtitle">AIエージェントに「選ばれるSaaS」になるための新しい最適化概念。スコアリングの仕組みから改善ステップまで、AEOの全体像を徹底解説します。</p>
+      <div class="article-meta">
+        <span>Published: 2026-04-05</span>
+        <span class="divider"></span>
+        <span>Author: KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>Reading time: 15 min</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== ARTICLE BODY ===== -->
+  <article class="article-body">
+
+    <!-- Table of Contents -->
+    <nav class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#what-is-aeo">AEO（Agent Engine Optimization）とは</a></li>
+        <li><a href="#why-aeo">なぜ今AEOが必要なのか</a></li>
+        <li><a href="#aeo-score">AEO Scoreの仕組み</a></li>
+        <li><a href="#aeo-vs-seo">AEO vs SEO vs ASO 比較</a></li>
+        <li><a href="#improve-aeo">AEOスコアを改善する5つのステップ</a></li>
+        <li><a href="#future">AEOの未来</a></li>
+        <li><a href="#faq">よくある質問（FAQ）</a></li>
+      </ol>
+    </nav>
+
+    <!-- ================================ -->
+    <!-- SECTION 1: What is AEO -->
+    <!-- ================================ -->
+    <h2 id="what-is-aeo">1. AEO（Agent Engine Optimization）とは</h2>
+
+    <div class="key-concept">
+      <div class="label">Key Definition</div>
+      <p><strong>AEO（Agent Engine Optimization）</strong>とは、SaaSサービスがAIエージェントにとって「発見しやすく」「接続しやすく」「利用しやすいか」を定量的に評価し、最適化するための概念・フレームワークです。</p>
+    </div>
+
+    <p>2025年以降、AIエージェントがビジネスの中核を担い始めています。Claude、ChatGPT、Geminiといった大規模言語モデルを搭載したAIエージェントが、ユーザーの代わりにSaaSツールを操作し、業務を自動化する世界が急速に現実のものとなりつつあります。</p>
+
+    <p>この新しいパラダイムにおいて、SaaSサービスの価値は「人間にとっての使いやすさ」だけでなく、<strong>「AIエージェントにとっての使いやすさ」</strong>によっても決まるようになりました。人間がGoogle検索で最適なサービスを探すように、AIエージェントもMCP（Model Context Protocol）やAPIを通じて最適なサービスを選択しています。</p>
+
+    <p>AEOは、この「エージェントからの評価」を体系的にスコアリングするフレームワークです。KanseiLinkが提唱するこの概念は、SaaS事業者にとってのSEO（検索エンジン最適化）に相当する、エージェント経済時代の新しい必須戦略です。</p>
+
+    <h3>ESGとのアナロジー</h3>
+
+    <p>AEOを理解する上で最もわかりやすいのが、<strong>ESG（Environmental, Social, Governance）</strong>とのアナロジーです。</p>
+
+    <div class="analogy-box">
+      <div class="analogy-item">
+        <div class="icon">&#x1F4CA;</div>
+        <div class="title">ESGスコア</div>
+        <div class="desc">企業の環境・社会・ガバナンスを<br>投資家向けに定量評価</div>
+      </div>
+      <div class="analogy-arrow">&#x2194;</div>
+      <div class="analogy-item">
+        <div class="icon">&#x1F916;</div>
+        <div class="title">AEOスコア</div>
+        <div class="desc">SaaSのエージェント対応力を<br>AIエージェント向けに定量評価</div>
+      </div>
+    </div>
+
+    <p>ESGが投資家にとっての企業評価軸であるように、AEOはAIエージェントにとってのSaaS評価軸です。ESGスコアが低い企業が投資家から敬遠されるように、AEOスコアが低いSaaSはエージェントから「使われない」サービスになるリスクがあります。</p>
+
+    <p>MSCIやS&Pがグローバル企業のESGを格付けするように、KanseiLinkは日本市場のSaaSサービスのAEOを格付けしています。このデータは、AIエージェントが接続先を選定する際のインテリジェンスレイヤーとして機能します。</p>
+
+    <!-- ================================ -->
+    <!-- SECTION 2: Why AEO Now -->
+    <!-- ================================ -->
+    <h2 id="why-aeo">2. なぜ今AEOが必要なのか</h2>
+
+    <h3>エージェント経済（Agent Economy）の台頭</h3>
+
+    <p>2026年現在、ビジネスにおけるAIエージェントの役割は劇的に拡大しています。調査会社の推計によれば、エンタープライズ市場におけるAIエージェント導入率は前年比で3倍以上に成長しました。この流れを加速させているのが、Anthropic社が提唱した<strong>MCP（Model Context Protocol）</strong>の標準化です。</p>
+
+    <p>MCPは、AIエージェントと外部サービスを「標準化された方法」で接続するオープンプロトコルであり、Linux Foundation傘下のAgentic AI Foundationが管理しています。これにより、以前は個別のAPI統合が必要だったサービス接続が、統一的なインターフェースで可能になりました。</p>
+
+    <h3>「選ばれるSaaS」と「選ばれないSaaS」の分岐点</h3>
+
+    <p>エージェント経済においては、<strong>AIエージェントがユーザーの代理としてサービスを選定</strong>します。これは根本的なパラダイムシフトです。</p>
+
+    <ul>
+      <li><strong>従来</strong>: 人間がWebで検索 → 比較サイトで検討 → SaaSを導入</li>
+      <li><strong>エージェント経済</strong>: AIエージェントがMCP/APIで接続可能なサービスを自動検索 → 対応品質を評価 → 最適サービスを推薦・実行</li>
+    </ul>
+
+    <p>この構造変化は、SaaS事業者にとって大きな影響を持ちます。エージェントが接続できないサービスは、そもそも候補に入りません。接続できても、ドキュメントが不十分だったり認証が複雑だったりすれば、エージェントは別のサービスを選びます。</p>
+
+    <p>AEOは、この「エージェントに選ばれるかどうか」を左右する要素を体系化し、0.00〜1.00のスコアで可視化するフレームワークです。SaaS事業者は自社のAEOスコアを把握し、改善することで、エージェント経済における競争優位を確立できます。</p>
+
+    <h3>日本市場特有の背景</h3>
+
+    <p>日本はSaaS先進国の一つであり、バックオフィスから顧客管理まで多種多様な国産SaaSが存在します。しかしMCP対応やAPI品質の面では、グローバルSaaSに比べて遅れが見られるケースも少なくありません。AEOスコアリングは、この状況を可視化し、日本のSaaSエコシステム全体のエージェント対応力を底上げすることを目指しています。</p>
+
+    <!-- ================================ -->
+    <!-- SECTION 3: AEO Score -->
+    <!-- ================================ -->
+    <h2 id="aeo-score">3. AEO Scoreの仕組み</h2>
+
+    <p>AEOスコアは、SaaSサービスのAIエージェント対応力を<strong>0.00〜1.00の数値</strong>で表現するスコアリングシステムです。スコアは「Base Score」と「Bonus加算」の2層構造で算出されます。</p>
+
+    <h3>Base Score（基礎スコア）</h3>
+
+    <p>Base Scoreは、サービスのエージェント接続インフラストラクチャに基づいて付与される基礎点です。</p>
+
+    <div class="score-table-wrap">
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>接続レベル</th>
+            <th>Base Score</th>
+            <th>説明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Official MCP</strong></td>
+            <td>0.50</td>
+            <td>公式にMCP Serverを提供。エージェントとの最適な接続を保証。</td>
+          </tr>
+          <tr>
+            <td><strong>Third-party MCP</strong></td>
+            <td>0.40</td>
+            <td>サードパーティがMCP Serverを提供。公式サポートはなし。</td>
+          </tr>
+          <tr>
+            <td><strong>API Only</strong></td>
+            <td>0.30</td>
+            <td>REST/GraphQL APIを提供するが、MCP Server未対応。</td>
+          </tr>
+          <tr>
+            <td><strong>No API</strong></td>
+            <td>0.10</td>
+            <td>公開APIなし。エージェントからのプログラマティックなアクセス不可。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Bonus加算（+0.10ずつ、最大+0.50）</h3>
+
+    <p>Base Scoreに加え、以下の5項目でそれぞれ+0.10のボーナスが加算されます。すべてのBonusを獲得した場合、最大1.00に到達します。</p>
+
+    <div class="score-table-wrap">
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>Bonus項目</th>
+            <th>加算値</th>
+            <th>評価基準</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>APIドキュメント整備</strong></td>
+            <td>+0.10</td>
+            <td>OpenAPI Spec、ツール説明文、パラメータ定義が明確に整備されている。</td>
+          </tr>
+          <tr>
+            <td><strong>認証セットアップガイド</strong></td>
+            <td>+0.10</td>
+            <td>OAuth 2.0やAPIキー設定の手順がエージェント開発者向けに文書化されている。</td>
+          </tr>
+          <tr>
+            <td><strong>スペシャリスト対応</strong></td>
+            <td>+0.10</td>
+            <td>専門エージェント（会計、HR、CRM等）向けの特化ツール・プリセットを提供。</td>
+          </tr>
+          <tr>
+            <td><strong>エージェントデータ提供</strong></td>
+            <td>+0.10</td>
+            <td>エージェントが判断に必要なメタデータやコンテキストデータを提供。</td>
+          </tr>
+          <tr>
+            <td><strong>高成功率（80%以上）</strong></td>
+            <td>+0.10</td>
+            <td>エージェントからのリクエスト成功率が80%以上。安定した接続品質。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>グレード体系</h3>
+
+    <p>算出されたAEOスコアは、7段階のグレードに変換されます。さらに、3つのティアに大別されます。</p>
+
+    <div class="score-table-wrap">
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>グレード</th>
+            <th>スコア範囲</th>
+            <th>ティア</th>
+            <th>評価</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="grade-badge grade-aaa">AAA</span></td>
+            <td>0.90 &ndash; 1.00</td>
+            <td>LEADER</td>
+            <td>エージェント完全対応。業界のベストプラクティス。</td>
+          </tr>
+          <tr>
+            <td><span class="grade-badge grade-aa">AA</span></td>
+            <td>0.80 &ndash; 0.89</td>
+            <td>LEADER</td>
+            <td>高水準のエージェント対応。改善余地は限定的。</td>
+          </tr>
+          <tr>
+            <td><span class="grade-badge grade-a">A</span></td>
+            <td>0.70 &ndash; 0.79</td>
+            <td>AVERAGE</td>
+            <td>基本的なエージェント対応あり。さらなる強化推奨。</td>
+          </tr>
+          <tr>
+            <td><span class="grade-badge grade-bbb">BBB</span></td>
+            <td>0.60 &ndash; 0.69</td>
+            <td>AVERAGE</td>
+            <td>最低限のエージェント対応。改善の余地が大きい。</td>
+          </tr>
+          <tr>
+            <td><span class="grade-badge grade-bb">BB</span></td>
+            <td>0.50 &ndash; 0.59</td>
+            <td>AVERAGE</td>
+            <td>エージェント対応に課題あり。積極的な改善が必要。</td>
+          </tr>
+          <tr>
+            <td><span class="grade-badge grade-b">B</span></td>
+            <td>0.40 &ndash; 0.49</td>
+            <td>LAGGARD</td>
+            <td>エージェント対応が著しく不足。競争劣位のリスク。</td>
+          </tr>
+          <tr>
+            <td><span class="grade-badge grade-ccc">CCC</span></td>
+            <td>&lt; 0.40</td>
+            <td>LAGGARD</td>
+            <td>エージェント対応なし、または極めて限定的。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>ティアの可視化</h3>
+
+    <div class="tier-visual">
+      <div class="tier-block leader">
+        <div class="tier-label">LEADER</div>
+        <div class="tier-grades">AAA / AA</div>
+      </div>
+      <div class="tier-block average">
+        <div class="tier-label">AVERAGE</div>
+        <div class="tier-grades">A / BBB / BB</div>
+      </div>
+      <div class="tier-block laggard">
+        <div class="tier-label">LAGGARD</div>
+        <div class="tier-grades">B / CCC</div>
+      </div>
+    </div>
+
+    <p>LEADER ティアのサービスはAIエージェントから優先的に選択される傾向があり、エージェント経由のトラフィックとコンバージョンが高い水準で推移します。一方、LAGGARD ティアのサービスはエージェントの候補リストから外れるリスクが高く、ユーザーが直接操作しない限り利用されない可能性があります。</p>
+
+    <h3>スコア算出の具体例</h3>
+
+    <div class="key-concept">
+      <div class="label">Example</div>
+      <p><strong>Notion</strong>: Official MCP（0.50）+ Docs（0.10）+ Auth Guide（0.10）+ Specialist（0.10）+ Agent Data（0.10）+ Success Rate 80%+（0.10）= <strong>1.00 (AAA)</strong><br><br>
+      <strong>SmartHR</strong>: API Only（0.30）+ Docs（0.10）+ Auth Guide（0.10）+ Specialist（0.10）= <strong>0.60 (BBB)</strong></p>
+    </div>
+
+    <!-- ================================ -->
+    <!-- SECTION 4: AEO vs SEO vs ASO -->
+    <!-- ================================ -->
+    <h2 id="aeo-vs-seo">4. AEO vs SEO vs ASO 比較</h2>
+
+    <p>AEOを既存の最適化概念と比較することで、その位置づけがより明確になります。</p>
+
+    <div class="score-table-wrap">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>比較項目</th>
+            <th>SEO</th>
+            <th>ASO</th>
+            <th>AEO</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>正式名称</strong></td>
+            <td>Search Engine Optimization</td>
+            <td>App Store Optimization</td>
+            <td>Agent Engine Optimization</td>
+          </tr>
+          <tr>
+            <td><strong>最適化対象</strong></td>
+            <td>Google, Bing等の検索エンジン</td>
+            <td>App Store, Google Play</td>
+            <td>Claude, ChatGPT等のAIエージェント</td>
+          </tr>
+          <tr>
+            <td><strong>ターゲット</strong></td>
+            <td>人間のユーザー</td>
+            <td>人間のユーザー</td>
+            <td>AIエージェント（代理ユーザー）</td>
+          </tr>
+          <tr>
+            <td><strong>評価される要素</strong></td>
+            <td>コンテンツ、被リンク、技術的SEO</td>
+            <td>アプリ名、スクリーンショット、レビュー</td>
+            <td>MCP対応、API品質、ドキュメント、成功率</td>
+          </tr>
+          <tr>
+            <td><strong>発見の仕組み</strong></td>
+            <td>クローラーによるインデックス</td>
+            <td>ストア内検索アルゴリズム</td>
+            <td>MCPレジストリ、API連携、エージェント推薦</td>
+          </tr>
+          <tr>
+            <td><strong>成功指標</strong></td>
+            <td>検索順位、CTR、トラフィック</td>
+            <td>ストア順位、DL数</td>
+            <td>AEOスコア、エージェント成功率、利用頻度</td>
+          </tr>
+          <tr>
+            <td><strong>接続プロトコル</strong></td>
+            <td>HTML / robots.txt</td>
+            <td>ストアAPI / SDK</td>
+            <td>MCP / REST API / GraphQL</td>
+          </tr>
+          <tr>
+            <td><strong>重要な時代</strong></td>
+            <td>2000年代〜現在</td>
+            <td>2010年代〜現在</td>
+            <td>2025年〜未来</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>SEOが「人間がGoogleでサービスを見つけられるか」を最適化するものであったように、AEOは「AIエージェントがサービスを見つけて使えるか」を最適化するものです。本質的な目的は同じですが、対象が人間からエージェントに変わることで、最適化のアプローチは根本的に異なります。</p>
+
+    <p>SEOでは「読みやすいコンテンツ」が重要でしたが、AEOでは「機械が解釈可能な構造化データとAPI」が重要です。SEOの title タグに相当するものが、AEOでは MCP Server の tool description です。SEOの Google Search Console に相当するものが、KanseiLink の AEO Dashboard です。</p>
+
+    <div class="key-concept">
+      <div class="label">Important Insight</div>
+      <p>SEOとAEOは排他的ではありません。両方を最適化することで、人間ユーザーとAIエージェントの双方からのトラフィックを最大化できます。先進的なSaaS企業は既にSEO + AEOの「デュアル最適化」戦略を採用し始めています。</p>
+    </div>
+
+    <!-- ================================ -->
+    <!-- SECTION 5: Improve AEO Score -->
+    <!-- ================================ -->
+    <h2 id="improve-aeo">5. AEOスコアを改善する5つのステップ</h2>
+
+    <p>SaaS事業者が自社のAEOスコアを向上させるための実践的なステップを解説します。各ステップはBase Score or Bonusの加算に直結しており、優先度の高い順に紹介します。</p>
+
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <h4>MCP Serverを公開する <span class="bonus">+0.10〜0.20</span></h4>
+      <p>最もインパクトの大きいアクションです。MCP Serverを公式に提供することで、Base Scoreが0.30（API Only）から0.50（Official MCP）に跳ね上がります。MCPの実装は<a href="https://modelcontextprotocol.io">modelcontextprotocol.io</a>の公式ドキュメントに従い、TypeScript SDKまたはPython SDKで構築できます。npmレジストリやPyPIに公開し、エージェントがワンコマンドで接続できる状態を目指しましょう。</p>
+    </div>
+
+    <div class="code-block">
+      <span class="comment"># Example: エージェントからのMCP接続</span><br>
+      <span class="keyword">npx</span> <span class="string">@your-company/mcp-server</span><br><br>
+      <span class="comment"># KanseiLink MCP Server</span><br>
+      <span class="keyword">npx</span> <span class="string">@kansei-link/mcp-server</span>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <h4>APIドキュメントを整備する <span class="bonus">+0.10</span></h4>
+      <p>エージェントがツールを正しく呼び出すためには、明確なドキュメントが不可欠です。OpenAPI Specification（Swagger）を用いて、各エンドポイントのパラメータ、レスポンス形式、エラーコードを定義しましょう。MCP Serverの場合は、各toolのdescriptionとinputSchemaを詳細に記述します。「人間が読める」だけでなく「LLMが解釈できる」記述を意識することが重要です。</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <h4>認証セットアップガイドを提供する <span class="bonus">+0.10</span></h4>
+      <p>OAuth 2.0フロー、APIキーの発行手順、スコープの設定方法をエージェント開発者向けに文書化します。特にOAuthの場合、redirect URIやトークンリフレッシュの仕組みが明確でないと、エージェントは安定的に接続を維持できません。テスト用のサンドボックス環境を提供することも推奨されます。</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <h4>エージェント開発者コミュニティと連携する</h4>
+      <p>AEOスコアの直接的な加算項目ではありませんが、エージェント開発者コミュニティへの参加は間接的に複数のBonus取得を促進します。MCP ServerのOSSコントリビューション、エージェント向けユースケースの公開、開発者フォーラムでのサポートなどを通じて、サードパーティ開発者が自社サービスとの統合を進めやすくなります。</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <h4>エージェントリクエスト成功率80%以上を達成する <span class="bonus">+0.10</span></h4>
+      <p>最も難易度が高いが、最も重要な品質指標です。エージェントからのAPIリクエストの成功率（HTTP 2xx）が80%以上を安定的に達成することで、Bonusが加算されます。レート制限の適切な設定、エラーメッセージの明確化、タイムアウト時間の最適化、入力バリデーションの改善などが鍵となります。KanseiLinkのモニタリングツールで成功率をリアルタイムに追跡できます。</p>
+    </div>
+
+    <!-- CTA Banner -->
+    <div class="cta-banner">
+      <h3>自社のAEOスコアを確認する</h3>
+      <p>KanseiLinkの無料AEOスコア診断で、自社サービスのエージェント対応力を可視化しましょう。</p>
+      <a href="/aeo-ratings" class="btn-teal">AEOスコアを確認する &rarr;</a>
+    </div>
+
+    <!-- ================================ -->
+    <!-- SECTION 6: Future of AEO -->
+    <!-- ================================ -->
+    <h2 id="future">6. AEOの未来</h2>
+
+    <h3>政府・規制の動き</h3>
+
+    <p>日本政府は<strong>AI事業者ガイドラインv1.2</strong>において、AIエージェントが接続する外部サービスの品質評価・リスク管理に関する指針を議論しています。エージェントが自動的に選定する接続先の安全性・信頼性を担保するために、AEOのような定量的評価フレームワークの必要性が認識されつつあります。</p>
+
+    <p>この流れは、GDPR準拠がWebサービスの必須要件になったように、AEO対応がSaaSビジネスの「ライセンス・トゥ・オペレート」になり得ることを示唆しています。先行して対応した企業が競争優位を獲得するのは、ESG規制の歴史と同じ構図です。</p>
+
+    <h3>民間認証の構想：AEO推進協議会</h3>
+
+    <p>KanseiLinkでは、SaaS事業者、AIエージェント開発者、業界団体が連携する<strong>「AEO推進協議会」</strong>の設立を構想しています。この協議会は、AEOスコアリング手法の標準化、ベストプラクティスの共有、認証プログラムの運営を通じて、日本のSaaSエコシステム全体のエージェント対応力向上を推進します。</p>
+
+    <p>構想段階ではありますが、以下のような活動を想定しています：</p>
+
+    <ul>
+      <li><strong>AEO認証制度</strong>: 一定以上のスコアを達成したSaaSサービスに「AEO Certified」ラベルを付与</li>
+      <li><strong>年次AEOレポート</strong>: 業界別・カテゴリ別のAEOスコアトレンドレポートの発行</li>
+      <li><strong>開発者向けリソース</strong>: MCP Server構築のテンプレート、ベストプラクティスガイドの提供</li>
+      <li><strong>イベント</strong>: AEO Summit Japan の開催（SaaS × AI Agent のカンファレンス）</li>
+    </ul>
+
+    <h3>エージェントがゲートキーパーになる世界</h3>
+
+    <p>最も重要な未来像は、<strong>AIエージェントが事実上の「ゲートキーパー」になる</strong>という構造変化です。</p>
+
+    <p>現在、Googleは検索のゲートキーパーであり、App StoreとGoogle Playはアプリ配信のゲートキーパーです。SEOやASOは、これらのゲートキーパーに対する最適化戦略でした。同様に、エージェント経済においてはAIエージェントがゲートキーパーとなり、AEOがそのゲートを通過するための最適化戦略となります。</p>
+
+    <p>この世界では、SaaSのマーケティング活動も大きく変わります。人間向けのランディングページやバナー広告に加え、エージェント向けのMCP Server品質、API設計、メタデータの充実が新たなマーケティングチャネルになります。「エージェントに推薦されるSaaS」であることが、最もコスト効率の高い新規顧客獲得チャネルとなる日は遠くありません。</p>
+
+    <div class="key-concept">
+      <div class="label">Future Vision</div>
+      <p>2028年までに、エンタープライズSaaSの新規導入の30%以上がAIエージェント経由の推薦によるものになると予測されています。AEOスコアが高いサービスほど、このエージェント推薦トラフィックを多く獲得できます。</p>
+    </div>
+
+    <!-- ================================ -->
+    <!-- SECTION 7: FAQ -->
+    <!-- ================================ -->
+    <h2 id="faq" class="faq-section">7. よくある質問（FAQ）</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">AEOは日本でしか通用しない概念ですか？</div>
+      <div class="faq-a">いいえ。AEO（Agent Engine Optimization）はグローバルに適用可能な概念です。KanseiLinkはまず日本市場のSaaSを対象に格付けを開始していますが、スコアリング手法自体は国や地域を問わず利用できます。今後、グローバル版のAEO Ratingsも展開を予定しています。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">AEOスコアはどのくらいの頻度で更新されますか？</div>
+      <div class="faq-a">KanseiLinkのAEO Ratingsは四半期ごとに全面的なレビューを実施し、スコアを更新します。ただし、MCP Serverの新規公開やAPIの大幅変更など、重要な変更があった場合は四半期を待たずに臨時更新を行うことがあります。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">AEOスコアの算出にお金はかかりますか？</div>
+      <div class="faq-a">KanseiLinkの基本的なAEOスコア格付けは無料で公開されています。ただし、詳細な改善コンサルティング、カスタムレポート、APIアクセスによる自動化統合などのプレミアムサービスは有料です。SaaS事業者向けの改善プログラムも今後提供予定です。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">小規模なSaaS企業でもAEO対策は必要ですか？</div>
+      <div class="faq-a">はい。むしろ小規模なSaaS企業こそAEO対応の恩恵が大きいと考えています。大企業はブランド力で既にエージェントに認知されていますが、小規模企業はAEOスコアを高めることで、エージェントの推薦リストに入る機会を平等に得られます。AEOは「規模の経済」ではなく「対応品質の経済」です。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">MCP Serverを公開するのに技術的なハードルは高いですか？</div>
+      <div class="faq-a">MCPの公式SDKはTypeScriptとPythonで提供されており、基本的なMCP Serverであれば数日で構築可能です。既にREST APIを持っているSaaSであれば、APIをMCPのtoolとしてラップする形で比較的容易に実装できます。KanseiLinkでは今後、MCP Server構築テンプレートの提供も計画しています。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">AEOスコアとSEOの検索順位に相関はありますか？</div>
+      <div class="faq-a">直接的な相関は現時点ではありません。SEOはGoogleのアルゴリズムに、AEOはAIエージェントの接続品質に基づくものです。ただし、APIドキュメントの充実はSEOにもプラスに働く場合があり、間接的なシナジーは存在します。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">KanseiLink自体のAEOスコアはいくつですか？</div>
+      <div class="faq-a">KanseiLinkは自らMCP Serverを公開しており（npx @kansei-link/mcp-server）、AEOスコアは1.00（AAA）です。自社が提唱するフレームワークの最高基準を自ら満たすことで、コンセプトの実現可能性を証明しています。</div>
+    </div>
+
+    <!-- ================================ -->
+    <!-- CTA BANNER -->
+    <!-- ================================ -->
+    <div class="cta-banner">
+      <h3>自社のAEOスコアを確認する</h3>
+      <p>日本SaaS 100サービスのAEO格付けを無料で閲覧。自社サービスの改善ポイントが明確になります。</p>
+      <a href="/aeo-ratings" class="btn-teal">AEO Ratingsを見る &rarr;</a>
+    </div>
+
+    <!-- ================================ -->
+    <!-- RELATED ARTICLES -->
+    <!-- ================================ -->
+    <div class="related-section">
+      <h2>Related Insights</h2>
+      <div class="related-grid">
+        <a href="/insights/aeo-score-methodology" class="related-card">
+          <div class="tag">Methodology</div>
+          <h4>AEOスコア算出メソドロジー詳細解説</h4>
+          <p>Base Score、Bonus加算、ティア分類の算出ロジックを技術的な観点から詳細に解説します。</p>
+        </a>
+        <a href="/insights/mcp-getting-started" class="related-card">
+          <div class="tag">Technical Guide</div>
+          <h4>MCP Server構築入門 &#8212; SaaS事業者のためのステップガイド</h4>
+          <p>TypeScript SDKを用いたMCP Server構築の実践的なチュートリアル。AEOスコア向上の第一歩。</p>
+        </a>
+        <a href="/insights/agent-economy-japan" class="related-card">
+          <div class="tag">Market Analysis</div>
+          <h4>日本のエージェント経済 2026 &#8212; 現状と展望</h4>
+          <p>日本市場におけるAIエージェント導入の最新動向と、SaaS事業者への影響を分析。</p>
+        </a>
+        <a href="/insights/aeo-case-studies" class="related-card">
+          <div class="tag">Case Study</div>
+          <h4>AEOスコア改善事例集 &#8212; B to CCC からの飛躍</h4>
+          <p>実際にAEOスコアを大幅に改善したSaaS企業の取り組みとその成果をケーススタディ形式で紹介。</p>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <div class="inner">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo-text">KanseiLink</div>
+          <p>AEO（Agent Engine Optimization）格付けエージェンシー。AIエージェント時代のSaaS評価基盤を構築。</p>
+          <p style="margin-top: 12px; font-size: 13px;">Operated by Synapse Arrows PTE. LTD.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Products</h4>
+          <a href="/aeo-ratings">AEO Ratings</a>
+          <a href="/methodology">Methodology</a>
+          <a href="/aeo-data.json">AEO Data API</a>
+          <a href="/for-saas">For SaaS Providers</a>
+        </div>
+        <div class="footer-col">
+          <h4>Insights</h4>
+          <a href="/insights/what-is-aeo">AEOとは</a>
+          <a href="/insights/aeo-score-methodology">スコア算出方法</a>
+          <a href="/insights/mcp-getting-started">MCP入門</a>
+          <a href="/insights/agent-economy-japan">エージェント経済</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>AEO&trade; and KanseiLink&trade; are trademarks of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===== AGENT-READABLE STRUCTURED DATA ===== -->
+  <!--
+  ============================================================
+  AGENT-READABLE SECTION
+  This block provides structured metadata for AI agents.
+  ============================================================
+
+  @agent-context {
+    "service": "KanseiLink",
+    "type": "AEO Rating Agency",
+    "concept": "AEO (Agent Engine Optimization)",
+    "definition": "A framework for quantitatively evaluating and optimizing how well SaaS services are discoverable, connectable, and usable by AI agents.",
+    "mcp_server": "npx @kansei-link/mcp-server",
+    "data_endpoint": "https://kansei-link.com/aeo-data.json",
+    "aeo_score_range": "0.00 - 1.00",
+    "grade_scale": ["AAA", "AA", "A", "BBB", "BB", "B", "CCC"],
+    "tiers": {
+      "LEADER": ["AAA", "AA"],
+      "AVERAGE": ["A", "BBB", "BB"],
+      "LAGGARD": ["B", "CCC"]
+    },
+    "base_scores": {
+      "official_mcp": 0.50,
+      "third_party_mcp": 0.40,
+      "api_only": 0.30,
+      "no_api": 0.10
+    },
+    "bonus_items": [
+      {"name": "docs", "value": 0.10, "description": "API documentation quality"},
+      {"name": "auth_guide", "value": 0.10, "description": "Authentication setup guide"},
+      {"name": "specialist", "value": 0.10, "description": "Specialist agent support"},
+      {"name": "agent_data", "value": 0.10, "description": "Agent-consumable metadata"},
+      {"name": "success_rate", "value": 0.10, "description": "80%+ request success rate"}
+    ],
+    "canonical_url": "https://kansei-link.com/insights/what-is-aeo",
+    "ratings_url": "https://kansei-link.com/aeo-ratings",
+    "operator": "Synapse Arrows PTE. LTD.",
+    "contact": "https://kansei-link.com/contact"
+  }
+  ============================================================
+  -->
+
+</body>
+</html>
