@@ -467,10 +467,11 @@
           <h3>最新レポートをメールで受け取る</h3>
           <p>AEOランキング更新、新規リサーチ公開時にお届けします。</p>
         </div>
-        <form class="subscribe-form" onsubmit="return false;">
-          <input type="email" placeholder="メールアドレスを入力">
-          <button type="submit" class="btn-primary">Subscribe</button>
+        <form class="subscribe-form" id="subscribe-form">
+          <input type="email" id="subscribe-email" placeholder="メールアドレスを入力" required>
+          <button type="submit" class="btn-primary" id="subscribe-btn">Subscribe</button>
         </form>
+        <div id="subscribe-msg" style="display:none; margin-top:12px; font-size:14px;"></div>
       </div>
     </div>
   </section>
@@ -596,5 +597,35 @@
     </div>
   </footer>
 
+<script>
+document.getElementById('subscribe-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var email = document.getElementById('subscribe-email').value.trim();
+  var btn = document.getElementById('subscribe-btn');
+  var msg = document.getElementById('subscribe-msg');
+  if (!email) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  fetch('https://script.google.com/macros/s/AKfycbyMsYaLzcYZgxKhcnChJtoN3Wlroif4rZ4__7JPNG_oDy1SNmiByvSfF3ilf37DiR77/exec', {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+  }).then(function() {
+    msg.style.display = 'block';
+    msg.style.color = '#065F46';
+    msg.textContent = 'Thank you! You have been subscribed.';
+    document.getElementById('subscribe-email').value = '';
+    btn.disabled = false;
+    btn.textContent = 'Subscribe';
+  }).catch(function() {
+    msg.style.display = 'block';
+    msg.style.color = '#DC2626';
+    msg.textContent = 'Error. Please try again.';
+    btn.disabled = false;
+    btn.textContent = 'Subscribe';
+  });
+});
+</script>
 </body>
 </html>
