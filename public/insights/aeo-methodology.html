@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEO格付けメソドロジー — 評価フレームワークと格付けプロセス | KanseiLink</title>
+  <meta name="description" content="KanseiLinkのAEO格付けメソドロジーを解説。3つの評価軸（MCP対応・API品質・エージェント実績）、7段階グレード、データソース、格付けプロセスの全体像。">
+  <meta name="keywords" content="AEO メソドロジー, AEOスコア 算出方法, AEO 評価基準, AEO格付け, MCP対応, AIエージェント, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/aeo-methodology">
+
+  <!-- OGP -->
+  <meta property="og:title" content="AEO格付けメソドロジー — 評価フレームワークと格付けプロセス">
+  <meta property="og:description" content="KanseiLinkのAEO格付けメソドロジー。3つの評価軸、7段階グレード体系、データソース、格付けプロセスを公開。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/aeo-methodology">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="article:published_time" content="2026-04-06">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Methodology">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AEO格付けメソドロジー — 評価フレームワークと格付けプロセス">
+  <meta name="twitter:description" content="AEO格付けの評価フレームワーク。何を見て、何をもとに格付けするのか。">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "AEO格付けメソドロジー — 評価フレームワークと格付けプロセス",
+    "description": "KanseiLinkのAEO格付けメソドロジー。3つの評価軸、7段階グレード体系、データソース、格付けプロセスを公開。",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink Research",
+      "url": "https://kansei-link.com"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-06",
+    "dateModified": "2026-04-06",
+    "mainEntityOfPage": "https://kansei-link.com/insights/aeo-methodology",
+    "keywords": ["AEO", "メソドロジー", "格付け", "評価フレームワーク", "MCP"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "AEOスコアはどのように算出されますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AEOスコアは3つの評価軸（MCP対応・API品質、ドキュメント・認証整備、エージェント実績データ）を組み合わせて0.00〜1.00で算出されます。各軸の重み付けや詳細な計算式は非公開ですが、評価の対象となる項目は公開しています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AEO格付けのグレード基準は何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AEOスコアに基づき、AAA（0.90以上）からCCC（0.40未満）の7段階で格付けされます。AAA/AA/AがLEADER、BBBがAVERAGE、BB/B/CCCがLAGGARDに分類されます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "格付けはどのくらいの頻度で更新されますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "四半期ごとに全面レビューを実施します。MCP Server公開やAPI大幅変更など重要な変化があった場合は臨時更新を行います。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights" },
+      { "@type": "ListItem", "position": 3, "name": "AEO Methodology", "item": "https://kansei-link.com/insights/aeo-methodology" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+      --grade-aaa: #065F46;
+      --grade-aa: #059669;
+      --grade-a: #0891B2;
+      --grade-bbb: #D97706;
+      --grade-bb: #EA580C;
+      --grade-b: #DC2626;
+      --grade-ccc: #991B1B;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a { color: var(--black); text-decoration: none; font-size: 16px; font-weight: 400; padding: 20px 0; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-teal { background: var(--teal); color: var(--black); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-teal:hover { opacity: 0.9; }
+
+    .breadcrumb-bar { background: var(--gray-light); padding: 12px 0; font-size: 14px; color: var(--gray-text); }
+    .breadcrumb-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .separator { margin: 0 8px; color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 60%, #065F46 100%); padding: 80px 0 64px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); color: var(--white); font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 9999px; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .article-hero h1 { font-size: 42px; font-weight: 600; letter-spacing: -2.1px; line-height: 1.2; margin-bottom: 24px; }
+    .article-hero .subtitle { font-size: 18px; font-weight: 300; line-height: 1.7; opacity: 0.9; margin-bottom: 32px; }
+    .article-meta { display: flex; align-items: center; gap: 24px; font-size: 14px; opacity: 0.8; }
+    .article-meta .divider { width: 1px; height: 16px; background: rgba(255,255,255,0.3); }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 48px 40px 80px; color: var(--gray-dark); font-size: 16px; line-height: 1.7; }
+    .article-body h2 { font-size: 28px; font-weight: 600; color: var(--black); letter-spacing: -1px; margin-top: 56px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--lavender); }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin-top: 36px; margin-bottom: 12px; }
+    .article-body p { margin-bottom: 20px; }
+    .article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .article-body a:hover { border-bottom-color: var(--blue); }
+
+    .key-concept { background: var(--lavender); border-left: 4px solid var(--blue); padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .key-concept .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .key-concept p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .toc-box { background: var(--gray-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 14px; font-weight: 600; color: var(--black); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .toc-box ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+    .toc-box li { counter-increment: toc; margin-bottom: 6px; }
+    .toc-box li::before { content: counter(toc) "."; color: var(--blue); font-weight: 600; margin-right: 8px; font-size: 13px; }
+    .toc-box a { color: var(--gray-dark); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+    .toc-box a:hover { color: var(--blue); }
+
+    .pillar-card { background: var(--white); border: 1px solid var(--gray-mid); border-radius: 12px; padding: 32px; margin: 20px 0; position: relative; border-left: 4px solid var(--blue); }
+    .pillar-card .pillar-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+    .pillar-card .pillar-weight { background: var(--blue); color: white; font-size: 14px; font-weight: 700; padding: 6px 14px; border-radius: 9999px; white-space: nowrap; }
+    .pillar-card h4 { font-size: 18px; font-weight: 600; color: var(--black); }
+    .pillar-card p { font-size: 15px; margin-bottom: 12px; }
+    .pillar-card ul { padding-left: 20px; margin-bottom: 0; }
+    .pillar-card li { font-size: 14px; margin-bottom: 6px; color: var(--gray-dark); }
+    .pillar-card.pillar-2 { border-left-color: var(--teal); }
+    .pillar-card.pillar-2 .pillar-weight { background: var(--teal); color: var(--black); }
+    .pillar-card.pillar-3 { border-left-color: #7B5FD6; }
+    .pillar-card.pillar-3 .pillar-weight { background: #7B5FD6; }
+
+    .grade-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 28px 0; }
+    .grade-table thead th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 500; font-size: 13px; letter-spacing: 0.5px; }
+    .grade-table thead th:first-child { border-radius: 8px 0 0 0; }
+    .grade-table thead th:last-child { border-radius: 0 8px 0 0; }
+    .grade-table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); vertical-align: middle; }
+    .grade-table tbody tr:hover { background: var(--lavender); }
+    .grade-badge { display: inline-block; padding: 3px 12px; border-radius: 4px; font-size: 13px; font-weight: 700; color: var(--white); min-width: 48px; text-align: center; }
+    .bg-aaa { background: var(--grade-aaa); }
+    .bg-aa { background: var(--grade-aa); }
+    .bg-a { background: var(--grade-a); }
+    .bg-bbb { background: var(--grade-bbb); }
+    .bg-bb { background: var(--grade-bb); }
+    .bg-b { background: var(--grade-b); }
+    .bg-ccc { background: var(--grade-ccc); }
+
+    .tier-visual { display: flex; gap: 0; margin: 28px 0; border-radius: 8px; overflow: hidden; }
+    .tier-block { flex: 1; padding: 20px 16px; text-align: center; color: var(--white); }
+    .tier-block.leader { background: var(--grade-aaa); }
+    .tier-block.average { background: var(--grade-bbb); }
+    .tier-block.laggard { background: var(--grade-b); }
+    .tier-block .tier-label { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+    .tier-block .tier-grades { font-size: 14px; font-weight: 500; opacity: 0.9; }
+
+    .process-step { display: flex; gap: 20px; margin: 24px 0; align-items: flex-start; }
+    .process-step .step-num { min-width: 40px; height: 40px; background: var(--blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+    .process-step .step-content h4 { font-size: 16px; font-weight: 600; color: var(--black); margin-bottom: 6px; }
+    .process-step .step-content p { font-size: 15px; margin-bottom: 0; }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .faq-item { border-bottom: 1px solid var(--gray-mid); padding: 24px 0; }
+    .faq-item:first-of-type { border-top: 1px solid var(--gray-mid); }
+    .faq-q { font-size: 16px; font-weight: 600; color: var(--black); margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; }
+    .faq-q::before { content: "Q"; display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; background: var(--blue); color: var(--white); border-radius: 50%; font-size: 13px; font-weight: 700; }
+    .faq-a { font-size: 15px; color: var(--gray-dark); padding-left: 40px; line-height: 1.7; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .cta-banner .btn-teal { font-size: 16px; font-weight: 500; padding: 14px 40px; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; margin-bottom: 8px; }
+    .related-card p { font-size: 14px; color: var(--gray-text); line-height: 1.5; margin-bottom: 0; }
+
+    .site-footer { background: var(--black); color: var(--white); padding: 64px 0 32px; }
+    .site-footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
+    .footer-brand .logo-text { font-size: 24px; font-weight: 800; letter-spacing: -1px; margin-bottom: 12px; }
+    .footer-brand p { font-size: 14px; color: #9CA3AF; line-height: 1.6; }
+    .footer-col h4 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--white); }
+    .footer-col a { display: block; color: #9CA3AF; text-decoration: none; font-size: 14px; margin-bottom: 10px; transition: color 0.2s; }
+    .footer-col a:hover { color: var(--white); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #9CA3AF; }
+
+    @media (max-width: 768px) {
+      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-body { padding: 32px 20px 60px; }
+      .article-body h2 { font-size: 22px; }
+      .utility-bar .inner, .main-nav .inner, .breadcrumb-bar .inner { padding: 0 20px; }
+      .article-hero .inner { padding: 0 20px; }
+      .nav-links { display: none; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+      .article-meta { flex-direction: column; gap: 8px; }
+      .article-meta .divider { display: none; }
+      .pillar-card { padding: 24px 20px; }
+      .grade-table { font-size: 13px; }
+      .grade-table thead th, .grade-table tbody td { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== UTILITY BAR ===== -->
+  <div class="utility-bar">
+    <div class="inner">
+      <button id="lang-toggle" onclick="toggleLang()" style="background:none;border:none;color:inherit;font:inherit;cursor:pointer;padding:0;">English</button>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- ===== MAIN NAV ===== -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../about.html">About</a></li>
+      </ul>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== BREADCRUMB ===== -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="separator">/</span>
+      <a href="index.html">Insights</a>
+      <span class="separator">/</span>
+      <span>AEO Methodology</span>
+    </div>
+  </div>
+
+  <!-- ===== ARTICLE HERO ===== -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Methodology</span>
+      <h1>AEO格付けメソドロジー</h1>
+      <p class="subtitle">KanseiLinkのAEO格付けは何を評価し、どのようなプロセスで格付けを付与するのか。評価フレームワークの全体像を公開します</p>
+      <div class="article-meta">
+        <span>Published: 2026-04-06</span>
+        <span class="divider"></span>
+        <span>Author: KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>Reading time: 12 min</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== ARTICLE BODY ===== -->
+  <article class="article-body">
+
+    <!-- Table of Contents -->
+    <nav class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#philosophy">格付けの基本思想</a></li>
+        <li><a href="#pillars">3つの評価軸</a></li>
+        <li><a href="#grade-scale">グレード体系</a></li>
+        <li><a href="#data-sources">データソース</a></li>
+        <li><a href="#process">格付けプロセス</a></li>
+        <li><a href="#disclosure">開示方針</a></li>
+        <li><a href="#faq">よくある質問</a></li>
+      </ol>
+    </nav>
+
+    <!-- ================================ -->
+    <!-- SECTION 1: Philosophy -->
+    <!-- ================================ -->
+    <h2 id="philosophy">1. 格付けの基本思想</h2>
+
+    <p>KanseiLinkのAEO格付けは、<strong>SaaSサービスがAIエージェントにとってどれだけ「使える」か</strong>を定量的に評価するフレームワークです。</p>
+
+    <p>信用格付け機関（MSCI、S&P、Moody's）がESGや信用力を評価するのと同様に、KanseiLinkはSaaSサービスの「エージェント対応力」を格付けします。ただし、対象は財務リスクではなく、<strong>AIエージェントがそのサービスを発見・接続・利用する際の品質と信頼性</strong>です。</p>
+
+    <div class="key-concept">
+      <div class="label">Core Principle</div>
+      <p>AEO格付けは「エージェントの視点」で評価します。人間にとって使いやすいUIがあるかではなく、エージェントにとって接続しやすいインターフェースがあるか。マーケティング資料の充実度ではなく、機械が読めるドキュメントとメタデータの品質を見ます。</p>
+    </div>
+
+    <h3>MSCIとの類似点と相違点</h3>
+
+    <p>KanseiLinkのAEO格付けは、MSCIのESG格付けから多くの設計原則を借用しています。</p>
+
+    <ul>
+      <li><strong>類似点</strong>: ルールベースの方法論、7段階グレード（AAA〜CCC）、3ティア分類（Leader/Average/Laggard）、四半期更新サイクル、業界内相対評価の考え方</li>
+      <li><strong>相違点</strong>: 対象がESGリスクではなくエージェント対応力。定性的なアナリスト判断よりも、定量的・機械的に計測可能な指標を重視。自律進化（エージェントテレメトリによるフィードバックループ）を組み込んでいる点</li>
+    </ul>
+
+    <!-- ================================ -->
+    <!-- SECTION 2: Three Pillars -->
+    <!-- ================================ -->
+    <h2 id="pillars">2. 3つの評価軸</h2>
+
+    <p>AEOスコアは3つの評価軸（Pillar）の組み合わせにより算出されます。各軸には重み付けが設定されていますが、具体的な係数は非公開です。</p>
+
+    <div class="pillar-card">
+      <div class="pillar-header">
+        <span class="pillar-weight">Pillar 1</span>
+        <h4>MCP対応・API品質</h4>
+      </div>
+      <p>エージェントがサービスに接続するための技術的基盤を評価します。MCP対応の有無と品質が最も大きな評価要素です。</p>
+      <ul>
+        <li>MCP Server の提供形態（Official / Third-party / なし）</li>
+        <li>MCP Serverで公開されているツール数とカバー範囲</li>
+        <li>REST API の設計品質（RESTfulness、エラーハンドリング、バージョニング）</li>
+        <li>認証方式の複雑度（OAuth 2.0、API Key、独自認証等）</li>
+        <li>レート制限とSLA情報の公開状況</li>
+      </ul>
+    </div>
+
+    <div class="pillar-card pillar-2">
+      <div class="pillar-header">
+        <span class="pillar-weight">Pillar 2</span>
+        <h4>ドキュメント・認証整備</h4>
+      </div>
+      <p>エージェント開発者がサービスを統合する際のオンボーディング品質を評価します。</p>
+      <ul>
+        <li>APIドキュメントの充実度（OpenAPI Spec、サンプルコード、エラーリファレンス）</li>
+        <li>認証セットアップガイドの有無と品質</li>
+        <li>MCP Server用のREADME / クイックスタートガイド</li>
+        <li>変更履歴（Changelog）の管理・通知体制</li>
+        <li>開発者サポートチャネルの有無</li>
+      </ul>
+    </div>
+
+    <div class="pillar-card pillar-3">
+      <div class="pillar-header">
+        <span class="pillar-weight">Pillar 3</span>
+        <h4>エージェント実績データ</h4>
+      </div>
+      <p>実際のエージェント利用データに基づくパフォーマンスを評価します。シミュレーションではなく、リアルワールドの結果です。</p>
+      <ul>
+        <li>エージェントの接続成功率</li>
+        <li>タスク完了率（エージェントが意図した操作を完了できた割合）</li>
+        <li>エラー分布と主要な失敗パターン</li>
+        <li>レスポンスレイテンシー</li>
+        <li>ユニークエージェント数（どれだけ多くのエージェントに利用されているか）</li>
+      </ul>
+    </div>
+
+    <div class="key-concept">
+      <div class="label">Important</div>
+      <p>各Pillarの重み付けは固定ではなく、エージェント経済の成熟度に応じて調整されます。現時点ではPillar 1（MCP対応・API品質）が最も高い比重を持ちますが、エージェントテレメトリの蓄積に伴い、Pillar 3の比重は段階的に引き上げられる予定です。</p>
+    </div>
+
+    <!-- ================================ -->
+    <!-- SECTION 3: Grade Scale -->
+    <!-- ================================ -->
+    <h2 id="grade-scale">3. グレード体系</h2>
+
+    <p>AEOスコア（0.00〜1.00）に基づき、7段階のグレードを付与します。</p>
+
+    <table class="grade-table">
+      <thead>
+        <tr>
+          <th>Grade</th>
+          <th>Score Range</th>
+          <th>Tier</th>
+          <th>意味</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="grade-badge bg-aaa">AAA</span></td>
+          <td>0.90 &ndash; 1.00</td>
+          <td>LEADER</td>
+          <td>エージェント対応の最高水準。Official MCP、高成功率、完備されたドキュメント</td>
+        </tr>
+        <tr>
+          <td><span class="grade-badge bg-aa">AA</span></td>
+          <td>0.80 &ndash; 0.89</td>
+          <td>LEADER</td>
+          <td>優れたエージェント対応力。MCP対応済みで、主要機能がエージェントから利用可能</td>
+        </tr>
+        <tr>
+          <td><span class="grade-badge bg-a">A</span></td>
+          <td>0.70 &ndash; 0.79</td>
+          <td>LEADER</td>
+          <td>良好なエージェント対応力。MCP対応または高品質APIが利用可能</td>
+        </tr>
+        <tr>
+          <td><span class="grade-badge bg-bbb">BBB</span></td>
+          <td>0.60 &ndash; 0.69</td>
+          <td>AVERAGE</td>
+          <td>基本的なエージェント接続が可能。改善の余地あり</td>
+        </tr>
+        <tr>
+          <td><span class="grade-badge bg-bb">BB</span></td>
+          <td>0.50 &ndash; 0.59</td>
+          <td>LAGGARD</td>
+          <td>限定的なエージェント対応。API品質またはドキュメントに課題</td>
+        </tr>
+        <tr>
+          <td><span class="grade-badge bg-b">B</span></td>
+          <td>0.40 &ndash; 0.49</td>
+          <td>LAGGARD</td>
+          <td>最低限のAPI接続のみ。エージェント利用には大きな障壁</td>
+        </tr>
+        <tr>
+          <td><span class="grade-badge bg-ccc">CCC</span></td>
+          <td>0.00 &ndash; 0.39</td>
+          <td>LAGGARD</td>
+          <td>エージェント対応がほぼ不可能。API未公開またはクローズド</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="tier-visual">
+      <div class="tier-block leader">
+        <div class="tier-label">Leader</div>
+        <div class="tier-grades">AAA &middot; AA &middot; A</div>
+      </div>
+      <div class="tier-block average">
+        <div class="tier-label">Average</div>
+        <div class="tier-grades">BBB</div>
+      </div>
+      <div class="tier-block laggard">
+        <div class="tier-label">Laggard</div>
+        <div class="tier-grades">BB &middot; B &middot; CCC</div>
+      </div>
+    </div>
+
+    <h3>Verified / Connectable ステータス</h3>
+
+    <p>グレードとは別に、各サービスには接続検証ステータスを付与します。</p>
+
+    <ul>
+      <li><strong>Verified</strong> &mdash; KanseiLinkのエージェントが実際に接続・操作を確認済み。テレメトリデータに基づく成功率が計測されている</li>
+      <li><strong>Connectable</strong> &mdash; MCP ServerまたはAPIの存在を確認済みだが、エージェントによる実運用テストが未完了、または成功率データが限定的</li>
+    </ul>
+
+    <!-- ================================ -->
+    <!-- SECTION 4: Data Sources -->
+    <!-- ================================ -->
+    <h2 id="data-sources">4. データソース</h2>
+
+    <p>AEO格付けは以下のデータソースに基づいています。全てのデータは機械的に収集・検証されます。</p>
+
+    <h3>公開データ</h3>
+    <ul>
+      <li><strong>MCP Registry</strong> &mdash; 公式・サードパーティのMCP Server登録情報</li>
+      <li><strong>npm / PyPI</strong> &mdash; MCP Serverパッケージの公開状況、バージョン履歴、ダウンロード数</li>
+      <li><strong>API Documentation</strong> &mdash; OpenAPI Spec、開発者ドキュメントの構造・網羅性</li>
+      <li><strong>GitHub</strong> &mdash; MCP Server リポジトリのメンテナンス状況、Issue対応速度</li>
+    </ul>
+
+    <h3>エージェントテレメトリ</h3>
+    <ul>
+      <li><strong>接続成功率</strong> &mdash; KanseiLink経由でサービスに接続したエージェントの成功/失敗比率</li>
+      <li><strong>エラー分析</strong> &mdash; 認証エラー、タイムアウト、パーミッションエラー等の分布</li>
+      <li><strong>レイテンシー</strong> &mdash; エージェントのリクエストに対するレスポンス時間</li>
+      <li><strong>利用パターン</strong> &mdash; どのツール/エンドポイントが最も利用されているか</li>
+    </ul>
+
+    <div class="disclosure-box">
+      <div class="label">Privacy Note</div>
+      <p>エージェントテレメトリは全て匿名化・集計された形で利用されます。個別のエージェントや企業を特定できる情報は収集しません。PIIマスキングが全データパイプラインに適用されています。</p>
+    </div>
+
+    <!-- ================================ -->
+    <!-- SECTION 5: Rating Process -->
+    <!-- ================================ -->
+    <h2 id="process">5. 格付けプロセス</h2>
+
+    <p>AEO格付けは以下のプロセスに沿って実施されます。</p>
+
+    <div class="process-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>データ収集</h4>
+        <p>公開データ（MCP Registry、npm、API Docs、GitHub）とエージェントテレメトリを自動収集。四半期ごとにフルスキャンを実施し、日次で差分更新を行います。</p>
+      </div>
+    </div>
+
+    <div class="process-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>定量評価</h4>
+        <p>3つの評価軸（Pillar）に沿って、各サービスのスコアを算出。ルールベースのスコアリングモデルにより、0.00〜1.00のスコアを機械的に計算します。</p>
+      </div>
+    </div>
+
+    <div class="process-step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>検証・異常値チェック</h4>
+        <p>算出されたスコアに対して、前四半期比の大幅変動チェック、データソース間の整合性検証、異常値検知を実施。必要に応じて手動レビューを行います。</p>
+      </div>
+    </div>
+
+    <div class="process-step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>グレード付与</h4>
+        <p>スコアに基づき7段階のグレード（AAA〜CCC）を付与。Verified/Connectable ステータスを確定し、格付けを公開します。</p>
+      </div>
+    </div>
+
+    <div class="process-step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h4>継続モニタリング</h4>
+        <p>四半期の間も、MCP Server の新規公開、API breaking change、大規模障害などの重要な変化をモニタリング。必要に応じて臨時のスコア更新を実施します。</p>
+      </div>
+    </div>
+
+    <!-- ================================ -->
+    <!-- SECTION 6: Disclosure Policy -->
+    <!-- ================================ -->
+    <h2 id="disclosure">6. 開示方針</h2>
+
+    <p>KanseiLinkは格付けの信頼性と透明性のバランスを重視します。</p>
+
+    <h3>公開する情報</h3>
+    <ul>
+      <li>評価軸（3 Pillars）の名称と評価対象項目</li>
+      <li>グレード体系とスコア閾値</li>
+      <li>データソースの種類</li>
+      <li>格付けプロセスの概要</li>
+      <li>各サービスの最終スコアとグレード</li>
+      <li>四半期ごとの格付け変更の概要</li>
+    </ul>
+
+    <h3>非公開の情報</h3>
+    <ul>
+      <li>各Pillarの具体的な重み付け係数</li>
+      <li>Pillar内の個別指標の詳細な計算式</li>
+      <li>異常値検知・スコア操作防止のアルゴリズム</li>
+      <li>テレメトリデータの正規化手法</li>
+      <li>trust_score の内部計算ロジック</li>
+    </ul>
+
+    <div class="key-concept">
+      <div class="label">Why</div>
+      <p>詳細な計算ロジックを非公開とする理由は、スコアのゲーミング（意図的な操作）を防ぐためです。MSCIやS&Pなどの格付け機関も同様のアプローチを採っています。「何を見ているか」を公開することでSaaS企業は改善の方向性を理解でき、「どう計算しているか」を非公開とすることで格付けの公正性を担保します。</p>
+    </div>
+
+    <!-- ================================ -->
+    <!-- SECTION 7: FAQ -->
+    <!-- ================================ -->
+    <h2 id="faq">7. よくある質問</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">同じMCP Official対応なのにスコアが違うのはなぜですか？</div>
+      <div class="faq-a">MCP Officialの有無はPillar 1の一要素に過ぎません。ツール数、APIカバー範囲、ドキュメント品質、エージェント成功率など、複数の指標が総合的にスコアに反映されます。例えば、5ドメインをカバーするMCP Serverと1ドメインのMCP Serverでは、同じ「Official」でも評価が異なります。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">格付けに異議がある場合はどうすればいいですか？</div>
+      <div class="faq-a">contact@synapse-arrows.com までご連絡ください。データの誤りや考慮されていない情報がある場合、レビューを実施します。SaaS事業者からのフィードバックは格付けの品質向上に不可欠です。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">自社のスコアを上げるために何をすべきですか？</div>
+      <div class="faq-a">最もインパクトが大きいアクションは：(1) MCP Serverの公式提供、(2) APIドキュメントの整備（OpenAPI Spec）、(3) 認証セットアップガイドの公開、(4) エージェント開発者向けサポートの充実。詳しくは<a href="what-is-aeo.html#improve-aeo">AEOスコア改善ガイド</a>をご参照ください。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">エージェントテレメトリのデータ量が少ないサービスはどう評価されますか？</div>
+      <div class="faq-a">テレメトリデータが十分でない場合、Pillar 3の比重は自動的に下がり、Pillar 1・2の比重が相対的に高くなります。ステータスは「Connectable」（Verifiedではなく）として、データの限定性を明示します。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">レシピ数が多いほどスコアは高くなりますか？</div>
+      <div class="faq-a">レシピ数は「エコシステム内での連携性」を示す一つの指標ですが、スコアに対する影響は限定的です。多くのレシピに登場するサービス（例：Slack）は連携ハブとしての価値がありますが、MCP対応やAPI品質の方がスコアへの寄与は大きいです。</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">格付けは有料ですか？</div>
+      <div class="faq-a">基本的なAEO格付けとスコアは無料で公開しています。詳細な改善コンサルティング、カスタムレポート、API経由のスコア取得などのプレミアムサービスは有料です。</div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-banner">
+      <h3>AEO格付けを確認する</h3>
+      <p>日本SaaS 100サービスのAEO Ratingsを無料で閲覧できます</p>
+      <a href="../index.html" class="btn-teal">AEO Ratings を見る &rarr;</a>
+    </div>
+
+    <!-- Related -->
+    <div class="related-section">
+      <h2>Related Insights</h2>
+      <div class="related-grid">
+        <a href="what-is-aeo.html" class="related-card">
+          <div class="tag">Definitive Guide</div>
+          <h4>AEOとは？ &mdash; Agent Engine Optimization 完全ガイド</h4>
+          <p>AEOの概念、スコアの仕組み、改善方法、SEOとの違いを徹底解説。</p>
+        </a>
+        <a href="aeo-ranking-q2-2026.html" class="related-card">
+          <div class="tag">Ranking Report</div>
+          <h4>AEO Ranking Q2 2026 &mdash; 日本SaaS Top 20</h4>
+          <p>最新のAEO格付けランキング。各サービスのスコアと評価の変動ポイント。</p>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <div class="inner">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo-text">KanseiLink</div>
+          <p>AEO格付け機関 &mdash; AIエージェント経済のインテリジェンスレイヤー。日本のSaaSエコシステムをエージェント経済に接続する。</p>
+        </div>
+        <div class="footer-col">
+          <h4>Ratings</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="../index.html#ranking">Rankings</a>
+        </div>
+        <div class="footer-col">
+          <h4>Insights</h4>
+          <a href="index.html">All Articles</a>
+          <a href="what-is-aeo.html">AEO Guide</a>
+          <a href="what-is-mcp.html">MCP Guide</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="../about.html">About</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact</a>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2026 KanseiLink by Synapse Arrows PTE. LTD. All rights reserved.</div>
+        <div>Singapore HQ &middot; Japan Market Focus</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+  let currentLang = localStorage.getItem('kl-lang') || 'ja';
+  function toggleLang() {
+    currentLang = currentLang === 'ja' ? 'en' : 'ja';
+    localStorage.setItem('kl-lang', currentLang);
+    applyLang();
+  }
+  function applyLang() {
+    const toggle = document.getElementById('lang-toggle');
+    if (toggle) toggle.textContent = currentLang === 'ja' ? 'English' : '日本語';
+    document.documentElement.lang = currentLang;
+    document.querySelectorAll('[data-en]').forEach(el => {
+      if (!el._jaText) el._jaText = el.textContent;
+      el.textContent = currentLang === 'en' ? el.getAttribute('data-en') : el._jaText;
+    });
+  }
+  if (currentLang === 'en') applyLang();
+  </script>
+
+</body>
+</html>
