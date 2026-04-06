@@ -239,6 +239,7 @@
       transition: opacity 0.2s;
     }
     .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
 
     /* ===== BREADCRUMB ===== */
     .breadcrumb {
@@ -630,17 +631,70 @@
     }
 
     /* Responsive */
-    @media (max-width: 768px) {
-      .article h1 { font-size: 28px; }
+    /* ===== HAMBURGER ===== */
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2.5px;
+      background: var(--black);
+      border-radius: 2px;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    @media (max-width: 900px) {
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        border-bottom: 1px solid var(--gray-mid);
+        flex-direction: column;
+        padding: 16px;
+        gap: 0;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        z-index: 99;
+      }
+      .nav-links.nav-open {
+        display: flex;
+      }
+      .nav-links a {
+        padding: 12px 16px;
+        border-bottom: none;
+        font-size: 15px;
+      }
+      .nav-links a:hover {
+        background: var(--lavender, #F4F5FD);
+        border-radius: 8px;
+      }
+      .nav-right .btn-primary {
+        display: none;
+      }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; padding: 0 16px; }
+      .utility-bar .inner { flex-wrap: wrap; justify-content: center; gap: 12px; padding: 0 16px; }
+      .article h1 { font-size: 28px; letter-spacing: -1px; }
       .article h2 { font-size: 22px; }
       .article .lead { font-size: 17px; }
       .cause-solution { grid-template-columns: 1fr; }
       .related-grid { grid-template-columns: 1fr; }
-      .cta-section { padding: 32px 24px; }
-      .main-nav .inner { padding: 0 16px; }
-      .utility-bar .inner { padding: 0 16px; }
-      .nav-links { display: none; }
+      .cta-section { padding: 32px 16px; }
+      .cta-section h2 { font-size: 24px; }
+      .footer-bottom { flex-direction: column; text-align: center; }
       .code-block { font-size: 12px; padding: 16px; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
+      th, td { padding: 8px 10px; white-space: nowrap; }
     }
   </style>
 </head>
@@ -668,7 +722,11 @@
         <li><a href="../index.html">AEO Ratings</a></li>
         <li><a href="index.html">Insights</a></li>
         <li><a href="mcp-common-issues.html" class="active">MCP Guide</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
       </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+  <span></span><span></span><span></span>
+</button>
       <div class="nav-right">
         <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Contact</a>
       </div>
@@ -1365,5 +1423,12 @@ generate_aeo_article <span class="comment">// AEO記事生成</span>
     </div>
   </footer>
 
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
 </body>
 </html>

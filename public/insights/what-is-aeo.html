@@ -277,6 +277,7 @@
       display: inline-block;
     }
     .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
     .btn-teal {
       background: var(--teal);
       color: var(--black);
@@ -859,16 +860,67 @@
     .code-block .string { color: #00C4B3; }
 
     /* ===== RESPONSIVE ===== */
-    @media (max-width: 768px) {
-      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
-      .article-hero { padding: 48px 0 40px; }
-      .article-body { padding: 32px 20px 60px; }
-      .article-body h2 { font-size: 22px; }
+    /* ===== HAMBURGER ===== */
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2.5px;
+      background: var(--black);
+      border-radius: 2px;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    @media (max-width: 900px) {
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        border-bottom: 1px solid var(--gray-mid);
+        flex-direction: column;
+        padding: 16px;
+        gap: 0;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        z-index: 99;
+      }
+      .nav-links.nav-open {
+        display: flex;
+      }
+      .nav-links a {
+        padding: 12px 16px;
+        border-bottom: none;
+        font-size: 15px;
+      }
+      .nav-links a:hover {
+        background: var(--lavender, #F4F5FD);
+        border-radius: 8px;
+      }
+      .nav-right .btn-primary {
+        display: none;
+      }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .utility-bar .inner { flex-wrap: wrap; justify-content: center; gap: 12px; }
       .utility-bar .inner,
       .main-nav .inner,
-      .breadcrumb-bar .inner { padding: 0 20px; }
-      .article-hero .inner { padding: 0 20px; }
-      .nav-links { display: none; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .article-hero .inner { padding: 0 16px; }
+      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-body { padding: 32px 16px 60px; }
+      .article-body h2 { font-size: 22px; }
       .analogy-box { grid-template-columns: 1fr; }
       .analogy-arrow { transform: rotate(90deg); text-align: center; }
       .related-grid { grid-template-columns: 1fr; }
@@ -878,6 +930,8 @@
       .step-card .step-num { top: 20px; }
       .article-meta { flex-direction: column; gap: 8px; }
       .article-meta .divider { display: none; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
+      th, td { padding: 8px 10px; white-space: nowrap; }
     }
   </style>
 </head>
@@ -907,7 +961,11 @@
         <li><a href="../index.html#methodology">Methodology</a></li>
         <li><a href="../index.html#resources">For SaaS</a></li>
         <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
       </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+  <span></span><span></span><span></span>
+</button>
       <div class="nav-right">
         <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
       </div>
@@ -1527,5 +1585,12 @@
   ============================================================
   -->
 
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
 </body>
 </html>
