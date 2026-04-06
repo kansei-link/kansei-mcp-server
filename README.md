@@ -1,5 +1,7 @@
 # KanseiLink MCP Server
 
+[![SafeSkill 90/100](https://img.shields.io/badge/SafeSkill-90%2F100_Verified%20Safe-brightgreen)](https://safeskill.dev/scan/kansei-link-kansei-mcp-server)
+
 > MCP intelligence layer for discovering and orchestrating Japanese SaaS MCP tools.
 
 KanseiLink helps AI agents find, evaluate, and combine Japanese SaaS services through the Model Context Protocol. Think of it as **Google Search for the Agent Economy** — intent-based discovery, workflow recipes, change detection, and community-driven quality insights.
