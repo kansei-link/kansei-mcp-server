@@ -13,7 +13,7 @@
 
   <!-- OGP -->
   <meta property="og:title" content="AEO Ratings | 日本SaaS AIエージェント対応力格付け">
-  <meta property="og:description" content="日本のSaaS 100サービスをAEO（Agent Engine Optimization）スコアで格付け。MCP対応・API品質・エージェント成功率を評価。">
+  <meta property="og:description" content="グローバル＋日本市場の主要SaaS/API 156サービスをAEO（Agent Engine Optimization）スコアで格付け。MCP対応・API品質・エージェント成功率を評価。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/aeo-ratings">
   <meta property="og:site_name" content="KanseiLink">
@@ -963,7 +963,7 @@
             <div class="seg seg-b">B</div>
             <div class="seg seg-ccc">CCC</div>
           </div>
-          <div class="grade-labels"><span>LEADER</span><span>AVERAGE</span><span>LAGGARD</span></div>
+          <div class="grade-labels"><span data-en="LEADER">リーダー</span><span data-en="AVERAGE">標準</span><span data-en="LAGGARD">要改善</span></div>
         </div>
       </div>
       <div class="profile-main">
@@ -986,7 +986,7 @@
         <div class="seg seg-b">B</div>
         <div class="seg seg-ccc">CCC</div>
       </div>
-      <div class="grade-labels"><span>LEADER</span><span>AVERAGE</span><span>LAGGARD</span></div>
+      <div class="grade-labels"><span data-en="LEADER">リーダー</span><span data-en="AVERAGE">標準</span><span data-en="LAGGARD">要改善</span></div>
     </div>
   </div>
 </section>
@@ -998,8 +998,8 @@
     <p class="s-body" data-en="AEO Ratings assess how ready a SaaS service is for AI agent integration. Using a rules-based methodology, we assign an industry-relative letter rating from AAA to CCC based on MCP availability, API quality, documentation, authentication guides, and real agent success data.">
       AEO格付けは、SaaSサービスがAIエージェント連携にどれだけ対応しているかを評価します。ルールベースの方法論により、MCP対応状況、API品質、ドキュメント、認証ガイド、実際のエージェント成功データに基づいて、<strong>AAAからCCC</strong>の格付けを付与します。
     </p>
-    <p class="s-body" style="margin-top:16px" data-en="We evaluate 100 SaaS services across 8 categories, quantitatively assessing whether agents can actually use them based on real data.">
-      100のSaaSサービスを8つのカテゴリにわたって評価。エージェントが実際に使えるかどうかを、データに基づいて定量的に判定します。
+    <p class="s-body" style="margin-top:16px" data-en="We evaluate 156 SaaS/API services across 23 categories, quantitatively assessing whether agents can actually use them based on real data.">
+      156のSaaS/APIサービスを23のカテゴリにわたって評価。エージェントが実際に使えるかどうかを、データに基づいて定量的に判定します。
     </p>
   </div>
 </section>
@@ -1230,9 +1230,46 @@ const services = [
   { name:"CloudSign", grade:"BBB", score:0.60, status:"Connectable", mcp:"API Only", recipes:5, success:"61%", category:"法務・契約", agentReady:"connectable" },
   { name:"Stripe Japan", grade:"BBB", score:0.60, status:"Connectable", mcp:"Third-party", recipes:3, success:"70%", category:"会計・経理", agentReady:"connectable" },
   { name:"Zendesk", grade:"BBB", score:0.60, status:"Connectable", mcp:"API Only", recipes:4, success:"26%", category:"CRM・営業", agentReady:"connectable" },
+  { name:"Garoon MCP", grade:"A", score:0.70, status:"Connectable", mcp:"Official", recipes:1, success:"50%", category:"グループウェア", agentReady:"connectable" },
+  { name:"DocuSign Japan", grade:"A", score:0.70, status:"Connectable", mcp:"Third-party", recipes:1, success:"100%", category:"法務・契約", agentReady:"connectable" },
+  { name:"Treasure Data MCP", grade:"A", score:0.70, status:"Connectable", mcp:"Official", recipes:1, success:"50%", category:"BI・分析", agentReady:"connectable" },
+  { name:"1Password Business", grade:"A", score:0.70, status:"Connectable", mcp:"Official", recipes:1, success:"100%", category:"セキュリティ", agentReady:"connectable" },
+  { name:"Microsoft Teams MCP", grade:"A", score:0.70, status:"Connectable", mcp:"Official", recipes:0, success:"100%", category:"コミュニケーション", agentReady:"connectable" },
+  { name:"Zoom", grade:"A", score:0.70, status:"Connectable", mcp:"Third-party", recipes:0, success:"-", category:"コミュニケーション", agentReady:"connectable" },
+  { name:"Trello", grade:"A", score:0.70, status:"Connectable", mcp:"Third-party", recipes:0, success:"100%", category:"プロジェクト管理", agentReady:"connectable" },
+  { name:"Redmine", grade:"A", score:0.70, status:"Connectable", mcp:"Third-party", recipes:0, success:"50%", category:"プロジェクト管理", agentReady:"connectable" },
+  { name:"GitHub", grade:"BBB", score:0.60, status:"Connectable", mcp:"Official", recipes:7, success:"-", category:"dev_platform", agentReady:"connectable" },
+  { name:"Linear", grade:"BBB", score:0.60, status:"Connectable", mcp:"Official", recipes:5, success:"-", category:"プロジェクト管理", agentReady:"connectable" },
+  { name:"Vercel", grade:"BBB", score:0.60, status:"Connectable", mcp:"Third-party", recipes:3, success:"-", category:"dev_platform", agentReady:"connectable" },
 ];
 
 const gradeColors = { AAA:'#065F46', AA:'#059669', A:'#0891B2', BBB:'#D97706', BB:'#EA580C', B:'#DC2626', CCC:'#991B1B' };
+const categoryEN = {
+  "プロジェクト管理": "Project Management",
+  "コミュニケーション": "Communication",
+  "EC・コマース": "E-commerce",
+  "会計・経理": "Accounting",
+  "CRM・営業": "CRM / Sales",
+  "人事・労務": "HR",
+  "法務・契約": "Legal",
+  "決済": "Payment",
+  "マーケティング": "Marketing",
+  "グループウェア": "Groupware",
+  "カスタマーサポート": "Customer Support",
+  "ストレージ": "Storage",
+  "セキュリティ": "Security",
+  "BI・分析": "BI & Analytics",
+  "データ連携": "Data Integration",
+  "物流・配送": "Logistics",
+  "予約": "Reservation",
+  "生産性ツール": "Productivity",
+  "dev_platform": "Dev Platform",
+  "ai_ml": "AI & ML",
+  "database": "Database",
+  "monitoring": "Monitoring",
+  "design": "Design"
+};
+function catName(cat) { return currentLang === 'en' ? (categoryEN[cat] || cat) : cat; }
 const gradeFill = { AAA:'fill-aaa', AA:'fill-aa', A:'fill-a', BBB:'fill-bbb' };
 
 // Populate ranking table (replace static SEO rows with interactive ones)
@@ -1268,13 +1305,13 @@ searchInput.addEventListener('input', function() {
     s.name.toLowerCase().includes(q) || s.category.includes(q)
   );
   if (matches.length === 0) {
-    searchResults.innerHTML = '<div class="no-result">該当するサービスが見つかりません</div>';
+    searchResults.innerHTML = `<div class="no-result">${currentLang === 'en' ? 'No matching services found' : '該当するサービスが見つかりません'}</div>`;
   } else {
     searchResults.innerHTML = matches.map(s => `
       <div class="search-result-item" data-name="${s.name}">
         <div>
           <div class="result-name">${s.name}</div>
-          <div class="result-category">${s.category}</div>
+          <div class="result-category">${catName(s.category)}</div>
         </div>
         <div class="result-grade" style="color:${gradeColors[s.grade]}">${s.grade} (${s.score.toFixed(2)})</div>
       </div>
@@ -1297,7 +1334,10 @@ searchInput.addEventListener('blur', () => { setTimeout(() => searchResults.clas
 function showProfile(s) {
   const profile = document.getElementById('company-profile');
   document.getElementById('profile-name').textContent = s.name.toUpperCase();
-  document.getElementById('profile-meta').textContent = `Category: ${s.category} | MCP: ${s.mcp} | Agent Ready: ${s.status}`;
+  const metaLabel = currentLang === 'en'
+    ? `Category: ${catName(s.category)} | MCP: ${s.mcp} | Agent Ready: ${s.status}`
+    : `カテゴリ: ${s.category} | MCP: ${s.mcp} | エージェント対応: ${s.status}`;
+  document.getElementById('profile-meta').textContent = metaLabel;
   document.getElementById('profile-grade').textContent = s.grade;
   document.getElementById('profile-grade').style.color = gradeColors[s.grade];
   document.getElementById('profile-score').textContent = s.score.toFixed(2) + ' / 1.00';
@@ -1316,50 +1356,61 @@ function showProfile(s) {
   let sections = [];
 
   sections.push({
-    q: `How well is ${s.name} prepared for AI agent integration?`,
+    q: currentLang === 'en'
+      ? `How well is ${s.name} prepared for AI agent integration?`
+      : `${s.name}のAIエージェント統合への対応状況は？`,
     content: `
-      <p><strong>${s.name}</strong> is rated <strong style="color:${gradeColors[s.grade]}">${s.grade}</strong> with an AEO Score of ${s.score.toFixed(2)}.
-      This places the service among the <strong>${s.grade === 'AAA' || s.grade === 'AA' ? 'leaders' : s.grade === 'A' || s.grade === 'BBB' ? 'average performers' : 'laggards'}</strong>
-      in the ${s.category} category.</p>
+      <p><strong>${s.name}</strong> ${currentLang === 'en' ? 'is rated' : 'の評価は'} <strong style="color:${gradeColors[s.grade]}">${s.grade}</strong> ${currentLang === 'en' ? 'with an AEO Score of' : '（AEOスコア：'} ${s.score.toFixed(2)}${currentLang === 'en' ? '.' : '）。'}
+      ${currentLang === 'en'
+        ? `This places the service among the <strong>${s.grade === 'AAA' || s.grade === 'AA' ? 'leaders' : s.grade === 'A' || s.grade === 'BBB' ? 'average performers' : 'laggards'}</strong> in the ${catName(s.category)} category.`
+        : `${catName(s.category)}カテゴリにおいて<strong>${s.grade === 'AAA' || s.grade === 'AA' ? 'リーダー' : s.grade === 'A' || s.grade === 'BBB' ? '標準' : '要改善'}</strong>に位置します。`
+      }</p>
       <table>
-        <tr><th>Metric</th><th>Value</th></tr>
-        <tr><td>AEO Grade</td><td><span class="grade-pill pill-${s.grade.toLowerCase()}" style="font-size:11px;padding:1px 8px">${s.grade}</span></td></tr>
-        <tr><td>AEO Score</td><td>${s.score.toFixed(2)}</td></tr>
-        <tr><td>Agent Ready Status</td><td>${s.status}</td></tr>
-        <tr><td>MCP Type</td><td>${s.mcp}</td></tr>
-        <tr><td>Success Rate</td><td>${s.success}</td></tr>
-        <tr><td>Integration Recipes</td><td>${s.recipes}</td></tr>
+        <tr><th>${currentLang === 'en' ? 'Metric' : '指標'}</th><th>${currentLang === 'en' ? 'Value' : '値'}</th></tr>
+        <tr><td>${currentLang === 'en' ? 'AEO Grade' : 'AEOグレード'}</td><td><span class="grade-pill pill-${s.grade.toLowerCase()}" style="font-size:11px;padding:1px 8px">${s.grade}</span></td></tr>
+        <tr><td>${currentLang === 'en' ? 'AEO Score' : 'AEOスコア'}</td><td>${s.score.toFixed(2)}</td></tr>
+        <tr><td>${currentLang === 'en' ? 'Agent Ready Status' : 'エージェント対応'}</td><td>${s.status}</td></tr>
+        <tr><td>${currentLang === 'en' ? 'MCP Type' : 'MCP種別'}</td><td>${s.mcp}</td></tr>
+        <tr><td>${currentLang === 'en' ? 'Success Rate' : '成功率'}</td><td>${s.success}</td></tr>
+        <tr><td>${currentLang === 'en' ? 'Integration Recipes' : '連携レシピ数'}</td><td>${s.recipes}</td></tr>
       </table>
     `
   });
 
   sections.push({
-    q: `What integration patterns are available for ${s.name}?`,
-    content: `<p>${s.recipes} integration recipes are available for ${s.name}. These recipes define multi-service workflow patterns that have been validated by agents.</p>
-    ${s.recipes > 0 ? '<p>Use the <code>get_recipe</code> or <code>find_combinations</code> MCP tools to discover applicable workflows.</p>' : '<p>No recipes available yet. Consider contributing via <code>submit_feedback</code>.</p>'}`
+    q: currentLang === 'en'
+      ? `What integration patterns are available for ${s.name}?`
+      : `${s.name}で利用可能な連携パターンは？`,
+    content: currentLang === 'en'
+      ? `<p>${s.recipes} integration recipes are available for ${s.name}. These recipes define multi-service workflow patterns that have been validated by agents.</p>${s.recipes > 0 ? '<p>Use the <code>get_recipe</code> or <code>find_combinations</code> MCP tools to discover applicable workflows.</p>' : '<p>No recipes available yet. Consider contributing via <code>submit_feedback</code>.</p>'}`
+      : `<p>${s.name}には${s.recipes}件の連携レシピが登録されています。レシピはエージェントによって検証済みのマルチサービス連携パターンです。</p>${s.recipes > 0 ? '<p><code>get_recipe</code>や<code>find_combinations</code>ツールで利用可能なワークフローを確認できます。</p>' : '<p>レシピはまだ登録されていません。<code>submit_feedback</code>から貢献できます。</p>'}`
   });
 
   if (s.tips && s.tips.length > 0) {
     sections.push({
-      q: `What should agents know before connecting to ${s.name}?`,
-      content: `<ul style="padding-left:20px">${s.tips.map(t => `<li style="margin-bottom:6px">${t}</li>`).join('')}</ul>
-      ${s.apiAuth ? `<p style="margin-top:12px"><strong>Authentication:</strong> ${s.apiAuth}</p>` : ''}
-      ${s.docs ? `<p><strong>Documentation:</strong> <a href="${s.docs}" style="color:var(--blue)">${s.docs}</a></p>` : ''}`
+      q: currentLang === 'en'
+        ? `What should agents know before connecting to ${s.name}?`
+        : `${s.name}に接続する前に知っておくべきことは？`,
+      content: `<ul style="padding-left:20px">${s.tips.map(t => '<li style="margin-bottom:6px">' + t + '</li>').join('')}</ul>
+      ${s.apiAuth ? '<p style="margin-top:12px"><strong>' + (currentLang === 'en' ? 'Authentication:' : '認証方式:') + '</strong> ' + s.apiAuth + '</p>' : ''}
+      ${s.docs ? '<p><strong>' + (currentLang === 'en' ? 'Documentation:' : 'ドキュメント:') + '</strong> <a href="' + s.docs + '" style="color:var(--blue)">' + s.docs + '</a></p>' : ''}`
     });
   }
 
   sections.push({
-    q: `How can ${s.name} improve its AEO Score?`,
-    content: `<p>Key actions to improve AEO Score:</p>
+    q: currentLang === 'en'
+      ? `How can ${s.name} improve its AEO Score?`
+      : `${s.name}がAEOスコアを改善するには？`,
+    content: `<p>${currentLang === 'en' ? 'Key actions to improve AEO Score:' : 'AEOスコア改善のための主なアクション：'}</p>
     <table>
-      <tr><th>Action</th><th>Impact</th></tr>
-      <tr><td>Provide Official MCP Server</td><td>+0.10 ~ +0.20</td></tr>
-      <tr><td>Publish API documentation</td><td>+0.10</td></tr>
-      <tr><td>Provide authentication setup guide</td><td>+0.10</td></tr>
-      <tr><td>Build agent developer community</td><td>+0.10</td></tr>
-      <tr><td>Achieve 80%+ agent success rate</td><td>+0.10</td></tr>
+      <tr><th>${currentLang === 'en' ? 'Action' : 'アクション'}</th><th>${currentLang === 'en' ? 'Impact' : '影響'}</th></tr>
+      <tr><td>${currentLang === 'en' ? 'Provide Official MCP Server' : '公式MCPサーバーを提供'}</td><td>+0.10 ~ +0.20</td></tr>
+      <tr><td>${currentLang === 'en' ? 'Publish API documentation' : 'APIドキュメントを公開'}</td><td>+0.10</td></tr>
+      <tr><td>${currentLang === 'en' ? 'Provide authentication setup guide' : '認証セットアップガイドを提供'}</td><td>+0.10</td></tr>
+      <tr><td>${currentLang === 'en' ? 'Build agent developer community' : 'エージェント開発者コミュニティを構築'}</td><td>+0.10</td></tr>
+      <tr><td>${currentLang === 'en' ? 'Achieve 80%+ agent success rate' : 'エージェント成功率80%以上を達成'}</td><td>+0.10</td></tr>
     </table>
-    <p style="margin-top:12px"><a href="mailto:contact@synapse-arrows.com" style="color:var(--blue)">Contact us</a> for a detailed AEO improvement consultation.</p>`
+    <p style="margin-top:12px"><a href="mailto:contact@synapse-arrows.com" style="color:var(--blue)">${currentLang === 'en' ? 'Contact us' : 'お問い合わせ'}</a> ${currentLang === 'en' ? 'for a detailed AEO improvement consultation.' : '— AEO改善コンサルティングの詳細はこちら'}</p>`
   });
 
   accordion.innerHTML = sections.map((sec, i) => `
@@ -1423,6 +1474,14 @@ function applyLang() {
     if (!el._jaPlaceholder) el._jaPlaceholder = el.placeholder;
     el.placeholder = currentLang === 'en' ? el.getAttribute('data-en-placeholder') : el._jaPlaceholder;
   });
+
+  // Re-render profile if open
+  const profile = document.getElementById('company-profile');
+  if (profile && profile.classList.contains('active')) {
+    const currentName = document.getElementById('profile-name').textContent;
+    const svc = services.find(s => s.name.toUpperCase() === currentName);
+    if (svc) showProfile(svc);
+  }
 }
 
 if (currentLang === 'en') applyLang();
