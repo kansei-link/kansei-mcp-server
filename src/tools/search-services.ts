@@ -38,7 +38,7 @@ export function register(server: McpServer, db: Database.Database): void {
         category: z
           .string()
           .optional()
-          .describe("Filter by category: crm, project_management, communication, accounting, hr, ecommerce, legal, marketing, groupware, productivity, storage, support, payment, logistics, reservation, data_integration, bi_analytics, security"),
+          .describe("Filter by category: crm, project_management, communication, accounting, hr, ecommerce, legal, marketing, groupware, productivity, storage, support, payment, logistics, reservation, data_integration, bi_analytics, security, developer_tools, ai_ml, database, devops, design"),
         agent_ready: z
           .enum(["verified", "connectable", "info_only"])
           .optional()
@@ -163,7 +163,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   customers:     ["crm"],
   deal:          ["crm"],
   deals:         ["crm"],
-  pipeline:      ["crm"],
+  pipeline:      ["crm", "devops"],
   contact:       ["crm"],
   contacts:      ["crm"],
   prospect:      ["crm"],
@@ -361,6 +361,85 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "認証":        ["security"],
   "セキュリティ": ["security"],
   "パスワード":  ["security"],
+
+  // Developer tools / DevOps
+  deploy:        ["devops", "developer_tools"],
+  deployment:    ["devops"],
+  ci:            ["devops"],
+  cd:            ["devops"],
+
+  build:         ["devops"],
+  docker:        ["devops"],
+  kubernetes:    ["devops"],
+  cloud:         ["developer_tools"],
+  serverless:    ["developer_tools"],
+  lambda:        ["developer_tools"],
+  hosting:       ["devops"],
+  infrastructure: ["developer_tools"],
+  git:           ["developer_tools"],
+  repository:    ["developer_tools"],
+  code:          ["developer_tools"],
+  testing:       ["devops"],
+  "デプロイ":    ["devops"],
+  "本番":        ["devops"],
+
+  // AI / ML
+  ai:            ["ai_ml"],
+  llm:           ["ai_ml"],
+  model:         ["ai_ml"],
+  inference:     ["ai_ml"],
+  embedding:     ["ai_ml", "database"],
+  embeddings:    ["ai_ml", "database"],
+  vector:        ["ai_ml", "database"],
+  rag:           ["ai_ml", "database"],
+  "text-to-speech": ["ai_ml"],
+  tts:           ["ai_ml"],
+  voice:         ["ai_ml"],
+  speech:        ["ai_ml"],
+  "machine learning": ["ai_ml"],
+  ml:            ["ai_ml"],
+  nlp:           ["ai_ml"],
+  chatbot:       ["ai_ml"],
+  "生成AI":      ["ai_ml"],
+  "音声":        ["ai_ml"],
+
+  // Database
+  database:      ["database"],
+  sql:           ["database", "bi_analytics"],
+  nosql:         ["database"],
+  postgres:      ["database"],
+  mysql:         ["database"],
+  redis:         ["database"],
+  cache:         ["database"],
+  "データベース": ["database"],
+
+  // Design
+  design:        ["design"],
+  prototype:     ["design"],
+  wireframe:     ["design"],
+  figma:         ["design"],
+  ui:            ["design"],
+  ux:            ["design"],
+  "デザイン":    ["design"],
+
+  // Search / Web automation
+  search:        ["data_integration"],
+  scraping:      ["developer_tools", "data_integration"],
+  crawl:         ["developer_tools", "data_integration"],
+  crawling:      ["developer_tools", "data_integration"],
+  browser:       ["developer_tools"],
+  "スクレイピング": ["developer_tools", "data_integration"],
+  "検索":        ["data_integration"],
+
+  // Social media
+  social:        ["marketing"],
+  twitter:       ["marketing"],
+  linkedin:      ["marketing"],
+  youtube:       ["marketing"],
+  instagram:     ["marketing"],
+  tiktok:        ["marketing"],
+  "SNS":         ["marketing"],
+  "ソーシャル":  ["marketing"],
 
   // Ambiguous / cross-domain concepts (曖昧クエリ対応)
   "ペーパーレス":  ["legal", "accounting"],
