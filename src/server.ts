@@ -20,6 +20,7 @@ import { register as registerTakeSnapshot } from "./tools/take-snapshot.js";
 import { register as registerGetServiceHistory } from "./tools/get-service-history.js";
 import { register as registerRecordEvent } from "./tools/record-event.js";
 import { register as registerEvaluateDesign } from "./tools/evaluate-design.js";
+import { register as registerAgentVoice } from "./tools/agent-voice.js";
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
 import { recalculateTrustScores } from "./utils/trust-recalc.js";
@@ -55,6 +56,7 @@ export function createServer(): McpServer {
   registerGetServiceHistory(server, db);
   registerRecordEvent(server, db);
   registerEvaluateDesign(server, db);
+  registerAgentVoice(server, db);
 
   // Register prompts (LobeHub Grade A)
   registerPrompts(server);
