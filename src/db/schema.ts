@@ -63,6 +63,8 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_services_category ON services(category);
     CREATE INDEX IF NOT EXISTS idx_changelog_service ON service_changelog(service_id);
     CREATE INDEX IF NOT EXISTS idx_changelog_date ON service_changelog(change_date);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_changelog_unique
+      ON service_changelog(service_id, change_date, change_type, summary);
 
     -- Inspection queue: anomalies flagged for verification by scout agents
     CREATE TABLE IF NOT EXISTS inspections (
