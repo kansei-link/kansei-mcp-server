@@ -127,6 +127,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "社員":        ["hr"],
   "従業員":      ["hr"],
   "勤怠":        ["hr"],
+  "勤怠管理":    ["hr"],
   "給与":        ["accounting", "hr"],
   "年末調整":    ["hr"],
   "year-end":    ["hr", "accounting"],
@@ -175,10 +176,11 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "商談":        ["crm"],
 
   // Project management
-  task:          ["project_management"],
-  tasks:         ["project_management"],
+  task:          ["project_management", "productivity"],
+  tasks:         ["project_management", "productivity"],
   project:       ["project_management"],
   projects:      ["project_management"],
+  management:    ["project_management"],
   sprint:        ["project_management"],
   board:         ["project_management"],
   kanban:        ["project_management"],
@@ -226,13 +228,15 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   legal:         ["legal"],
   "契約":        ["legal"],
   "電子署名":    ["legal"],
+  "電子契約":    ["legal"],
 
   // Marketing
+  cdp:           ["data_integration", "marketing"],
   email:         ["marketing", "communication"],
   campaign:      ["marketing"],
   newsletter:    ["marketing"],
   analytics:     ["marketing", "bi_analytics"],
-  data:          ["marketing", "bi_analytics"],
+  data:          ["bi_analytics", "data_integration"],
   segment:       ["marketing"],
   marketing:     ["marketing"],
   "マーケティング": ["marketing"],
@@ -457,19 +461,53 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "セミナー":     ["reservation"],
   "API":         ["data_integration"],
   "統合":        ["data_integration"],
+
+  // Compound phrases — higher specificity than individual tokens
+  "customer data":    ["data_integration", "bi_analytics"],
+  "data platform":    ["data_integration", "bi_analytics"],
+  "customer data platform": ["data_integration", "bi_analytics"],
+  "attendance management": ["hr"],
+  "time tracking":    ["hr"],
+  "time management":  ["hr"],
+  "project management": ["project_management"],
+  "task management":  ["project_management"],
+  "contract management": ["legal"],
+  "e-commerce":       ["ecommerce"],
+  "order management": ["ecommerce"],
 };
 
 /** Category boost added to relevance_score when service category matches intent */
-const CATEGORY_BOOST = 0.8;
+const CATEGORY_BOOST = 1.5;
+
+/** Penalty applied to services whose category doesn't match a strong intent signal */
+const OFF_CATEGORY_PENALTY = 1.0;
+
+/** Bonus per intent token that matches a service tag */
+const TAG_MATCH_BOOST = 0.3;
+
+/**
+ * Intent detection result: maps each detected category to the number of
+ * intent tokens that voted for it. Higher vote count = stronger signal.
+ */
+interface IntentSignal {
+  /** All detected categories (superset) */
+  categories: Set<string>;
+  /** Per-category vote count — how many tokens pointed at this category */
+  votes: Map<string, number>;
+  /** Maximum vote count among all categories */
+  maxVotes: number;
+  /** Categories that received the maximum vote count */
+  topCategories: Set<string>;
+}
 
 /**
  * Detect likely categories from an intent string by scanning for keyword
  * signals. For Latin text, splits on whitespace. For CJK text, scans the
  * full string for keyword substrings (Japanese has no word separators).
- * Returns a Set of category names (may be empty).
+ * Returns vote-weighted category signals for ranking.
  */
-function detectIntentCategories(intent: string): Set<string> {
-  const categories = new Set<string>();
+function detectIntentCategories(intent: string): IntentSignal {
+  const votes = new Map<string, number>();
   const lower = intent.toLowerCase();
 
   // Latin token matching (space-separated)
@@ -477,18 +515,34 @@ function detectIntentCategories(intent: string): Set<string> {
   for (const token of tokens) {
     const mapped = INTENT_CATEGORY_MAP[token];
     if (mapped) {
-      for (const cat of mapped) categories.add(cat);
+      for (const cat of mapped) votes.set(cat, (votes.get(cat) ?? 0) + 1);
     }
   }
 
-  // CJK substring matching — scan for every keyword inside the intent string
+  // Substring matching — only for CJK keywords (no word separators in Japanese)
+  // and multi-word Latin phrases (e.g., "customer data", "data platform").
+  // Single Latin words are handled by the token loop above; running them as
+  // substrings causes false positives (e.g., "board" inside "onboarding").
   for (const [keyword, cats] of Object.entries(INTENT_CATEGORY_MAP)) {
-    if (lower.includes(keyword)) {
-      for (const cat of cats) categories.add(cat);
+    const isCJK = CJK_REGEX.test(keyword);
+    const isMultiWord = keyword.includes(" ");
+    if ((isCJK || isMultiWord) && lower.includes(keyword)) {
+      for (const cat of cats) votes.set(cat, (votes.get(cat) ?? 0) + 1);
     }
   }
 
-  return categories;
+  const maxVotes = votes.size > 0 ? Math.max(...votes.values()) : 0;
+  const topCategories = new Set<string>();
+  for (const [cat, count] of votes) {
+    if (count === maxVotes) topCategories.add(cat);
+  }
+
+  return {
+    categories: new Set(votes.keys()),
+    votes,
+    maxVotes,
+    topCategories,
+  };
 }
 
 /** Detect whether a string contains CJK characters (Japanese, Chinese, Korean) */
@@ -505,23 +559,24 @@ export function searchServices(
   limit: number = 5,
   agentReadyFilter?: "verified" | "connectable" | "info_only"
 ): object[] {
-  const intentCategories = detectIntentCategories(intent);
+  const signal = detectIntentCategories(intent);
+  const intentCategories = signal.categories;
   const intentLower = intent.toLowerCase();
   const containsCJK = hasCJK(intent);
 
   // Run FTS search — use trigram table for CJK, unicode61 for Latin
   const ftsResults = containsCJK
-    ? trigramSearch(db, intent, category, limit, intentCategories, intentLower)
-    : ftsSearch(db, intent, category, limit, intentCategories, intentLower);
+    ? trigramSearch(db, intent, category, limit, signal, intentLower)
+    : ftsSearch(db, intent, category, limit, signal, intentLower);
 
   // Run LIKE search (catches partial matches both tables miss)
-  const likeResults = likeSearch(db, intent, category, limit, intentCategories, intentLower);
+  const likeResults = likeSearch(db, intent, category, limit, signal, intentLower);
 
   // When intent categories are detected, also fetch top services from those
   // categories directly — ensures category-relevant services appear even when
   // FTS tokenization misses them (e.g. "manage" vs "management")
   const categoryResults = intentCategories.size > 0 && !category
-    ? categorySearch(db, intentCategories, limit, intentCategories, intentLower)
+    ? categorySearch(db, signal, limit, intentLower)
     : [];
 
   // Merge and deduplicate: FTS > LIKE > category, keep highest score per service
@@ -615,8 +670,86 @@ function nameMatchBonus(service: ServiceRow, intentLower: string): number {
   return 0;
 }
 
-function formatResult(s: ServiceRow, score: number, intentLower?: string): ScoredResult {
+/**
+ * Bonus for services whose tags contain intent tokens.
+ * Helps CDP services surface for "customer data platform", HR services for "勤怠管理", etc.
+ */
+function tagMatchBonus(service: ServiceRow, intentLower: string): number {
+  if (!service.tags) return 0;
+  // Normalize tags: replace hyphens/underscores with spaces for broader matching
+  const rawTags = service.tags.toLowerCase().split(",").map((t) => t.trim());
+  const normalizedTags = rawTags.map((t) => t.replace(/[-_]/g, " "));
+  const allTags = [...new Set([...rawTags, ...normalizedTags])];
+
+  const tokens = intentLower.split(/\s+/).filter((t) => t.length > 2);
+
+  // Also extract CJK substrings for matching
+  const cjkTokens = intentLower.match(/[\u3000-\u9fff\uf900-\ufaff]{2,}/gu) ?? [];
+
+  // Check multi-word intent phrases against tags (e.g., "customer data" vs "customer_data")
+  const intentNormalized = intentLower.replace(/\s+/g, " ");
+
+  let matches = 0;
+  for (const token of [...tokens, ...cjkTokens]) {
+    for (const tag of allTags) {
+      if (tag.includes(token) || token.includes(tag)) {
+        matches++;
+        break;
+      }
+    }
+  }
+
+  // Bonus: check if full intent phrase (or significant subphrases) match tags
+  for (const tag of allTags) {
+    if (tag.length > 3 && intentNormalized.includes(tag)) {
+      matches++;
+    }
+  }
+
+  return matches * TAG_MATCH_BOOST;
+}
+
+/**
+ * Compute category-aware score adjustment:
+ *   - Services matching top-voted categories (ratio >= 0.5) get proportional boost
+ *   - Weakly matched categories (ratio < 0.5) get slight penalty
+ *   - Unmatched categories get full penalty when intent is strongly focused
+ */
+function categoryScoreAdjustment(
+  service: ServiceRow,
+  signal: IntentSignal
+): number {
+  if (signal.categories.size === 0 || !service.category) return 0;
+
+  const cat = service.category;
+  const votes = signal.votes.get(cat) ?? 0;
+
+  if (votes === 0) {
+    // No match at all: penalize when intent signal is clear
+    return signal.maxVotes >= 2 ? -OFF_CATEGORY_PENALTY : 0;
+  }
+
+  const ratio = votes / signal.maxVotes;
+
+  if (ratio >= 0.5) {
+    // Strong match: proportional boost
+    return CATEGORY_BOOST * ratio;
+  }
+
+  // Weak match (ratio < 0.5): slight penalty scaled by weakness
+  // Prevents low-vote categories from getting undeserved boosts
+  return -OFF_CATEGORY_PENALTY * (1 - ratio) * 0.5;
+}
+
+function formatResult(
+  s: ServiceRow,
+  score: number,
+  intentLower: string = "",
+  signal?: IntentSignal
+): ScoredResult {
   const nameBonus = intentLower ? nameMatchBonus(s, intentLower) : 0;
+  const tagBonus = intentLower ? tagMatchBonus(s, intentLower) : 0;
+  const catAdj = signal ? categoryScoreAdjustment(s, signal) : 0;
   return {
     service_id: s.id,
     name: s.name,
@@ -631,18 +764,20 @@ function formatResult(s: ServiceRow, score: number, intentLower?: string): Score
     trust_score: s.trust_score,
     usage_count: s.total_calls ?? 0,
     success_rate: s.success_rate ?? null,
-    relevance_score: Math.round((score + nameBonus) * 100) / 100,
+    relevance_score: Math.round((score + nameBonus + tagBonus + catAdj) * 100) / 100,
   };
 }
 
 function categorySearch(
   db: Database.Database,
-  intentCategories: Set<string>,
+  signal: IntentSignal,
   limit: number,
-  _intentCategories: Set<string>,
   intentLower: string = ""
 ): ScoredResult[] {
-  const cats = [...intentCategories];
+  // Prioritize top-voted categories; include others as fallback
+  const topCats = [...signal.topCategories];
+  const allCats = [...signal.categories];
+  const cats = topCats.length > 0 ? topCats : allCats;
   const placeholders = cats.map(() => "?").join(", ");
   const query = `
     SELECT s.*, ss.total_calls, ss.success_rate
@@ -654,7 +789,7 @@ function categorySearch(
   `;
   const services = db.prepare(query).all(...cats, limit * 2) as ServiceRow[];
   return services.map((s) =>
-    formatResult(s, s.trust_score + CATEGORY_BOOST, intentLower)
+    formatResult(s, s.trust_score, intentLower, signal)
   );
 }
 
@@ -663,7 +798,7 @@ function ftsSearch(
   intent: string,
   category: string | undefined,
   limit: number,
-  intentCategories: Set<string>,
+  signal: IntentSignal,
   intentLower: string = ""
 ): ScoredResult[] {
   // Tokenize intent for FTS query — use prefix matching (manage* matches management)
@@ -701,14 +836,10 @@ function ftsSearch(
 
     if (services.length === 0) return [];
 
-    // Compute relevance with category boost, then sort descending
+    // Compute relevance with category-aware scoring, then sort descending
     const scored = services.map((s) => {
       const baseScore = 1 / (1 + Math.abs(s.fts_rank)) + s.trust_score * 0.3;
-      const categoryBoost =
-        intentCategories.size > 0 && s.category && intentCategories.has(s.category)
-          ? CATEGORY_BOOST
-          : 0;
-      return formatResult(s, baseScore + categoryBoost, intentLower);
+      return formatResult(s, baseScore, intentLower, signal);
     });
 
     scored.sort((a, b) => b.relevance_score - a.relevance_score);
@@ -725,7 +856,7 @@ function trigramSearch(
   intent: string,
   category: string | undefined,
   limit: number,
-  intentCategories: Set<string>,
+  signal: IntentSignal,
   intentLower: string = ""
 ): ScoredResult[] {
   // Extract CJK substrings (3+ chars) for trigram MATCH, and all tokens for scoring
@@ -773,11 +904,7 @@ function trigramSearch(
 
       results = services.map((s) => {
         const baseScore = 1 / (1 + Math.abs(s.fts_rank)) + s.trust_score * 0.3;
-        const categoryBoost =
-          intentCategories.size > 0 && s.category && intentCategories.has(s.category)
-            ? CATEGORY_BOOST
-            : 0;
-        return formatResult(s, baseScore + categoryBoost, intentLower);
+        return formatResult(s, baseScore, intentLower, signal);
       });
     } catch {
       // FTS query may fail on certain inputs
@@ -810,11 +937,7 @@ function trigramSearch(
 
     const services = db.prepare(query).all(...params) as ServiceRow[];
     for (const s of services) {
-      const categoryBoost =
-        intentCategories.size > 0 && s.category && intentCategories.has(s.category)
-          ? CATEGORY_BOOST
-          : 0;
-      results.push(formatResult(s, s.trust_score + categoryBoost, intentLower));
+      results.push(formatResult(s, s.trust_score, intentLower, signal));
     }
   }
 
@@ -867,7 +990,7 @@ function likeSearch(
   intent: string,
   category: string | undefined,
   limit: number,
-  intentCategories: Set<string>,
+  signal: IntentSignal,
   intentLower: string = ""
 ): ScoredResult[] {
   const words = extractSearchTokens(intent);
@@ -903,11 +1026,7 @@ function likeSearch(
   const services = db.prepare(query).all(...params) as ServiceRow[];
 
   const scored = services.map((s) => {
-    const categoryBoost =
-      intentCategories.size > 0 && s.category && intentCategories.has(s.category)
-        ? CATEGORY_BOOST
-        : 0;
-    return formatResult(s, s.trust_score + categoryBoost, intentLower);
+    return formatResult(s, s.trust_score, intentLower, signal);
   });
 
   scored.sort((a, b) => b.relevance_score - a.relevance_score);

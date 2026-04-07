@@ -156,8 +156,18 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   ];
 
   const insertService = db.prepare(`
-    INSERT OR IGNORE INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score)
+    INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score)
     VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score)
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      namespace = excluded.namespace,
+      description = excluded.description,
+      category = excluded.category,
+      tags = excluded.tags,
+      mcp_endpoint = excluded.mcp_endpoint,
+      mcp_status = excluded.mcp_status,
+      api_url = excluded.api_url,
+      api_auth_method = excluded.api_auth_method
   `);
 
   const insertStats = db.prepare(`
