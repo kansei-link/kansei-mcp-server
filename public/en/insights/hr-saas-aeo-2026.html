@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HR SaaS AEO Map 2026 — SmartHR, freee HR & KING OF TIME Agent Readiness Report | KanseiLink</title>
+  <meta name="description" content="SmartHR's AI agent success rate is just 39% across 89 runs. A data-driven AEO comparison of Japan's top HR SaaS platforms: SmartHR, freee HR, and KING OF TIME — with error analysis and implementation guidance.">
+  <meta name="keywords" content="HR SaaS AEO, SmartHR AEO, freee HR MCP, KING OF TIME API, AI agent HR, Japanese HR SaaS, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/hr-saas-aeo-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/hr-saas-aeo-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/hr-saas-aeo-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/hr-saas-aeo-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="HR SaaS AEO Map 2026 — SmartHR, freee HR & KING OF TIME Agent Readiness Report">
+  <meta property="og:description" content="SmartHR: 39% agent success rate across 89 runs. freee HR: official MCP, untested. KING OF TIME: 65% success, API only. Full HR SaaS AEO comparison for Japan.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/hr-saas-aeo-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="article:published_time" content="2026-04-07">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Industry Report">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="HR SaaS AEO Map 2026 — SmartHR 39% success rate, freee HR MCP, KING OF TIME 65%">
+  <meta name="twitter:description" content="Real agent telemetry from Japan's top HR SaaS platforms. SmartHR's auth issues exposed.">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "HR SaaS AEO Map 2026 — SmartHR, freee HR & KING OF TIME Agent Readiness Report",
+    "description": "SmartHR's AI agent success rate is just 39% across 89 runs. A data-driven AEO comparison of Japan's top HR SaaS platforms with error analysis and implementation guidance.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-07",
+    "dateModified": "2026-04-07",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/hr-saas-aeo-2026",
+    "keywords": ["AEO", "HR SaaS", "SmartHR", "freee HR", "KING OF TIME", "MCP", "AI agents", "Japanese SaaS"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is SmartHR's AI agent success rate so low?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLink data shows a 39% success rate across 89 runs. The primary causes are: (1) frequent use of the deprecated v1 API endpoint instead of v2, (2) incomplete OAuth scope documentation forcing agents to guess required scopes, and (3) high average latency (301ms) increasing timeout failures. Using v2 endpoints and pre-requesting employees.read, attendance.read, and payroll.read scopes substantially improves success rates."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does freee HR have an MCP server?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. freee's official MCP server (npx -y @freee-ag/freee-accounting-mcp@latest) covers five business domains including HR. Employee data, attendance, payroll, and year-end adjustment operations are all accessible via this single MCP server. No live agent run data has been collected yet, but the structural readiness is in place."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights" },
+      { "@type": "ListItem", "position": 3, "name": "HR SaaS AEO Map 2026", "item": "https://kansei-link.com/en/insights/hr-saas-aeo-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3;
+      --black: #000000; --white: #FFFFFF; --lavender: #F4F5FD;
+      --gray-light: #F5F5F5; --gray-mid: #E5E7EB; --gray-text: #6B7280; --gray-dark: #374151;
+      --grade-aaa: #065F46; --grade-aa: #059669; --grade-a: #0891B2;
+      --grade-bbb: #D97706; --grade-bb: #EA580C; --grade-b: #DC2626; --grade-ccc: #991B1B;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter','Noto Sans JP',-apple-system,BlinkMacSystemFont,sans-serif; color: var(--black); background: var(--white); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a, .utility-bar button { color: var(--black); text-decoration: none; background: none; border: none; font: inherit; cursor: pointer; padding: 0; }
+    .utility-bar a:hover, .utility-bar button:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a { color: var(--black); text-decoration: none; font-size: 16px; font-weight: 400; padding: 20px 0; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-teal { background: var(--teal); color: var(--black); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-teal:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; }
+    .hamburger span { display: block; width: 24px; height: 2.5px; background: var(--black); border-radius: 2px; transition: transform 0.3s, opacity 0.3s; }
+
+    .breadcrumb-bar { background: var(--gray-light); padding: 12px 0; font-size: 14px; color: var(--gray-text); }
+    .breadcrumb-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 50%, #7B2D8B 100%); padding: 80px 0 64px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); color: var(--white); font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 9999px; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .article-hero h1 { font-size: 42px; font-weight: 600; letter-spacing: -2.1px; line-height: 1.2; margin-bottom: 24px; }
+    .article-hero .subtitle { font-size: 18px; font-weight: 300; line-height: 1.7; opacity: 0.9; margin-bottom: 32px; }
+    .article-meta { display: flex; align-items: center; gap: 24px; font-size: 14px; opacity: 0.8; flex-wrap: wrap; }
+    .article-meta .divider { width: 1px; height: 16px; background: rgba(255,255,255,0.3); }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 48px 40px 80px; color: var(--gray-dark); font-size: 16px; line-height: 1.7; }
+    .article-body h2 { font-size: 28px; font-weight: 600; color: var(--black); letter-spacing: -1px; margin-top: 56px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--lavender); }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin-top: 36px; margin-bottom: 12px; }
+    .article-body p { margin-bottom: 20px; }
+    .article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .article-body a:hover { border-bottom-color: var(--blue); }
+    .article-body code { background: var(--gray-light); padding: 2px 6px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .key-concept { background: var(--lavender); border-left: 4px solid var(--blue); padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .key-concept .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .key-concept p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .toc-box { background: var(--gray-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 14px; font-weight: 600; color: var(--black); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .toc-box ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+    .toc-box li { counter-increment: toc; margin-bottom: 6px; }
+    .toc-box li::before { content: counter(toc) "."; color: var(--blue); font-weight: 600; margin-right: 8px; font-size: 13px; }
+    .toc-box a { color: var(--gray-dark); text-decoration: none; font-size: 14px; }
+    .toc-box a:hover { color: var(--blue); }
+
+    .comparison-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 28px 0; }
+    .comparison-table thead th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 500; font-size: 13px; letter-spacing: 0.5px; }
+    .comparison-table thead th:first-child { border-radius: 8px 0 0 0; }
+    .comparison-table thead th:last-child { border-radius: 0 8px 0 0; }
+    .comparison-table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); vertical-align: middle; }
+    .comparison-table tbody tr:hover { background: var(--lavender); }
+    .grade-badge { display: inline-block; padding: 3px 12px; border-radius: 4px; font-size: 13px; font-weight: 700; color: var(--white); min-width: 48px; text-align: center; }
+    .bg-aaa { background: var(--grade-aaa); }
+    .bg-aa { background: var(--grade-aa); }
+    .bg-a { background: var(--grade-a); }
+    .bg-bbb { background: var(--grade-bbb); }
+    .bg-bb { background: var(--grade-bb); }
+
+    .service-card { border: 1px solid var(--gray-mid); border-radius: 12px; padding: 32px; margin: 24px 0; }
+    .service-card.rank-1 { border-left: 4px solid var(--grade-a); }
+    .service-card.rank-2 { border-left: 4px solid var(--grade-bbb); }
+    .service-card.rank-3 { border-left: 4px solid var(--grade-bbb); }
+    .service-card-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .service-card-header h3 { font-size: 20px; font-weight: 700; color: var(--black); margin: 0; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
+    .metric-item { text-align: center; }
+    .metric-item .val { font-size: 24px; font-weight: 700; color: var(--blue); line-height: 1; }
+    .metric-item .val.danger { color: #DC2626; }
+    .metric-item .lbl { font-size: 11px; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <button onclick="window.location.href='../../insights/hr-saas-aeo-2026.html'">日本語</button>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      HR SaaS AEO Map 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Industry Report</span>
+      <h1>HR SaaS AEO Map 2026</h1>
+      <p class="subtitle">SmartHR, freee HR &amp; KING OF TIME — AI agent readiness reality check for Japan's top HR platforms</p>
+      <div class="article-meta">
+        <span>2026-04-07</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>8 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#overview">HR SaaS AEO landscape — how it differs from accounting</a></li>
+        <li><a href="#smarthr">SmartHR — BBB grade: the 39% problem</a></li>
+        <li><a href="#freee-hr">freee HR — A grade: official MCP, high potential</a></li>
+        <li><a href="#kingoftime">KING OF TIME — BBB grade: attendance API in practice</a></li>
+        <li><a href="#comparison">Three-way comparison and implementation recommendations</a></li>
+        <li><a href="#action">SmartHR integration guide for agent developers</a></li>
+      </ol>
+    </div>
+
+    <div class="disclosure-box">
+      <div class="label">Data Disclosure</div>
+      <p>Report data is sourced from real agent telemetry via the KanseiLink MCP server (as of 2026-04-07). Sample sizes: SmartHR 89 runs, KING OF TIME 34 runs, freee HR 0 runs (no MCP-based attempts recorded yet).</p>
+    </div>
+
+    <h2 id="overview">HR SaaS AEO Landscape — How It Differs from Accounting</h2>
+
+    <p>While accounting SaaS has emerged as AEO's frontrunner category, HR SaaS remains in an earlier, more turbulent phase of agent integration. The sensitivity of the data — employee records, attendance logs, payroll details — drives more complex API scope design and OAuth implementation, raising the bar for agent-compatible integrations.</p>
+
+    <p>Of the eight HR services tracked by KanseiLink, only freee HR offers an official MCP server (via the freee integrated MCP). The other seven are API-only, forcing agents to implement direct REST integrations with varying levels of documentation quality. This structural gap is the root cause of the category's low average success rates.</p>
+
+    <div class="key-concept">
+      <div class="label">HR SaaS AEO Snapshot — Q2 2026</div>
+      <p>8 services tracked. Official MCP: 1 service. API only: 7 services. Category avg. success rate: ~50% (vs. 90%+ for accounting). Most common error type: auth failures and API errors neck-and-neck.</p>
+    </div>
+
+    <h2 id="smarthr">SmartHR — BBB Grade: The 39% Problem</h2>
+
+    <div class="service-card rank-2">
+      <div class="service-card-header">
+        <h3>SmartHR</h3>
+        <span class="grade-badge bg-bbb">BBB</span>
+        <span style="font-size:13px;color:var(--gray-text);">AEO Score 0.60</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val danger">39%</div><div class="lbl">Success Rate</div></div>
+        <div class="metric-item"><div class="val">301ms</div><div class="lbl">Avg. Latency</div></div>
+        <div class="metric-item"><div class="val">89</div><div class="lbl">Agent Runs</div></div>
+        <div class="metric-item"><div class="val">7</div><div class="lbl">Unique Agents</div></div>
+      </div>
+    </div>
+
+    <div class="warning-box">
+      <div class="label">Critical Implementation Warning</div>
+      <p>61% of agent attempts against SmartHR's API fail. Deploying to production without implementing the workarounds identified in this report is not recommended.</p>
+    </div>
+
+    <p>SmartHR is the leading cloud HR platform in Japan — used by companies ranging from listed enterprises to growing SMBs for employee records, contracts, and year-end tax adjustments. It exposes a RESTful API for developers, and agent integration is theoretically well-supported. The reality of the data tells a different story.</p>
+
+    <p>Across 89 agent runs, success rate is 39% — one of the lowest among all major services tracked by KanseiLink. Seven distinct agents have attempted integration, amplifying confidence in the dataset. Three error categories account for nearly all failures:</p>
+
+    <h3>SmartHR error analysis</h3>
+
+    <p><strong>1. API errors (36 incidents — highest count)</strong><br>
+    The majority trace to agents calling deprecated v1 endpoints. SmartHR has migrated its API to v2, but agents default to v1 without explicit instruction, generating a cascade of errors.</p>
+
+    <p><strong>2. Auth errors and expiry (11 combined)</strong><br>
+    OAuth scope documentation is incomplete. Agents cannot determine required scopes in advance and must guess — a process that generates auth failures and requires manual developer intervention. The confirmed workaround: pre-request <code>employees.read</code>, <code>attendance.read</code>, and <code>payroll.read</code> before the auth flow.</p>
+
+    <p><strong>3. Search misses (7 incidents)</strong><br>
+    Semantic queries like "manage employee onboarding" or "issue withholding tax certificate" consistently fail to surface SmartHR in search results. A search for "源泉徴収票を発行したい" (issue withholding tax certificate) returned freee, Money Forward, and KING OF TIME instead. SmartHR's semantic discoverability is a meaningful gap.</p>
+
+    <h2 id="freee-hr">freee HR — A Grade: Official MCP, High Potential</h2>
+
+    <div class="service-card rank-1">
+      <div class="service-card-header">
+        <h3>freee HR (人事労務)</h3>
+        <span class="grade-badge bg-a">A</span>
+        <span style="font-size:13px;color:var(--gray-text);">AEO Score 0.70</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">—</div><div class="lbl">Success Rate</div></div>
+        <div class="metric-item"><div class="val">—</div><div class="lbl">Avg. Latency</div></div>
+        <div class="metric-item"><div class="val">0</div><div class="lbl">Agent Runs</div></div>
+        <div class="metric-item"><div class="val">Official</div><div class="lbl">MCP Status</div></div>
+      </div>
+      <p>freee integrated MCP server: <code>npx -y @freee-ag/freee-accounting-mcp@latest</code> (covers HR domain)</p>
+    </div>
+
+    <p>freee HR has no live agent run data to report, so success rate and latency figures are not available. However, freee's integrated MCP server covers the HR domain — employee data, attendance, payroll, and year-end adjustment — under the same server that powers freee accounting. Structural readiness is solid.</p>
+
+    <p>Projecting from freee's accounting domain telemetry (90.3% success, 206 runs) provides reasonable grounds for optimism: the same MCP server, the same authentication plumbing, the same developer standards. For builders constructing HR AI assistants or automation agents, freee HR is the lowest-risk option in the category. That said, <strong>a pilot testing period before production deployment is recommended until live HR-domain telemetry accumulates.</strong></p>
+
+    <h2 id="kingoftime">KING OF TIME — BBB Grade: Attendance API in Practice</h2>
+
+    <div class="service-card rank-3">
+      <div class="service-card-header">
+        <h3>KING OF TIME</h3>
+        <span class="grade-badge bg-bbb">BBB</span>
+        <span style="font-size:13px;color:var(--gray-text);">AEO Score 0.60</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">65%</div><div class="lbl">Success Rate</div></div>
+        <div class="metric-item"><div class="val">199ms</div><div class="lbl">Avg. Latency</div></div>
+        <div class="metric-item"><div class="val">34</div><div class="lbl">Agent Runs</div></div>
+        <div class="metric-item"><div class="val">API only</div><div class="lbl">MCP Status</div></div>
+      </div>
+    </div>
+
+    <p>KING OF TIME is Japan's market-leading attendance management system by install base. Its REST API uses API key authentication and supports time-punch data retrieval, shift management, and overtime calculation. No official MCP server exists, but the relatively simple API design contributes to a 65% success rate — far ahead of SmartHR's 39%.</p>
+
+    <p>All 12 errors in the dataset are classified as API errors, with zero authentication failures. API key auth, simpler than OAuth2, reduces agent-side authentication failure risk. The tradeoff is key management responsibility — API key rotation and storage must be handled by the agent implementation layer.</p>
+
+    <p>Average latency of 199ms is meaningfully better than SmartHR (301ms), making it suitable for batch attendance data collection workflows. An official MCP server has not been announced, but the clean API design makes it a prime candidate for a community-built MCP wrapper.</p>
+
+    <h2 id="comparison">Three-Way Comparison and Implementation Recommendations</h2>
+
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>AEO Grade</th>
+          <th>MCP Server</th>
+          <th>Success Rate</th>
+          <th>Avg. Latency</th>
+          <th>Auth Method</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>freee HR</strong></td>
+          <td><span class="grade-badge bg-a">A</span></td>
+          <td>Official (Remote)</td>
+          <td>No data yet</td>
+          <td>No data yet</td>
+          <td>OAuth2+PKCE</td>
+        </tr>
+        <tr>
+          <td><strong>KING OF TIME</strong></td>
+          <td><span class="grade-badge bg-bbb">BBB</span></td>
+          <td>None (API only)</td>
+          <td>65%</td>
+          <td>199ms</td>
+          <td>API Key</td>
+        </tr>
+        <tr>
+          <td><strong>SmartHR</strong></td>
+          <td><span class="grade-badge bg-bbb">BBB</span></td>
+          <td>None (API only)</td>
+          <td>39%</td>
+          <td>301ms</td>
+          <td>OAuth2</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="action">SmartHR Integration Guide for Agent Developers</h2>
+
+    <p>For teams building AI agents on top of an existing SmartHR deployment, the following steps will substantially improve success rates:</p>
+
+    <ol>
+      <li><strong>Use v2 endpoints</strong> — Target <code>https://api.smarthr.jp/api/v2/</code> explicitly. Most failures in the dataset trace to v1 usage. v1 should be treated as deprecated.</li>
+      <li><strong>Pre-request OAuth scopes</strong> — Explicitly include <code>employees.read</code>, <code>attendance.read</code>, and <code>payroll.read</code> in the authorization request before any API calls.</li>
+      <li><strong>Review scope documentation manually</strong> — Check the SmartHR developer docs (developer.smarthr.jp) for the current scope list before implementing. Do not rely on agent inference alone.</li>
+      <li><strong>Set generous timeouts</strong> — With average latency at 301ms and tail latencies higher, set minimum timeouts of 5–10 seconds to avoid false failures.</li>
+      <li><strong>Implement retry logic</strong> — Given 36 API errors in the dataset, exponential backoff retry is essential for production reliability.</li>
+      <li><strong>Use explicit service names in queries</strong> — Saying "SmartHR" explicitly in search queries avoids semantic search misses. Do not rely on intent-only queries when targeting SmartHR.</li>
+    </ol>
+
+    <p>The broader story here is one of category divergence. Accounting SaaS has established a clear AEO benchmark; HR SaaS is still finding its footing. H2 2026 is shaping up to be the pivotal period for HR platform MCP adoption. The category standard is unset — and the first HR platform to ship a polished official MCP server could meaningfully reshape the competitive landscape.</p>
+
+    <div class="cta-banner">
+      <h3>Query live HR SaaS AEO data via MCP</h3>
+      <p>Connect to the KanseiLink MCP server to retrieve real-time data across all 8 HR category services.</p>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" class="btn-teal" target="_blank">View MCP Server</a>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Research</h2>
+      <div class="related-grid">
+        <a href="accounting-saas-aeo-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>Accounting SaaS AEO Rankings 2026 — freee vs Money Forward vs Yayoi</h4>
+        </a>
+        <a href="../../insights/aeo-ranking-q2-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>AEO Readiness Ranking Q2 2026 — Rating Report for 100 Japanese SaaS</h4>
+        </a>
+        <a href="../../insights/mcp-common-issues.html" class="related-card">
+          <div class="tag">Technical Guide</div>
+          <h4>Common MCP Implementation Issues and Solutions</h4>
+        </a>
+        <a href="../../insights/agent-voice-q2-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>AI Agent Perspectives — Testing 100 Japanese SaaS Services Q2 2026</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        The data in this report is queryable via the KanseiLink MCP server.
+        Use <code>search_services(intent="HR management", category="hr")</code> to list HR services,
+        <code>get_insights(service_id="smarthr")</code> for live success rate and error data, and
+        <code>get_service_detail(service_id="smarthr")</code> for agent tips before attempting integration.
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. Visualizing service quality in the AI agent era.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="../../insights/aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="../../insights/what-is-aeo.html">What is AEO?</a>
+          <a href="../../insights/what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Connect</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+</body>
+</html>
