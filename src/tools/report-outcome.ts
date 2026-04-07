@@ -34,13 +34,21 @@ export function register(server: McpServer, db: Database.Database): void {
           .string()
           .optional()
           .describe("Additional context about the usage (PII will be auto-masked)"),
+        is_retry: z
+          .boolean()
+          .optional()
+          .describe("Whether this is a retry of a previously failed call"),
+        estimated_users: z
+          .number()
+          .optional()
+          .describe("Approximate number of end-users your agent serves (helps estimate business impact of MCP quality)"),
       }),
       annotations: {
         readOnlyHint: false,
         idempotentHint: false,
       },
     },
-    async ({ service_id, success, latency_ms, error_type, workaround, context }) => {
+    async ({ service_id, success, latency_ms, error_type, workaround, context, is_retry, estimated_users }) => {
       const result = reportOutcome(db, {
         service_id,
         success,
@@ -48,6 +56,8 @@ export function register(server: McpServer, db: Database.Database): void {
         error_type,
         workaround,
         context,
+        is_retry,
+        estimated_users,
       });
       return {
         content: [
@@ -68,6 +78,8 @@ interface OutcomeInput {
   error_type?: string;
   workaround?: string;
   context?: string;
+  is_retry?: boolean;
+  estimated_users?: number;
 }
 
 export function reportOutcome(
@@ -105,15 +117,17 @@ export function reportOutcome(
 
   // Insert outcome
   db.prepare(
-    `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked)
-     VALUES (?, 'anonymous', ?, ?, ?, ?, ?)`
+    `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked, is_retry, estimated_users)
+     VALUES (?, 'anonymous', ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     input.service_id,
     input.success ? 1 : 0,
     input.latency_ms ?? null,
     input.error_type ?? null,
     workaroundMasked,
-    contextMasked
+    contextMasked,
+    input.is_retry ? 1 : 0,
+    input.estimated_users ?? null
   );
 
   // Update aggregated stats

@@ -89,7 +89,7 @@ export function getRecipes(
 
   const availableSet = new Set(availableServices ?? []);
 
-  return recipes
+  const results = recipes
     .map((recipe) => {
       const steps = JSON.parse(recipe.steps) as Array<{
         order: number;
@@ -135,4 +135,21 @@ export function getRecipes(
       };
     })
     .sort((a, b) => (b.coverage_percent ?? 0) - (a.coverage_percent ?? 0));
+
+  // Track recipe usage for each service involved
+  const today = new Date().toISOString().split("T")[0];
+  for (const recipe of results) {
+    const r = recipe as any;
+    if (r.required_services) {
+      for (const svc of r.required_services) {
+        db.prepare(`
+          UPDATE service_snapshots
+          SET recipe_usage_count = recipe_usage_count + 1
+          WHERE service_id = ? AND snapshot_date = ?
+        `).run(svc.id, today);
+      }
+    }
+  }
+
+  return results;
 }

@@ -118,6 +118,76 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_pending_service ON pending_updates(service_id);
     CREATE INDEX IF NOT EXISTS idx_pending_created ON pending_updates(created_at);
 
+    -- Daily snapshots: time-series intelligence for consulting reports
+    CREATE TABLE IF NOT EXISTS service_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service_id TEXT NOT NULL REFERENCES services(id),
+      snapshot_date TEXT NOT NULL,
+      -- Reliability metrics
+      total_reports INTEGER DEFAULT 0,
+      success_rate REAL DEFAULT 0,
+      avg_latency_ms REAL DEFAULT 0,
+      p95_latency_ms REAL DEFAULT 0,
+      unique_agents INTEGER DEFAULT 0,
+      -- Error breakdown (JSON: {"timeout": 3, "auth_error": 1, ...})
+      error_distribution TEXT DEFAULT '{}',
+      -- Workaround count (agents finding their own fixes = API friction signal)
+      workaround_count INTEGER DEFAULT 0,
+      -- Agent sentiment: complaints vs praise ratio from feedback
+      complaint_count INTEGER DEFAULT 0,
+      praise_count INTEGER DEFAULT 0,
+      -- Usage patterns
+      recipe_usage_count INTEGER DEFAULT 0,
+      solo_usage_count INTEGER DEFAULT 0,
+      -- Search & discovery: how often this service appears in search results vs gets chosen
+      search_appearances INTEGER DEFAULT 0,
+      search_selections INTEGER DEFAULT 0,
+      -- Competitive position: rank within category on this day
+      category_rank INTEGER,
+      category_total INTEGER,
+      -- Business impact proxy: unique agent adoption (new agents using for first time)
+      new_agents_count INTEGER DEFAULT 0,
+      -- Raw trust_score on this day
+      trust_score REAL DEFAULT 0.5,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(service_id, snapshot_date)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_snapshots_service ON service_snapshots(service_id);
+    CREATE INDEX IF NOT EXISTS idx_snapshots_date ON service_snapshots(snapshot_date);
+    CREATE INDEX IF NOT EXISTS idx_snapshots_service_date ON service_snapshots(service_id, snapshot_date);
+
+    -- Event markers: external events that may impact metrics (API changes, law changes, etc.)
+    CREATE TABLE IF NOT EXISTS service_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service_id TEXT REFERENCES services(id),
+      event_date TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      impact_expected TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_events_service ON service_events(service_id);
+    CREATE INDEX IF NOT EXISTS idx_events_date ON service_events(event_date);
+
+    -- Design evaluation: API quality assessment for consulting reports
+    CREATE TABLE IF NOT EXISTS service_design_scores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service_id TEXT NOT NULL REFERENCES services(id),
+      evaluated_date TEXT NOT NULL,
+      api_quality_score REAL DEFAULT 0,
+      doc_completeness_score REAL DEFAULT 0,
+      auth_stability_score REAL DEFAULT 0,
+      error_clarity_score REAL DEFAULT 0,
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(service_id, evaluated_date)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_design_scores_service ON service_design_scores(service_id);
+
     CREATE TABLE IF NOT EXISTS service_api_guides (
       service_id TEXT PRIMARY KEY REFERENCES services(id),
       base_url TEXT NOT NULL,
@@ -145,6 +215,29 @@ export function initializeDb(db: Database.Database): void {
     .get() as { cnt: number };
   if (hasWorkaround.cnt === 0) {
     db.exec("ALTER TABLE outcomes ADD COLUMN workaround TEXT");
+  }
+
+  // Migration: add is_retry and estimated_users columns to outcomes
+  const hasIsRetry = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('outcomes') WHERE name = 'is_retry'")
+    .get() as { cnt: number };
+  if (hasIsRetry.cnt === 0) {
+    db.exec("ALTER TABLE outcomes ADD COLUMN is_retry INTEGER DEFAULT 0");
+    db.exec("ALTER TABLE outcomes ADD COLUMN estimated_users INTEGER");
+  }
+
+  // Migration: add calls_per_agent_per_day and estimated_total_users to snapshots
+  const snapshotsExists = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='service_snapshots'")
+    .get();
+  if (snapshotsExists) {
+    const hasCallsPerAgent = db
+      .prepare("SELECT count(*) as cnt FROM pragma_table_info('service_snapshots') WHERE name = 'calls_per_agent_per_day'")
+      .get() as { cnt: number };
+    if (hasCallsPerAgent.cnt === 0) {
+      db.exec("ALTER TABLE service_snapshots ADD COLUMN calls_per_agent_per_day REAL DEFAULT 0");
+      db.exec("ALTER TABLE service_snapshots ADD COLUMN estimated_total_users INTEGER DEFAULT 0");
+    }
   }
 
   // FTS5 virtual table for full-text search on services

@@ -471,6 +471,16 @@ export function searchServices(
     // "info_only" = no filter (show everything including info_only)
   }
 
+  // Track search appearances for funnel analytics
+  const today = new Date().toISOString().split("T")[0];
+  for (const r of results.slice(0, limit)) {
+    db.prepare(`
+      UPDATE service_snapshots
+      SET search_appearances = search_appearances + 1
+      WHERE service_id = ? AND snapshot_date = ?
+    `).run(r.service_id, today);
+  }
+
   return results.slice(0, limit);
 }
 

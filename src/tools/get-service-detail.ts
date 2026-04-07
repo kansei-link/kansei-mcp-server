@@ -93,6 +93,14 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     };
   }
 
+  // Track search-to-detail conversion (selection) for funnel analytics
+  const today = new Date().toISOString().split("T")[0];
+  db.prepare(`
+    UPDATE service_snapshots
+    SET search_selections = search_selections + 1
+    WHERE service_id = ? AND snapshot_date = ?
+  `).run(serviceId, today);
+
   const guide = db
     .prepare("SELECT * FROM service_api_guides WHERE service_id = ?")
     .get(serviceId) as GuideRow | undefined;
