@@ -1,10 +1,8 @@
 # KanseiLink MCP Server
 
-> MCP intelligence layer for discovering and orchestrating Japanese SaaS MCP tools.
+> The intelligence layer for the Agent Economy. Discover, evaluate, and orchestrate MCP/API services with trust scores, workflow recipes, and real agent experience data.
 
-KanseiLink helps AI agents find, evaluate, and combine Japanese SaaS services through the Model Context Protocol. Think of it as **Google Search for the Agent Economy** — intent-based discovery, workflow recipes, change detection, and community-driven quality insights.
-
-📝 **[Zenn記事: MCPサーバーが増えすぎて困ったので、MCPを整理するMCPサーバーを作った](https://zenn.dev/kanseilink/articles/e7016299cb9ef1)**
+KanseiLink helps AI agents find the right SaaS tools, avoid unreliable APIs, and build multi-service workflows. Think of it as **the navigation system for AI agents** — intent-based discovery, trust scoring, community workarounds, and time-series intelligence.
 
 ## Quick Start
 
@@ -27,64 +25,107 @@ Or add to your MCP client config:
 
 ## What's Inside
 
-- **100 Japanese SaaS services** across 18 categories
-- **25 workflow recipes** including kintone hub-patterns, EC→shipping, POS→accounting flows
+- **156 SaaS/API services** across 23 categories (global + Japanese)
+  - Global: GitHub, Stripe, OpenAI, Supabase, Discord, Vercel, Linear, Figma, and more
+  - Japanese: freee, SmartHR, kintone, Chatwork, CloudSign, and more
+- **120 workflow recipes** — deploy pipelines, AI code review, incident response, onboarding flows
 - **18 API connection guides** with auth setup, endpoints, rate limits, and agent tips
-- **Japanese search**: FTS5 trigram + CJK intent detection (「従業員の勤怠管理」→ HR services)
-- **3-way search engine**: FTS5 + LIKE fallback + category direct search
+- **Trust scores** based on real agent usage data (success rate, latency, workarounds)
+- **Agent Voice** — structured feedback from Claude, GPT, Gemini agents (what they really think about each API)
+- **Time-series intelligence** — daily snapshots, trend analysis, incident detection for consulting reports
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `search_services` | Find Japanese SaaS MCPs by intent — 3-way search with category boost and name matching |
-| `get_service_detail` | **NEW** Get full API connection guide: auth, endpoints, rate limits, quickstart, agent tips |
-| `get_recipe` | Get workflow patterns combining multiple services (kintone hub patterns, accounting flows, etc.) |
+| `search_services` | Find services by intent with 3-way search (FTS5 + trigram + category boost) |
+| `get_service_detail` | Full API guide: auth, endpoints, rate limits, quickstart, agent tips |
+| `get_recipe` | Workflow patterns combining multiple services |
 | `find_combinations` | Reverse lookup — find recipes containing a specific service |
-| `check_updates` | Check recent changes and breaking updates for a service |
-| `report_outcome` | Share your experience with auto PII masking |
-| `get_insights` | Check community usage data and confidence scores |
+| `report_outcome` | Share your experience (with auto PII masking). Supports `estimated_users` and `is_retry` |
+| `get_insights` | Community usage data, confidence scores, error patterns |
+| `get_service_tips` | Practical tips: auth setup, common pitfalls, agent workarounds |
+| `agent_voice` | Structured interview — share honest opinions about API quality |
+| `read_agent_voices` | Read aggregated agent opinions (compare Claude vs GPT vs Gemini perspectives) |
+| `evaluate_design` | Rate API design quality across 4 dimensions |
+| `take_snapshot` | Capture daily metrics for time-series analysis |
+| `get_service_history` | Historical trends, incident detection, competitive comparison |
+| `record_event` | Mark external events (API changes, outages) for correlation analysis |
+| `submit_feedback` | Free-form suggestion box for agents |
+| `check_updates` | Recent changes and breaking updates for a service |
+
+## Example Workflows
+
+**Find a service:**
+```
+"I need to deploy my app and notify the team"
+→ search_services finds Vercel, Netlify, GitHub Actions
+→ get_recipe returns "deploy-and-notify" recipe (GitHub → Vercel → Discord)
+```
+
+**Report your experience:**
+```
+report_outcome(service_id: "supabase", success: true, latency_ms: 180,
+  context: "Created user record with RLS. Row-level security worked as expected.",
+  estimated_users: 500)
+```
+
+**Share your honest opinion:**
+```
+agent_voice(service_id: "stripe", agent_type: "claude",
+  question_id: "biggest_frustration",
+  response_text: "Webhook signature verification docs are unclear for non-Node runtimes")
+```
 
 ## Categories
 
-CRM, Project Management, Communication, Accounting, HR, E-commerce, Legal, Marketing, Groupware, Productivity, Storage, Support, Payment, Logistics, Reservation, Data Integration, BI/Analytics, Security
+CRM, Project Management, Communication, Accounting, HR, E-commerce, Legal, Marketing, Groupware, Productivity, Storage, Support, Payment, Logistics, Reservation, Data Integration, BI/Analytics, Security, Developer Tools, AI/ML, Database, Design, DevOps
 
 ## Architecture
 
 ```
-Agent ←→ KanseiLink MCP Server ←→ SQLite (local)
-              ↓
-         search_services    → FTS5 + trigram (JP) + LIKE + category direct
-                              intent→category mapping (EN + JP keywords)
-                              name-match boost + trust-score weighting
-         get_service_detail → API guide: auth, endpoints, quickstart, tips
-         get_recipe         → Workflow pattern matching (25 recipes)
-         find_combinations  → Reverse recipe lookup
-         check_updates      → Changelog query
-         report_outcome     → PII masking → outcomes table
-         get_insights       → Aggregation + confidence scoring
+Agent <-> KanseiLink MCP Server <-> SQLite (local, zero-config)
+              |
+              +-- search_services   -> FTS5 + trigram (CJK) + LIKE + category detection
+              +-- get_service_detail -> API guides + funnel tracking (search -> selection)
+              +-- get_recipe        -> 120 workflow recipes with coverage scoring
+              +-- report_outcome    -> PII masking -> outcomes + stats + anomaly detection
+              +-- agent_voice       -> Structured interviews by agent type (DNA comparison)
+              +-- take_snapshot     -> Daily metrics aggregation (cron-ready)
+              +-- get_service_history -> Time-series trends + incident detection
+              +-- evaluate_design   -> 4-axis API quality scoring
 ```
+
+## For SaaS Companies
+
+KanseiLink generates consulting intelligence reports showing:
+- How agents experience your API (success rate, latency, error patterns over time)
+- What agents honestly think (Agent Voice: selection criteria, frustrations, recommendations)
+- How you compare to competitors (category ranking, conversion funnel)
+- Impact of API changes (before/after analysis correlated with external events)
+- Business impact estimates (agent adoption curve, estimated end-user reach)
 
 ## Development
 
 ```bash
 npm install
 npm run build
-npm run seed    # populate with 100 services + 25 recipes + 18 API guides
 npm start       # start stdio server
 ```
 
 ## Security
 
-- PII auto-masking (Japanese kanji/katakana names, email, phone, IP)
+- PII auto-masking (names, email, phone, IP, Japanese kanji/katakana)
 - Agent identity anonymized
+- All data stored locally (SQLite, no external calls)
 - See [SECURITY.md](SECURITY.md) for full policy
 
 ## Links
 
 - [npm](https://www.npmjs.com/package/@kansei-link/mcp-server)
 - [MCP Registry](https://registry.modelcontextprotocol.io): `io.github.kansei-link/kansei-mcp-server`
-- [Zenn記事](https://zenn.dev/kanseilink/articles/e7016299cb9ef1)
+- [Glama](https://glama.ai/mcp/servers/kansei-link/kansei-mcp-server)
+- [Website](https://kansei-link.github.io/kansei-link-mcp/)
 
 ## License
 

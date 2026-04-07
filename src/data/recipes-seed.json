@@ -4976,5 +4976,1263 @@
       "cloudsign",
       "slack"
     ]
+  },
+  {
+    "id": "deploy-and-notify",
+    "goal": "Push code to production and notify the team",
+    "description": "Trigger a Vercel deployment from a GitHub push, then send a deployment summary to a Discord channel.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "github",
+        "action": "Detect push to main branch and retrieve commit summary",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["repository", "branch", "commit_sha", "commit_message"]
+        },
+        "output_mapping": {
+          "repo": "step1.repository",
+          "sha": "step1.commit_sha",
+          "message": "step1.commit_message"
+        },
+        "error_hint": "Ensure the webhook is configured for push events on the target branch"
+      },
+      {
+        "order": 2,
+        "service_id": "vercel",
+        "action": "Trigger production deployment and wait for completion status",
+        "input_mapping": {
+          "repo": "step1.repository",
+          "ref": "step1.commit_sha"
+        },
+        "output_mapping": {
+          "deploy_url": "step2.url",
+          "status": "step2.status"
+        },
+        "error_hint": "Check that the Vercel project is linked to the correct GitHub repo. Deployment timeout is typically 10 minutes."
+      },
+      {
+        "order": 3,
+        "service_id": "discord",
+        "action": "Post deployment status message with URL to the team channel",
+        "input_mapping": {
+          "channel_id": "config.deploy_channel_id",
+          "message": "Deployed {{step1.commit_message}} → {{step2.url}} ({{step2.status}})"
+        },
+        "output_mapping": {
+          "message_id": "step3.message_id"
+        },
+        "error_hint": "Verify the bot has Send Messages permission in the target channel"
+      }
+    ],
+    "required_services": ["github", "vercel", "discord"]
+  },
+  {
+    "id": "bug-triage-ai",
+    "goal": "Automatically triage production errors with AI analysis",
+    "description": "When Sentry captures an error, create a Linear issue, run AI root-cause analysis, and post findings to Slack.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "sentry",
+        "action": "Receive error event with stack trace, frequency, and affected users count",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["error_title", "stack_trace", "frequency", "affected_users"]
+        },
+        "output_mapping": {
+          "error_title": "step1.error_title",
+          "stack_trace": "step1.stack_trace",
+          "severity": "step1.frequency"
+        },
+        "error_hint": "Configure Sentry alert rules to filter noise — send only errors with >5 occurrences"
+      },
+      {
+        "order": 2,
+        "service_id": "linear",
+        "action": "Create a bug issue with error details and auto-assign based on code ownership",
+        "input_mapping": {
+          "title": "Bug: {{step1.error_title}}",
+          "description": "Stack trace:\n{{step1.stack_trace}}\nAffected users: {{step1.affected_users}}",
+          "team_id": "config.engineering_team_id",
+          "priority": "step1.severity"
+        },
+        "output_mapping": {
+          "issue_id": "step2.issue_id",
+          "issue_url": "step2.url"
+        },
+        "error_hint": "Ensure the Linear API key has write access to the target team"
+      },
+      {
+        "order": 3,
+        "service_id": "openai-api",
+        "action": "Analyze stack trace to suggest root cause and potential fix",
+        "input_mapping": {
+          "prompt": "Analyze this production error and suggest root cause and fix:\n{{step1.error_title}}\n{{step1.stack_trace}}",
+          "model": "gpt-4o"
+        },
+        "output_mapping": {
+          "analysis": "step3.response"
+        },
+        "error_hint": "Keep prompt under 4000 tokens. If stack trace is long, truncate to last 50 frames."
+      },
+      {
+        "order": 4,
+        "service_id": "slack",
+        "action": "Post triage summary with AI analysis and Linear issue link",
+        "input_mapping": {
+          "channel": "config.bugs_channel",
+          "message": "🐛 *{{step1.error_title}}*\nLinear: {{step2.issue_url}}\nAI Analysis: {{step3.analysis}}"
+        },
+        "output_mapping": {
+          "message_ts": "step4.ts"
+        },
+        "error_hint": "Use Slack Block Kit for better formatting if message exceeds 3000 characters"
+      }
+    ],
+    "required_services": ["sentry", "linear", "openai-api", "slack"]
+  },
+  {
+    "id": "pr-review-notify",
+    "goal": "Notify team and create review task when a PR is opened",
+    "description": "When a GitHub pull request is created, post a notification to Slack and create a review task in Linear.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "github",
+        "action": "Receive pull request opened event with title, author, and diff stats",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["pr_title", "pr_author", "pr_url", "files_changed", "additions", "deletions"]
+        },
+        "output_mapping": {
+          "pr_title": "step1.pr_title",
+          "pr_author": "step1.pr_author",
+          "pr_url": "step1.pr_url",
+          "diff_size": "step1.additions"
+        },
+        "error_hint": "Configure webhook for pull_request events with action=opened only to avoid duplicate triggers"
+      },
+      {
+        "order": 2,
+        "service_id": "slack",
+        "action": "Post PR notification with link and diff summary to the review channel",
+        "input_mapping": {
+          "channel": "config.review_channel",
+          "message": "New PR from {{step1.pr_author}}: *{{step1.pr_title}}*\n{{step1.pr_url}} (+{{step1.additions}}/-{{step1.deletions}})"
+        },
+        "output_mapping": {
+          "message_ts": "step2.ts"
+        },
+        "error_hint": "Ensure the Slack bot is invited to the review channel"
+      },
+      {
+        "order": 3,
+        "service_id": "linear",
+        "action": "Create a code review task and assign to available reviewer",
+        "input_mapping": {
+          "title": "Review: {{step1.pr_title}}",
+          "description": "PR: {{step1.pr_url}}\nAuthor: {{step1.pr_author}}",
+          "team_id": "config.engineering_team_id",
+          "label": "code-review"
+        },
+        "output_mapping": {
+          "task_id": "step3.issue_id"
+        },
+        "error_hint": "Create a 'code-review' label in Linear beforehand if it does not exist"
+      }
+    ],
+    "required_services": ["github", "slack", "linear"]
+  },
+  {
+    "id": "user-onboarding-saas",
+    "goal": "Automate new SaaS customer onboarding after payment",
+    "description": "When a Stripe payment succeeds, provision a Supabase user, send a welcome email, and notify the team.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "stripe",
+        "action": "Receive checkout.session.completed webhook with customer email and plan",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["customer_email", "customer_name", "plan_id", "subscription_id"]
+        },
+        "output_mapping": {
+          "email": "step1.customer_email",
+          "name": "step1.customer_name",
+          "plan": "step1.plan_id"
+        },
+        "error_hint": "Verify webhook signature to prevent spoofed events. Use Stripe CLI for local testing."
+      },
+      {
+        "order": 2,
+        "service_id": "supabase",
+        "action": "Create user record with auth and profile data in the database",
+        "input_mapping": {
+          "email": "step1.customer_email",
+          "display_name": "step1.customer_name",
+          "plan": "step1.plan_id",
+          "metadata": {"stripe_subscription": "step1.subscription_id"}
+        },
+        "output_mapping": {
+          "user_id": "step2.user_id"
+        },
+        "error_hint": "Check if email already exists to handle duplicate payment events idempotently"
+      },
+      {
+        "order": 3,
+        "service_id": "resend",
+        "action": "Send welcome email with setup instructions and login link",
+        "input_mapping": {
+          "to": "step1.customer_email",
+          "subject": "Welcome to {{config.app_name}}!",
+          "template": "welcome",
+          "variables": {"name": "step1.customer_name", "plan": "step1.plan_id"}
+        },
+        "output_mapping": {
+          "email_id": "step3.id"
+        },
+        "error_hint": "Verify sending domain is authenticated in Resend dashboard. Check spam score."
+      },
+      {
+        "order": 4,
+        "service_id": "slack",
+        "action": "Notify the sales channel about the new customer signup",
+        "input_mapping": {
+          "channel": "config.sales_channel",
+          "message": "New customer: {{step1.customer_name}} ({{step1.customer_email}}) on {{step1.plan_id}} plan"
+        },
+        "output_mapping": {
+          "message_ts": "step4.ts"
+        },
+        "error_hint": "Use a dedicated #new-customers channel to avoid noise in general sales chat"
+      }
+    ],
+    "required_services": ["stripe", "supabase", "resend", "slack"]
+  },
+  {
+    "id": "content-pipeline",
+    "goal": "AI-powered content creation pipeline",
+    "description": "Pull content topics from Airtable, generate a draft with Anthropic, and publish to Notion for review.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "airtable",
+        "action": "Fetch next scheduled content item from the editorial calendar",
+        "input_mapping": {
+          "base_id": "config.content_base_id",
+          "table": "Editorial Calendar",
+          "filter": "status=scheduled&sort=publish_date"
+        },
+        "output_mapping": {
+          "topic": "step1.topic",
+          "keywords": "step1.keywords",
+          "target_audience": "step1.audience",
+          "record_id": "step1.record_id"
+        },
+        "error_hint": "Ensure the Airtable API key has read access to the content base. Check field names match exactly."
+      },
+      {
+        "order": 2,
+        "service_id": "anthropic-api",
+        "action": "Generate article draft based on topic, keywords, and target audience",
+        "input_mapping": {
+          "prompt": "Write a blog post about {{step1.topic}} targeting {{step1.target_audience}}. Include keywords: {{step1.keywords}}",
+          "model": "claude-sonnet-4-20250514",
+          "max_tokens": 4000
+        },
+        "output_mapping": {
+          "draft": "step2.content"
+        },
+        "error_hint": "If content is too long, split into sections. Keep prompt under 2000 tokens for best results."
+      },
+      {
+        "order": 3,
+        "service_id": "notion",
+        "action": "Create a new page in the content review database with the generated draft",
+        "input_mapping": {
+          "database_id": "config.content_review_db",
+          "title": "step1.topic",
+          "content": "step2.content",
+          "properties": {"Status": "Draft", "Source": "AI Generated", "Keywords": "step1.keywords"}
+        },
+        "output_mapping": {
+          "page_id": "step3.page_id",
+          "page_url": "step3.url"
+        },
+        "error_hint": "Notion API has a 2000 block limit per request. Split long content into chunks if needed."
+      }
+    ],
+    "required_services": ["airtable", "anthropic-api", "notion"]
+  },
+  {
+    "id": "incident-response",
+    "goal": "Streamline incident response across tools",
+    "description": "When PagerDuty triggers an alert, create a Jira ticket, notify the on-call team in Slack, and annotate Grafana.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "pagerduty",
+        "action": "Receive incident trigger with severity, service name, and description",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["incident_title", "severity", "service_name", "triggered_at"]
+        },
+        "output_mapping": {
+          "title": "step1.incident_title",
+          "severity": "step1.severity",
+          "service": "step1.service_name",
+          "timestamp": "step1.triggered_at"
+        },
+        "error_hint": "Configure PagerDuty webhook to send V3 events format for richer payload"
+      },
+      {
+        "order": 2,
+        "service_id": "jira",
+        "action": "Create incident ticket with priority mapped from PagerDuty severity",
+        "input_mapping": {
+          "project": "config.incident_project_key",
+          "issue_type": "Incident",
+          "summary": "INC: {{step1.incident_title}}",
+          "priority": "step1.severity",
+          "description": "Service: {{step1.service}}\nTriggered: {{step1.timestamp}}"
+        },
+        "output_mapping": {
+          "ticket_key": "step2.key",
+          "ticket_url": "step2.url"
+        },
+        "error_hint": "Ensure 'Incident' issue type exists in the Jira project. Map PagerDuty P1-P5 to Jira priority levels."
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Post incident alert to the on-call channel with Jira link",
+        "input_mapping": {
+          "channel": "config.oncall_channel",
+          "message": "🚨 *INCIDENT*: {{step1.incident_title}}\nSeverity: {{step1.severity}} | Service: {{step1.service}}\nJira: {{step2.ticket_url}}"
+        },
+        "output_mapping": {
+          "message_ts": "step3.ts"
+        },
+        "error_hint": "Consider using @channel mention for P1/P2 incidents only to avoid alert fatigue"
+      },
+      {
+        "order": 4,
+        "service_id": "grafana-cloud",
+        "action": "Create annotation on the relevant dashboard to mark incident start time",
+        "input_mapping": {
+          "dashboard_id": "config.main_dashboard_id",
+          "time": "step1.timestamp",
+          "text": "INC: {{step1.incident_title}} ({{step2.ticket_key}})",
+          "tags": ["incident", "step1.severity"]
+        },
+        "output_mapping": {
+          "annotation_id": "step4.id"
+        },
+        "error_hint": "Use Grafana API token with annotation write permissions. Dashboard ID is numeric, not the slug."
+      }
+    ],
+    "required_services": ["pagerduty", "jira", "slack", "grafana-cloud"]
+  },
+  {
+    "id": "customer-feedback-loop",
+    "goal": "Analyze customer feedback with AI and route insights",
+    "description": "Collect survey responses from Airtable, run AI sentiment analysis, and post a summary report to Slack.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "airtable",
+        "action": "Fetch new unprocessed survey responses from the feedback table",
+        "input_mapping": {
+          "base_id": "config.feedback_base_id",
+          "table": "Survey Responses",
+          "filter": "processed=false"
+        },
+        "output_mapping": {
+          "responses": "step1.records",
+          "count": "step1.total_count"
+        },
+        "error_hint": "Add a 'processed' checkbox field to track which responses have been analyzed"
+      },
+      {
+        "order": 2,
+        "service_id": "openai-api",
+        "action": "Run sentiment analysis and theme extraction on feedback batch",
+        "input_mapping": {
+          "prompt": "Analyze these customer feedback responses. For each, provide sentiment (positive/neutral/negative) and key themes:\n{{step1.records}}",
+          "model": "gpt-4o"
+        },
+        "output_mapping": {
+          "analysis": "step2.response",
+          "sentiments": "step2.sentiments"
+        },
+        "error_hint": "Batch responses to stay under token limits. Process max 20 responses per API call."
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Post weekly feedback digest with sentiment breakdown and top themes",
+        "input_mapping": {
+          "channel": "config.product_channel",
+          "message": "📊 *Feedback Report* ({{step1.total_count}} responses)\n{{step2.analysis}}"
+        },
+        "output_mapping": {
+          "message_ts": "step3.ts"
+        },
+        "error_hint": "If analysis is too long for a single message, use Slack thread replies for details"
+      }
+    ],
+    "required_services": ["airtable", "openai-api", "slack"]
+  },
+  {
+    "id": "ecommerce-order-flow",
+    "goal": "Process e-commerce orders with inventory tracking",
+    "description": "When a Shopify order comes in, update Airtable inventory, send confirmation via Resend, and notify operations in Slack.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "shopify-global",
+        "action": "Receive new order webhook with line items, customer info, and totals",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["order_id", "customer_email", "customer_name", "line_items", "total_price"]
+        },
+        "output_mapping": {
+          "order_id": "step1.order_id",
+          "email": "step1.customer_email",
+          "name": "step1.customer_name",
+          "items": "step1.line_items",
+          "total": "step1.total_price"
+        },
+        "error_hint": "Verify Shopify webhook HMAC signature. Handle test orders from Shopify Bogus Gateway separately."
+      },
+      {
+        "order": 2,
+        "service_id": "airtable",
+        "action": "Decrement inventory quantities for each ordered item",
+        "input_mapping": {
+          "base_id": "config.inventory_base_id",
+          "table": "Products",
+          "updates": "step1.line_items"
+        },
+        "output_mapping": {
+          "updated_skus": "step2.records",
+          "low_stock_items": "step2.low_stock"
+        },
+        "error_hint": "Use Airtable's PATCH endpoint for atomic updates. Check for negative inventory values."
+      },
+      {
+        "order": 3,
+        "service_id": "resend",
+        "action": "Send order confirmation email with itemized receipt",
+        "input_mapping": {
+          "to": "step1.customer_email",
+          "subject": "Order #{{step1.order_id}} confirmed",
+          "template": "order-confirmation",
+          "variables": {"name": "step1.customer_name", "items": "step1.line_items", "total": "step1.total_price"}
+        },
+        "output_mapping": {
+          "email_id": "step3.id"
+        },
+        "error_hint": "Set up the order-confirmation template in Resend before first use"
+      },
+      {
+        "order": 4,
+        "service_id": "slack",
+        "action": "Notify operations channel with order summary and any low-stock alerts",
+        "input_mapping": {
+          "channel": "config.operations_channel",
+          "message": "📦 Order #{{step1.order_id}} — {{step1.customer_name}} — ${{step1.total_price}}\n{{#step2.low_stock}}⚠️ Low stock: {{step2.low_stock_items}}{{/step2.low_stock}}"
+        },
+        "output_mapping": {
+          "message_ts": "step4.ts"
+        },
+        "error_hint": "Use conditional formatting to only show low-stock alert when relevant"
+      }
+    ],
+    "required_services": ["shopify-global", "airtable", "resend", "slack"]
+  },
+  {
+    "id": "design-handoff",
+    "goal": "Streamline design-to-development handoff",
+    "description": "When a Figma design is finalized, create a GitHub issue with specs, track it in Linear, and notify the dev team in Discord.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "figma",
+        "action": "Detect file version published event and extract frame details and export URLs",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["file_key", "file_name", "version_id", "description"]
+        },
+        "output_mapping": {
+          "file_name": "step1.file_name",
+          "file_key": "step1.file_key",
+          "version_description": "step1.description"
+        },
+        "error_hint": "Configure Figma webhook for FILE_VERSION_UPDATE event type. File key is in the Figma URL."
+      },
+      {
+        "order": 2,
+        "service_id": "github",
+        "action": "Create an implementation issue with Figma link and design specs",
+        "input_mapping": {
+          "repo": "config.frontend_repo",
+          "title": "Implement: {{step1.file_name}}",
+          "body": "Design: https://figma.com/file/{{step1.file_key}}\nVersion notes: {{step1.version_description}}",
+          "labels": ["design-handoff", "frontend"]
+        },
+        "output_mapping": {
+          "issue_number": "step2.number",
+          "issue_url": "step2.html_url"
+        },
+        "error_hint": "Create the 'design-handoff' label in the GitHub repo beforehand"
+      },
+      {
+        "order": 3,
+        "service_id": "linear",
+        "action": "Create linked task for implementation tracking with GitHub issue reference",
+        "input_mapping": {
+          "title": "Implement: {{step1.file_name}}",
+          "description": "GitHub: {{step2.issue_url}}\nFigma: https://figma.com/file/{{step1.file_key}}",
+          "team_id": "config.frontend_team_id",
+          "label": "design-handoff"
+        },
+        "output_mapping": {
+          "task_id": "step3.issue_id"
+        },
+        "error_hint": "Use Linear's GitHub integration to auto-link issues if available"
+      },
+      {
+        "order": 4,
+        "service_id": "discord",
+        "action": "Post design handoff notification with links to the dev channel",
+        "input_mapping": {
+          "channel_id": "config.dev_channel_id",
+          "message": "🎨 New design ready for implementation: **{{step1.file_name}}**\nFigma: https://figma.com/file/{{step1.file_key}}\nGitHub: {{step2.issue_url}}"
+        },
+        "output_mapping": {
+          "message_id": "step4.message_id"
+        },
+        "error_hint": "Use Discord embeds for richer formatting with preview images"
+      }
+    ],
+    "required_services": ["figma", "github", "linear", "discord"]
+  },
+  {
+    "id": "ai-code-review",
+    "goal": "AI-powered automated code review on pull requests",
+    "description": "Fetch a GitHub PR diff, analyze it with Anthropic API for quality and security issues, and post a review comment.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "github",
+        "action": "Receive PR event and fetch the full diff content",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["pr_number", "repo", "pr_title", "diff_url"]
+        },
+        "output_mapping": {
+          "pr_number": "step1.pr_number",
+          "repo": "step1.repo",
+          "diff": "step1.diff_content"
+        },
+        "error_hint": "Use the application/vnd.github.v3.diff media type to get raw diff. Large diffs may need truncation."
+      },
+      {
+        "order": 2,
+        "service_id": "anthropic-api",
+        "action": "Analyze diff for bugs, security issues, performance problems, and style violations",
+        "input_mapping": {
+          "prompt": "Review this code diff. Identify bugs, security vulnerabilities, performance issues, and suggest improvements:\n{{step1.diff_content}}",
+          "model": "claude-sonnet-4-20250514",
+          "max_tokens": 4000
+        },
+        "output_mapping": {
+          "review": "step2.content"
+        },
+        "error_hint": "Truncate diff to last 8000 tokens if too large. Focus on changed lines only."
+      },
+      {
+        "order": 3,
+        "service_id": "github",
+        "action": "Post AI review as a PR comment with structured feedback",
+        "input_mapping": {
+          "repo": "step1.repo",
+          "pr_number": "step1.pr_number",
+          "body": "## AI Code Review\n{{step2.review}}\n\n---\n_Automated review by KanseiLink_"
+        },
+        "output_mapping": {
+          "comment_id": "step3.id"
+        },
+        "error_hint": "Use GitHub review comments API for inline suggestions. Comment body max is 65536 characters."
+      }
+    ],
+    "required_services": ["github", "anthropic-api"]
+  },
+  {
+    "id": "scheduled-report",
+    "goal": "Generate and distribute automated data reports",
+    "description": "Pull analytics data from Supabase, generate an AI summary report, post to Slack, and archive in Notion.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "supabase",
+        "action": "Query analytics tables for key metrics from the past period",
+        "input_mapping": {
+          "query": "SELECT metric, value, period FROM analytics WHERE period = current_week()",
+          "database": "config.analytics_db"
+        },
+        "output_mapping": {
+          "metrics": "step1.data",
+          "row_count": "step1.count"
+        },
+        "error_hint": "Use Supabase RPC functions for complex queries. Ensure RLS policies allow service role access."
+      },
+      {
+        "order": 2,
+        "service_id": "openai-api",
+        "action": "Generate executive summary and trend analysis from raw metrics",
+        "input_mapping": {
+          "prompt": "Generate a concise weekly report from these metrics. Highlight trends, anomalies, and recommendations:\n{{step1.data}}",
+          "model": "gpt-4o"
+        },
+        "output_mapping": {
+          "report": "step2.response"
+        },
+        "error_hint": "Structure the prompt to request specific sections: Summary, Trends, Action Items"
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Post the weekly report to the leadership channel",
+        "input_mapping": {
+          "channel": "config.leadership_channel",
+          "message": "📈 *Weekly Report*\n{{step2.report}}"
+        },
+        "output_mapping": {
+          "message_ts": "step3.ts"
+        },
+        "error_hint": "Pin the message automatically for easy reference throughout the week"
+      },
+      {
+        "order": 4,
+        "service_id": "notion",
+        "action": "Archive report as a dated page in the reports database",
+        "input_mapping": {
+          "database_id": "config.reports_db",
+          "title": "Weekly Report — {{current_date}}",
+          "content": "step2.report",
+          "properties": {"Type": "Weekly", "Period": "current_week"}
+        },
+        "output_mapping": {
+          "page_id": "step4.page_id"
+        },
+        "error_hint": "Use Notion's date property type for the Period field to enable calendar views"
+      }
+    ],
+    "required_services": ["supabase", "openai-api", "slack", "notion"]
+  },
+  {
+    "id": "new-signup-automation",
+    "goal": "Full-stack new user signup automation",
+    "description": "After Stripe checkout, create Firebase auth user, add to Mailchimp audience, and send a Discord welcome.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "stripe",
+        "action": "Receive successful checkout session with customer details and plan info",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["customer_email", "customer_name", "plan_id", "amount_total"]
+        },
+        "output_mapping": {
+          "email": "step1.customer_email",
+          "name": "step1.customer_name",
+          "plan": "step1.plan_id"
+        },
+        "error_hint": "Handle duplicate webhook deliveries idempotently using the checkout session ID"
+      },
+      {
+        "order": 2,
+        "service_id": "firebase",
+        "action": "Create authenticated user with email and custom claims for plan access",
+        "input_mapping": {
+          "email": "step1.customer_email",
+          "display_name": "step1.customer_name",
+          "custom_claims": {"plan": "step1.plan_id"}
+        },
+        "output_mapping": {
+          "uid": "step2.uid"
+        },
+        "error_hint": "Check if user already exists before creation. Use Firebase Admin SDK for custom claims."
+      },
+      {
+        "order": 3,
+        "service_id": "mailchimp",
+        "action": "Add subscriber to the product mailing list with plan-based tags",
+        "input_mapping": {
+          "list_id": "config.main_audience_id",
+          "email": "step1.customer_email",
+          "merge_fields": {"FNAME": "step1.customer_name", "PLAN": "step1.plan_id"},
+          "tags": ["customer", "step1.plan_id"]
+        },
+        "output_mapping": {
+          "subscriber_id": "step3.id"
+        },
+        "error_hint": "Use Mailchimp's PUT endpoint to handle existing subscribers (upsert behavior)"
+      },
+      {
+        "order": 4,
+        "service_id": "discord",
+        "action": "Send welcome DM via bot with getting-started guide link",
+        "input_mapping": {
+          "user_email": "step1.customer_email",
+          "message": "Welcome to {{config.app_name}}, {{step1.customer_name}}! Here's how to get started: {{config.onboarding_url}}"
+        },
+        "output_mapping": {
+          "message_id": "step4.message_id"
+        },
+        "error_hint": "User must be in the Discord server first. Fall back to welcome channel mention if DM fails."
+      }
+    ],
+    "required_services": ["stripe", "firebase", "mailchimp", "discord"]
+  },
+  {
+    "id": "deploy-monitoring",
+    "goal": "Monitor deployments with automated health checks",
+    "description": "After a Vercel deployment completes, run a health check, update Grafana, and alert Slack if issues are detected.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "vercel",
+        "action": "Receive deployment completed webhook with URL and deployment metadata",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["deployment_url", "deployment_id", "project_name", "git_ref"]
+        },
+        "output_mapping": {
+          "url": "step1.deployment_url",
+          "project": "step1.project_name",
+          "deploy_id": "step1.deployment_id"
+        },
+        "error_hint": "Filter for deployment.ready events only — ignore deployment.created to avoid premature checks"
+      },
+      {
+        "order": 2,
+        "service_id": "vercel",
+        "action": "Run health check against the deployment URL and verify response status",
+        "input_mapping": {
+          "url": "step1.deployment_url",
+          "checks": ["status_200", "response_time_under_3s", "no_console_errors"]
+        },
+        "output_mapping": {
+          "health_status": "step2.status",
+          "response_time": "step2.response_time_ms",
+          "errors": "step2.errors"
+        },
+        "error_hint": "Add retry logic with 30s delay — new deployments may need time to warm up"
+      },
+      {
+        "order": 3,
+        "service_id": "grafana-cloud",
+        "action": "Push deployment event and health metrics to Grafana dashboard",
+        "input_mapping": {
+          "dashboard_id": "config.deploy_dashboard_id",
+          "annotation": "Deploy: {{step1.project}} ({{step2.health_status}})",
+          "metrics": {"response_time": "step2.response_time_ms", "status": "step2.health_status"}
+        },
+        "output_mapping": {
+          "annotation_id": "step3.id"
+        },
+        "error_hint": "Use Grafana's push gateway for custom metrics. Ensure data source is configured."
+      },
+      {
+        "order": 4,
+        "service_id": "slack",
+        "action": "Post deployment result — green for healthy, red alert if health check failed",
+        "input_mapping": {
+          "channel": "config.deploy_channel",
+          "message": "{{#step2.errors}}🔴 Deploy UNHEALTHY: {{step1.project}}\nErrors: {{step2.errors}}{{/step2.errors}}{{^step2.errors}}✅ Deploy healthy: {{step1.project}} ({{step2.response_time_ms}}ms){{/step2.errors}}"
+        },
+        "output_mapping": {
+          "message_ts": "step4.ts"
+        },
+        "error_hint": "Use different channels for healthy vs unhealthy deploys to manage alert noise"
+      }
+    ],
+    "required_services": ["vercel", "grafana-cloud", "slack"]
+  },
+  {
+    "id": "meeting-followup",
+    "goal": "Automate meeting preparation and follow-up",
+    "description": "When a Calendly meeting is booked, create a Notion prep page, send a prep email via Resend, and set a Slack reminder.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "calendly",
+        "action": "Receive invitee.created webhook with meeting details and attendee info",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["event_type", "invitee_name", "invitee_email", "start_time", "questions_and_answers"]
+        },
+        "output_mapping": {
+          "meeting_type": "step1.event_type",
+          "attendee_name": "step1.invitee_name",
+          "attendee_email": "step1.invitee_email",
+          "start_time": "step1.start_time"
+        },
+        "error_hint": "Subscribe to invitee.created event type. Calendly webhooks require HTTPS endpoints."
+      },
+      {
+        "order": 2,
+        "service_id": "notion",
+        "action": "Create a meeting prep page with attendee info, agenda template, and notes section",
+        "input_mapping": {
+          "database_id": "config.meetings_db",
+          "title": "Meeting: {{step1.invitee_name}} — {{step1.start_time}}",
+          "content": "## Attendee\n{{step1.invitee_name}} ({{step1.invitee_email}})\n## Type\n{{step1.event_type}}\n## Agenda\n- \n## Notes\n- ",
+          "properties": {"Date": "step1.start_time", "Status": "Scheduled"}
+        },
+        "output_mapping": {
+          "page_id": "step2.page_id",
+          "page_url": "step2.url"
+        },
+        "error_hint": "Use ISO 8601 date format for the Date property"
+      },
+      {
+        "order": 3,
+        "service_id": "resend",
+        "action": "Send internal prep email with meeting details and Notion page link",
+        "input_mapping": {
+          "to": "config.team_email",
+          "subject": "Meeting prep: {{step1.invitee_name}} on {{step1.start_time}}",
+          "template": "meeting-prep",
+          "variables": {"attendee": "step1.invitee_name", "time": "step1.start_time", "notes_url": "step2.page_url"}
+        },
+        "output_mapping": {
+          "email_id": "step3.id"
+        },
+        "error_hint": "Create the meeting-prep email template in Resend dashboard first"
+      },
+      {
+        "order": 4,
+        "service_id": "slack",
+        "action": "Post meeting reminder to the team channel with prep page link",
+        "input_mapping": {
+          "channel": "config.team_channel",
+          "message": "📅 Meeting booked: {{step1.invitee_name}} at {{step1.start_time}}\nPrep notes: {{step2.page_url}}",
+          "schedule": "step1.start_time - 30min"
+        },
+        "output_mapping": {
+          "message_ts": "step4.ts"
+        },
+        "error_hint": "Use Slack's scheduled messages API (chat.scheduleMessage) for the 30-min reminder"
+      }
+    ],
+    "required_services": ["calendly", "notion", "resend", "slack"]
+  },
+  {
+    "id": "infrastructure-scaling",
+    "goal": "AI-predicted infrastructure scaling alerts",
+    "description": "Analyze Cloudflare traffic analytics with AI to predict scaling needs and proactively alert the team.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "cloudflare",
+        "action": "Fetch traffic analytics, request rates, and bandwidth data for the past 24 hours",
+        "input_mapping": {
+          "zone_id": "config.zone_id",
+          "period": "24h",
+          "metrics": ["requests", "bandwidth", "threats", "cache_hit_ratio"]
+        },
+        "output_mapping": {
+          "traffic_data": "step1.analytics",
+          "current_rps": "step1.requests_per_second"
+        },
+        "error_hint": "Use Cloudflare GraphQL Analytics API for more flexible queries. API token needs Analytics:Read permission."
+      },
+      {
+        "order": 2,
+        "service_id": "openai-api",
+        "action": "Analyze traffic patterns and predict if scaling action is needed",
+        "input_mapping": {
+          "prompt": "Analyze this web traffic data and predict if the infrastructure needs scaling in the next 6 hours. Provide confidence level and recommended action:\n{{step1.analytics}}",
+          "model": "gpt-4o"
+        },
+        "output_mapping": {
+          "prediction": "step2.response",
+          "needs_action": "step2.needs_scaling"
+        },
+        "error_hint": "Include historical baseline data in the prompt for more accurate predictions"
+      },
+      {
+        "order": 3,
+        "service_id": "pagerduty",
+        "action": "Create a warning event if AI predicts scaling is needed",
+        "input_mapping": {
+          "severity": "warning",
+          "summary": "Predicted traffic spike — scaling may be needed",
+          "details": "step2.prediction",
+          "service_id": "config.infra_service_id"
+        },
+        "output_mapping": {
+          "event_id": "step3.dedup_key"
+        },
+        "error_hint": "Use PagerDuty Events API v2. Set dedup_key to prevent duplicate alerts for the same prediction."
+      },
+      {
+        "order": 4,
+        "service_id": "slack",
+        "action": "Post traffic analysis summary to the infrastructure channel",
+        "input_mapping": {
+          "channel": "config.infra_channel",
+          "message": "🔮 *Traffic Analysis*\nCurrent RPS: {{step1.requests_per_second}}\n{{step2.prediction}}"
+        },
+        "output_mapping": {
+          "message_ts": "step4.ts"
+        },
+        "error_hint": "Include a link to the Cloudflare dashboard for the team to verify predictions"
+      }
+    ],
+    "required_services": ["cloudflare", "openai-api", "pagerduty", "slack"]
+  },
+  {
+    "id": "open-source-triage",
+    "goal": "AI-powered open source issue triage and classification",
+    "description": "When a GitHub issue is created, use AI to classify it, auto-assign labels, and notify maintainers in Discord.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "github",
+        "action": "Receive issue opened event with title, body, and author info",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["issue_number", "issue_title", "issue_body", "author", "repo"]
+        },
+        "output_mapping": {
+          "number": "step1.issue_number",
+          "title": "step1.issue_title",
+          "body": "step1.issue_body",
+          "repo": "step1.repo"
+        },
+        "error_hint": "Filter webhook for issues action=opened only to avoid updates and closures"
+      },
+      {
+        "order": 2,
+        "service_id": "anthropic-api",
+        "action": "Classify issue type (bug, feature, question, docs) and estimate priority",
+        "input_mapping": {
+          "prompt": "Classify this GitHub issue. Return JSON with type (bug/feature/question/docs), priority (high/medium/low), and suggested labels:\nTitle: {{step1.issue_title}}\nBody: {{step1.issue_body}}",
+          "model": "claude-sonnet-4-20250514",
+          "max_tokens": 500
+        },
+        "output_mapping": {
+          "classification": "step2.content",
+          "type": "step2.type",
+          "priority": "step2.priority",
+          "labels": "step2.labels"
+        },
+        "error_hint": "Use structured JSON output format. Add few-shot examples in the system prompt for consistency."
+      },
+      {
+        "order": 3,
+        "service_id": "github",
+        "action": "Apply AI-suggested labels and add a classification comment",
+        "input_mapping": {
+          "repo": "step1.repo",
+          "issue_number": "step1.number",
+          "labels": "step2.labels",
+          "comment": "Auto-classified as **{{step2.type}}** (priority: {{step2.priority}})\n\n_Classified by KanseiLink AI triage_"
+        },
+        "output_mapping": {
+          "comment_id": "step3.id"
+        },
+        "error_hint": "Ensure all labels in the classification exist in the repo. Create missing labels via API first."
+      },
+      {
+        "order": 4,
+        "service_id": "discord",
+        "action": "Notify maintainers channel with classified issue summary",
+        "input_mapping": {
+          "channel_id": "config.maintainers_channel_id",
+          "message": "New {{step2.type}} issue (#{{step1.number}}): **{{step1.title}}**\nPriority: {{step2.priority}}\nhttps://github.com/{{step1.repo}}/issues/{{step1.number}}"
+        },
+        "output_mapping": {
+          "message_id": "step4.message_id"
+        },
+        "error_hint": "Use Discord role mentions for high-priority issues to alert the right maintainers"
+      }
+    ],
+    "required_services": ["github", "anthropic-api", "discord"]
+  },
+  {
+    "id": "invoice-automation",
+    "goal": "Automate invoice processing and notifications",
+    "description": "When a Stripe invoice is finalized, log it to Airtable, notify the finance team in Slack, and email the receipt.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "stripe",
+        "action": "Receive invoice.finalized webhook with line items and customer info",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["invoice_id", "customer_email", "customer_name", "amount_due", "line_items", "due_date"]
+        },
+        "output_mapping": {
+          "invoice_id": "step1.invoice_id",
+          "email": "step1.customer_email",
+          "name": "step1.customer_name",
+          "amount": "step1.amount_due",
+          "items": "step1.line_items",
+          "due": "step1.due_date"
+        },
+        "error_hint": "Listen for invoice.finalized not invoice.created — finalized means the invoice is ready to send"
+      },
+      {
+        "order": 2,
+        "service_id": "airtable",
+        "action": "Create invoice record in the finance tracking table",
+        "input_mapping": {
+          "base_id": "config.finance_base_id",
+          "table": "Invoices",
+          "fields": {
+            "Invoice ID": "step1.invoice_id",
+            "Customer": "step1.customer_name",
+            "Amount": "step1.amount_due",
+            "Due Date": "step1.due_date",
+            "Status": "Sent"
+          }
+        },
+        "output_mapping": {
+          "record_id": "step2.id"
+        },
+        "error_hint": "Use Airtable field validation to ensure amount is a positive number"
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Notify finance channel with invoice summary",
+        "input_mapping": {
+          "channel": "config.finance_channel",
+          "message": "💰 Invoice {{step1.invoice_id}} finalized\nCustomer: {{step1.customer_name}}\nAmount: ${{step1.amount_due}} due {{step1.due_date}}"
+        },
+        "output_mapping": {
+          "message_ts": "step3.ts"
+        },
+        "error_hint": "Format currency amounts consistently — use Intl.NumberFormat or similar"
+      },
+      {
+        "order": 4,
+        "service_id": "resend",
+        "action": "Email the invoice receipt to the customer",
+        "input_mapping": {
+          "to": "step1.customer_email",
+          "subject": "Invoice #{{step1.invoice_id}} from {{config.company_name}}",
+          "template": "invoice-receipt",
+          "variables": {"name": "step1.customer_name", "amount": "step1.amount_due", "items": "step1.line_items", "due": "step1.due_date"}
+        },
+        "output_mapping": {
+          "email_id": "step4.id"
+        },
+        "error_hint": "Stripe can also send invoices natively — disable Stripe emails if using this workflow to avoid duplicates"
+      }
+    ],
+    "required_services": ["stripe", "airtable", "slack", "resend"]
+  },
+  {
+    "id": "security-alert-pipeline",
+    "goal": "Automated security vulnerability response pipeline",
+    "description": "When GitHub Dependabot finds a vulnerability, create a Linear issue, notify Slack, and log it in Notion.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "github",
+        "action": "Receive Dependabot alert webhook with vulnerability details and severity",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["alert_number", "severity", "package_name", "vulnerable_version", "patched_version", "repo"]
+        },
+        "output_mapping": {
+          "severity": "step1.severity",
+          "package": "step1.package_name",
+          "vulnerable_ver": "step1.vulnerable_version",
+          "fix_ver": "step1.patched_version",
+          "repo": "step1.repo"
+        },
+        "error_hint": "Enable Dependabot alerts in GitHub repo settings. Webhook event type is 'dependabot_alert'."
+      },
+      {
+        "order": 2,
+        "service_id": "linear",
+        "action": "Create security fix issue with vulnerability details and priority based on severity",
+        "input_mapping": {
+          "title": "Security: {{step1.package_name}} vulnerability ({{step1.severity}})",
+          "description": "Package: {{step1.package_name}}\nVulnerable: {{step1.vulnerable_version}}\nFix: upgrade to {{step1.patched_version}}\nRepo: {{step1.repo}}",
+          "team_id": "config.security_team_id",
+          "priority": "step1.severity",
+          "label": "security"
+        },
+        "output_mapping": {
+          "issue_id": "step2.issue_id",
+          "issue_url": "step2.url"
+        },
+        "error_hint": "Map Dependabot severity (critical/high/medium/low) to Linear priority (1-4)"
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Alert the security channel with vulnerability details and remediation link",
+        "input_mapping": {
+          "channel": "config.security_channel",
+          "message": "🔒 *Security Alert*: {{step1.package_name}} ({{step1.severity}})\nVulnerable: {{step1.vulnerable_version}} → Fix: {{step1.patched_version}}\nLinear: {{step2.issue_url}}"
+        },
+        "output_mapping": {
+          "message_ts": "step3.ts"
+        },
+        "error_hint": "Use @here mention for critical severity alerts"
+      },
+      {
+        "order": 4,
+        "service_id": "notion",
+        "action": "Log vulnerability in the security audit database for compliance tracking",
+        "input_mapping": {
+          "database_id": "config.security_log_db",
+          "title": "{{step1.package_name}} — {{step1.severity}}",
+          "properties": {
+            "Severity": "step1.severity",
+            "Package": "step1.package_name",
+            "Status": "Open",
+            "Repo": "step1.repo",
+            "Fix Version": "step1.patched_version"
+          }
+        },
+        "output_mapping": {
+          "page_id": "step4.page_id"
+        },
+        "error_hint": "Use Notion select property for Severity to enable filtering and views"
+      }
+    ],
+    "required_services": ["github", "linear", "slack", "notion"]
+  },
+  {
+    "id": "multi-cloud-deploy",
+    "goal": "Coordinate multi-service deployment across platforms",
+    "description": "On GitHub push, deploy frontend to Vercel and backend to Netlify, then verify health and notify Discord.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "github",
+        "action": "Detect push to main branch and determine which directories changed",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["commit_sha", "commit_message", "modified_files"]
+        },
+        "output_mapping": {
+          "sha": "step1.commit_sha",
+          "message": "step1.commit_message",
+          "changed_dirs": "step1.modified_files"
+        },
+        "error_hint": "Use path filters to detect if frontend/, backend/, or both directories changed"
+      },
+      {
+        "order": 2,
+        "service_id": "vercel",
+        "action": "Deploy frontend application and wait for ready status",
+        "input_mapping": {
+          "project_id": "config.frontend_project_id",
+          "ref": "step1.commit_sha",
+          "target": "production"
+        },
+        "output_mapping": {
+          "frontend_url": "step2.url",
+          "frontend_status": "step2.status"
+        },
+        "error_hint": "Set a deployment timeout of 10 minutes. Check build logs if deployment gets stuck."
+      },
+      {
+        "order": 3,
+        "service_id": "netlify",
+        "action": "Deploy backend service and wait for published status",
+        "input_mapping": {
+          "site_id": "config.backend_site_id",
+          "ref": "step1.commit_sha"
+        },
+        "output_mapping": {
+          "backend_url": "step3.url",
+          "backend_status": "step3.status"
+        },
+        "error_hint": "Netlify Functions have a 10s execution timeout by default. Check function logs for errors."
+      },
+      {
+        "order": 4,
+        "service_id": "discord",
+        "action": "Post deployment summary with both service statuses and URLs",
+        "input_mapping": {
+          "channel_id": "config.deploy_channel_id",
+          "message": "🚀 **Multi-deploy complete**: {{step1.commit_message}}\nFrontend (Vercel): {{step2.frontend_status}} — {{step2.frontend_url}}\nBackend (Netlify): {{step3.backend_status}} — {{step3.backend_url}}"
+        },
+        "output_mapping": {
+          "message_id": "step4.message_id"
+        },
+        "error_hint": "Use color-coded embeds: green for both healthy, yellow if one failed, red if both failed"
+      }
+    ],
+    "required_services": ["github", "vercel", "netlify", "discord"]
+  },
+  {
+    "id": "customer-support-ai",
+    "goal": "AI-assisted customer support with human review",
+    "description": "When a support message arrives in Discord, draft an AI response with Anthropic, create a review task in Linear, then reply.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "discord",
+        "action": "Receive message in the support channel and extract question details",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": ["message_content", "author_name", "author_id", "channel_id", "message_id"]
+        },
+        "output_mapping": {
+          "question": "step1.message_content",
+          "user": "step1.author_name",
+          "user_id": "step1.author_id",
+          "original_message_id": "step1.message_id"
+        },
+        "error_hint": "Filter for messages in the support channel only. Ignore bot messages to prevent loops."
+      },
+      {
+        "order": 2,
+        "service_id": "anthropic-api",
+        "action": "Generate a helpful response draft based on documentation and FAQ context",
+        "input_mapping": {
+          "system": "You are a helpful support agent. Use the product documentation to answer questions accurately. If unsure, say so.",
+          "prompt": "Customer question from {{step1.author_name}}:\n{{step1.message_content}}",
+          "model": "claude-sonnet-4-20250514",
+          "max_tokens": 1000
+        },
+        "output_mapping": {
+          "draft_response": "step2.content"
+        },
+        "error_hint": "Include relevant FAQ/docs context in the system prompt. Keep responses concise and actionable."
+      },
+      {
+        "order": 3,
+        "service_id": "linear",
+        "action": "Create a support review task with the AI draft for human approval",
+        "input_mapping": {
+          "title": "Support review: {{step1.author_name}}",
+          "description": "Question: {{step1.message_content}}\n\nAI Draft Response:\n{{step2.draft_response}}\n\nDiscord message ID: {{step1.original_message_id}}",
+          "team_id": "config.support_team_id",
+          "label": "support"
+        },
+        "output_mapping": {
+          "task_id": "step3.issue_id",
+          "task_url": "step3.url"
+        },
+        "error_hint": "Set up Linear automation to notify the on-call support person when this task is created"
+      }
+    ],
+    "required_services": ["discord", "anthropic-api", "linear"]
   }
 ]
