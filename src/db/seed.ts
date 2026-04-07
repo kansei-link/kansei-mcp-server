@@ -167,7 +167,8 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
       mcp_endpoint = excluded.mcp_endpoint,
       mcp_status = excluded.mcp_status,
       api_url = excluded.api_url,
-      api_auth_method = excluded.api_auth_method
+      api_auth_method = excluded.api_auth_method,
+      trust_score = excluded.trust_score
   `);
 
   const insertStats = db.prepare(`

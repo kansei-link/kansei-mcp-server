@@ -474,6 +474,8 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "contract management": ["legal"],
   "e-commerce":       ["ecommerce"],
   "order management": ["ecommerce"],
+  "ci/cd":            ["devops"],
+  "ci cd":            ["devops"],
 };
 
 /** Category boost added to relevance_score when service category matches intent */
