@@ -56,10 +56,29 @@ export function getRecipes(
   goal: string,
   availableServices?: string[]
 ): object[] {
-  // Search recipes by goal (LIKE-based for simplicity)
-  const words = goal.split(/\s+/).filter((t) => t.length > 1);
+  // Stop words to exclude from matching (common English prepositions/articles/conjunctions)
+  const STOP_WORDS = new Set([
+    "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
+    "of", "with", "by", "from", "up", "about", "into", "through", "during",
+    "before", "after", "above", "below", "between", "out", "off", "over",
+    "under", "again", "further", "then", "once", "is", "are", "was", "were",
+    "be", "been", "being", "have", "has", "had", "do", "does", "did", "will",
+    "would", "could", "should", "may", "might", "shall", "can", "need", "must",
+    "it", "its", "my", "your", "our", "their", "his", "her", "this", "that",
+    "these", "those", "i", "you", "we", "they", "he", "she", "me", "him",
+    "us", "them", "who", "whom", "which", "what", "where", "when", "how",
+    "not", "no", "nor", "so", "if", "as", "all", "each", "every", "both",
+    "few", "more", "most", "other", "some", "such", "than", "too", "very",
+    "just", "also", "via", "using",
+  ]);
+
+  const words = goal
+    .toLowerCase()
+    .split(/[\s,.\-/]+/)
+    .filter((t) => t.length > 1 && !STOP_WORDS.has(t));
   if (words.length === 0) return [];
 
+  // Use OR for broad matching, but score by number of matched words
   const conditions = words.map(
     () => `(r.goal LIKE ? OR r.description LIKE ?)`
   );
@@ -76,6 +95,21 @@ export function getRecipes(
 
   const recipes = db.prepare(query).all(...params) as RecipeRow[];
 
+  // Score each recipe by how many search words it matches
+  const scoredRecipes = recipes.map((recipe) => {
+    const text = `${recipe.goal} ${recipe.description ?? ""}`.toLowerCase();
+    const matchCount = words.filter((w) => text.includes(w)).length;
+    const matchRatio = matchCount / words.length;
+    return { recipe, matchCount, matchRatio };
+  });
+
+  // Filter: require at least 30% of search words to match, then sort by match quality
+  const filtered = scoredRecipes
+    .filter((s) => s.matchRatio >= 0.3)
+    .sort((a, b) => b.matchCount - a.matchCount || b.matchRatio - a.matchRatio)
+    .slice(0, 10)
+    .map((s) => s.recipe);
+
   // Enrich and rank results
   const serviceCache = new Map<string, ServiceInfo>();
   const getService = (id: string): ServiceInfo | null => {
@@ -89,7 +123,7 @@ export function getRecipes(
 
   const availableSet = new Set(availableServices ?? []);
 
-  const results = recipes
+  const results = filtered
     .map((recipe) => {
       const steps = JSON.parse(recipe.steps) as Array<{
         order: number;

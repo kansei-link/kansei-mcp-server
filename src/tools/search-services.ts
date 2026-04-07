@@ -460,7 +460,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
 };
 
 /** Category boost added to relevance_score when service category matches intent */
-const CATEGORY_BOOST = 0.5;
+const CATEGORY_BOOST = 0.8;
 
 /**
  * Detect likely categories from an intent string by scanning for keyword
