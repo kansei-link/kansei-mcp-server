@@ -90,26 +90,31 @@ function agentReadyLabel(status: "verified" | "connectable" | "info_only"): stri
   return "⚪ Info Only";
 }
 
-function categoryJaName(cat: string): string {
+function categoryName(cat: string): string {
   const map: Record<string, string> = {
-    accounting: "会計・経理",
-    hr: "人事・労務",
-    crm: "CRM・営業",
-    communication: "コミュニケーション",
-    project_management: "プロジェクト管理",
-    ecommerce: "EC・コマース",
-    legal: "法務・契約",
-    payment: "決済",
-    marketing: "マーケティング",
-    groupware: "グループウェア",
-    support: "カスタマーサポート",
-    storage: "ストレージ",
-    security: "セキュリティ",
-    bi_analytics: "BI・分析",
-    data_integration: "データ連携",
-    logistics: "物流・配送",
-    reservation: "予約",
-    productivity: "生産性ツール",
+    accounting: "Accounting / 会計・経理",
+    hr: "HR / 人事・労務",
+    crm: "CRM / 営業",
+    communication: "Communication / コミュニケーション",
+    project_management: "Project Management / プロジェクト管理",
+    ecommerce: "E-commerce / EC・コマース",
+    legal: "Legal / 法務・契約",
+    payment: "Payment / 決済",
+    marketing: "Marketing / マーケティング",
+    groupware: "Groupware / グループウェア",
+    support: "Customer Support / カスタマーサポート",
+    storage: "Storage / ストレージ",
+    security: "Security / セキュリティ",
+    bi_analytics: "BI & Analytics / 分析",
+    data_integration: "Data Integration / データ連携",
+    logistics: "Logistics / 物流・配送",
+    reservation: "Reservation / 予約",
+    productivity: "Productivity / 生産性ツール",
+    dev_platform: "Dev Platform / 開発プラットフォーム",
+    ai_ml: "AI & ML / AI・機械学習",
+    database: "Database / データベース",
+    monitoring: "Monitoring / 監視",
+    design: "Design / デザイン",
   };
   return map[cat] || cat;
 }
@@ -243,7 +248,7 @@ function generateArticle(
     return {
       meta: {
         title: `AEO Readiness Ranking ${opts.quarter}`,
-        subtitle: "日本SaaS AIエージェント対応力ランキング",
+        subtitle: "SaaS/API AEO Readiness Ranking — AIエージェント対応力格付け",
         publisher: "KanseiLink by Synapse Arrows PTE. LTD.",
         methodology_version: "1.0",
         generated_at: new Date().toISOString(),
@@ -277,13 +282,13 @@ function generateArticle(
   }
 
   // --- Markdown article format ---
-  const focusCategories = opts.categories || ["accounting", "hr", "crm", "communication", "project_management", "ecommerce", "legal", "payment"];
+  const focusCategories = opts.categories || ["dev_platform", "ai_ml", "communication", "project_management", "database", "accounting", "hr", "crm", "ecommerce", "payment", "marketing", "monitoring"];
 
   let md = "";
 
   // Header
   md += `# AEO Readiness Ranking ${opts.quarter}\n`;
-  md += `## 日本SaaS AIエージェント対応力ランキング\n\n`;
+  md += `## SaaS/API AEO Readiness Ranking — AIエージェント対応力格付け\n\n`;
   md += `**Published by:** KanseiLink (Synapse Arrows PTE. LTD.)  \n`;
   md += `**Date:** ${new Date().toISOString().split("T")[0]}  \n`;
   md += `**Evaluated:** ${ranked.length} services  \n`;
@@ -292,7 +297,7 @@ function generateArticle(
 
   // Executive Summary
   md += `## Executive Summary\n\n`;
-  md += `${opts.quarter}における日本SaaS ${ranked.length}サービスのAIエージェント対応力（AEO: Agent Engine Optimization）を評価しました。\n\n`;
+  md += `${opts.quarter}における${ranked.length}のSaaS/APIサービス（グローバル＋日本市場）のAIエージェント対応力（AEO: Agent Engine Optimization）を評価しました。\n\n`;
   md += `| 指標 | 値 |\n|------|----|\n`;
   md += `| 平均AEOスコア | **${avgScore}** / 1.00 |\n`;
   md += `| 🟢 Verified（実証済み） | **${totalVerified}** サービス |\n`;
@@ -327,7 +332,7 @@ function generateArticle(
   md += `| カテゴリ | 平均スコア | トップ | Verified数 |\n`;
   md += `|----------|----------|--------|----------|\n`;
   for (const c of categorySummaries.filter(c => focusCategories.includes(c.category))) {
-    md += `| ${categoryJaName(c.category)} | ${c.avg_score} | ${c.top_service} (${c.top_grade}) | ${c.verified_count}/${c.service_count} |\n`;
+    md += `| ${categoryName(c.category)} | ${c.avg_score} | ${c.top_service} (${c.top_grade}) | ${c.verified_count}/${c.service_count} |\n`;
   }
   md += `\n`;
 
@@ -336,7 +341,7 @@ function generateArticle(
     if (!items || items.length === 0) continue;
 
     const catSummary = categorySummaries.find(c => c.category === catName);
-    md += `### ${categoryJaName(catName)}\n\n`;
+    md += `### ${categoryName(catName)}\n\n`;
 
     md += `| Rank | Grade | Score | Service | Agent Ready | Recipes |\n`;
     md += `|------|-------|-------|---------|------------|--------|\n`;
@@ -347,7 +352,7 @@ function generateArticle(
     // Analysis paragraph
     const top = items[0];
     const verifiedInCat = items.filter(i => i.agent_ready === "verified").length;
-    md += `\n> **分析:** ${categoryJaName(catName)}カテゴリの平均AEOスコアは**${catSummary?.avg_score}**。`;
+    md += `\n> **分析:** ${categoryName(catName)}カテゴリの平均AEOスコアは**${catSummary?.avg_score}**。`;
     if (verifiedInCat > 0) {
       md += ` ${verifiedInCat}サービスが実証済み（Verified）ステータスを獲得。`;
     }
@@ -413,7 +418,7 @@ export function register(server: McpServer, db: Database.Database): void {
       title: "Generate AEO Ranking Article",
       description:
         "Generate a publishable AEO (Agent Engine Optimization) Readiness Ranking article. " +
-        "Like ESG rating reports — ranks Japanese SaaS services by agent-readiness with grades, " +
+        "Like ESG rating reports — ranks SaaS/API services (global + Japanese) by agent-readiness with grades, " +
         "category breakdowns, and methodology. Output in markdown (blog/press) or JSON (API/embed).",
       inputSchema: z.object({
         quarter: z
