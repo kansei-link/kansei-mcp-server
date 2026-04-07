@@ -4988,7 +4988,12 @@
         "action": "Detect push to main branch and retrieve commit summary",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["repository", "branch", "commit_sha", "commit_message"]
+          "fields": [
+            "repository",
+            "branch",
+            "commit_sha",
+            "commit_message"
+          ]
         },
         "output_mapping": {
           "repo": "step1.repository",
@@ -5025,7 +5030,11 @@
         "error_hint": "Verify the bot has Send Messages permission in the target channel"
       }
     ],
-    "required_services": ["github", "vercel", "discord"]
+    "required_services": [
+      "github",
+      "vercel",
+      "discord"
+    ]
   },
   {
     "id": "bug-triage-ai",
@@ -5038,7 +5047,12 @@
         "action": "Receive error event with stack trace, frequency, and affected users count",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["error_title", "stack_trace", "frequency", "affected_users"]
+          "fields": [
+            "error_title",
+            "stack_trace",
+            "frequency",
+            "affected_users"
+          ]
         },
         "output_mapping": {
           "error_title": "step1.error_title",
@@ -5090,7 +5104,12 @@
         "error_hint": "Use Slack Block Kit for better formatting if message exceeds 3000 characters"
       }
     ],
-    "required_services": ["sentry", "linear", "openai-api", "slack"]
+    "required_services": [
+      "sentry",
+      "linear",
+      "openai-api",
+      "slack"
+    ]
   },
   {
     "id": "pr-review-notify",
@@ -5103,7 +5122,14 @@
         "action": "Receive pull request opened event with title, author, and diff stats",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["pr_title", "pr_author", "pr_url", "files_changed", "additions", "deletions"]
+          "fields": [
+            "pr_title",
+            "pr_author",
+            "pr_url",
+            "files_changed",
+            "additions",
+            "deletions"
+          ]
         },
         "output_mapping": {
           "pr_title": "step1.pr_title",
@@ -5142,7 +5168,11 @@
         "error_hint": "Create a 'code-review' label in Linear beforehand if it does not exist"
       }
     ],
-    "required_services": ["github", "slack", "linear"]
+    "required_services": [
+      "github",
+      "slack",
+      "linear"
+    ]
   },
   {
     "id": "user-onboarding-saas",
@@ -5155,7 +5185,12 @@
         "action": "Receive checkout.session.completed webhook with customer email and plan",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["customer_email", "customer_name", "plan_id", "subscription_id"]
+          "fields": [
+            "customer_email",
+            "customer_name",
+            "plan_id",
+            "subscription_id"
+          ]
         },
         "output_mapping": {
           "email": "step1.customer_email",
@@ -5172,7 +5207,9 @@
           "email": "step1.customer_email",
           "display_name": "step1.customer_name",
           "plan": "step1.plan_id",
-          "metadata": {"stripe_subscription": "step1.subscription_id"}
+          "metadata": {
+            "stripe_subscription": "step1.subscription_id"
+          }
         },
         "output_mapping": {
           "user_id": "step2.user_id"
@@ -5187,7 +5224,10 @@
           "to": "step1.customer_email",
           "subject": "Welcome to {{config.app_name}}!",
           "template": "welcome",
-          "variables": {"name": "step1.customer_name", "plan": "step1.plan_id"}
+          "variables": {
+            "name": "step1.customer_name",
+            "plan": "step1.plan_id"
+          }
         },
         "output_mapping": {
           "email_id": "step3.id"
@@ -5208,7 +5248,12 @@
         "error_hint": "Use a dedicated #new-customers channel to avoid noise in general sales chat"
       }
     ],
-    "required_services": ["stripe", "supabase", "resend", "slack"]
+    "required_services": [
+      "stripe",
+      "supabase",
+      "resend",
+      "slack"
+    ]
   },
   {
     "id": "content-pipeline",
@@ -5254,7 +5299,11 @@
           "database_id": "config.content_review_db",
           "title": "step1.topic",
           "content": "step2.content",
-          "properties": {"Status": "Draft", "Source": "AI Generated", "Keywords": "step1.keywords"}
+          "properties": {
+            "Status": "Draft",
+            "Source": "AI Generated",
+            "Keywords": "step1.keywords"
+          }
         },
         "output_mapping": {
           "page_id": "step3.page_id",
@@ -5263,7 +5312,11 @@
         "error_hint": "Notion API has a 2000 block limit per request. Split long content into chunks if needed."
       }
     ],
-    "required_services": ["airtable", "anthropic-api", "notion"]
+    "required_services": [
+      "airtable",
+      "anthropic-api",
+      "notion"
+    ]
   },
   {
     "id": "incident-response",
@@ -5276,7 +5329,12 @@
         "action": "Receive incident trigger with severity, service name, and description",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["incident_title", "severity", "service_name", "triggered_at"]
+          "fields": [
+            "incident_title",
+            "severity",
+            "service_name",
+            "triggered_at"
+          ]
         },
         "output_mapping": {
           "title": "step1.incident_title",
@@ -5324,7 +5382,10 @@
           "dashboard_id": "config.main_dashboard_id",
           "time": "step1.timestamp",
           "text": "INC: {{step1.incident_title}} ({{step2.ticket_key}})",
-          "tags": ["incident", "step1.severity"]
+          "tags": [
+            "incident",
+            "step1.severity"
+          ]
         },
         "output_mapping": {
           "annotation_id": "step4.id"
@@ -5332,7 +5393,12 @@
         "error_hint": "Use Grafana API token with annotation write permissions. Dashboard ID is numeric, not the slug."
       }
     ],
-    "required_services": ["pagerduty", "jira", "slack", "grafana-cloud"]
+    "required_services": [
+      "pagerduty",
+      "jira",
+      "slack",
+      "grafana-cloud"
+    ]
   },
   {
     "id": "customer-feedback-loop",
@@ -5382,7 +5448,11 @@
         "error_hint": "If analysis is too long for a single message, use Slack thread replies for details"
       }
     ],
-    "required_services": ["airtable", "openai-api", "slack"]
+    "required_services": [
+      "airtable",
+      "openai-api",
+      "slack"
+    ]
   },
   {
     "id": "ecommerce-order-flow",
@@ -5395,7 +5465,13 @@
         "action": "Receive new order webhook with line items, customer info, and totals",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["order_id", "customer_email", "customer_name", "line_items", "total_price"]
+          "fields": [
+            "order_id",
+            "customer_email",
+            "customer_name",
+            "line_items",
+            "total_price"
+          ]
         },
         "output_mapping": {
           "order_id": "step1.order_id",
@@ -5429,7 +5505,11 @@
           "to": "step1.customer_email",
           "subject": "Order #{{step1.order_id}} confirmed",
           "template": "order-confirmation",
-          "variables": {"name": "step1.customer_name", "items": "step1.line_items", "total": "step1.total_price"}
+          "variables": {
+            "name": "step1.customer_name",
+            "items": "step1.line_items",
+            "total": "step1.total_price"
+          }
         },
         "output_mapping": {
           "email_id": "step3.id"
@@ -5450,7 +5530,12 @@
         "error_hint": "Use conditional formatting to only show low-stock alert when relevant"
       }
     ],
-    "required_services": ["shopify-global", "airtable", "resend", "slack"]
+    "required_services": [
+      "shopify-global",
+      "airtable",
+      "resend",
+      "slack"
+    ]
   },
   {
     "id": "design-handoff",
@@ -5463,7 +5548,12 @@
         "action": "Detect file version published event and extract frame details and export URLs",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["file_key", "file_name", "version_id", "description"]
+          "fields": [
+            "file_key",
+            "file_name",
+            "version_id",
+            "description"
+          ]
         },
         "output_mapping": {
           "file_name": "step1.file_name",
@@ -5480,7 +5570,10 @@
           "repo": "config.frontend_repo",
           "title": "Implement: {{step1.file_name}}",
           "body": "Design: https://figma.com/file/{{step1.file_key}}\nVersion notes: {{step1.version_description}}",
-          "labels": ["design-handoff", "frontend"]
+          "labels": [
+            "design-handoff",
+            "frontend"
+          ]
         },
         "output_mapping": {
           "issue_number": "step2.number",
@@ -5517,7 +5610,12 @@
         "error_hint": "Use Discord embeds for richer formatting with preview images"
       }
     ],
-    "required_services": ["figma", "github", "linear", "discord"]
+    "required_services": [
+      "figma",
+      "github",
+      "linear",
+      "discord"
+    ]
   },
   {
     "id": "ai-code-review",
@@ -5530,7 +5628,12 @@
         "action": "Receive PR event and fetch the full diff content",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["pr_number", "repo", "pr_title", "diff_url"]
+          "fields": [
+            "pr_number",
+            "repo",
+            "pr_title",
+            "diff_url"
+          ]
         },
         "output_mapping": {
           "pr_number": "step1.pr_number",
@@ -5568,7 +5671,10 @@
         "error_hint": "Use GitHub review comments API for inline suggestions. Comment body max is 65536 characters."
       }
     ],
-    "required_services": ["github", "anthropic-api"]
+    "required_services": [
+      "github",
+      "anthropic-api"
+    ]
   },
   {
     "id": "scheduled-report",
@@ -5623,7 +5729,10 @@
           "database_id": "config.reports_db",
           "title": "Weekly Report — {{current_date}}",
           "content": "step2.report",
-          "properties": {"Type": "Weekly", "Period": "current_week"}
+          "properties": {
+            "Type": "Weekly",
+            "Period": "current_week"
+          }
         },
         "output_mapping": {
           "page_id": "step4.page_id"
@@ -5631,7 +5740,12 @@
         "error_hint": "Use Notion's date property type for the Period field to enable calendar views"
       }
     ],
-    "required_services": ["supabase", "openai-api", "slack", "notion"]
+    "required_services": [
+      "supabase",
+      "openai-api",
+      "slack",
+      "notion"
+    ]
   },
   {
     "id": "new-signup-automation",
@@ -5644,7 +5758,12 @@
         "action": "Receive successful checkout session with customer details and plan info",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["customer_email", "customer_name", "plan_id", "amount_total"]
+          "fields": [
+            "customer_email",
+            "customer_name",
+            "plan_id",
+            "amount_total"
+          ]
         },
         "output_mapping": {
           "email": "step1.customer_email",
@@ -5660,7 +5779,9 @@
         "input_mapping": {
           "email": "step1.customer_email",
           "display_name": "step1.customer_name",
-          "custom_claims": {"plan": "step1.plan_id"}
+          "custom_claims": {
+            "plan": "step1.plan_id"
+          }
         },
         "output_mapping": {
           "uid": "step2.uid"
@@ -5674,8 +5795,14 @@
         "input_mapping": {
           "list_id": "config.main_audience_id",
           "email": "step1.customer_email",
-          "merge_fields": {"FNAME": "step1.customer_name", "PLAN": "step1.plan_id"},
-          "tags": ["customer", "step1.plan_id"]
+          "merge_fields": {
+            "FNAME": "step1.customer_name",
+            "PLAN": "step1.plan_id"
+          },
+          "tags": [
+            "customer",
+            "step1.plan_id"
+          ]
         },
         "output_mapping": {
           "subscriber_id": "step3.id"
@@ -5696,7 +5823,12 @@
         "error_hint": "User must be in the Discord server first. Fall back to welcome channel mention if DM fails."
       }
     ],
-    "required_services": ["stripe", "firebase", "mailchimp", "discord"]
+    "required_services": [
+      "stripe",
+      "firebase",
+      "mailchimp",
+      "discord"
+    ]
   },
   {
     "id": "deploy-monitoring",
@@ -5709,7 +5841,12 @@
         "action": "Receive deployment completed webhook with URL and deployment metadata",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["deployment_url", "deployment_id", "project_name", "git_ref"]
+          "fields": [
+            "deployment_url",
+            "deployment_id",
+            "project_name",
+            "git_ref"
+          ]
         },
         "output_mapping": {
           "url": "step1.deployment_url",
@@ -5724,7 +5861,11 @@
         "action": "Run health check against the deployment URL and verify response status",
         "input_mapping": {
           "url": "step1.deployment_url",
-          "checks": ["status_200", "response_time_under_3s", "no_console_errors"]
+          "checks": [
+            "status_200",
+            "response_time_under_3s",
+            "no_console_errors"
+          ]
         },
         "output_mapping": {
           "health_status": "step2.status",
@@ -5740,7 +5881,10 @@
         "input_mapping": {
           "dashboard_id": "config.deploy_dashboard_id",
           "annotation": "Deploy: {{step1.project}} ({{step2.health_status}})",
-          "metrics": {"response_time": "step2.response_time_ms", "status": "step2.health_status"}
+          "metrics": {
+            "response_time": "step2.response_time_ms",
+            "status": "step2.health_status"
+          }
         },
         "output_mapping": {
           "annotation_id": "step3.id"
@@ -5761,7 +5905,11 @@
         "error_hint": "Use different channels for healthy vs unhealthy deploys to manage alert noise"
       }
     ],
-    "required_services": ["vercel", "grafana-cloud", "slack"]
+    "required_services": [
+      "vercel",
+      "grafana-cloud",
+      "slack"
+    ]
   },
   {
     "id": "meeting-followup",
@@ -5774,7 +5922,13 @@
         "action": "Receive invitee.created webhook with meeting details and attendee info",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["event_type", "invitee_name", "invitee_email", "start_time", "questions_and_answers"]
+          "fields": [
+            "event_type",
+            "invitee_name",
+            "invitee_email",
+            "start_time",
+            "questions_and_answers"
+          ]
         },
         "output_mapping": {
           "meeting_type": "step1.event_type",
@@ -5792,7 +5946,10 @@
           "database_id": "config.meetings_db",
           "title": "Meeting: {{step1.invitee_name}} — {{step1.start_time}}",
           "content": "## Attendee\n{{step1.invitee_name}} ({{step1.invitee_email}})\n## Type\n{{step1.event_type}}\n## Agenda\n- \n## Notes\n- ",
-          "properties": {"Date": "step1.start_time", "Status": "Scheduled"}
+          "properties": {
+            "Date": "step1.start_time",
+            "Status": "Scheduled"
+          }
         },
         "output_mapping": {
           "page_id": "step2.page_id",
@@ -5808,7 +5965,11 @@
           "to": "config.team_email",
           "subject": "Meeting prep: {{step1.invitee_name}} on {{step1.start_time}}",
           "template": "meeting-prep",
-          "variables": {"attendee": "step1.invitee_name", "time": "step1.start_time", "notes_url": "step2.page_url"}
+          "variables": {
+            "attendee": "step1.invitee_name",
+            "time": "step1.start_time",
+            "notes_url": "step2.page_url"
+          }
         },
         "output_mapping": {
           "email_id": "step3.id"
@@ -5830,7 +5991,12 @@
         "error_hint": "Use Slack's scheduled messages API (chat.scheduleMessage) for the 30-min reminder"
       }
     ],
-    "required_services": ["calendly", "notion", "resend", "slack"]
+    "required_services": [
+      "calendly",
+      "notion",
+      "resend",
+      "slack"
+    ]
   },
   {
     "id": "infrastructure-scaling",
@@ -5844,7 +6010,12 @@
         "input_mapping": {
           "zone_id": "config.zone_id",
           "period": "24h",
-          "metrics": ["requests", "bandwidth", "threats", "cache_hit_ratio"]
+          "metrics": [
+            "requests",
+            "bandwidth",
+            "threats",
+            "cache_hit_ratio"
+          ]
         },
         "output_mapping": {
           "traffic_data": "step1.analytics",
@@ -5895,7 +6066,12 @@
         "error_hint": "Include a link to the Cloudflare dashboard for the team to verify predictions"
       }
     ],
-    "required_services": ["cloudflare", "openai-api", "pagerduty", "slack"]
+    "required_services": [
+      "cloudflare",
+      "openai-api",
+      "pagerduty",
+      "slack"
+    ]
   },
   {
     "id": "open-source-triage",
@@ -5908,7 +6084,13 @@
         "action": "Receive issue opened event with title, body, and author info",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["issue_number", "issue_title", "issue_body", "author", "repo"]
+          "fields": [
+            "issue_number",
+            "issue_title",
+            "issue_body",
+            "author",
+            "repo"
+          ]
         },
         "output_mapping": {
           "number": "step1.issue_number",
@@ -5964,7 +6146,11 @@
         "error_hint": "Use Discord role mentions for high-priority issues to alert the right maintainers"
       }
     ],
-    "required_services": ["github", "anthropic-api", "discord"]
+    "required_services": [
+      "github",
+      "anthropic-api",
+      "discord"
+    ]
   },
   {
     "id": "invoice-automation",
@@ -5977,7 +6163,14 @@
         "action": "Receive invoice.finalized webhook with line items and customer info",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["invoice_id", "customer_email", "customer_name", "amount_due", "line_items", "due_date"]
+          "fields": [
+            "invoice_id",
+            "customer_email",
+            "customer_name",
+            "amount_due",
+            "line_items",
+            "due_date"
+          ]
         },
         "output_mapping": {
           "invoice_id": "step1.invoice_id",
@@ -6030,7 +6223,12 @@
           "to": "step1.customer_email",
           "subject": "Invoice #{{step1.invoice_id}} from {{config.company_name}}",
           "template": "invoice-receipt",
-          "variables": {"name": "step1.customer_name", "amount": "step1.amount_due", "items": "step1.line_items", "due": "step1.due_date"}
+          "variables": {
+            "name": "step1.customer_name",
+            "amount": "step1.amount_due",
+            "items": "step1.line_items",
+            "due": "step1.due_date"
+          }
         },
         "output_mapping": {
           "email_id": "step4.id"
@@ -6038,7 +6236,12 @@
         "error_hint": "Stripe can also send invoices natively — disable Stripe emails if using this workflow to avoid duplicates"
       }
     ],
-    "required_services": ["stripe", "airtable", "slack", "resend"]
+    "required_services": [
+      "stripe",
+      "airtable",
+      "slack",
+      "resend"
+    ]
   },
   {
     "id": "security-alert-pipeline",
@@ -6051,7 +6254,14 @@
         "action": "Receive Dependabot alert webhook with vulnerability details and severity",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["alert_number", "severity", "package_name", "vulnerable_version", "patched_version", "repo"]
+          "fields": [
+            "alert_number",
+            "severity",
+            "package_name",
+            "vulnerable_version",
+            "patched_version",
+            "repo"
+          ]
         },
         "output_mapping": {
           "severity": "step1.severity",
@@ -6113,7 +6323,12 @@
         "error_hint": "Use Notion select property for Severity to enable filtering and views"
       }
     ],
-    "required_services": ["github", "linear", "slack", "notion"]
+    "required_services": [
+      "github",
+      "linear",
+      "slack",
+      "notion"
+    ]
   },
   {
     "id": "multi-cloud-deploy",
@@ -6126,7 +6341,11 @@
         "action": "Detect push to main branch and determine which directories changed",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["commit_sha", "commit_message", "modified_files"]
+          "fields": [
+            "commit_sha",
+            "commit_message",
+            "modified_files"
+          ]
         },
         "output_mapping": {
           "sha": "step1.commit_sha",
@@ -6178,7 +6397,12 @@
         "error_hint": "Use color-coded embeds: green for both healthy, yellow if one failed, red if both failed"
       }
     ],
-    "required_services": ["github", "vercel", "netlify", "discord"]
+    "required_services": [
+      "github",
+      "vercel",
+      "netlify",
+      "discord"
+    ]
   },
   {
     "id": "customer-support-ai",
@@ -6191,7 +6415,13 @@
         "action": "Receive message in the support channel and extract question details",
         "input_mapping": {
           "from": "webhook",
-          "fields": ["message_content", "author_name", "author_id", "channel_id", "message_id"]
+          "fields": [
+            "message_content",
+            "author_name",
+            "author_id",
+            "channel_id",
+            "message_id"
+          ]
         },
         "output_mapping": {
           "question": "step1.message_content",
@@ -6233,6 +6463,707 @@
         "error_hint": "Set up Linear automation to notify the on-call support person when this task is created"
       }
     ],
-    "required_services": ["discord", "anthropic-api", "linear"]
+    "required_services": [
+      "discord",
+      "anthropic-api",
+      "linear"
+    ]
+  },
+  {
+    "id": "github-linear-slack-dev-flow",
+    "goal": "Development workflow: PR to task tracking with team notifications",
+    "description": "Automate development lifecycle: GitHub PR triggers Linear issue update, Slack notifies the team of progress and review requests.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "github",
+        "action": "Monitor pull request events (opened, merged, review requested)",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": [
+            "pr_url",
+            "title",
+            "author",
+            "action"
+          ]
+        },
+        "output_mapping": {
+          "pr_data": "step1.pr_data"
+        },
+        "error_hint": "Ensure GitHub webhook is configured for PR events"
+      },
+      {
+        "order": 2,
+        "service_id": "linear",
+        "action": "Update linked issue status based on PR state (In Review, Done)",
+        "input_mapping": {
+          "issue_id": "step1.pr_data.branch_issue_id",
+          "status": "step1.pr_data.action"
+        },
+        "output_mapping": {
+          "issue_url": "step2.issue_url"
+        },
+        "error_hint": "Branch name must contain Linear issue ID (e.g., ENG-123)"
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Post PR status update to engineering channel",
+        "input_mapping": {
+          "channel": "config.eng_channel",
+          "message": "PR {{title}} by {{author}} — {{action}}"
+        },
+        "output_mapping": {
+          "message_id": "step3.message_id"
+        },
+        "error_hint": "Bot must be invited to the target channel"
+      }
+    ],
+    "required_services": [
+      "github",
+      "linear",
+      "slack"
+    ]
+  },
+  {
+    "id": "stripe-quickbooks-slack-payment-accounting",
+    "goal": "Payment to accounting sync with notifications",
+    "description": "Stripe payment events automatically create QuickBooks journal entries and notify finance team via Slack.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "stripe-global",
+        "action": "Capture payment_intent.succeeded webhook with amount, currency, customer",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": [
+            "amount",
+            "currency",
+            "customer_id",
+            "invoice_id"
+          ]
+        },
+        "output_mapping": {
+          "payment": "step1.payment"
+        },
+        "error_hint": "Ensure Stripe webhook endpoint is configured for payment_intent.succeeded"
+      },
+      {
+        "order": 2,
+        "service_id": "quickbooks",
+        "action": "Create sales receipt or invoice payment in QuickBooks",
+        "input_mapping": {
+          "amount": "step1.payment.amount",
+          "customer": "step1.payment.customer_id",
+          "reference": "step1.payment.invoice_id"
+        },
+        "output_mapping": {
+          "qb_entry_id": "step2.entry_id"
+        },
+        "error_hint": "Customer must exist in QuickBooks. Map Stripe customer ID to QBO customer"
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Notify finance channel of recorded payment",
+        "input_mapping": {
+          "channel": "config.finance_channel",
+          "message": "Payment ${{amount}} recorded in QuickBooks (ref: {{invoice_id}})"
+        },
+        "output_mapping": {
+          "message_id": "step3.message_id"
+        },
+        "error_hint": "Verify bot has access to finance channel"
+      }
+    ],
+    "required_services": [
+      "stripe-global",
+      "quickbooks",
+      "slack"
+    ]
+  },
+  {
+    "id": "shopify-klaviyo-segment-ecommerce",
+    "goal": "Ecommerce analytics and marketing automation pipeline",
+    "description": "Shopify order events flow through Segment CDP to Klaviyo for targeted email campaigns and customer segmentation.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "shopify-global",
+        "action": "Capture order events (created, fulfilled, refunded) via webhook",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": [
+            "order_id",
+            "customer_email",
+            "items",
+            "total",
+            "status"
+          ]
+        },
+        "output_mapping": {
+          "order": "step1.order"
+        },
+        "error_hint": "Configure Shopify webhook for orders/create and orders/fulfilled"
+      },
+      {
+        "order": 2,
+        "service_id": "segment",
+        "action": "Track order event with customer properties to Segment CDP",
+        "input_mapping": {
+          "event": "Order Completed",
+          "user_id": "step1.order.customer_email",
+          "properties": "step1.order"
+        },
+        "output_mapping": {
+          "segment_msg_id": "step2.message_id"
+        },
+        "error_hint": "Ensure Segment source is configured for server-side tracking"
+      },
+      {
+        "order": 3,
+        "service_id": "klaviyo",
+        "action": "Trigger post-purchase email flow based on order data",
+        "input_mapping": {
+          "email": "step1.order.customer_email",
+          "event": "Placed Order",
+          "properties": "step1.order"
+        },
+        "output_mapping": {
+          "flow_id": "step3.flow_id"
+        },
+        "error_hint": "Klaviyo flow must be active for Placed Order metric"
+      }
+    ],
+    "required_services": [
+      "shopify-global",
+      "segment",
+      "klaviyo"
+    ]
+  },
+  {
+    "id": "hubspot-calendly-gmail-sales",
+    "goal": "Sales meeting booking and follow-up automation",
+    "description": "Calendly meeting booked creates HubSpot deal, Gmail sends pre-meeting prep email with prospect context.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "calendly",
+        "action": "Capture meeting scheduled event with attendee details",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": [
+            "invitee_email",
+            "event_type",
+            "scheduled_time",
+            "meeting_url"
+          ]
+        },
+        "output_mapping": {
+          "meeting": "step1.meeting"
+        },
+        "error_hint": "Calendly webhook must be subscribed to invitee.created events"
+      },
+      {
+        "order": 2,
+        "service_id": "hubspot-jp",
+        "action": "Create or update deal in HubSpot with meeting details",
+        "input_mapping": {
+          "contact_email": "step1.meeting.invitee_email",
+          "deal_name": "Meeting: {{event_type}}",
+          "properties": "step1.meeting"
+        },
+        "output_mapping": {
+          "deal_id": "step2.deal_id"
+        },
+        "error_hint": "Check if contact already exists in HubSpot before creating"
+      },
+      {
+        "order": 3,
+        "service_id": "google-workspace",
+        "action": "Send pre-meeting prep email to sales rep with prospect context",
+        "input_mapping": {
+          "to": "config.sales_rep_email",
+          "subject": "Prep for {{invitee_email}} meeting",
+          "body": "Meeting at {{scheduled_time}}. Deal: {{deal_id}}"
+        },
+        "output_mapping": {
+          "email_id": "step3.email_id"
+        },
+        "error_hint": "Ensure Gmail API send scope is authorized"
+      }
+    ],
+    "required_services": [
+      "calendly",
+      "hubspot-jp",
+      "google-workspace"
+    ]
+  },
+  {
+    "id": "figma-github-vercel-design-deploy",
+    "goal": "Design handoff to production deployment pipeline",
+    "description": "Figma design updates trigger GitHub issue for implementation, Vercel deploys preview for design review.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "figma",
+        "action": "Detect design file version update and extract component changes",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": [
+            "file_key",
+            "file_name",
+            "timestamp",
+            "description"
+          ]
+        },
+        "output_mapping": {
+          "design_update": "step1.design_update"
+        },
+        "error_hint": "Figma webhook must be registered via Figma REST API"
+      },
+      {
+        "order": 2,
+        "service_id": "github",
+        "action": "Create GitHub issue with design change details and Figma link",
+        "input_mapping": {
+          "repo": "config.frontend_repo",
+          "title": "Design update: {{file_name}}",
+          "body": "Figma: {{file_key}} — {{description}}"
+        },
+        "output_mapping": {
+          "issue_url": "step2.issue_url"
+        },
+        "error_hint": "GitHub token needs repo:write permission"
+      },
+      {
+        "order": 3,
+        "service_id": "vercel",
+        "action": "Trigger preview deployment for the design branch",
+        "input_mapping": {
+          "project": "config.vercel_project",
+          "ref": "step2.branch_name"
+        },
+        "output_mapping": {
+          "preview_url": "step3.preview_url"
+        },
+        "error_hint": "Vercel project must be connected to the GitHub repo"
+      }
+    ],
+    "required_services": [
+      "figma",
+      "github",
+      "vercel"
+    ]
+  },
+  {
+    "id": "salesforce-docusign-quickbooks-b2b-contract",
+    "goal": "B2B contract flow: deal close to signature to invoicing",
+    "description": "Salesforce deal closure triggers DocuSign contract, signed contract auto-creates QuickBooks invoice.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "salesforce-jp",
+        "action": "Detect opportunity stage change to Closed Won",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": [
+            "opportunity_id",
+            "amount",
+            "account_name",
+            "contact_email"
+          ]
+        },
+        "output_mapping": {
+          "deal": "step1.deal"
+        },
+        "error_hint": "Configure Salesforce outbound message for Opportunity stage change"
+      },
+      {
+        "order": 2,
+        "service_id": "docusign-jp",
+        "action": "Send contract envelope for e-signature to customer",
+        "input_mapping": {
+          "signer_email": "step1.deal.contact_email",
+          "template_id": "config.contract_template",
+          "custom_fields": "step1.deal"
+        },
+        "output_mapping": {
+          "envelope_id": "step2.envelope_id"
+        },
+        "error_hint": "DocuSign template must have merge fields matching Salesforce data"
+      },
+      {
+        "order": 3,
+        "service_id": "quickbooks",
+        "action": "Create invoice upon contract signature completion",
+        "input_mapping": {
+          "customer": "step1.deal.account_name",
+          "amount": "step1.deal.amount",
+          "reference": "step2.envelope_id"
+        },
+        "output_mapping": {
+          "invoice_id": "step3.invoice_id"
+        },
+        "error_hint": "Customer name must match between Salesforce and QuickBooks"
+      }
+    ],
+    "required_services": [
+      "salesforce-jp",
+      "docusign-jp",
+      "quickbooks"
+    ]
+  },
+  {
+    "id": "zendesk-slack-linear-support-to-bug",
+    "goal": "Customer support escalation to engineering bug tracking",
+    "description": "Zendesk ticket tagged as bug automatically creates Linear issue and notifies engineering via Slack.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "zendesk",
+        "action": "Detect ticket tagged with 'bug' or priority escalation",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": [
+            "ticket_id",
+            "subject",
+            "description",
+            "priority",
+            "requester"
+          ]
+        },
+        "output_mapping": {
+          "ticket": "step1.ticket"
+        },
+        "error_hint": "Zendesk trigger must fire on tag addition or priority change"
+      },
+      {
+        "order": 2,
+        "service_id": "linear",
+        "action": "Create bug issue in engineering team with ticket context",
+        "input_mapping": {
+          "team": "config.eng_team_id",
+          "title": "Bug: {{subject}}",
+          "description": "From Zendesk #{{ticket_id}}: {{description}}",
+          "priority": "step1.ticket.priority"
+        },
+        "output_mapping": {
+          "issue_id": "step2.issue_id",
+          "issue_url": "step2.issue_url"
+        },
+        "error_hint": "Linear API key must have issue create permission"
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Alert engineering channel with bug details and Linear link",
+        "input_mapping": {
+          "channel": "config.eng_channel",
+          "message": "Bug from support: {{subject}} — {{issue_url}}"
+        },
+        "output_mapping": {
+          "message_id": "step3.message_id"
+        },
+        "error_hint": "Bot must be in engineering channel"
+      }
+    ],
+    "required_services": [
+      "zendesk",
+      "linear",
+      "slack"
+    ]
+  },
+  {
+    "id": "google-drive-slack-notion-doc-sharing",
+    "goal": "Document sharing and knowledge base sync",
+    "description": "New Google Drive files in shared folder are indexed in Notion wiki and team is notified via Slack.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "google-drive",
+        "action": "Watch shared folder for new file uploads",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": [
+            "file_id",
+            "file_name",
+            "mime_type",
+            "created_by",
+            "web_link"
+          ]
+        },
+        "output_mapping": {
+          "file": "step1.file"
+        },
+        "error_hint": "Google Drive push notification channel must be set up"
+      },
+      {
+        "order": 2,
+        "service_id": "notion",
+        "action": "Add entry to knowledge base database with file link and metadata",
+        "input_mapping": {
+          "database_id": "config.wiki_db_id",
+          "title": "step1.file.file_name",
+          "url": "step1.file.web_link",
+          "author": "step1.file.created_by"
+        },
+        "output_mapping": {
+          "page_id": "step2.page_id"
+        },
+        "error_hint": "Notion integration must have access to the target database"
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Notify team channel about new document",
+        "input_mapping": {
+          "channel": "config.team_channel",
+          "message": "New doc: {{file_name}} by {{created_by}} — added to wiki"
+        },
+        "output_mapping": {
+          "message_id": "step3.message_id"
+        },
+        "error_hint": "Verify Slack bot token has chat:write scope"
+      }
+    ],
+    "required_services": [
+      "google-drive",
+      "notion",
+      "slack"
+    ]
+  },
+  {
+    "id": "stripe-mercury-brex-startup-finance",
+    "goal": "Startup financial operations: payments, banking, and expense tracking",
+    "description": "Stripe revenue flows to Mercury banking, Brex expense data synced for unified financial visibility.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "stripe-global",
+        "action": "Aggregate daily payment summary (revenue, fees, net)",
+        "input_mapping": {
+          "from": "scheduled",
+          "fields": [
+            "date",
+            "gross_revenue",
+            "fees",
+            "net_revenue",
+            "transaction_count"
+          ]
+        },
+        "output_mapping": {
+          "daily_summary": "step1.summary"
+        },
+        "error_hint": "Use Stripe Balance Transactions API with date filter"
+      },
+      {
+        "order": 2,
+        "service_id": "mercury",
+        "action": "Verify Stripe payout received in Mercury checking account",
+        "input_mapping": {
+          "account_id": "config.mercury_checking",
+          "expected_amount": "step1.summary.net_revenue"
+        },
+        "output_mapping": {
+          "balance": "step2.balance",
+          "matched": "step2.matched"
+        },
+        "error_hint": "Mercury API may have delay in reflecting pending transactions"
+      },
+      {
+        "order": 3,
+        "service_id": "brex",
+        "action": "Pull daily card spend and categorize against budget",
+        "input_mapping": {
+          "date": "step1.summary.date"
+        },
+        "output_mapping": {
+          "daily_spend": "step3.spend",
+          "budget_remaining": "step3.budget_remaining"
+        },
+        "error_hint": "Brex API pagination may be needed for high transaction volume"
+      }
+    ],
+    "required_services": [
+      "stripe-global",
+      "mercury",
+      "brex"
+    ]
+  },
+  {
+    "id": "mixpanel-amplitude-segment-product-analytics",
+    "goal": "Unified product analytics pipeline",
+    "description": "Segment collects events and routes to both Mixpanel and Amplitude for cross-platform product analysis.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "segment",
+        "action": "Collect and normalize user events from web and mobile",
+        "input_mapping": {
+          "from": "sdk",
+          "fields": [
+            "event_name",
+            "user_id",
+            "properties",
+            "timestamp",
+            "platform"
+          ]
+        },
+        "output_mapping": {
+          "event": "step1.event"
+        },
+        "error_hint": "Segment source must be configured for each platform (web, iOS, Android)"
+      },
+      {
+        "order": 2,
+        "service_id": "mixpanel",
+        "action": "Route event to Mixpanel for funnel and retention analysis",
+        "input_mapping": {
+          "event": "step1.event.event_name",
+          "distinct_id": "step1.event.user_id",
+          "properties": "step1.event.properties"
+        },
+        "output_mapping": {
+          "mixpanel_status": "step2.status"
+        },
+        "error_hint": "Segment destination for Mixpanel must be enabled and mapped"
+      },
+      {
+        "order": 3,
+        "service_id": "amplitude",
+        "action": "Route event to Amplitude for behavioral cohort analysis",
+        "input_mapping": {
+          "event_type": "step1.event.event_name",
+          "user_id": "step1.event.user_id",
+          "event_properties": "step1.event.properties"
+        },
+        "output_mapping": {
+          "amplitude_status": "step3.status"
+        },
+        "error_hint": "Segment destination for Amplitude must be enabled"
+      }
+    ],
+    "required_services": [
+      "segment",
+      "mixpanel",
+      "amplitude"
+    ]
+  },
+  {
+    "id": "brave-search-anthropic-notion-research",
+    "goal": "AI-powered research automation with knowledge capture",
+    "description": "Brave Search retrieves web data, Anthropic Claude analyzes and summarizes, results stored in Notion research database.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "brave-search",
+        "action": "Search web for topic and retrieve top results with snippets",
+        "input_mapping": {
+          "query": "user_input.research_topic",
+          "count": 10
+        },
+        "output_mapping": {
+          "results": "step1.results"
+        },
+        "error_hint": "Brave Search API key required. Rate limit: 1 req/sec on free tier"
+      },
+      {
+        "order": 2,
+        "service_id": "anthropic-api",
+        "action": "Analyze search results and generate structured research summary",
+        "input_mapping": {
+          "model": "claude-sonnet-4-5-20250514",
+          "prompt": "Analyze these search results about {{research_topic}} and provide key findings",
+          "context": "step1.results"
+        },
+        "output_mapping": {
+          "summary": "step2.summary",
+          "key_findings": "step2.findings"
+        },
+        "error_hint": "Keep token usage within API limits"
+      },
+      {
+        "order": 3,
+        "service_id": "notion",
+        "action": "Create research entry in knowledge base with summary and sources",
+        "input_mapping": {
+          "database_id": "config.research_db",
+          "title": "Research: {{research_topic}}",
+          "content": "step2.summary",
+          "sources": "step1.results"
+        },
+        "output_mapping": {
+          "page_url": "step3.page_url"
+        },
+        "error_hint": "Notion page content blocks have 2000 character limit per block"
+      }
+    ],
+    "required_services": [
+      "brave-search",
+      "anthropic-api",
+      "notion"
+    ]
+  },
+  {
+    "id": "posthog-slack-linear-feature-flag-incident",
+    "goal": "Feature flag monitoring with automated incident response",
+    "description": "PostHog detects error spike after feature flag rollout, alerts Slack, auto-creates Linear incident ticket.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "posthog",
+        "action": "Monitor error rate for feature flag cohort and detect anomaly",
+        "input_mapping": {
+          "from": "webhook",
+          "fields": [
+            "feature_flag",
+            "error_rate",
+            "baseline_rate",
+            "affected_users"
+          ]
+        },
+        "output_mapping": {
+          "alert": "step1.alert"
+        },
+        "error_hint": "PostHog action webhook must be configured for error rate threshold"
+      },
+      {
+        "order": 2,
+        "service_id": "slack",
+        "action": "Send urgent alert to engineering channel with rollback recommendation",
+        "input_mapping": {
+          "channel": "config.incidents_channel",
+          "message": "Feature flag {{feature_flag}} error spike: {{error_rate}}% vs {{baseline_rate}}% baseline. {{affected_users}} users affected."
+        },
+        "output_mapping": {
+          "alert_ts": "step2.message_ts"
+        },
+        "error_hint": "Use Slack blocks for rich formatting of incident data"
+      },
+      {
+        "order": 3,
+        "service_id": "linear",
+        "action": "Create urgent incident issue with feature flag context",
+        "input_mapping": {
+          "team": "config.eng_team_id",
+          "title": "Incident: {{feature_flag}} error spike",
+          "priority": 1,
+          "labels": [
+            "incident",
+            "feature-flag"
+          ]
+        },
+        "output_mapping": {
+          "incident_url": "step3.issue_url"
+        },
+        "error_hint": "Ensure 'incident' label exists in Linear team"
+      }
+    ],
+    "required_services": [
+      "posthog",
+      "slack",
+      "linear"
+    ]
   }
 ]
