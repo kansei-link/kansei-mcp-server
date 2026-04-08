@@ -30,7 +30,7 @@ app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
     service: "kansei-link",
-    version: "0.19.1",
+    version: "0.19.2",
     transport: "streamable-http",
   });
 });
