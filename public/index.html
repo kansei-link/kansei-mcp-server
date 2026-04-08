@@ -1083,7 +1083,7 @@
     <div class="ranking-table-wrap">
       <table class="ranking-table" id="ranking-table">
         <thead>
-          <tr><th>#</th><th>Grade</th><th>Score</th><th>Service</th><th>Status</th><th>MCP</th><th>Recipes</th><th>Success</th></tr>
+          <tr><th>#</th><th>Grade</th><th>Score</th><th>Service</th><th data-en="Category">カテゴリ</th><th>Status</th><th>MCP</th><th>Recipes</th><th>Success</th></tr>
         </thead>
         <tbody>
           <tr><td>1</td><td><span class="grade-pill pill-aaa">AAA</span></td><td>1.00</td><td>Notion MCP</td><td>Verified</td><td>Official</td><td>8</td><td>83%</td></tr>
@@ -1465,10 +1465,15 @@ const categoryEN = {
   "monitoring": "Monitoring",
   "design": "Design",
   "物流・配送": "Logistics",
-  "予約": "Reservation"
+  "予約": "Reservation",
+  "フード・飲料": "Food & Beverage",
+  "ファイナンス": "Finance"
 };
 function catName(cat) { return currentLang === 'en' ? (categoryEN[cat] || cat) : cat; }
 const gradeFill = { AAA:'fill-aaa', AA:'fill-aa', A:'fill-a', BBB:'fill-bbb' };
+
+// Sort by score descending, then name alphabetically
+services.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 
 // Populate ranking table (replace static SEO rows with interactive ones)
 const tbody = document.querySelector('#ranking-table tbody');
@@ -1484,6 +1489,7 @@ services.forEach((s, i) => {
     <td><span class="grade-pill ${pillClass}">${s.grade}</span></td>
     <td><div class="score-bar-wrap"><div class="score-bar-bg"><div class="score-bar-fill ${fillClass}" style="width:${s.score*100}%"></div></div><span style="font-weight:600;font-size:13px">${s.score.toFixed(2)}</span></div></td>
     <td style="font-weight:500">${s.name}</td>
+    <td style="color:#6B7280;font-size:13px" data-en="${categoryEN[s.category] || s.category}">${s.category}</td>
     <td><span class="status-badge ${badgeClass}" style="display:inline-block;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:600">${s.status}</span></td>
     <td style="color:#6B7280;font-size:13px">${s.mcp}</td>
     <td>${s.recipes}</td>
