@@ -1456,9 +1456,11 @@ const gradeFill = { AAA:'fill-aaa', AA:'fill-aa', A:'fill-a', BBB:'fill-bbb' };
 services.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 
 // Populate ranking table (replace static SEO rows with interactive ones)
+const INITIAL_SHOW = 50;
 const tbody = document.querySelector('#ranking-table tbody');
 tbody.innerHTML = '';
-services.forEach((s, i) => {
+
+function createRow(s, i) {
   const pillClass = 'pill-' + s.grade.toLowerCase();
   const fillClass = gradeFill[s.grade] || 'fill-bbb';
   const badgeClass = s.status === 'Verified' ? 'badge-verified' : s.status === 'Connectable' ? 'badge-connectable' : 'badge-info';
@@ -1475,7 +1477,25 @@ services.forEach((s, i) => {
     <td>${s.recipes}</td>
     <td>${s.success}</td>
   `;
+  return tr;
+}
+
+services.forEach((s, i) => {
+  const tr = createRow(s, i);
+  if (i >= INITIAL_SHOW) tr.style.display = 'none';
+  tr.classList.add('ranking-row');
   tbody.appendChild(tr);
+});
+
+// "Show more" button
+const showMoreWrap = document.createElement('div');
+showMoreWrap.style.cssText = 'text-align:center;padding:24px 0;';
+showMoreWrap.innerHTML = `<button id="show-more-btn" style="background:var(--blue);color:white;border:none;padding:12px 40px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s;">Show more (${services.length - INITIAL_SHOW} remaining) ▼</button>`;
+document.querySelector('#ranking-table').parentNode.insertBefore(showMoreWrap, document.querySelector('#ranking-table').nextSibling);
+
+document.getElementById('show-more-btn').addEventListener('click', function() {
+  document.querySelectorAll('.ranking-row').forEach(r => r.style.display = '');
+  showMoreWrap.style.display = 'none';
 });
 
 // Search functionality
