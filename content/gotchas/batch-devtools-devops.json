@@ -1,0 +1,171 @@
+{
+  "deploy-and-notify": [
+    "Vercel deploy hooks return immediately with a deployment ID — you must poll the deployment status endpoint until state is READY or ERROR before posting to Discord, or you will notify with an incomplete status.",
+    "Discord bot tokens require the MESSAGE_CONTENT privileged intent only for reading messages; sending to a channel requires the bot to have Send Messages permission AND be present in the server — a missing guild membership returns a 403 that looks like a permissions error.",
+    "GitHub push webhooks for monorepos fire on every push regardless of path — if you only want main-branch production deploys, filter on ref === 'refs/heads/main' in your handler or you will trigger deploys from feature branches."
+  ],
+  "pr-review-notify": [
+    "GitHub pull_request webhooks fire for opened, synchronize, reopened, closed, and more — filter on action === 'opened' only, or every force-push will re-trigger the notification and create duplicate Linear tasks.",
+    "Linear labels are identified by name within a team scope, but the API requires the label UUID — query the team's labels first to resolve 'code-review' to its ID, or issue creation will fail silently with a null label.",
+    "GitHub's secondary rate limit on the Search API is 30 requests/minute — if this recipe runs alongside other GitHub automations, the webhook diff-stats fetch can get throttled and return a 403 with a Retry-After header."
+  ],
+  "ai-code-review": [
+    "GitHub PR diffs can exceed 100KB for large refactors — the Anthropic API will reject inputs over the model's context window. Truncate the diff to changed hunks only (skip lockfiles, generated code) and cap at ~8000 tokens.",
+    "Posting a review comment via the GitHub Issues Comments API has a 65,536-character body limit — if the Anthropic response is very long, split it into multiple comments or use the Pull Request Reviews API for inline comments.",
+    "The Anthropic API requires an explicit max_tokens parameter — omitting it returns an error, unlike OpenAI which defaults to model max. Always set max_tokens in the request."
+  ],
+  "user-onboarding-saas": [
+    "Stripe sends duplicate webhook events during retries — use the checkout session ID as an idempotency key when creating the Supabase user, or you will get unique constraint violations on email.",
+    "Supabase RLS policies apply even to the service_role key unless you explicitly bypass them — if user creation fails with a 'permission denied' error, check that RLS policies allow inserts from the service role or use the admin API.",
+    "Resend requires domain verification (DNS TXT + DKIM records) before sending — emails from unverified domains are silently dropped, so test with a verified domain before going live.",
+    "Stripe amounts are in cents (integer) but your display and Supabase storage likely expect decimal — divide by 100 before storing or notifying, or plan metadata will show '2999' instead of '$29.99'."
+  ],
+  "scheduled-report": [
+    "Supabase RPC/SQL queries respect Row Level Security by default — use the service_role key (not anon key) for analytics queries, or the query will return zero rows if no user context is set.",
+    "OpenAI rate limits vary by tier — on Tier 1 accounts, gpt-4o is limited to ~500 RPM and 30K TPM. If the analytics payload is large, you may hit token-per-minute limits. Summarize raw data before sending to the LLM.",
+    "Notion API blocks have a 2000-block limit per request and rich text blocks max at 2000 characters each — a long AI-generated report must be chunked into multiple append calls.",
+    "Slack messages over 4000 characters are truncated in the preview — use Block Kit with multiple section blocks, or post a summary and thread the full report as a follow-up."
+  ],
+  "new-signup-automation": [
+    "Discord DMs require the bot to share a server with the user AND the user must have DMs enabled — matching by email is not a native Discord operation. You need a prior mapping of email-to-Discord-user-ID, or fall back to posting a welcome in a public channel.",
+    "Firebase createUser will throw auth/email-already-exists if the Stripe webhook retries — wrap the call in a try-catch and treat 'already exists' as a success, then update custom claims.",
+    "Mailchimp's PUT member endpoint (upsert) requires the subscriber hash (MD5 of lowercase email) in the URL path — using the raw email in the path returns a 404. Always lowercase and MD5-hash the email.",
+    "Stripe checkout.session.completed webhook signatures use the raw request body — if your middleware parses JSON before verification, the signature check will fail. Use the raw body buffer for verification."
+  ],
+  "deploy-monitoring": [
+    "Vercel fires deployment.created, deployment.ready, and deployment.error events — subscribe only to deployment.ready and deployment.error, or your health check will hit a URL that is still building and return a false-negative 502.",
+    "New Vercel deployments use unique preview URLs (e.g., project-abc123.vercel.app) that differ from the production domain — health-check the actual deployment URL, not the production alias, to test the specific deploy.",
+    "Grafana Cloud's annotation API requires the dashboard numeric ID (not the UID slug) — use the dashboard search API to resolve the slug to an ID first, or annotations will 404."
+  ],
+  "invoice-automation": [
+    "Stripe amounts are in the smallest currency unit (cents for USD, yen for JPY) — Airtable and Resend templates expect human-readable amounts. Divide by 100 for cent-based currencies, but NOT for zero-decimal currencies like JPY.",
+    "Stripe can send its own invoice emails by default — if you do not disable Stripe's automatic emails in Dashboard > Settings > Emails, customers will receive duplicate invoices (one from Stripe, one from Resend).",
+    "Airtable API rate limit is 5 requests per second per base — if multiple invoices finalize in a burst (e.g., subscription renewal day), queue writes or use batch create (up to 10 records per call).",
+    "Resend email templates must be created in the dashboard before the API can reference them — a missing template_id returns a 422 error that does not clearly indicate the template is missing."
+  ],
+  "security-alert-pipeline": [
+    "Dependabot severity levels (critical, high, medium, low) do not directly map to Linear priority numbers (1=urgent, 2=high, 3=medium, 4=low) — build an explicit mapping or critical alerts will be created with the wrong priority.",
+    "GitHub Dependabot webhooks require the repository to have Dependabot alerts enabled AND the webhook must subscribe to the 'dependabot_alert' event type — this is a separate event from 'security_advisory'.",
+    "Linear's GraphQL API uses UUIDs for team_id and label IDs, not human-readable names — resolve 'security' label name to its UUID via the labels query before creating the issue, or the mutation will fail.",
+    "Notion select properties must use pre-defined options — if you pass a Severity value that does not exist as a select option in the database, the API returns a validation error. Pre-create all four severity options."
+  ],
+  "multi-cloud-deploy": [
+    "Vercel and Netlify deploy hooks both return immediately and require polling for completion — if you notify Discord before both are done, the status will be 'building' not 'ready'. Poll both with independent timeouts (Vercel ~10min, Netlify ~5min).",
+    "Vercel environment variables are scoped per-project and per-environment (production/preview/development) — if the frontend deploy fails with missing env vars, check that production-scoped variables are set, not just preview.",
+    "Discord message embeds have a 6000-character total limit across all fields — if both deploy logs are included, truncate build output to essential lines only.",
+    "GitHub push webhooks include a 'modified_files' list only for the head commit — for force-pushes or squash merges, the list may be incomplete. Use the Compare API to get the full diff between before/after SHAs."
+  ],
+  "open-source-triage": [
+    "Anthropic API JSON mode is not guaranteed to return valid JSON — always wrap the response parse in try-catch. Use a system prompt with explicit JSON schema and few-shot examples to improve reliability.",
+    "GitHub label application requires the labels to already exist in the repository — if the AI suggests a label like 'performance' that does not exist, the API returns 422. Pre-create expected labels or create them via API before applying.",
+    "GitHub API rate limit is 5000 requests/hour with a token, but popular open-source repos can receive hundreds of issues per day — batch webhook processing and use conditional requests (If-None-Match) to conserve quota.",
+    "Discord role mentions (@maintainers) require the bot to have the Mention Everyone permission or the role to be set as mentionable — otherwise the mention renders as plain text with no notification."
+  ],
+  "github-linear-slack-dev-flow": [
+    "Linear issue linking depends on the branch name containing the issue ID (e.g., 'ENG-123-fix-bug') — if developers use non-standard branch names, the PR-to-issue lookup fails. Document the naming convention or parse from PR body.",
+    "Linear's GraphQL API uses cursor-based pagination (Relay style) — if you query issues by identifier and get no result, check that you are using the correct team prefix (e.g., ENG, not ENGINEERING).",
+    "GitHub pull_request webhooks fire for multiple actions (opened, synchronize, review_requested, closed) — map each action to the correct Linear status transition, or status will only update on open, not on merge."
+  ],
+  "figma-github-vercel-design-deploy": [
+    "Figma webhooks must be registered via the Figma REST API (POST /v2/webhooks) — there is no UI for this. The webhook secret is returned only once at creation time; store it immediately for signature verification.",
+    "Vercel preview deployments require a branch ref, not a commit SHA — if the GitHub issue creation step does not also create a branch, the Vercel deploy step has no ref to build. Automate branch creation from the issue.",
+    "Figma file_key is extracted from the URL (figma.com/file/{file_key}/...) and is case-sensitive — passing a malformed key returns a 404 from the Figma API with no helpful error message.",
+    "Vercel preview URLs are ephemeral and change with every deploy — do not store them as permanent links. Use the deployment's inspect URL or alias for stable references."
+  ],
+  "posthog-slack-linear-feature-flag-incident": [
+    "PostHog action webhooks send a generic payload — error_rate and baseline_rate are not included by default. You must configure a PostHog Action with a webhook that includes custom properties from your event schema.",
+    "Linear priority 1 (Urgent) triggers immediate notifications to assignees — if no assignee is set, the urgent issue goes unnoticed. Always set a default assignee or use a team-level auto-assignment rule.",
+    "PostHog feature flag evaluation is eventually consistent — there can be a delay between flag rollout and error data appearing. Set a minimum observation window (e.g., 15 minutes) before triggering the alert to avoid false positives.",
+    "Slack messages with @channel or @here in the text field require the bot to have chat:write permission and the channel to allow bot mentions — otherwise the mention is silently stripped from the posted message."
+  ],
+  "datadog-slack-incident-alert": [
+    "Datadog webhook payloads use template variables ($EVENT_MSG, $ALERT_METRIC, etc.) that must be configured in the Datadog webhook integration settings — the raw webhook sends minimal data unless you define a custom payload template.",
+    "Slack channel names must be lowercase, max 80 characters, no spaces or periods — dynamically generated names like 'incident-2026-04-10-payment-service' can exceed limits or contain invalid characters. Sanitize and truncate before creating.",
+    "Slack's conversations.create API requires the channels:manage scope, which is separate from chat:write — the bot can post messages but not create channels unless this additional scope is granted.",
+    "Datadog monitors can flap between OK and ALERT rapidly — add a recovery threshold or evaluation window to prevent creating multiple incident channels for the same issue within minutes."
+  ],
+  "bug-triage-ai": [
+    "Sentry webhook payloads for issue events can be very large (>100KB with full stack traces) — if your handler has a body size limit (common in serverless), the webhook silently fails. Increase the limit or use Sentry's internal integration which sends compact payloads.",
+    "OpenAI's gpt-4o has a 128K context window but charges per token — sending full stack traces with 200+ frames is expensive and often unnecessary. Truncate to the top 50 frames and include only the exception chain.",
+    "Sentry groups similar errors into issues — a single webhook may represent hundreds of events. Check the issue frequency/count before creating a Linear task to avoid flooding the backlog with low-occurrence errors.",
+    "Linear priority field accepts integers (0=none, 1=urgent, 2=high, 3=medium, 4=low), not strings — passing Sentry's frequency as a string will cause the mutation to fail. Map frequency ranges to integer priorities explicitly."
+  ],
+  "incident-response": [
+    "PagerDuty Events API v2 requires a routing_key (integration key), not the REST API token — using the wrong key type returns a 'routing key not found' error. Create a service-level Events API v2 integration in PagerDuty to get the correct key.",
+    "Jira priority names vary by instance — the default is 'Highest/High/Medium/Low/Lowest', not P1-P5. Query /rest/api/3/priority to get your instance's priority IDs before mapping from PagerDuty severity.",
+    "Grafana annotation timestamps must be in epoch milliseconds — PagerDuty's triggered_at is ISO 8601. Convert before calling the Grafana API or the annotation will be placed at Unix epoch (1970).",
+    "PagerDuty webhook V3 format nests incident data under event.data — V2 uses messages[].incident. If you configured V3 but parse V2 format, all fields will be undefined."
+  ],
+  "infrastructure-scaling": [
+    "Cloudflare Analytics API (GraphQL) requires an API token with the Analytics:Read permission at the zone level — the Global API Key works but is a security risk. Use a scoped token.",
+    "PagerDuty Events API v2 requires a routing_key tied to a specific service — the 'service_id' in config must be the integration key from the service's Events API v2 integration, not the service's PagerDuty ID.",
+    "OpenAI token limits apply to both input and output — large Cloudflare analytics payloads (24 hours of per-minute data) can exceed context limits. Aggregate data to hourly buckets before sending to the LLM.",
+    "PagerDuty dedup_key should be deterministic for the same prediction window — use a hash of date + zone_id to prevent duplicate alerts. Without dedup, each cron run creates a new incident."
+  ],
+  "postgres-schema-audit": [
+    "The postgresql-mcp server runs queries with the credentials of the configured database user — ensure this user has SELECT on information_schema.tables, information_schema.columns, and pg_catalog.pg_stat_user_tables, or the audit will return empty results.",
+    "Comparing this week's snapshot to last week's requires persisting the previous snapshot somewhere (config store, file, or database) — Slack messages are not reliable storage. Store snapshots in a dedicated table or object store.",
+    "Large databases with 200+ tables can produce schema snapshots exceeding the OpenAI context window (128K tokens for gpt-4o) — pre-filter to changed tables only or use a structured JSON diff before sending to the LLM.",
+    "pg_stat_statements and pg_stat_user_tables row counts are estimates from the planner — for exact counts, the query needs COUNT(*) per table, which can be slow on large tables. Use the estimate for audits and note the caveat."
+  ],
+  "qdrant-rag-knowledge-base": [
+    "The Qdrant collection must be created with the correct vector dimension BEFORE upserting — text-embedding-3-small produces 1536-dimensional vectors. A dimension mismatch returns an error that does not clearly state the cause.",
+    "GitHub's /contents API returns Base64-encoded file content and has a 1MB file size limit — for larger docs, use the Git Blobs API. Also, the API paginates directory listings at 1000 files; use the Git Trees API for larger doc sets.",
+    "OpenAI embedding API accepts up to 2048 inputs per batch call — but total tokens across all inputs must stay under 8191 tokens per input. Chunk documents before batching, not after.",
+    "Qdrant distance metric (Cosine, Euclid, Dot) is set at collection creation and cannot be changed — OpenAI embeddings are normalized, so Cosine and Dot produce identical rankings, but Euclid does not. Use Cosine for OpenAI embeddings."
+  ],
+  "vector-search-support-bot": [
+    "The embedding model for queries MUST match the model used during indexing — if the knowledge base was built with text-embedding-3-small but queries use text-embedding-ada-002, similarity scores will be meaningless and results random.",
+    "Slack app_mention events require the Event Subscriptions feature enabled with the app_mentions:read scope — this is separate from bot token scopes. Missing this scope means the bot never receives mention events.",
+    "Qdrant score_threshold varies by distance metric — for Cosine similarity, 0.7 is a reasonable threshold, but for Dot product on unnormalized vectors, scores can exceed 1.0. Calibrate the threshold to your specific corpus.",
+    "Slack messages have a 4000-character limit for the text field — if the RAG answer plus citations exceeds this, the message silently truncates. Use Block Kit blocks or split into a summary message and threaded detail."
+  ],
+  "mongo-to-postgres-nightly-sync": [
+    "MongoDB Atlas Data API has a 16MB response limit and a default timeout of 10 seconds — if the changed document set is large, paginate with skip/limit and add projection to fetch only needed fields.",
+    "Neon Postgres serverless connections auto-suspend after 5 minutes of inactivity — the first query after suspension has a ~1s cold start. For nightly syncs this is fine, but set a connection timeout > 5s to handle the wake-up.",
+    "MongoDB ObjectId fields do not directly map to Postgres types — store them as TEXT or UUID in the target table. Casting errors will cause the entire INSERT batch to fail with no partial commit.",
+    "The sync checkpoint (last_sync_ts) must be persisted outside of Slack — if the agent relies on parsing the last Slack message to find the checkpoint, message edits or deletions will break the sync. Store it in a config table or environment variable."
+  ],
+  "redis-cache-warmer": [
+    "Upstash Redis REST API has a rate limit of ~1000 commands/second on the free tier — warming 500 keys with individual SET calls will take 500 requests. Use the pipeline endpoint (POST /pipeline) to batch all SETs in a single HTTP call.",
+    "The postgresql-mcp server is strictly read-only — do not attempt to update a 'last_warmed_at' timestamp through it. Use a separate write path or track cache warm status in Redis itself with a metadata key.",
+    "Microsoft Teams Graph API requires delegated or application permissions (ChannelMessage.Send) and an Azure AD app registration — this is significantly more setup than Slack webhooks. The access token expires every hour and must be refreshed.",
+    "TTL of 6 hours means the cache goes cold before next day's peak if the warmer runs too early — schedule the job 30-60 minutes before the expected traffic peak, not at midnight."
+  ],
+  "postgres-slow-query-alert": [
+    "pg_stat_statements must be loaded via shared_preload_libraries in postgresql.conf and requires a server restart to enable — it cannot be loaded dynamically. If not present, the query returns 'relation pg_stat_statements does not exist'.",
+    "GitLab issue search is full-text and fuzzy — deduplication by queryid requires embedding the queryid as a unique token (e.g., '[queryid:12345]') in the issue body so search reliably finds exact matches, not partial ones.",
+    "pg_stat_statements query text is truncated to track_activity_query_size (default 1024 bytes) — long queries like ORM-generated JOINs will be cut off, making root cause analysis harder. Increase this setting if you need full query text.",
+    "GitLab project access tokens have an expiration date (max 1 year) — long-running agents using these tokens will silently fail after expiry. Set a calendar reminder or build a token rotation mechanism."
+  ],
+  "content-pipeline": [
+    "Airtable API rate limit is 5 requests per second per base — if the editorial calendar is large and requires pagination, add delays between page fetches or you will get 429 errors with a 30-second backoff.",
+    "Anthropic API requires an explicit max_tokens parameter — if omitted, the request fails with a validation error. Set it based on expected article length (4000 tokens is roughly 3000 words).",
+    "Notion page content is structured as blocks, not plain text — the AI-generated markdown must be converted to Notion block format (paragraph, heading, bulleted_list_item, etc.) before creation, or the content appears as a single unformatted text blob.",
+    "Airtable field names are case-sensitive and space-sensitive — 'publish_date' and 'Publish Date' are different fields. Verify exact field names from the Airtable schema before building the filter formula."
+  ],
+  "customer-feedback-loop": [
+    "OpenAI rate limits on gpt-4o vary by tier — sending a batch of 20 survey responses in a single prompt can exceed token-per-minute limits on lower tiers. Process in smaller batches of 5-10 responses if you hit 429 errors.",
+    "Airtable records must be marked as processed after analysis to prevent reprocessing — use a PATCH request to set the 'processed' checkbox immediately after the OpenAI call, not after the Slack post, to avoid reprocessing if Slack fails.",
+    "Slack messages over 4000 characters are truncated — sentiment analysis of 20+ responses will likely exceed this. Post a summary in the main message and use a thread for the per-response breakdown.",
+    "Airtable's filterByFormula syntax uses its own formula language (not SQL) — the filter 'processed=false' must be written as filterByFormula=NOT({processed}) or {processed}=FALSE() depending on field type."
+  ],
+  "meeting-followup": [
+    "Calendly webhook payloads nest attendee data under invitee.questions_and_answers as an array of objects — each Q&A has 'question' and 'answer' fields, not a flat key-value map. Parse accordingly.",
+    "Slack's chat.scheduleMessage API requires the post_at timestamp in Unix epoch seconds and the time must be between 1-120 days in the future — scheduling a reminder 30 minutes before a meeting happening in 15 minutes will fail with 'time_in_past'.",
+    "Resend email templates are referenced by template ID (a UUID), not by name — 'meeting-prep' is not a valid template reference. Look up the template ID from the Resend dashboard or Templates API.",
+    "Notion date properties require ISO 8601 format with timezone — Calendly returns times in UTC. If your Notion database expects a local timezone, convert before writing or the meeting time will display incorrectly."
+  ],
+  "customer-support-ai": [
+    "Discord Message Content Intent is a privileged gateway intent that must be enabled in the Discord Developer Portal — without it, message_content will be empty for messages in guilds with 100+ members, and the bot will analyze a blank question.",
+    "Anthropic API system prompts have no automatic access to your product documentation — you must include relevant FAQ/docs context as part of the system message or use RAG. Without context, the AI will hallucinate product-specific answers.",
+    "Discord rate limits are per-channel (5 messages per 5 seconds) — if multiple support questions arrive simultaneously, queue responses or the bot will be temporarily blocked with a 429 and Retry-After header.",
+    "Linear issue creation via GraphQL requires team_id as a UUID, not the team key (e.g., 'SUP') — use the teams query to resolve the key to a UUID, or the mutation returns 'Team not found'."
+  ],
+  "design-handoff": [
+    "Figma webhooks only fire for the FILE_VERSION_UPDATE event when a file version is explicitly published (not on every auto-save) — instruct designers to use File > Save to Version History to trigger the workflow.",
+    "GitHub label creation is a separate API call from issue creation — if 'design-handoff' label does not exist in the repo, adding it to the issue will fail silently (the issue is created without the label, no error returned).",
+    "Linear team_id and label resolution require separate GraphQL queries — the API does not accept human-readable team names or label names directly. Cache these UUIDs in config rather than querying on every webhook.",
+    "Discord embed URLs must be HTTPS — Figma file URLs (https://figma.com/file/...) work, but if you construct URLs with http:// by mistake, Discord will not render the embed preview."
+  ]
+}

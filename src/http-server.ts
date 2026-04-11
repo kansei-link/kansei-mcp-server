@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * KanseiLink MCP Server — Streamable HTTP Transport
+ * KanseiLink MCP Server — Streamable HTTP Transport + Stripe Billing API
  *
  * Stateless mode: each request creates a fresh server + transport pair.
  * The SQLite database is shared across requests (read-heavy, WAL mode).
@@ -12,19 +12,58 @@
  *   KANSEI_HOST=0.0.0.0 node dist/http-server.js  # bind to all interfaces
  */
 
+import express from "express";
 import type { Request, Response } from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { createServer } from "./server.js";
 import { closeDb } from "./db/connection.js";
+import {
+  handleStripeWebhook,
+  handleAccessCheck,
+  handleCreateCheckout,
+  handleCustomerPortal,
+} from "./stripe.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
 
-// For cloud deployment: no allowedHosts restriction when binding to 0.0.0.0
-// DNS rebinding protection is auto-enabled only for localhost bindings
-const app = createMcpExpressApp({ host: HOST });
+const app = express();
 
+// Stripe webhook needs raw body for signature verification — must be before express.json()
+app.post("/webhooks/stripe", express.raw({ type: "application/json" }), handleStripeWebhook);
+
+// JSON body parser for all other routes
+app.use(express.json());
+
+// CORS for frontend API access
+app.use("/api", (_req: Request, res: Response, next) => {
+  const origin = process.env.KANSEI_PUBLIC_URL ?? "https://kansei-link.com";
+  res.header("Access-Control-Allow-Origin", origin);
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  if (_req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
+// ─── Stripe Billing API ────────────────────────────────────────────
+// Public config: exposes price IDs for client-side checkout buttons (no secrets)
+app.get("/api/config", (_req: Request, res: Response) => {
+  res.json({
+    prices: {
+      proMonthly: process.env.STRIPE_PRICE_PRO_MONTHLY ?? "",
+      proAnnual: process.env.STRIPE_PRICE_PRO_ANNUAL ?? "",
+      team: process.env.STRIPE_PRICE_TEAM ?? "",
+    },
+  });
+});
+app.get("/api/access", handleAccessCheck);
+app.post("/api/checkout", handleCreateCheckout);
+app.post("/api/portal", handleCustomerPortal);
+
+// ─── MCP + Health ──────────────────────────────────────────────────
 // Health check endpoint
 app.get("/health", (_req: Request, res: Response) => {
   res.json({

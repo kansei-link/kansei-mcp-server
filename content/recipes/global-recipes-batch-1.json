@@ -1,0 +1,823 @@
+[
+  {
+    "id": "stripe-xero-payment-accounting",
+    "goal": "Sync Stripe payments to Xero accounting",
+    "description": "When a Stripe payment succeeds, create a matching invoice and payment record in Xero for automated bookkeeping.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "stripe-global",
+        "action": "Retrieve completed payment intent with customer and line item details",
+        "input_mapping": { "from": "trigger", "fields": ["payment_intent_id"] },
+        "output_mapping": { "amount": "step1.amount", "currency": "step1.currency", "customer_email": "step1.customer.email", "description": "step1.description" },
+        "error_hint": "Amount is in cents (integer). Divide by 100 for Xero. Currency must be uppercase ISO 4217."
+      },
+      {
+        "order": 2,
+        "service_id": "xero",
+        "action": "Create or match contact in Xero by email, then create invoice and apply payment",
+        "input_mapping": { "email": "step1.customer_email", "amount": "step1.amount", "currency": "step1.currency", "description": "step1.description" },
+        "output_mapping": { "invoice_id": "step2.InvoiceID", "payment_id": "step2.PaymentID" },
+        "error_hint": "Xero-tenant-id header is REQUIRED on every call. Amount must be decimal (not cents). Check fiscal period is open."
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Post payment sync confirmation to #accounting channel",
+        "input_mapping": { "text": "step1.description", "amount": "step1.amount", "invoice_id": "step2.invoice_id" },
+        "output_mapping": { "message_ts": "step3.ts" },
+        "error_hint": "Slack returns 200 OK even on failure — check ok:true in response body."
+      }
+    ],
+    "required_services": ["stripe-global", "xero", "slack"],
+    "gotchas": [
+      "Stripe amounts are cents (integer), Xero amounts are decimal — always divide by 100",
+      "Xero requires Xero-tenant-id header on every request — get it during OAuth flow",
+      "Multi-currency: Stripe and Xero must agree on currency code or reconciliation fails silently"
+    ]
+  },
+  {
+    "id": "adyen-bigquery-payment-analytics",
+    "goal": "Stream Adyen payment data to BigQuery for analytics",
+    "description": "Capture Adyen payment events and load them into BigQuery for dashboarding and fraud analysis.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "adyen",
+        "action": "Fetch recent payment results from Adyen with payment method and risk scores",
+        "input_mapping": { "from": "config", "fields": ["merchant_account", "date_range"] },
+        "output_mapping": { "payments": "step1.results", "count": "step1.count" },
+        "error_hint": "Amounts in minor units: {value:10000, currency:'USD'} = $100. Test URL vs live URL differ — check environment."
+      },
+      {
+        "order": 2,
+        "service_id": "bigquery",
+        "action": "Stream insert payment records into BigQuery payments table",
+        "input_mapping": { "rows": "step1.payments" },
+        "output_mapping": { "inserted": "step2.insertedRows" },
+        "error_hint": "Set useLegacySql:false. Streaming inserts have ~90 second delay before queryable. Schema must pre-exist."
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Post daily payment summary to #payments channel",
+        "input_mapping": { "count": "step1.count", "inserted": "step2.inserted" },
+        "output_mapping": { "ts": "step3.ts" },
+        "error_hint": "Format amounts back to decimal for human readability in Slack message."
+      }
+    ],
+    "required_services": ["adyen", "bigquery", "slack"],
+    "gotchas": [
+      "Adyen minor units vary by currency (JPY has no decimals, EUR has 2) — use currency exponent table",
+      "BigQuery streaming insert buffer means data is not immediately queryable — don't chain a query right after insert"
+    ]
+  },
+  {
+    "id": "firecrawl-pinecone-rag-pipeline",
+    "goal": "Build RAG knowledge base from web content",
+    "description": "Crawl target websites with Firecrawl, generate embeddings, and upsert into Pinecone for retrieval-augmented generation.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "firecrawl",
+        "action": "Crawl target URL and return clean markdown pages",
+        "input_mapping": { "from": "user_input", "fields": ["url", "max_pages"] },
+        "output_mapping": { "pages": "step1.data", "job_id": "step1.id" },
+        "error_hint": "Crawl is async — returns job_id. Poll GET /crawl/{id} until status='completed'. Each page costs 1 credit."
+      },
+      {
+        "order": 2,
+        "service_id": "openai-api",
+        "action": "Generate embeddings for each crawled page using text-embedding-3-small",
+        "input_mapping": { "texts": "step1.pages[].markdown" },
+        "output_mapping": { "vectors": "step2.data[].embedding" },
+        "error_hint": "Max 8191 tokens per input. Split long pages into chunks of ~500 tokens with overlap. Model outputs 1536 dimensions."
+      },
+      {
+        "order": 3,
+        "service_id": "pinecone",
+        "action": "Upsert vectors with page content as metadata into Pinecone index",
+        "input_mapping": { "vectors": "step2.vectors", "metadata": "step1.pages[].url" },
+        "output_mapping": { "upserted_count": "step3.upsertedCount" },
+        "error_hint": "Index must be created with dimension=1536 matching embedding model. Use namespace for source separation. Api-Key header (not Bearer)."
+      }
+    ],
+    "required_services": ["firecrawl", "openai-api", "pinecone"],
+    "gotchas": [
+      "Pinecone dimension MUST match embedding model: 1536 for text-embedding-3-small, 3072 for large",
+      "Firecrawl crawl is async — build a polling loop, don't assume immediate completion",
+      "Chunk strategy matters: 500 tokens with 50-token overlap is a good default for RAG"
+    ]
+  },
+  {
+    "id": "firecrawl-chroma-local-rag",
+    "goal": "Local RAG development with Firecrawl and Chroma",
+    "description": "Scrape documentation sites and store in local Chroma for development-time RAG without cloud dependencies.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "firecrawl",
+        "action": "Scrape target documentation pages to clean markdown",
+        "input_mapping": { "from": "user_input", "fields": ["urls"] },
+        "output_mapping": { "pages": "step1.data" },
+        "error_hint": "Use /scrape for single pages (sync), /crawl for full sites (async). formats=['markdown'] for LLM-ready output."
+      },
+      {
+        "order": 2,
+        "service_id": "chroma",
+        "action": "Add documents to Chroma collection with auto-embedding",
+        "input_mapping": { "documents": "step1.pages[].markdown", "metadatas": "step1.pages[].metadata" },
+        "output_mapping": { "collection_id": "step2.id" },
+        "error_hint": "v2 API path: /tenants/{tenant}/databases/{db}/collections. NOT the old v1 /collections path. If embedding function configured, pass documents directly."
+      }
+    ],
+    "required_services": ["firecrawl", "chroma"],
+    "gotchas": [
+      "Chroma v2 changed collection routing — use /tenants/default_tenant/databases/default_database/collections",
+      "Local Chroma runs with no auth by default — fine for dev but set CHROMA_SERVER_AUTHN_PROVIDER for production"
+    ]
+  },
+  {
+    "id": "tavily-perplexity-research-agent",
+    "goal": "AI-powered competitive research pipeline",
+    "description": "Use Tavily for broad search, Perplexity for deep analysis, and store findings in Notion.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "tavily",
+        "action": "Search for recent information on target topic with AI-optimized results",
+        "input_mapping": { "from": "user_input", "fields": ["query", "search_depth"] },
+        "output_mapping": { "results": "step1.results", "answer": "step1.answer" },
+        "error_hint": "Use search_depth='advanced' for deeper results (costs more credits). api_key goes in POST body, not header."
+      },
+      {
+        "order": 2,
+        "service_id": "perplexity",
+        "action": "Deep-dive analysis using Tavily findings as context, with web citations",
+        "input_mapping": { "context": "step1.answer", "query": "user_input.query" },
+        "output_mapping": { "analysis": "step2.choices[0].message.content", "citations": "step2.citations" },
+        "error_hint": "Use model='sonar-pro' for best quality with citations. API requires payment method even for first use."
+      },
+      {
+        "order": 3,
+        "service_id": "notion",
+        "action": "Create research page in Notion database with analysis and sources",
+        "input_mapping": { "title": "user_input.query", "content": "step2.analysis", "sources": "step2.citations" },
+        "output_mapping": { "page_id": "step3.id" },
+        "error_hint": "Notion API uses block-based content — convert markdown to Notion blocks. Max 100 blocks per request."
+      }
+    ],
+    "required_services": ["tavily", "perplexity", "notion"],
+    "gotchas": [
+      "Tavily api_key goes in POST body (not Authorization header) — non-standard",
+      "Perplexity citations array may contain URLs that are no longer accessible — cache key findings"
+    ]
+  },
+  {
+    "id": "greenhouse-bamboohr-hire-to-onboard",
+    "goal": "Automate hire-to-onboard pipeline",
+    "description": "When a candidate is marked as hired in Greenhouse ATS, create their employee record in BambooHR and notify HR on Slack.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "greenhouse",
+        "action": "Retrieve hired candidate details from Greenhouse Harvest API",
+        "input_mapping": { "from": "trigger", "fields": ["candidate_id"] },
+        "output_mapping": { "name": "step1.first_name", "email": "step1.email_addresses[0].value", "job_title": "step1.applications[0].jobs[0].name", "start_date": "step1.applications[0].offer.starts_at" },
+        "error_hint": "Basic auth: API key as username, empty string as password. Per-page max 500 for bulk queries."
+      },
+      {
+        "order": 2,
+        "service_id": "bamboohr",
+        "action": "Create employee record in BambooHR with hire details",
+        "input_mapping": { "firstName": "step1.name", "workEmail": "step1.email", "jobTitle": "step1.job_title", "hireDate": "step1.start_date" },
+        "output_mapping": { "employee_id": "step2.headers.Location" },
+        "error_hint": "URL requires subdomain (company-specific). Basic auth: API key as username, literal 'x' as password. Employee ID is in Location header, not body."
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Notify #hr-onboarding channel with new hire details",
+        "input_mapping": { "name": "step1.name", "title": "step1.job_title", "start_date": "step1.start_date", "bamboo_id": "step2.employee_id" },
+        "output_mapping": { "ts": "step3.ts" },
+        "error_hint": "Check ok:true in response. Use blocks for rich formatting."
+      }
+    ],
+    "required_services": ["greenhouse", "bamboohr", "slack"],
+    "gotchas": [
+      "Both Greenhouse and BambooHR use Basic auth but with different quirks: Greenhouse = key:'' (empty password), BambooHR = key:'x' (literal x)",
+      "BambooHR returns employee ID in Location header, not response body — parse the header",
+      "Employee fields are configurable per BambooHR account — use GET /meta/fields to check available fields first"
+    ]
+  },
+  {
+    "id": "freshdesk-clickup-support-to-task",
+    "goal": "Convert support tickets to engineering tasks",
+    "description": "When a Freshdesk ticket is tagged as a bug or feature request, create a corresponding ClickUp task and link back.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "freshdesk",
+        "action": "Retrieve ticket details including description, priority, and customer info",
+        "input_mapping": { "from": "trigger", "fields": ["ticket_id"] },
+        "output_mapping": { "subject": "step1.subject", "description": "step1.description_text", "priority": "step1.priority", "requester": "step1.requester.email" },
+        "error_hint": "Auth is API key with literal 'X' as password in Basic auth (same pattern as BambooHR). Priority is integer: 1=Low, 4=Urgent."
+      },
+      {
+        "order": 2,
+        "service_id": "clickup",
+        "action": "Create task in engineering list with ticket context",
+        "input_mapping": { "name": "step1.subject", "description": "step1.description", "priority": "step1.priority" },
+        "output_mapping": { "task_id": "step2.id", "task_url": "step2.url" },
+        "error_hint": "Authorization: {api_key} — NO 'Bearer' prefix. Priority mapping differs: ClickUp uses 1=Urgent, 4=Low (reversed from Freshdesk)."
+      },
+      {
+        "order": 3,
+        "service_id": "freshdesk",
+        "action": "Add note to original ticket with ClickUp task link",
+        "input_mapping": { "ticket_id": "trigger.ticket_id", "body": "step2.task_url" },
+        "output_mapping": { "note_id": "step3.id" },
+        "error_hint": "Use private note (private:true) so customer doesn't see internal engineering link."
+      }
+    ],
+    "required_services": ["freshdesk", "clickup"],
+    "gotchas": [
+      "Priority scales are REVERSED: Freshdesk 1=Low/4=Urgent, ClickUp 1=Urgent/4=Low — build a mapping",
+      "ClickUp Authorization header takes raw key without Bearer prefix — common 401 trap"
+    ]
+  },
+  {
+    "id": "gorgias-bigcommerce-support-context",
+    "goal": "Enrich support tickets with order data",
+    "description": "When a Gorgias ticket arrives, look up the customer's recent orders in BigCommerce and attach context to the ticket.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "gorgias",
+        "action": "Retrieve ticket and customer email from Gorgias",
+        "input_mapping": { "from": "trigger", "fields": ["ticket_id"] },
+        "output_mapping": { "customer_email": "step1.customer.email", "ticket_id": "step1.id" },
+        "error_hint": "Basic auth: email as username, API key as password. Subdomain is account-specific."
+      },
+      {
+        "order": 2,
+        "service_id": "bigcommerce",
+        "action": "Search orders by customer email in BigCommerce",
+        "input_mapping": { "email": "step1.customer_email" },
+        "output_mapping": { "orders": "step2.data", "recent_order": "step2.data[0]" },
+        "error_hint": "Two headers required: X-Auth-Token AND X-Auth-Client. Orders use v2 API path (/v2/orders), not v3."
+      },
+      {
+        "order": 3,
+        "service_id": "gorgias",
+        "action": "Add internal note with order summary to the ticket",
+        "input_mapping": { "ticket_id": "step1.ticket_id", "order_data": "step2.recent_order" },
+        "output_mapping": { "message_id": "step3.id" },
+        "error_hint": "Message type must be 'internal-note' to keep order details private from customer."
+      }
+    ],
+    "required_services": ["gorgias", "bigcommerce"],
+    "gotchas": [
+      "BigCommerce orders endpoint is v2, not v3 — different base path than catalog endpoints",
+      "BigCommerce requires BOTH X-Auth-Token and X-Auth-Client headers — missing either gives 401"
+    ]
+  },
+  {
+    "id": "github-actions-fly-io-deploy",
+    "goal": "CI/CD pipeline to Fly.io edge",
+    "description": "On GitHub push, run tests via GitHub Actions, then deploy to Fly.io global edge network.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "github",
+        "action": "Detect push event and trigger Actions workflow",
+        "input_mapping": { "from": "trigger", "fields": ["repo", "ref", "commit_sha"] },
+        "output_mapping": { "run_id": "step1.id", "sha": "step1.head_sha" },
+        "error_hint": "Use fine-grained PAT with actions:write scope. Check .github/workflows/ exists."
+      },
+      {
+        "order": 2,
+        "service_id": "github-actions",
+        "action": "Wait for CI workflow to complete and check status",
+        "input_mapping": { "run_id": "step1.run_id" },
+        "output_mapping": { "conclusion": "step2.conclusion", "artifacts": "step2.artifacts" },
+        "error_hint": "Poll GET /actions/runs/{id} — status goes queued→in_progress→completed. conclusion='success' means ready to deploy."
+      },
+      {
+        "order": 3,
+        "service_id": "fly-io",
+        "action": "Deploy to Fly.io using flyctl machine API if CI passed",
+        "input_mapping": { "image": "step2.artifacts.image_tag", "app": "config.fly_app_name" },
+        "output_mapping": { "machine_id": "step3.id", "status": "step3.state" },
+        "error_hint": "Fly Machines API uses Bearer token from FLY_API_TOKEN. Base URL is api.machines.dev. Ensure app exists first."
+      }
+    ],
+    "required_services": ["github", "github-actions", "fly-io"],
+    "gotchas": [
+      "GitHub Actions workflow must complete before deploy — poll status, don't fire-and-forget",
+      "Fly.io Machines API is at api.machines.dev (not fly.io/api) — different domain"
+    ]
+  },
+  {
+    "id": "github-circleci-render-deploy",
+    "goal": "CI/CD with CircleCI tests and Render deploy",
+    "description": "GitHub push triggers CircleCI pipeline for testing, then deploys to Render on success.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "github",
+        "action": "Detect push to main branch",
+        "input_mapping": { "from": "trigger", "fields": ["repo", "branch", "commit_sha"] },
+        "output_mapping": { "sha": "step1.head_sha", "repo": "step1.repository.full_name" },
+        "error_hint": "Filter for branch=main to avoid deploying feature branches."
+      },
+      {
+        "order": 2,
+        "service_id": "circleci",
+        "action": "Trigger pipeline and wait for workflow completion",
+        "input_mapping": { "project_slug": "step1.repo", "branch": "main" },
+        "output_mapping": { "pipeline_id": "step2.id", "status": "step2.state" },
+        "error_hint": "CircleCI API v2 uses project slug format: gh/{org}/{repo}. Personal API token as Bearer."
+      },
+      {
+        "order": 3,
+        "service_id": "render",
+        "action": "Trigger deploy on Render service",
+        "input_mapping": { "service_id": "config.render_service_id", "commit_sha": "step1.sha" },
+        "output_mapping": { "deploy_id": "step3.deploy.id", "deploy_url": "step3.deploy.url" },
+        "error_hint": "Render API key as Bearer token. Deploy is async — poll GET /services/{id}/deploys/{deployId} for completion."
+      }
+    ],
+    "required_services": ["github", "circleci", "render"],
+    "gotchas": [
+      "CircleCI project slug format is specific: gh/{org}/{repo} — not just the repo name",
+      "Render deploy is async — poll for completion before declaring success"
+    ]
+  },
+  {
+    "id": "deel-xero-contractor-accounting",
+    "goal": "Sync contractor payments to accounting",
+    "description": "When Deel processes a contractor payment, record the expense in Xero with proper categorization.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "deel",
+        "action": "Retrieve recent contractor invoices and payment details",
+        "input_mapping": { "from": "config", "fields": ["date_range"] },
+        "output_mapping": { "invoices": "step1.data", "total": "step1.data.length" },
+        "error_hint": "Deel handles both EOR employees and contractors — filter by contract_type. Currency is per-contract (multi-currency)."
+      },
+      {
+        "order": 2,
+        "service_id": "xero",
+        "action": "Create bill (accounts payable) entries in Xero for each contractor payment",
+        "input_mapping": { "invoices": "step1.invoices" },
+        "output_mapping": { "bill_ids": "step2.Invoices[].InvoiceID" },
+        "error_hint": "Use Type='ACCPAY' for bills (not ACCREC which is receivables). Xero-tenant-id header required on every call."
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Post contractor payment summary to #finance channel",
+        "input_mapping": { "total": "step1.total", "bill_ids": "step2.bill_ids" },
+        "output_mapping": { "ts": "step3.ts" },
+        "error_hint": "Check ok:true in Slack response."
+      }
+    ],
+    "required_services": ["deel", "xero", "slack"],
+    "gotchas": [
+      "Deel is multi-currency by design — Xero bill currency must match the contract currency, not your base currency",
+      "Xero bill type is 'ACCPAY' (accounts payable), NOT 'ACCREC' (accounts receivable) — wrong type silently creates wrong entries"
+    ]
+  },
+  {
+    "id": "bigcommerce-activecampaign-cart-recovery",
+    "goal": "Abandoned cart recovery via email automation",
+    "description": "Detect abandoned carts in BigCommerce and trigger recovery email sequences in ActiveCampaign.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "bigcommerce",
+        "action": "Fetch abandoned carts older than 1 hour with customer details",
+        "input_mapping": { "from": "config", "fields": ["min_age_hours"] },
+        "output_mapping": { "carts": "step1.data", "emails": "step1.data[].email" },
+        "error_hint": "Two headers: X-Auth-Token + X-Auth-Client. Abandoned carts are in v3: /carts?include=line_items."
+      },
+      {
+        "order": 2,
+        "service_id": "activecampaign",
+        "action": "Create or update contacts and add to abandoned cart automation",
+        "input_mapping": { "contacts": "step1.carts" },
+        "output_mapping": { "synced": "step2.contacts" },
+        "error_hint": "Auth header is 'Api-Token' — NOT Authorization Bearer. Base URL is {account}.api-us1.com. Use POST /contact/sync for upsert."
+      }
+    ],
+    "required_services": ["bigcommerce", "activecampaign"],
+    "gotchas": [
+      "ActiveCampaign auth header is 'Api-Token' (not Bearer) and base URL contains account name — double whammy for generic HTTP clients",
+      "BigCommerce cart API and ActiveCampaign contacts must be de-duped by email to avoid duplicate recovery emails"
+    ]
+  },
+  {
+    "id": "typeform-customer-io-lead-nurture",
+    "goal": "Form submission to nurture sequence",
+    "description": "Typeform form completion triggers a behavioral nurture sequence in Customer.io.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "typeform",
+        "action": "Retrieve form response with answers keyed by field ref",
+        "input_mapping": { "from": "trigger", "fields": ["form_id", "response_id"] },
+        "output_mapping": { "email": "step1.answers.email_field.email", "name": "step1.answers.name_field.text", "interest": "step1.answers.interest_field.choice.label" },
+        "error_hint": "Responses are keyed by field.ref — set stable refs during form creation. Personal access token as Bearer."
+      },
+      {
+        "order": 2,
+        "service_id": "customer-io",
+        "action": "Create or update customer and track form_completed event",
+        "input_mapping": { "email": "step1.email", "name": "step1.name", "interest": "step1.interest" },
+        "output_mapping": { "customer_id": "step2.customer_id" },
+        "error_hint": "Track API uses Basic auth (site_id:api_key), NOT Bearer. Customer ID is YOUR choice — use email or internal ID."
+      }
+    ],
+    "required_services": ["typeform", "customer-io"],
+    "gotchas": [
+      "Customer.io has TWO APIs with DIFFERENT auth: Track API = Basic auth (site_id:api_key), App API = Bearer token",
+      "Typeform responses without stable field refs will break when form is edited — always set refs at form creation"
+    ]
+  },
+  {
+    "id": "elevenlabs-webflow-voice-content",
+    "goal": "Add AI voice narration to CMS content",
+    "description": "Generate audio narration with ElevenLabs for Webflow CMS blog posts, storing audio URLs in CMS items.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "webflow",
+        "action": "Fetch blog post content from Webflow CMS collection",
+        "input_mapping": { "from": "trigger", "fields": ["collection_id", "item_id"] },
+        "output_mapping": { "title": "step1.fieldData.name", "body_text": "step1.fieldData.post-body", "item_id": "step1.id" },
+        "error_hint": "v2 API is current (v1 deprecated). Field names are slugified versions of CMS field labels."
+      },
+      {
+        "order": 2,
+        "service_id": "elevenlabs",
+        "action": "Convert blog text to speech audio using multilingual model",
+        "input_mapping": { "text": "step1.body_text", "voice_id": "config.voice_id" },
+        "output_mapping": { "audio_data": "step2.audio_binary" },
+        "error_hint": "Auth header is xi-api-key (NOT Bearer). Response is binary audio (mpeg) — save to file or upload to CDN. Use eleven_multilingual_v2 for non-English."
+      },
+      {
+        "order": 3,
+        "service_id": "webflow",
+        "action": "Update CMS item with audio URL and publish",
+        "input_mapping": { "item_id": "step1.item_id", "audio_url": "step2.audio_url" },
+        "output_mapping": { "updated": "step3.id" },
+        "error_hint": "After CMS update, must call POST /sites/{id}/publish to make changes live."
+      }
+    ],
+    "required_services": ["webflow", "elevenlabs"],
+    "gotchas": [
+      "ElevenLabs returns binary audio — you need a CDN or storage service to host it before linking in Webflow",
+      "ElevenLabs auth is xi-api-key header (not Bearer) — common 401 trap",
+      "Webflow CMS changes require explicit publish call — updates are staged, not live"
+    ]
+  },
+  {
+    "id": "huggingface-qdrant-embedding-pipeline",
+    "goal": "Self-hosted embedding pipeline with open models",
+    "description": "Use HuggingFace Inference API for embeddings and store in Qdrant for open-source RAG without OpenAI dependency.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "huggingface",
+        "action": "Generate embeddings using open-source model (e.g. BAAI/bge-large-en-v1.5)",
+        "input_mapping": { "from": "user_input", "fields": ["texts"] },
+        "output_mapping": { "embeddings": "step1.embeddings" },
+        "error_hint": "Inference API uses Bearer token. Model must be deployed or use serverless inference. Embedding dimension varies by model (1024 for bge-large)."
+      },
+      {
+        "order": 2,
+        "service_id": "qdrant",
+        "action": "Upsert vectors with text metadata into Qdrant collection",
+        "input_mapping": { "vectors": "step1.embeddings", "payloads": "user_input.texts" },
+        "output_mapping": { "operation_id": "step2.result.operation_id" },
+        "error_hint": "Collection vector size MUST match model dimension (1024 for bge-large, not 1536). Use Cosine distance for normalized embeddings. Api-Key header for Qdrant Cloud."
+      }
+    ],
+    "required_services": ["huggingface", "qdrant"],
+    "gotchas": [
+      "Vector dimension MUST match between HuggingFace model and Qdrant collection — bge-large=1024, not OpenAI's 1536",
+      "HuggingFace serverless inference has cold starts (~10-30s) — first request may timeout",
+      "Qdrant gRPC is 5x faster than REST for bulk upserts — use it for large batches"
+    ]
+  },
+  {
+    "id": "cohere-pinecone-rerank-search",
+    "goal": "Reranked semantic search for better RAG",
+    "description": "Query Pinecone for candidate results, then use Cohere Rerank to improve relevance ordering.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "pinecone",
+        "action": "Query Pinecone index with embedding for top-k candidates",
+        "input_mapping": { "from": "user_input", "fields": ["query_vector", "top_k"] },
+        "output_mapping": { "matches": "step1.matches", "texts": "step1.matches[].metadata.text" },
+        "error_hint": "Query top_k should be 3-5x your final desired results (reranking filters). Api-Key header, not Bearer."
+      },
+      {
+        "order": 2,
+        "service_id": "cohere",
+        "action": "Rerank candidate texts against the original query for improved relevance",
+        "input_mapping": { "query": "user_input.query_text", "documents": "step1.texts", "top_n": "config.final_results" },
+        "output_mapping": { "reranked": "step2.results" },
+        "error_hint": "Use model='rerank-v3.5'. Input documents are strings, not embeddings. Bearer token auth."
+      }
+    ],
+    "required_services": ["pinecone", "cohere"],
+    "gotchas": [
+      "Fetch 3-5x more candidates from Pinecone than you need — reranking works best with a larger candidate pool",
+      "Cohere rerank input is TEXT (not vectors) — pass the original document text from Pinecone metadata",
+      "Cohere Embed v3 uses input_type='search_document' for indexing and 'search_query' for queries — mixing them degrades quality"
+    ]
+  },
+  {
+    "id": "groq-redis-fast-inference-cache",
+    "goal": "Ultra-fast LLM responses with Redis cache",
+    "description": "Use Groq's fast inference for LLM calls and cache results in Redis to avoid redundant API calls.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "redis",
+        "action": "Check Redis cache for existing response to this query hash",
+        "input_mapping": { "from": "user_input", "fields": ["query_hash"] },
+        "output_mapping": { "cached": "step1.value", "hit": "step1.exists" },
+        "error_hint": "NEVER use KEYS command in production (O(n) blocks server). Use GET with a deterministic hash key. Set TTL on all keys."
+      },
+      {
+        "order": 2,
+        "service_id": "groq",
+        "action": "If cache miss, call Groq for fast LLM inference",
+        "input_mapping": { "messages": "user_input.messages", "model": "config.model" },
+        "output_mapping": { "response": "step2.choices[0].message.content" },
+        "error_hint": "OpenAI SDK compatible — just set base_url to https://api.groq.com/openai/v1. Use llama-3.3-70b-versatile for quality."
+      },
+      {
+        "order": 3,
+        "service_id": "redis",
+        "action": "Cache the Groq response with TTL for future lookups",
+        "input_mapping": { "key": "user_input.query_hash", "value": "step2.response", "ttl": "config.cache_ttl_seconds" },
+        "output_mapping": { "stored": "step3.ok" },
+        "error_hint": "Always use SET with EX (TTL). Unbounded key growth is the #1 Redis incident."
+      }
+    ],
+    "required_services": ["redis", "groq"],
+    "gotchas": [
+      "Redis KEYS command is O(n) and blocks the server — use SCAN or direct GET with hash keys",
+      "Groq is OpenAI SDK compatible — just change base_url, no code rewrite needed",
+      "Always set TTL on cached LLM responses — stale AI answers are worse than no cache"
+    ]
+  },
+  {
+    "id": "langfuse-slack-llm-observability",
+    "goal": "LLM cost and quality monitoring",
+    "description": "Monitor Langfuse traces for cost spikes and quality issues, alert on Slack when thresholds are exceeded.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "langfuse",
+        "action": "Query recent traces for cost and latency metrics",
+        "input_mapping": { "from": "config", "fields": ["project_id", "lookback_hours"] },
+        "output_mapping": { "traces": "step1.data", "total_cost": "step1.meta.totalCost", "avg_latency": "step1.meta.avgLatency" },
+        "error_hint": "Basic auth: public_key as username, secret_key as password. Use /traces?limit=100 with date filters."
+      },
+      {
+        "order": 2,
+        "service_id": "slack",
+        "action": "Post LLM observability alert if cost or latency exceeds threshold",
+        "input_mapping": { "cost": "step1.total_cost", "latency": "step1.avg_latency", "trace_count": "step1.traces.length" },
+        "output_mapping": { "ts": "step2.ts" },
+        "error_hint": "Check ok:true. Use blocks with color-coded attachment (red for critical, yellow for warning)."
+      }
+    ],
+    "required_services": ["langfuse", "slack"],
+    "gotchas": [
+      "Langfuse Basic auth uses public_key:secret_key (not API key:empty) — both values are needed",
+      "Langfuse self-hosted has no rate limit but cloud is 1000 req/min — batch trace queries"
+    ]
+  },
+  {
+    "id": "helpscout-linear-support-to-engineering",
+    "goal": "Route support issues to engineering",
+    "description": "When a Help Scout conversation is tagged as a bug, create a Linear issue and link back to the conversation.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "helpscout",
+        "action": "Retrieve conversation with customer context and thread history",
+        "input_mapping": { "from": "trigger", "fields": ["conversation_id"] },
+        "output_mapping": { "subject": "step1.subject", "preview": "step1.preview", "customer_email": "step1.customer.email", "mailbox": "step1.mailbox.name" },
+        "error_hint": "HAL+JSON format — data is in _embedded. Threads are separate endpoint: /conversations/{id}/threads."
+      },
+      {
+        "order": 2,
+        "service_id": "linear",
+        "action": "Create issue in engineering team with support context",
+        "input_mapping": { "title": "step1.subject", "description": "step1.preview", "labels": ["bug", "from-support"] },
+        "output_mapping": { "issue_id": "step2.data.issueCreate.issue.id", "issue_url": "step2.data.issueCreate.issue.url" },
+        "error_hint": "Linear uses GraphQL — wrap mutation in { \"query\": \"mutation {...}\" }. Personal key: Authorization: {key} (NO Bearer prefix)."
+      },
+      {
+        "order": 3,
+        "service_id": "helpscout",
+        "action": "Add note to Help Scout conversation with Linear issue link",
+        "input_mapping": { "conversation_id": "trigger.conversation_id", "note": "step2.issue_url" },
+        "output_mapping": { "thread_id": "step3.id" },
+        "error_hint": "OAuth or API key with Basic auth. Use type='note' for internal notes."
+      }
+    ],
+    "required_services": ["helpscout", "linear"],
+    "gotchas": [
+      "Linear personal API key: Authorization header takes raw key WITHOUT 'Bearer' prefix — OAuth tokens DO use Bearer",
+      "Help Scout uses HAL+JSON — nested resources are in _embedded, not flat in the response"
+    ]
+  },
+  {
+    "id": "front-slack-shared-inbox-escalation",
+    "goal": "Escalate priority emails from shared inbox",
+    "description": "When a Front shared inbox conversation is tagged as urgent, immediately notify the relevant Slack channel with context.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "front",
+        "action": "Retrieve conversation details from Front shared inbox",
+        "input_mapping": { "from": "trigger", "fields": ["conversation_id"] },
+        "output_mapping": { "subject": "step1.subject", "assignee": "step1.assignee.email", "tags": "step1.tags[].name", "last_message": "step1.last_message.body" },
+        "error_hint": "API token as Bearer. Use q[] params for filtering by tag. Plan-based rate limits: Starter 50/min, Growth 100/min."
+      },
+      {
+        "order": 2,
+        "service_id": "slack",
+        "action": "Post urgent escalation to appropriate channel based on conversation tags",
+        "input_mapping": { "subject": "step1.subject", "assignee": "step1.assignee", "preview": "step1.last_message" },
+        "output_mapping": { "ts": "step2.ts" },
+        "error_hint": "Check ok:true. Use @mentions to ping the assigned person."
+      }
+    ],
+    "required_services": ["front", "slack"],
+    "gotchas": [
+      "Front rate limits vary by plan (50-200 req/min) — check your plan before building high-volume automations",
+      "Front conversations unify email/SMS/chat — message body format varies by channel type"
+    ]
+  },
+  {
+    "id": "pipedrive-brevo-deal-outreach",
+    "goal": "Deal-stage triggered multi-channel outreach",
+    "description": "When a Pipedrive deal moves to negotiation stage, trigger a multi-channel outreach via Brevo (email + SMS).",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "pipedrive",
+        "action": "Retrieve deal details with contact and organization info",
+        "input_mapping": { "from": "trigger", "fields": ["deal_id"] },
+        "output_mapping": { "contact_email": "step1.person_id.email[0].value", "contact_name": "step1.person_id.name", "deal_title": "step1.title", "deal_value": "step1.value" },
+        "error_hint": "Pipedrive uses api_token as query parameter (not header). Person data is nested — use person_id.email[0].value."
+      },
+      {
+        "order": 2,
+        "service_id": "brevo",
+        "action": "Send personalized follow-up email via Brevo transactional API",
+        "input_mapping": { "to_email": "step1.contact_email", "to_name": "step1.contact_name", "deal_title": "step1.deal_title" },
+        "output_mapping": { "message_id": "step2.messageId" },
+        "error_hint": "Auth header is lowercase 'api-key' (NOT Authorization: Bearer). POST /smtp/email for transactional."
+      }
+    ],
+    "required_services": ["pipedrive", "brevo"],
+    "gotchas": [
+      "Pipedrive auth is api_token in query string — not a header-based auth",
+      "Brevo auth header is lowercase 'api-key' — case matters, it's not standard Bearer",
+      "Brevo has separate transactional vs marketing email limits — check which applies to your plan"
+    ]
+  },
+  {
+    "id": "klarna-xero-bnpl-reconciliation",
+    "goal": "Reconcile BNPL payments with accounting",
+    "description": "Match Klarna buy-now-pay-later settlements with Xero for accurate revenue recognition.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "klarna",
+        "action": "Fetch settled orders and payout details from Klarna",
+        "input_mapping": { "from": "config", "fields": ["settlement_date"] },
+        "output_mapping": { "orders": "step1.orders", "net_amount": "step1.settlement_amount" },
+        "error_hint": "Basic auth (username:password). Amounts in minor units (cents). Sandbox URL is different: api.playground.klarna.com."
+      },
+      {
+        "order": 2,
+        "service_id": "xero",
+        "action": "Create bank transaction in Xero matching Klarna settlement",
+        "input_mapping": { "amount": "step1.net_amount", "reference": "step1.orders[0].order_id" },
+        "output_mapping": { "transaction_id": "step2.BankTransactions[0].BankTransactionID" },
+        "error_hint": "Xero-tenant-id required. Amount must be decimal (divide cents by 100). Use BankTransactionType='RECEIVE' for incoming settlements."
+      }
+    ],
+    "required_services": ["klarna", "xero"],
+    "gotchas": [
+      "Klarna settles NET of fees — the Xero entry must reflect net amount, not gross order value",
+      "Klarna amounts are minor units, Xero is decimal — always divide by 100",
+      "Klarna sandbox (api.playground.klarna.com) and production (api.klarna.com) are different base URLs"
+    ]
+  },
+  {
+    "id": "neon-db-bigquery-analytics-sync",
+    "goal": "Sync operational data to analytics warehouse",
+    "description": "Extract data from Neon PostgreSQL and load into BigQuery for analytics dashboarding.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "neon-db",
+        "action": "Query Neon PostgreSQL for daily aggregated operational data",
+        "input_mapping": { "from": "config", "fields": ["query", "date"] },
+        "output_mapping": { "rows": "step1.rows", "count": "step1.rowCount" },
+        "error_hint": "Neon uses standard PostgreSQL connection string. Serverless driver has cold starts (~500ms). Use connection pooling for repeated queries."
+      },
+      {
+        "order": 2,
+        "service_id": "bigquery",
+        "action": "Load aggregated data into BigQuery analytics table",
+        "input_mapping": { "rows": "step1.rows", "table": "config.bq_table" },
+        "output_mapping": { "job_id": "step2.jobReference.jobId" },
+        "error_hint": "Set useLegacySql:false. Use streaming insert for small batches, load job for large datasets. Free tier: 1TB query/month."
+      },
+      {
+        "order": 3,
+        "service_id": "slack",
+        "action": "Report sync completion with row count",
+        "input_mapping": { "count": "step1.count", "job_id": "step2.job_id" },
+        "output_mapping": { "ts": "step3.ts" },
+        "error_hint": "Check ok:true."
+      }
+    ],
+    "required_services": ["neon-db", "bigquery", "slack"],
+    "gotchas": [
+      "Neon serverless has cold starts — first query after inactivity may take 500ms+",
+      "BigQuery streaming inserts are not immediately queryable (~90s buffer) — for dashboards, use load jobs instead"
+    ]
+  },
+  {
+    "id": "sake-navi-slack-team-dinner",
+    "goal": "AI sake recommendation for team events",
+    "description": "Use Sake Navi to recommend sake paired with the planned dinner menu, share recommendation on Slack for team vote.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "sake-navi",
+        "action": "Get food pairing recommendations based on dinner menu",
+        "input_mapping": { "from": "user_input", "fields": ["dishes", "preferences"] },
+        "output_mapping": { "recommendations": "step1.pairings", "reasoning": "step1.reasoning" },
+        "error_hint": "No auth required. Uses SSI 4-type classification x 3 pairing principles. Input dishes in Japanese for best results."
+      },
+      {
+        "order": 2,
+        "service_id": "slack",
+        "action": "Post sake recommendations with tasting notes to #team-dinner channel for voting",
+        "input_mapping": { "recommendations": "step1.recommendations", "reasoning": "step1.reasoning" },
+        "output_mapping": { "ts": "step2.ts" },
+        "error_hint": "Use blocks with emoji reactions enabled for voting. Check ok:true."
+      }
+    ],
+    "required_services": ["sake-navi", "slack"],
+    "gotchas": [
+      "Sake Navi input works best in Japanese — English dish names may map to wrong flavor profiles",
+      "SSI 4-type classification (薫酒/爽酒/醇酒/熟酒) is the foundation of pairing logic — include type in display"
+    ]
+  },
+  {
+    "id": "twitter-buffer-social-scheduling",
+    "goal": "Automated social media scheduling",
+    "description": "Monitor Twitter engagement metrics and use Buffer to schedule optimized posts across platforms.",
+    "steps": [
+      {
+        "order": 1,
+        "service_id": "twitter-api",
+        "action": "Fetch recent tweet performance metrics to identify best-performing content",
+        "input_mapping": { "from": "config", "fields": ["user_id", "lookback_days"] },
+        "output_mapping": { "top_tweets": "step1.data", "best_time": "step1.meta.best_engagement_time" },
+        "error_hint": "Free tier: 1500 tweets read/month. Use tweet.fields=public_metrics for engagement data. OAuth 2.0 PKCE for user context."
+      },
+      {
+        "order": 2,
+        "service_id": "buffer",
+        "action": "Schedule posts inspired by top-performing content across connected profiles",
+        "input_mapping": { "profiles": "config.buffer_profiles", "content": "step1.top_tweets", "scheduled_at": "step1.best_time" },
+        "output_mapping": { "update_ids": "step2.updates[].id" },
+        "error_hint": "Request body is form-encoded, NOT JSON. Profile = connected social account. List profiles first (GET /profiles.json)."
+      }
+    ],
+    "required_services": ["twitter-api", "buffer"],
+    "gotchas": [
+      "Twitter free tier is extremely limited (1500 reads/month, 50 writes) — cache results aggressively",
+      "Buffer request body is form-encoded (NOT JSON) — Content-Type must be application/x-www-form-urlencoded"
+    ]
+  }
+]

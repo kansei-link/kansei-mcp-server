@@ -1,0 +1,219 @@
+[
+  {
+    "id": "playwright-mcp",
+    "grade": "B",
+    "dims": [5, 4, 4, 3, 5],
+    "facade": false,
+    "note": "Anthropic 公式 MCP でブラウザ自動化のデファクト。has_guide: false だが mcp_endpoint が明示されているので、エージェントは npx で即起動可能。KanseiLink 上の説明は薄いが公式度で補完されている。"
+  },
+  {
+    "id": "firecrawl",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "LLM 最適化 web scraping の先駆。公式 MCP あり、Bearer シンプル、/scrape・/crawl・/map の 3 エンドポイントで役割明快。JS render + anti-bot bypass + markdown 返却という LLM 向け設計、crawl は非同期で job_id polling。"
+  },
+  {
+    "id": "google-ai",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "Gemini API。aistudio.google.com でキー即発行 (Cloud Console 経由なしで可) という GCP 他サービスとの違いが大きな利点。2.0 Flash vs 2.5 Pro 使い分け、multimodal の inline_data base64 手順まで実用的。"
+  },
+  {
+    "id": "cohere",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "RAG 特化 AI。/chat + /embed + /rerank の 3 本柱、rerank を vector search 後段に使う推奨、Embed v3 の input_type (search_document/search_query) 使い分けという RAG ベストプラクティスまで tips で伝授。"
+  },
+  {
+    "id": "mistral",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "欧州 AI ラボ。OpenAI SDK 互換で base_url 差し替えのみで動く実用性、Large/Small/Codestral のモデル使い分け、FIM (fill-in-middle) endpoint の独自性まで tips で完備。移行コスト最小。"
+  },
+  {
+    "id": "groq",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "LPU hardware で最速 token 生成。OpenAI SDK drop-in で base_url 差し替えのみ、Llama 3.3 70B versatile vs 3.1 8B instant の明確な使い分け、30 req/min + 14400/day の free tier も寛大で AI エージェント開発者向きの模範解答。"
+  },
+  {
+    "id": "perplexity",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "検索拡張型 LLM。endpoint 1 個 (/chat/completions) に極振りだが、それが Perplexity の本質。sonar-pro vs sonar の明確な差、response の citations array という research agent 向けの独自価値。支払い方法登録必須の前提も明記。"
+  },
+  {
+    "id": "elevenlabs",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "音声合成の雄、公式 MCP あり。CRITICAL: auth が xi-api-key header (標準 Bearer ではない)、response が binary mpeg で直接ファイル保存 or stream、eleven_multilingual_v2 で日本語対応、voice cloning は Pro plan 必須まで実装で詰まる箇所を先回り警告。"
+  },
+  {
+    "id": "qdrant",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 5],
+    "facade": false,
+    "note": "公式 MCP + 8 tips の最密ガイド。CRITICAL: vector size が embedding model (1536/3072/768) と一致必須、Cosine vs Dot の使い分け (normalized embeddings に Cosine)、payload filter による tenant isolation、gRPC が bulk upsert で 5x 速いという最適化まで。Pinecone と並ぶ優等生。"
+  },
+  {
+    "id": "chroma",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "OSS embedding DB、community MCP あり。CRITICAL: v2 API で collection routing 変更 (/tenants/{tenant}/databases/{db}/collections) で v1 の /collections 直書きは動かない罠を明示。embedding function 内蔵時は documents 直投入、where フィルタの MongoDB 風 operator まで。"
+  },
+  {
+    "id": "langfuse",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "LLM observability の OSS + 公式 MCP。Basic auth で public_key + secret_key、/ingestion の batch 1000 events まで、SDK 経由推奨、self-host 選択肢 (docker compose) まで明記。LLM ops の標準装備候補。"
+  },
+  {
+    "id": "bigcommerce",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "エンタープライズ EC。CRITICAL: dual header (X-Auth-Token + X-Auth-Client) 必須、URL に store_hash 埋込み、orders だけ v2 API で他は v3 という混在を tips で警告。plan 別 rate limit (4-12 req/sec) も明確。"
+  },
+  {
+    "id": "klarna",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "BNPL の雄。Basic auth シンプル、minor units (cents)、sandbox が api.playground.klarna.com と別 URL、session → authorize → capture の 3 段 flow まで実装ポイント完備。rate limit 未記載が唯一の欠点。"
+  },
+  {
+    "id": "adyen",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "エンタープライズ決済。X-API-Key header、minor units + currency の object、test (checkout-test) と live (checkout-live/{prefix}) で URL が prefix 込みで異なる罠、250+ payment methods を /paymentMethods で discover。企業向けだが API は整理されている。"
+  },
+  {
+    "id": "postgresql-mcp",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 5],
+    "facade": false,
+    "note": "Anthropic 公式 MCP。read-only が protocol level で強制という安全設計、statement_timeout 30s 推奨、pg_stat_user_tables/pg_stat_statements を agent の DB 健康窓口にするという運用哲学まで tips 完備。エージェント × DB の教科書。"
+  },
+  {
+    "id": "mysql-mcp",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "community MCP はあるがガイドなし。api_url が dev.mysql.com で company top 相当、接続 URI の形式、read-only 強制の有無などエージェントが知りたい情報は外部検索必須。"
+  },
+  {
+    "id": "redis",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "community MCP + 詳細ガイド。CRITICAL: KEYS を production で使うな (O(n) でサーバ block)、SCAN + MATCH 使用、TTL 必須で unbounded growth 警告、ACL user と legacy requirepass の 2 系統、redis:// URI 形式まで運用 know-how 完備。"
+  },
+  {
+    "id": "framer",
+    "grade": "B",
+    "dims": [5, 4, 4, 4, 3],
+    "facade": false,
+    "note": "ガイドあるが正直に『API は CMS content management 向け、design は editor で』と限定を自己申告。Bearer シンプル、sites → collections → items の階層明快だが、Framer の本質 (visual design) は API 外という現実を伝えている点は誠実。"
+  },
+  {
+    "id": "webflow",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "CMS 操作の実用路線。v2 API 現行 (v1 deprecated) を明記、Site API token or OAuth の 2 選択肢、collection schema 事前確認必須、publish は明示的 endpoint が必要という CMS 特有の罠まで tips 完備。"
+  },
+  {
+    "id": "typeform",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "対話型フォーム。Personal access token シンプル、fields の type 列挙 (short_text/multiple_choice...)、responses が field.ref で keyed なので ref を明示設定推奨、2 req/sec の rate limit まで。4 tips 完備。"
+  },
+  {
+    "id": "tally",
+    "grade": "B",
+    "dims": [5, 4, 4, 3, 3],
+    "facade": false,
+    "note": "無料フォームビルダー。ガイドが正直に『REST API なし、webhook only』と自己申告。endpoint 1 個のみで agent が pull できないので read 用途には向かない。Zapier/Make 経由が本道という誘導も明快。"
+  },
+  {
+    "id": "snowflake",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 4],
+    "facade": false,
+    "note": "docs.snowflake.com/developer-guide/sql-api は正規だがガイドなし。エンタープライズ data warehouse で PBI 級の影響力だが、account_identifier + warehouse + database + schema + role の多重前提が非自明で外部検索必須。"
+  },
+  {
+    "id": "bigquery",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "community MCP + GCP 定番。service account or ADC の auth 選択、useLegacySql:false 必須、client library 推奨、1TB/month + 10GB storage の寛大な free tier、concurrent 100 queries の制限も明記。実用情報完備。"
+  },
+  {
+    "id": "databricks",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "Spark ベース lakehouse。PAT Bearer シンプル、workspace URL が deployment 固有、SQL Statements API は SQL Warehouse 必須 (warehouse_id 前提)、Unity Catalog の 3 層 namespace (catalog.schema.table) まで tips 完備。"
+  },
+  {
+    "id": "make-integromat",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "batch-004 の make と重複感。make.com/en/api-documentation は正規だがガイドなし。1800+ 連携の visual iPaaS は GUI が主で API 経由は補助的という構造的な弱点。"
+  },
+  {
+    "id": "japan-post",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "batch-005 の japanpost (ゆうプリ R 系) と別口。developer.japanpost.jp は正規の開発者 portal 存在だがガイドなし。JP 配送必須なのに実装情報ゼロ。"
+  },
+  {
+    "id": "otter",
+    "grade": "D",
+    "dims": [4, 2, 2, 1, 2],
+    "facade": false,
+    "note": "AI 会議書起こしの雄だが、ガイドなし、api_url は otter.ai (会社 TOP)。Zoom/Teams/Meet 連携が主で独自 REST API は薄い。"
+  },
+  {
+    "id": "zoom",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 4],
+    "facade": false,
+    "note": "batch-002 の zoom-jp と重複感。developers.zoom.us は正規だがガイドなし。OAuth 2.0 + S2S OAuth の 2 flow、meeting vs webinar vs phone の機能分離が非自明で外部検索必須。"
+  },
+  {
+    "id": "ahrefs",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 4],
+    "facade": false,
+    "note": "SEO 定番、backlink DB の強みあり。ahrefs.com/api は正規だがガイドなし。rows ベースの credit 消費、Enterprise plan 必須の endpoints などコスト計算が非自明。"
+  },
+  {
+    "id": "sake-navi",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 5],
+    "facade": false,
+    "note": "KanseiLink 自身の model 事例。Railway 上 MCP 直接配備、auth none、SSI 4 タイプ × 3 原理という独自ドメイン知識を API 化。has_guide: false だが mcp_endpoint が official で npx で即起動可、description が 222 chars と密度高い。エージェント時代の新世代 MCP の典型。"
+  },
+  {
+    "id": "card-navi",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 5],
+    "facade": false,
+    "note": "KanseiLink 自身の model 事例 2 号。189 枚 × 553 ルールを encoded、店舗指定で即最適 card 提示という agent-native UX。auth none、official MCP、description 210 chars で問題ドメインを明快に定義。sake-navi と並ぶエージェント MCP の模範。"
+  }
+]

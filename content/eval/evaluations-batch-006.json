@@ -1,0 +1,128 @@
+[
+  {
+    "id": "vercel",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "7 endpoints、PAT 手順明快。CRITICAL: team-scoped token でも ?teamId=team_xxx を毎回クエリ必須 (漏れで 403)、deployments は immutable という哲学、target=production の区別まで実践的。"
+  },
+  {
+    "id": "netlify",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "PAT でシンプル、zip upload は Content-Type: application/zip + raw binary body という典型的な罠を tips で警告。prod=true で production promote、form 検知設定前提など実装知識完備。"
+  },
+  {
+    "id": "railway",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "docs.railway.app/reference/public-api は正規 URL だがガイドなし。GraphQL 専用で REST 無しという非自明性も KanseiLink 上は分からない。"
+  },
+  {
+    "id": "render",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "API key bearer シンプル、4 endpoints。service type enum (web_service/private_service/background_worker/static_site/cron_job) 明示、deploy hooks 経由ショートカット、suspended field の注意点まで。"
+  },
+  {
+    "id": "fly-io",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "flyctl install → fly tokens create の手順明快。CRITICAL: Apps v1 API 廃止 → Machines API が primary、JP workload は 'nrt' region、<300ms start/stop という Firecracker の特性まで実用 tips。"
+  },
+  {
+    "id": "openai-api",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "Project-scoped API key 推奨、gpt-4o vs gpt-4o-mini の使い分け、stream:true 推奨、tier 1-5 の RPM table まで実用。x-ratelimit-remaining-* header も記載。"
+  },
+  {
+    "id": "anthropic-api",
+    "grade": "C",
+    "dims": [5, 3, 3, 4, 3],
+    "facade": false,
+    "note": "docs.anthropic.com/en/api は正規だがガイドなし。皮肉にも KanseiLink 自身が使っている API にガイドなし。x-api-key header、anthropic-version header、tool_use の複雑性は外部検索必須。"
+  },
+  {
+    "id": "replicate",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "replicate.com/docs/reference/http は正規だがガイドなし。非同期 prediction の polling パターンが非自明で、外部検索必須。"
+  },
+  {
+    "id": "huggingface",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "hf_ token、scopes (read/write/inference) 選択肢明示。CRITICAL: 初回 Serverless Inference は 503 + estimated_time で cold start (rate limit ではない)、x-wait-for-model: true で自動待機の裏技まで実用。"
+  },
+  {
+    "id": "pinecone",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "CRITICAL: auth header は Api-Key (Bearer/Authorization ではない) という generic HTTP client が落ちる罠、control plane と data plane が別 URL で GET /indexes/{name} で host 解決必須、dimension mismatch エラーまで完璧にカバー。"
+  },
+  {
+    "id": "weaviate",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "weaviate.io/developers は正規だがガイドなし。OSS + self-hosted の base URL 問題あり、GraphQL 独自クエリ言語の学習コストも非自明。"
+  },
+  {
+    "id": "langchain",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "LangSmith の observability 用途が中心で、LangChain 本体の frameworks は API でなく SDK 経由。docs.smith.langchain.com は正規だがガイドなし。"
+  },
+  {
+    "id": "supabase",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "Firebase alternative の OSS として実用的、community MCP もあるがガイドなし。PostgREST 自動生成 API と Management API の 2 系統が非自明。"
+  },
+  {
+    "id": "firebase",
+    "grade": "B",
+    "dims": [5, 3, 4, 4, 4],
+    "facade": false,
+    "note": "GOOGLE_APPLICATION_CREDENTIALS 前提で setup やや重い。Management API は metadata のみ、データ操作は別 Firestore REST endpoint という非自明な切り分けを tips で警告。security rules 別 deploy の罠も言及。"
+  },
+  {
+    "id": "mongodb-atlas",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "CRITICAL: HTTP Digest 認証 (Bearer ではない) という非常識な選択を tips 先頭で警告、多くの generic HTTP client が壊れる。API version pin (Accept: application/vnd.atlas.YYYY-MM-DD+json)、data plane は driver 経由と明示。"
+  },
+  {
+    "id": "planetscale",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: Authorization header に 'Bearer' 無しで {token_id}:{token_secret} をコロン区切りという特殊仕様を先頭警告。deploy request (PR-like schema change) という哲学、branch の無料性まで実用 tips。"
+  },
+  {
+    "id": "neon-db",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "Control plane + data plane (postgres://) の 2 系統を分けて説明。CRITICAL: serverless/edge からは POOLED URL 必須、auto-suspend (Free 5min) → 初回クエリ 1-3s wake up の遅延罠まで完璧。"
+  },
+  {
+    "id": "upstash",
+    "grade": "A",
+    "dims": [5, 5, 4, 5, 3],
+    "facade": false,
+    "note": "Per-database REST token (UPSTASH_REDIS_REST_URL/TOKEN) という Redis+HTTP の組合せが独特だが明示。管理 API は email:api_key の Basic 認証でこれも特殊。"
+  }
+]

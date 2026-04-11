@@ -1,0 +1,191 @@
+[
+  {
+    "id": "posthog",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: Personal API key (queries) と Project API key (capture) の 2 種を明示。self-host + Docker 選択肢、HogQL 独自クエリ言語の存在も言及。community MCP 統合パスあり。"
+  },
+  {
+    "id": "klaviyo",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: Authorization header が 'Klaviyo-API-Key {key}' (Bearer ではない) という generic client 殺しの罠、revision header (日付文字列) でバージョニング必須、JSON:API フォーマットまで tips で警告。"
+  },
+  {
+    "id": "activecampaign",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: base URL が {account}.api-us1.com とアカウント固有、auth header は 'Api-Token' で Authorization Bearer ではないという 2 重の罠。POST /contact/sync で upsert 動作という実用 tip も明示。"
+  },
+  {
+    "id": "brevo",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "旧 Sendinblue。CRITICAL: auth header が小文字 'api-key' で Bearer ではないという罠を警告。email/SMS/WhatsApp/chat を 1 API で統合、transactional vs marketing 分離も明快。"
+  },
+  {
+    "id": "customer-io",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "Track API (Basic auth site_id:api_key) と App API (Bearer) の 2 系統を明確分離。customer_id は内部 user_id を流用するという behavior-first の思想も実装 tip で伝わる。"
+  },
+  {
+    "id": "quickbooks",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "Intuit 世界 No.1 SMB 会計。CRITICAL: URL パスに realmId (company ID) 必須で OAuth flow 中に取得。SQL-like query 言語、pre-populated sandbox、500 req/min + concurrent 10 制限まで具体的。"
+  },
+  {
+    "id": "xero",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "UK/AU/NZ で優勢、multi-tenant 設計。CRITICAL: Xero-tenant-id header 全 request で必須、OAuth 2.0 + PKCE 対応、OData-like 'where' フィルタ、60/min per tenant + 5K/day の rate limit まで。"
+  },
+  {
+    "id": "freshbooks",
+    "grade": "A",
+    "dims": [5, 5, 4, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: URL パスに account_id 必須、取得順序 (/auth/api/v1/users/me が先) を手順明示。金額が文字列 2 decimal ('100.00') という非自明な型、?include[]=lines で line items 埋込みも実装 tip で完備。"
+  },
+  {
+    "id": "brex",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "Bearer シンプル、dashboard > Developer > API で即発行。金額は cents 整数、Idempotency-Key header 推奨、auto-classify category という corporate card の核価値まで実用 tips。"
+  },
+  {
+    "id": "ramp",
+    "grade": "B",
+    "dims": [5, 4, 4, 4, 3],
+    "facade": false,
+    "note": "client_credentials で user 操作不要なのは AI エージェント向き。ただし partner 申請必須 (dev.ramp.com で) で self-serve ではなく onboarding に時間かかる。transactions/cards/reimbursements の 3 endpoints は妥当。"
+  },
+  {
+    "id": "mercury",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "スタートアップ銀行。API token Bearer で即開始、cents 整数、payment 作成は approval 待ちで非同期である旨、read-only token で分析用途を transfer リスクから分離という安全設計まで tips 完備。"
+  },
+  {
+    "id": "workday",
+    "grade": "B",
+    "dims": [5, 3, 4, 4, 4],
+    "facade": false,
+    "note": "エンタープライズ HCM の雄。tenant URL が会社固有、API client 登録は Workday admin 権限必須で self-serve 不可という現実を明示。WQL 独自言語、ISSG 権限の粒度なども言及。ただし base URL 問題で実装時は常に環境変数必須。"
+  },
+  {
+    "id": "bamboohr",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: URL に subdomain (会社固有)、Basic auth で API key を username、literal 'x' を password という freshdesk と同じ奇妙な仕様を tips で警告。employee fields が configurable で /meta/fields で事前取得も実装 tip。"
+  },
+  {
+    "id": "gusto",
+    "grade": "B",
+    "dims": [5, 3, 4, 4, 3],
+    "facade": false,
+    "note": "US SMB 給与の雄。partner 申請必須で self-serve ではない制約を明示。payroll 計算が create → calculate → submit の多段階である旨、gusto-demo.com の test env 言及も実用的。ただし JP からは relevance 低め。"
+  },
+  {
+    "id": "rippling",
+    "grade": "B",
+    "dims": [5, 4, 4, 4, 3],
+    "facade": false,
+    "note": "HR + IT + Finance 統合で API 領域が広い。OAuth 2.0 で developer.rippling.com 登録、webhook で employee lifecycle event 対応。ただし endpoints_sample 3 個は広大な platform の割に薄く、実装時は外部検索必須。"
+  },
+  {
+    "id": "deel",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "グローバル給与 150+ 国対応。Bearer token シンプル、EOR employee vs contractor で contract 型が異なる旨、multi-currency by design、demo env の存在まで。4 endpoints で実用最小限カバー。"
+  },
+  {
+    "id": "greenhouse",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "構造化採用の ATS。Harvest API (データ) と Job Board API (public) の 2 系統分離、Basic auth で API key を username + 空 password、per_page 500 max の bulk 最適化も実用 tip。50 req/10sec の rate limit も明記。"
+  },
+  {
+    "id": "helpscout",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "OAuth と API key (Basic) の 2 系統で後者が簡単という実用助言。HAL+JSON で _embedded にネストする形式、conversation threads が別 endpoint、per-mailbox の workflow カスタマイズまで tips 完備。"
+  },
+  {
+    "id": "front",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "email/SMS/chat/social を conversation に統合する顧客オペ platform。API token Bearer シンプル、q[] query param でフィルタ、shared inbox が核で list から始める手順、plan 別 rate limit (50/100/200 per min) まで具体的。"
+  },
+  {
+    "id": "servicenow",
+    "grade": "B",
+    "dims": [5, 3, 4, 4, 4],
+    "facade": false,
+    "note": "エンタープライズ ITSM の雄。instance URL が会社固有、Table API でほぼ全て table 扱い、sysparm_query の encoded query 記法 (priority=1^state=2) は非自明。OAuth は admin 権限必須で self-serve 不可、setup 重め。"
+  },
+  {
+    "id": "gorgias",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "EC 特化 helpdesk。subdomain は account 名、Basic auth で email を username + API key を password という独自仕様を tips で警告。Shopify/BigCommerce 統合で ticket に order context という差別化も明快。"
+  },
+  {
+    "id": "twitter-api",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "CRITICAL: 無料 tier が 1500 read/月 + 50 write/月という極端な制限を tips で先頭警告。Basic $100/mo → Pro $5K/mo の階層、OAuth 2.0 PKCE 必須、tweet.fields/expansions で full data 取得まで実用的。community MCP もあり。"
+  },
+  {
+    "id": "linkedin-api",
+    "grade": "B",
+    "dims": [5, 3, 4, 4, 3],
+    "facade": false,
+    "note": "B2B の雄だが API は厳しい。product approval 必須で即時アクセス不可、Marketing API は更に高 tier パートナーシップ必須という現実を tips で警告。access token 60 日期限、100 req/day の厳しい rate limit。"
+  },
+  {
+    "id": "youtube-api",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "CRITICAL: quota が unit-based で request-based ではない、search 1 回 = 100 units という罠を tips で警告。10K units/day で search 100 回が実質上限。API key で public data 読取、OAuth は upload 等のみと切り分け明快。"
+  },
+  {
+    "id": "buffer",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "SNS 投稿管理。CRITICAL: request body が form-encoded で JSON ではない罠、personal access token で quick start 可、profile = 接続済み SNS で先に list 取得、scheduled_at or 'now' の 2 モードまで実用 tips。"
+  },
+  {
+    "id": "brave-search",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 5],
+    "facade": false,
+    "note": "Anthropic 公式 MCP が存在する AI エージェントのための web search。X-Subscription-Token header、free 2K/month の寛大な枠、country/search_lang で localize、AI 用途を前面にした設計。エージェント時代の模範解答。"
+  },
+  {
+    "id": "tavily",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 5],
+    "facade": false,
+    "note": "『AI エージェント専用設計』を謳う先駆的 API。公式 MCP あり。CRITICAL: api_key を POST body に入れる非典型仕様、search_depth='advanced' で深掘り、include_answer=true で AI 要約込みという agentic workflow の需要を先取り。"
+  }
+]

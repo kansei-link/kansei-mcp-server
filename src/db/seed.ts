@@ -26,6 +26,10 @@ interface ServiceSeed {
   api_url?: string;
   api_auth_method?: string;
   trust_score: number;
+  axr_score?: number;
+  axr_grade?: string;
+  axr_dims?: number[];
+  axr_facade?: number;
 }
 
 interface RecipeSeed {
@@ -34,6 +38,11 @@ interface RecipeSeed {
   description: string;
   steps: unknown[];
   required_services: string[];
+  /**
+   * Accumulated cross-service wiring warnings (Tier-B KanseiLink moat).
+   * Optional in the seed file — empty arrays are normalized at load time.
+   */
+  gotchas?: string[];
 }
 
 interface ApiGuideSeed {
@@ -156,8 +165,8 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   ];
 
   const insertService = db.prepare(`
-    INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score)
-    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score)
+    INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, axr_score, axr_grade, axr_dims, axr_facade)
+    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score, @axr_score, @axr_grade, @axr_dims, @axr_facade)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       namespace = excluded.namespace,
@@ -168,7 +177,11 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
       mcp_status = excluded.mcp_status,
       api_url = excluded.api_url,
       api_auth_method = excluded.api_auth_method,
-      trust_score = excluded.trust_score
+      trust_score = excluded.trust_score,
+      axr_score = excluded.axr_score,
+      axr_grade = excluded.axr_grade,
+      axr_dims = excluded.axr_dims,
+      axr_facade = excluded.axr_facade
   `);
 
   const insertStats = db.prepare(`
@@ -176,8 +189,14 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   `);
 
   const insertRecipe = db.prepare(`
-    INSERT OR IGNORE INTO recipes (id, goal, description, steps, required_services)
-    VALUES (@id, @goal, @description, @steps, @required_services)
+    INSERT INTO recipes (id, goal, description, steps, required_services, gotchas)
+    VALUES (@id, @goal, @description, @steps, @required_services, @gotchas)
+    ON CONFLICT(id) DO UPDATE SET
+      goal = excluded.goal,
+      description = excluded.description,
+      steps = excluded.steps,
+      required_services = excluded.required_services,
+      gotchas = excluded.gotchas
   `);
 
   const insertChangelog = db.prepare(`
@@ -196,6 +215,10 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         ...service,
         api_url: service.api_url ?? null,
         api_auth_method: service.api_auth_method ?? null,
+        axr_score: service.axr_score ?? null,
+        axr_grade: service.axr_grade ?? null,
+        axr_dims: service.axr_dims ? JSON.stringify(service.axr_dims) : null,
+        axr_facade: service.axr_facade ?? 0,
       });
       insertStats.run({ service_id: service.id });
     }
@@ -205,6 +228,7 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         ...recipe,
         steps: JSON.stringify(recipe.steps),
         required_services: JSON.stringify(recipe.required_services),
+        gotchas: JSON.stringify(Array.isArray(recipe.gotchas) ? recipe.gotchas : []),
       });
     }
 

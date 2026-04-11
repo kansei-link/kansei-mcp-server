@@ -1,0 +1,128 @@
+[
+  {
+    "id": "stripe-global",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "stripe-jp は facade だったが、こちらは完全なガイド付き。CRITICAL: body は form-encoded (response は JSON という非対称)、Payment Intents 推奨 (Charges legacy)、test card 番号まで完備。stripe-jp よりこちらを参照すべき。"
+  },
+  {
+    "id": "paypal",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "developer.paypal.com/docs は正規だがガイドなし。sandbox vs live の設定、v1 Classic vs v2 REST の新旧混在が非自明。"
+  },
+  {
+    "id": "paddle",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "developer.paddle.com は正規だがガイドなし。B2B SaaS 向け MoR の特殊性は Lemon Squeezy 同様、外部検索必須。"
+  },
+  {
+    "id": "wise-api",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "docs.wise.com は正規だがガイドなし。多通貨 + profile id + quote → transfer の複雑な手順が非自明。"
+  },
+  {
+    "id": "aws-s3",
+    "grade": "C",
+    "dims": [5, 2, 3, 3, 4],
+    "facade": false,
+    "note": "世界中で使われる定番だが、ガイドなしでは SigV4 / presigned URL / multipart upload など非自明要素が多い。AWS SDK 前提になる。"
+  },
+  {
+    "id": "cloudinary",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "cloudinary.com/documentation は正規だがガイドなし。transformation URL DSL の学習コスト大。"
+  },
+  {
+    "id": "uploadthing",
+    "grade": "C",
+    "dims": [4, 3, 3, 3, 3],
+    "facade": false,
+    "note": "TypeScript 特化で Next.js/SvelteKit ユーザ向け。docs.uploadthing.com は正規だがガイドなし。"
+  },
+  {
+    "id": "aws-lambda",
+    "grade": "B",
+    "dims": [5, 3, 4, 4, 4],
+    "facade": false,
+    "note": "SigV4 の複雑性を『AWS SDK を使え』と素直に認める実践的ガイド。JP workload に ap-northeast-1 推奨、InvocationType の Event/RequestResponse/DryRun 区別明示。だが raw REST は事実上不可能で AWS SDK ない環境では苦しい。"
+  },
+  {
+    "id": "google-cloud",
+    "grade": "B",
+    "dims": [5, 3, 4, 4, 4],
+    "facade": false,
+    "note": "ADC パターンと GOOGLE_APPLICATION_CREDENTIALS の設定ガイド明示、asia-northeast1/2 の JP region も指定。しかし 100+ サービスの巨大 ecosystem を endpoints 3 個で代表させるのは無理があり、実際の実装は必ず外部検索になる。"
+  },
+  {
+    "id": "azure",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "learn.microsoft.com の Azure REST は正規だがガイドなし。Entra ID + subscription id + resource group + provider などの多重階層が非自明。"
+  },
+  {
+    "id": "circleci",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "Personal API token、Circle-Token header vs Bearer の 2 通り、CRITICAL: project slug format 'gh/{org}/{repo}' の独自記法、parameter 付き trigger パターン。4 endpoints で過不足なし。"
+  },
+  {
+    "id": "github-actions",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "GitHub 親サービスと同じ auth を引き継ぐ設計で情報の重複を避けている。workflow_dispatch による手動 trigger、artifact の zip download、X-GitHub-Api-Version 固定など実践 tips 完備。"
+  },
+  {
+    "id": "heroku",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: Accept: application/vnd.heroku+json; version=3 header 必須 (これなしで 406 エラー)、Range header 独自 pagination という Heroku の癖を tips で警告。app 名のグローバル一意性も明示。"
+  },
+  {
+    "id": "turso",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "Platform API (DB 管理) と libSQL protocol (データアクセス) の 2 系統を分けて説明。embedded replicas の local-first 特性、CLI install → auth login → mint token の手順明快。"
+  },
+  {
+    "id": "google-meet",
+    "grade": "B",
+    "dims": [5, 4, 4, 4, 3],
+    "facade": false,
+    "note": "Meet REST API は新しい (2024)、CRITICAL: Workspace 必須で personal Gmail 不可、機能が Calendar API より限定的、という現実的な制約を明示。3 endpoints と少ないが meeting 作成には十分。"
+  },
+  {
+    "id": "mixpanel",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "ingestion (project token) と query (service account) の 2 種 auth を明確に区分。/import 推奨 (server-side で /track より信頼性高い)、JQL の位置付けまで実践的。"
+  },
+  {
+    "id": "amplitude",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: API key を request body に入れる (header ではない) という非典型的な仕様を tips で警告。user_id または device_id が必須、Identify API の分離も明示。"
+  },
+  {
+    "id": "segment",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "Twilio 傘下。CRITICAL: Write key を Basic auth の username に入れて password は空という非自明な auth 仕様。/batch で 500KB まで、400+ destinations 自動ルーティングという CDP としての価値提案も明快。"
+  }
+]

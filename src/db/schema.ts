@@ -14,6 +14,12 @@ export function initializeDb(db: Database.Database): void {
       api_url TEXT,
       api_auth_method TEXT,
       trust_score REAL DEFAULT 0.5,
+      -- AXR (Agent Experience Rating) — felt-first credit-rating system
+      -- Derived from 225 hand-evaluated services. See content/eval/
+      axr_score INTEGER,        -- 0-100 continuous score
+      axr_grade TEXT,            -- AAA/AA/A/B/C/D/F
+      axr_dims TEXT,             -- JSON [D1,D2,D3,D4,D5] (1-5 each)
+      axr_facade INTEGER DEFAULT 0, -- 1 if みせかけMCP detected
       usage_count INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
     );
@@ -24,6 +30,12 @@ export function initializeDb(db: Database.Database): void {
       description TEXT,
       steps TEXT NOT NULL,
       required_services TEXT,
+      -- gotchas[]: accumulated warnings surfaced by agent feedback. This is
+      -- the Tier-B (KanseiLink integration knowledge) moat: advice about
+      -- cross-service wiring, auth handoff, rate-limit interactions, etc.
+      -- Stored as JSON array of strings. DOES NOT reflect on individual
+      -- vendor ratings.
+      gotchas TEXT DEFAULT '[]',
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -190,6 +202,27 @@ export function initializeDb(db: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_design_scores_service ON service_design_scores(service_id);
 
+    -- Stripe subscriptions for content access control
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      stripe_customer_id TEXT NOT NULL,
+      stripe_subscription_id TEXT UNIQUE,
+      email TEXT NOT NULL,
+      tier TEXT NOT NULL DEFAULT 'free',  -- free, pro, team, enterprise
+      status TEXT NOT NULL DEFAULT 'active', -- active, canceled, past_due, trialing
+      -- For team tier: which services are included
+      service_ids TEXT DEFAULT '[]', -- JSON array of service IDs
+      current_period_start TEXT,
+      current_period_end TEXT,
+      cancel_at_period_end INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_subs_email ON subscriptions(email);
+    CREATE INDEX IF NOT EXISTS idx_subs_stripe_customer ON subscriptions(stripe_customer_id);
+    CREATE INDEX IF NOT EXISTS idx_subs_status ON subscriptions(status);
+
     CREATE TABLE IF NOT EXISTS service_api_guides (
       service_id TEXT PRIMARY KEY REFERENCES services(id),
       base_url TEXT NOT NULL,
@@ -211,6 +244,17 @@ export function initializeDb(db: Database.Database): void {
     );
   `);
 
+  // Migration: add AXR columns to existing services table
+  const hasAxrScore = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = 'axr_score'")
+    .get() as { cnt: number };
+  if (hasAxrScore.cnt === 0) {
+    db.exec("ALTER TABLE services ADD COLUMN axr_score INTEGER");
+    db.exec("ALTER TABLE services ADD COLUMN axr_grade TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN axr_dims TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN axr_facade INTEGER DEFAULT 0");
+  }
+
   // Migration: add workaround column if it doesn't exist (for existing databases)
   const hasWorkaround = db
     .prepare("SELECT count(*) as cnt FROM pragma_table_info('outcomes') WHERE name = 'workaround'")
@@ -226,6 +270,14 @@ export function initializeDb(db: Database.Database): void {
   if (hasIsRetry.cnt === 0) {
     db.exec("ALTER TABLE outcomes ADD COLUMN is_retry INTEGER DEFAULT 0");
     db.exec("ALTER TABLE outcomes ADD COLUMN estimated_users INTEGER");
+  }
+
+  // Migration: add gotchas column to recipes (Tier-B KanseiLink moat)
+  const hasGotchas = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('recipes') WHERE name = 'gotchas'")
+    .get() as { cnt: number };
+  if (hasGotchas.cnt === 0) {
+    db.exec("ALTER TABLE recipes ADD COLUMN gotchas TEXT DEFAULT '[]'");
   }
 
   // Migration: add calls_per_agent_per_day and estimated_total_users to snapshots

@@ -113,6 +113,72 @@ npm run build
 npm start       # start stdio server
 ```
 
+## Autonomous Article Generation (3-stage pipeline)
+
+KanseiLINK publishes AEO-optimized articles on a rolling basis from `content/article-queue.json`.
+The generator is fully unattended and fact-grounded — it runs a three-stage pipeline per article:
+
+```
+Stage 1: Fact Preparation (no LLM, free)
+         scripts/lib/fact-prep.mjs
+         Builds a Fact Sheet from services-seed.json + api-guides + recipes.
+         Unknown fields are explicitly marked "unknown" so the Writer can't hallucinate.
+         ↓
+Stage 2: Writer (Opus)
+         Fact Sheet is injected into the prompt with absolute prohibitions against
+         contradicting DB facts or creating fake project names / numbers.
+         ↓
+Stage 3: Fact-Checker (Haiku, ~¥2/article)
+         scripts/lib/fact-checker.mjs
+         Returns structured JSON verdict. Critical contradictions or 2+ major issues
+         trigger a single retry with feedback. Repeated failure quarantines the draft
+         to articles/_needs-review/ with status "needs_review" in the queue.
+```
+
+```bash
+# Generate the next 3 pending articles (with fact check)
+ANTHROPIC_API_KEY=sk-ant-... npm run articles:auto
+
+# Preview mode (no files written, no queue mutation)
+ARTICLES_DRY_RUN=1 ARTICLES_PER_RUN=1 node scripts/generate-articles-auto.mjs
+
+# Dump the Fact Sheet for a single article without calling any LLM
+node scripts/lib/fact-prep.mjs kintone-mcp-guide
+
+# Skip the checker (debug only — not for production runs)
+ARTICLES_SKIP_CHECKER=1 ARTICLES_PER_RUN=1 npm run articles:auto
+```
+
+Environment variables:
+
+| Var | Default | Purpose |
+|-----|---------|---------|
+| `ANTHROPIC_API_KEY` | — (required) | Anthropic API key |
+| `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` | Override endpoint |
+| `ANTHROPIC_MODEL` | `claude-opus-4-5-20251101` | Writer model |
+| `ANTHROPIC_CHECKER_MODEL` | `claude-haiku-4-5` | Fact-Checker model |
+| `ARTICLES_PER_RUN` | `3` | Max articles to generate per invocation |
+| `ARTICLES_MAX_RETRIES` | `1` | Writer retries after a failed fact check |
+| `ARTICLES_DRY_RUN` | — | Set to `1` to preview without writing |
+| `ARTICLES_SKIP_CHECKER` | — | Set to `1` to bypass Stage 3 (debug only) |
+
+### Scheduling (Windows Task Scheduler)
+
+```cmd
+schtasks /create /sc DAILY /tn "KanseiLink Articles" ^
+  /tr "cmd /c cd /d C:\Users\HP\KanseiLINK\kansei-link-mcp && npm run articles:auto" ^
+  /st 09:00
+```
+
+### Scheduling (cron, macOS/Linux)
+
+```bash
+0 9 * * * cd ~/KanseiLINK/kansei-link-mcp && ANTHROPIC_API_KEY=sk-ant-... npm run articles:auto >> content/article-generation.log 2>&1
+```
+
+Logs are written to `content/article-generation.log` (gitignored). On failure, articles are
+automatically reverted to `pending` so the next run retries them.
+
 ## Security
 
 - PII auto-masking (names, email, phone, IP, Japanese kanji/katakana)

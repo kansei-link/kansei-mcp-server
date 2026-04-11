@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Confirmed | KanseiLink</title>
+  <meta name="robots" content="noindex">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --teal: #00bfa5; --bg: #f8fafb; --text: #1a2332; --gray: #6b7280; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 48px 40px; max-width: 480px; width: 90%; text-align: center; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    p { color: var(--gray); line-height: 1.7; margin-bottom: 24px; font-size: 15px; }
+    .btn { display: inline-block; padding: 12px 32px; background: var(--teal); color: #fff; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px; }
+    .btn:hover { opacity: 0.9; }
+    .sub { margin-top: 16px; font-size: 13px; color: var(--gray); }
+    .sub a { color: var(--teal); text-decoration: none; }
+  </style>
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/subscription/success.html" />
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/subscription/success.html" />
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/subscription/success.html" />
+</head>
+<body>
+  <div class="card">
+    <div class="icon">&#10003;</div>
+    <h1>Subscription Confirmed</h1>
+    <p>Welcome to KanseiLink Pro / Team.<br>You now have access to all premium content.</p>
+    <a href="/en/insights/" class="btn">Read Reports</a>
+    <div class="sub">
+      <a href="#" id="portal-link">Manage Subscription</a>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var email = localStorage.getItem('kl_email');
+      if (!email) {
+        var input = prompt('Enter your subscription email to confirm access:');
+        if (input && input.indexOf('@') > 0) {
+          localStorage.setItem('kl_email', input.trim());
+          email = input.trim();
+        }
+      }
+      var portalLink = document.getElementById('portal-link');
+      if (portalLink && email) {
+        portalLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/api/portal');
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.onload = function() {
+            if (xhr.status === 200) {
+              var data = JSON.parse(xhr.responseText);
+              if (data.url) window.location.href = data.url;
+            }
+          };
+          xhr.send(JSON.stringify({ email: email }));
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

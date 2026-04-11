@@ -1,0 +1,312 @@
+{
+  "ecommerce-order-notification": [
+    "BASE EC API uses OAuth2 with short-lived tokens (30-day access, 60-day refresh). Implement automatic token refresh or the integration will silently stop working after a month.",
+    "LINE WORKS Bot API v2 requires the bot to be explicitly added to the target group before it can post. If the bot is removed or the group is recreated, messages will fail with a 403 error.",
+    "BASE order status may still be 'pending' when the webhook fires if payment confirmation is delayed. Always verify payment status before notifying fulfillment to avoid premature picking."
+  ],
+  "ec-accounting-sync": [
+    "Japan's dual consumption tax rates (8% reduced for food, 10% standard) must be applied per line item, not per order. Shopify tax_lines data may not distinguish reduced-rate items automatically — verify product tags or tax codes.",
+    "Shopify JP GraphQL Admin API uses cost-based rate limiting, not per-request. A single complex query fetching orders with line items and tax details can consume most of your budget. Use lightweight queries and paginate.",
+    "freee journal entries require Invoice System (インボイス制度) compliant format since Oct 2023. Ensure the seller's registration number is included or the tax deduction will be rejected during audit.",
+    "Chatwork API rate limit is 5 requests per second. If you batch many orders at end-of-day, throttle the summary post or combine into a single message."
+  ],
+  "shopify-inventory-alert": [
+    "Shopify multi-location inventory: the GraphQL inventoryLevels query returns stock per location. If you only check one location, you may miss low stock at other warehouses or trigger false alerts.",
+    "kintone bulk record creation is capped at 100 records per API call. If many products hit low stock simultaneously (e.g., after a sale event), batch the reorder requests into chunks of 100.",
+    "LINE push messages (not reply) cost money per message on your LINE Official Account plan. High-frequency inventory alerts can quickly exhaust your monthly message quota — consider using reply messages or consolidating alerts into a daily digest.",
+    "Shopify SKU field is optional and may be empty for some products. Ensure all products have SKUs before relying on SKU as the cross-system identifier for kintone lookups."
+  ],
+  "shopify-yamato-shipping": [
+    "Yamato B2 Cloud API uses SOAP/XML, not REST JSON. Your HTTP client must send properly formatted XML with Shift-JIS encoding — UTF-8 requests will be rejected with a cryptic encoding error.",
+    "Japanese address parsing from Shopify is tricky: address1/address2 splitting varies by customer input. Yamato requires 都道府県 (prefecture) as a separate field. Parse and validate before submission.",
+    "Shopify webhook HMAC verification is essential — unverified webhooks could inject fake orders. Always validate the X-Shopify-Hmac-SHA256 header before creating shipping labels.",
+    "Yamato tracking numbers follow a specific 12-digit format. When writing back to Shopify fulfillment, use carrier name 'Yamato Transport' (ヤマト運輸) to enable automatic tracking URL generation."
+  ],
+  "shopify-smaregi-inventory-sync": [
+    "Shopify inventory webhooks can fire multiple times for the same event (at-least-once delivery). Without idempotency checks, you will double-decrement Smaregi stock and cause phantom stockouts.",
+    "SKU format must be identical across Shopify and Smaregi. Common mismatch: Smaregi may use a numeric product code while Shopify uses alphanumeric SKU. Standardize before going live.",
+    "Race condition risk: if an in-store sale and an online sale happen simultaneously, both systems may read stale inventory. Implement a locking mechanism or queue to serialize updates.",
+    "Smaregi API rate limits are strict for the standard plan. During high-traffic periods (e.g., sales events), inventory sync may lag behind actual orders."
+  ],
+  "shopify-line-order-status": [
+    "LINE user ID must be collected during Shopify checkout via LINE Login integration. Not all customers will have a linked LINE ID — you need a fallback notification channel (email) for unlinked customers.",
+    "LINE reply tokens expire in exactly 30 seconds. Since this recipe uses push messages (not replies), each message costs against your LINE Official Account monthly quota. Budget accordingly for high-order-volume stores.",
+    "Shopify fires order webhooks on ANY update, not just status changes. Filter specifically for fulfillment_status transitions to avoid sending duplicate or irrelevant notifications to customers.",
+    "LINE Flex Messages have a maximum payload size of 50KB. If order details are extensive (many line items), truncate the item list and link to the full order status page."
+  ],
+  "shopify-klaviyo-segment-ecommerce": [
+    "Segment event names must match Klaviyo's expected metric names exactly. Klaviyo uses 'Placed Order' and 'Ordered Product' — if Segment sends 'Order Completed', the Klaviyo flow will not trigger.",
+    "Shopify Global (non-JP) webhooks use USD amounts by default. If your store uses multiple currencies, ensure Segment passes the correct currency code or Klaviyo revenue tracking will be inaccurate.",
+    "Segment to Klaviyo destination must be configured as a server-side integration, not client-side. Client-side tracking misses webhook-originated events entirely.",
+    "Klaviyo flows must be set to 'Live' status — draft or paused flows will silently ignore incoming events. Verify flow status after initial setup and after any edits."
+  ],
+  "ecommerce-order-flow": [
+    "Shopify webhook HMAC signature must be verified before processing. Bogus Gateway test orders should be filtered out to avoid decrementing real inventory in Airtable.",
+    "Airtable PATCH endpoint does not support atomic decrement — you must read current quantity, subtract, then write. Under concurrent orders, this creates a race condition. Use a queue or mutex pattern.",
+    "Resend email sending domain must be DNS-verified (DKIM + SPF) before production use. Unverified domains will land in spam or be rejected entirely.",
+    "Airtable free plan has 1,200 records per base and 5 API calls per second. High-volume Shopify stores will hit both limits quickly — plan for Airtable Pro or an alternative inventory backend."
+  ],
+  "ec-cube-yamato-b2-shipping": [
+    "EC-CUBE API endpoints differ significantly between v3.x and v4.x. Confirm your EC-CUBE version before building — v3 uses a custom REST API while v4 supports a more standard format.",
+    "Yamato B2 CSV import requires Shift-JIS encoding with specific column ordering. Sending UTF-8 encoded data will produce garbled Japanese characters (文字化け) and rejected shipments.",
+    "EC-CUBE stores Japanese addresses in a structured format but Yamato requires specific field separation (prefecture, city, street). Map EC-CUBE's addr01/addr02 fields to Yamato's format carefully.",
+    "After updating tracking numbers in EC-CUBE, the shipping notification email template must be configured in EC-CUBE's mail settings. Missing template = no customer notification despite successful label creation."
+  ],
+  "colorme-japan-post-shipping": [
+    "Color Me Shop API uses a non-standard OAuth2 flow — the token refresh endpoint URL differs from the standard spec. Store the refresh URL from the initial auth response, do not hardcode the standard path.",
+    "Japan Post API (via ClickPost or direct) requires addresses strictly formatted with 都道府県 separated from the rest. Color Me orders may store the full address in a single field — you must parse it.",
+    "Japan Post tracking number format varies by service type (Yu-Pack, Yu-Mail, etc.). Ensure you request the correct service type based on package weight and dimensions.",
+    "Color Me Shop webhook support is limited. You may need to poll the orders API on a schedule instead of relying on real-time webhooks, which adds latency to shipping label generation."
+  ],
+  "logiless-shopify-fulfillment": [
+    "Logiless webhook payload uses its internal order ID, not the Shopify order number. You must maintain a mapping table (or use a reference field) to resolve Logiless order ID to Shopify order ID.",
+    "Shopify Fulfillment API changed significantly in 2024-01: you now need the fulfillment_order_id (not just order_id) to create a fulfillment. Ensure you are using the current API version.",
+    "Logiless may split a single order into multiple shipments (partial fulfillment). Your integration must handle creating multiple Shopify fulfillments for one order without marking the order fully fulfilled prematurely.",
+    "Carrier name mapping: Logiless uses Japanese carrier names (e.g., 'ヤマト運輸', '佐川急便') while Shopify expects specific carrier strings for tracking URL generation. Maintain a carrier name translation map."
+  ],
+  "payjp-kintone-subscription-manage": [
+    "PAY.JP webhook events can arrive out of order (e.g., 'renewed' before 'created' if there is a delivery delay). Always check the event timestamp and use idempotency logic when updating kintone records.",
+    "kintone does not have native upsert. You must query for existing records by subscription_id first, then decide whether to create or update. This requires two API calls per event.",
+    "PAY.JP test mode and live mode use different API keys and generate separate webhook events. Ensure your kintone app has a flag to distinguish test vs. production subscription records.",
+    "PAY.JP subscription failure events (payment_failed) need special handling — update kintone status but also trigger a follow-up action (e.g., customer notification) rather than just logging."
+  ],
+  "stripe-quickbooks-slack-payment-accounting": [
+    "Stripe customer IDs do not exist in QuickBooks. You must maintain a mapping between Stripe customer_id and QuickBooks customer DisplayName, or the journal entry will fail to associate correctly.",
+    "Stripe amounts are in the smallest currency unit (cents for USD, but JPY is zero-decimal). Verify currency handling — passing raw JPY amounts to QuickBooks as if they were cents will create 100x overcharges.",
+    "QuickBooks OAuth2 tokens expire in 1 hour, and refresh tokens expire in 100 days. Implement proactive token refresh or the integration will break silently after token expiry.",
+    "Stripe webhook signature verification (using endpoint secret) is critical for production. Without it, anyone can POST fake payment events to your endpoint and create bogus QuickBooks entries."
+  ],
+  "stripe-mercury-brex-startup-finance": [
+    "Stripe payouts to Mercury have a 2-3 business day delay. When reconciling, do not expect same-day matching — use the Stripe payout.paid event (not payment_intent.succeeded) to trigger Mercury verification.",
+    "Mercury API may not reflect pending transactions immediately. Add a retry mechanism with exponential backoff when checking for Stripe payout arrival.",
+    "Brex API uses pagination for transaction listings. On days with many card transactions, a single API call will not return all data — implement cursor-based pagination.",
+    "Currency handling: Stripe reports in the settlement currency, Mercury in USD, and Brex in the transaction currency. Normalize all amounts to a single currency before creating unified financial reports."
+  ],
+  "contract-to-accounting": [
+    "CloudSign document lifecycle is strict: draft -> sent -> agreed. Attempting to read contract details before status reaches 'completed' will return incomplete data or error. Always verify document status first.",
+    "freee journal entry dates should use the contract effective date, not the signing date. Revenue recognition timing matters for accounting compliance — getting this wrong will cause audit issues.",
+    "CloudSign PDF download URLs expire. If there is a delay between CloudSign webhook and freee journal creation, the PDF link for reference attachment may no longer be valid. Download immediately upon completion.",
+    "Currency formatting: freee expects amounts as integers (no decimal for JPY). Ensure the CloudSign contract amount is parsed as a clean integer before passing to freee's journal entry API."
+  ],
+  "box-cloudsign-contract-archive": [
+    "CloudSign signed PDF download links expire within 30 days of signing. Process the archive promptly — if your integration has downtime, you may lose access to the signed documents.",
+    "Box JWT authentication requires a public/private RSA keypair and is notoriously complex to set up. Test the auth flow thoroughly in sandbox before production. A misconfigured key will produce opaque 401 errors.",
+    "Box folder creation for new clients may fail if the parent folder path does not exist. Create the year/client folder hierarchy proactively rather than assuming it exists.",
+    "CloudSign callback/webhook URLs must use HTTPS. Box shared links should have expiry dates set per your company's document retention policy — indefinite links are a security risk."
+  ],
+  "cloudsign-kintone-contract-manage": [
+    "CloudSign webhook requires IP whitelist configuration in the CloudSign admin panel. If your server IP changes (e.g., serverless deployment), webhooks will silently stop arriving.",
+    "CloudSign document status transitions are strict (draft -> sent -> viewed -> signed -> completed). Your kintone status field must map to these exact states, and status can only move forward — never backward.",
+    "kintone webhook fires on ALL record updates. When you update the contract record in step 2, this triggers another webhook. Implement a guard (e.g., check if the update source is CloudSign) to prevent infinite loops.",
+    "CloudSign free plan limits you to 5 documents per month. Track your quota in kintone and alert before hitting the limit to avoid blocked contract sends."
+  ],
+  "docusign-salesforce-contract-close": [
+    "DocuSign demo (demo.docusign.net) and production (docusign.net) use completely different base URLs and API keys. Envelope IDs from demo do not exist in production — never mix environments.",
+    "DocuSign Connect (webhook) must be configured at the account level, and envelope custom fields must contain the Salesforce opportunity ID for the mapping to work. Without this, you cannot link the signed doc back to the right deal.",
+    "DocuSign JWT auth requires an RSA private key and consent grant. The RSA key must be generated and uploaded to DocuSign — using a self-signed cert from another service will fail.",
+    "Salesforce ContentVersion API (for file attachment) has different size limits depending on your org edition. Enterprise supports up to 2GB via API, but check your specific org's file storage quota."
+  ],
+  "gmosign-box-contract-store": [
+    "GMO Sign API documentation is primarily in Japanese and hosted at agree.gmosign.com. English-language agent tools may struggle to parse the API reference — provide explicit endpoint URLs in your config.",
+    "Box metadata templates must be pre-created with the enterprise scope before you can attach metadata to uploaded contracts. Template creation requires Box admin privileges.",
+    "GMO Sign webhook payloads include the signed PDF as a download URL, not inline content. Download the PDF first, then upload to Box — do not attempt to pass the URL directly to Box upload.",
+    "Box JWT auth requires a Box application with server authentication enabled and admin authorization. The setup involves generating a keypair, configuring the app, and having a Box admin approve it."
+  ],
+  "freee-sign-kintone-approval-flow": [
+    "kintone webhook fires on ALL record updates, not just approval status changes. When step 3 updates the record with the freee Sign document ID, it will trigger another webhook. Guard against infinite loops by checking which field changed.",
+    "freee Sign template field placeholder names must match exactly (case-sensitive) with the data you pass. A single mismatched field name will cause the document to generate with blank fields — test with draft mode first.",
+    "kintone process management (approval workflow) status values are workspace-specific strings, not standardized codes. Confirm the exact status value (e.g., '承認済み') in your kintone app before coding the filter.",
+    "freee Sign is a newer service with evolving API. Check for API version changes and deprecation notices regularly — endpoints may change with less notice than established e-sign providers."
+  ],
+  "slack-backlog-bug-report": [
+    "Slack Events API requires a URL verification challenge-response during setup. Your endpoint must respond to the challenge before it can receive any events — this is a one-time setup step that is easy to forget.",
+    "Backlog issue type 'Bug' must exist in the target project. Backlog projects do not have this type by default — create it in Backlog project settings before the integration will work.",
+    "Slack thread_ts is required for replying in-thread. If the original message is not in a thread, use the message's ts as thread_ts to start a new thread from that message.",
+    "Backlog API key authentication ties all actions to a single user. For team use, prefer OAuth2 so the issue creator is correctly attributed in Backlog."
+  ],
+  "twilio-salesforce-call-log": [
+    "Japanese phone numbers may be stored in Salesforce with or without the +81 country code prefix. Search both formats (e.g., +81901234567 and 09012345678) when matching calls to contacts, or you will miss matches.",
+    "Twilio status callback URLs must be publicly accessible HTTPS endpoints. During development, use ngrok or a similar tunnel — localhost URLs will not receive callbacks.",
+    "Twilio recording URLs require authentication to access. When storing in Salesforce, use the recording URL with your Account SID embedded, or Salesforce users will get 401 errors when clicking the link.",
+    "Salesforce Task/Activity creation requires WhoId (contact) or WhatId (account/opportunity) association. If the phone number does not match any contact, the activity will be orphaned."
+  ],
+  "twilio-kintone-sms-followup": [
+    "Japanese mobile numbers must be converted from domestic format (090-XXXX-XXXX) to E.164 format (+81XXXXXXXXX, dropping the leading 0) before passing to Twilio. Incorrect format will cause delivery failure.",
+    "Japanese SMS has a 670-character limit (Shift-JIS), but messages over 70 characters are split into multiple segments, each billed separately. Keep thank-you messages concise to control costs.",
+    "kintone record revision checking is essential to prevent duplicate SMS sends. Use the revision field for optimistic concurrency — if another process updated the record between your read and write, retry.",
+    "Twilio JP phone numbers for SMS have specific requirements. Not all Twilio number types support SMS in Japan — verify your Twilio number has SMS capability enabled for the JP region."
+  ],
+  "customer-support-ai": [
+    "Discord bot must explicitly filter out its own messages and other bot messages to prevent infinite response loops. Check the message author's bot flag before processing.",
+    "Anthropic API responses may vary in length and format. Set max_tokens appropriately and implement a truncation strategy for Discord's 2000-character message limit.",
+    "This recipe creates a review task in Linear but does not auto-reply to the customer. The human-in-the-loop step is intentional — make sure the support team knows to check Linear and manually post the approved response.",
+    "Discord webhook/bot gateway connections can drop silently. Implement heartbeat monitoring and automatic reconnection to avoid missing support messages."
+  ],
+  "project-status-report": [
+    "Backlog sprint/milestone must be correctly configured for the current iteration. If the sprint is misconfigured, the query will return zero issues and the report will be empty without any error.",
+    "Chatwork rich formatting uses [info][/info] tags, not Markdown. HTML or Markdown in the message body will render as plain text. Use [info][title]...[/title]...[/info] for structured messages.",
+    "Backlog API returns issues in the project's timezone. If your sprint boundaries cross midnight JST, you may get off-by-one-day counting for completed issues."
+  ],
+  "kintone-backlog-sync": [
+    "kintone priority field values are custom dropdown strings (e.g., '高', '中', '低') while Backlog uses numeric priority IDs (2=High, 3=Normal, 4=Low). Build an explicit mapping table — do not rely on string matching.",
+    "kintone record URLs are workspace-specific (https://subdomain.cybozu.com/k/appid/show#record=N). Include the full URL in the Backlog issue description for traceability.",
+    "Chatwork API rate limit is 5 requests per second. If many customer requests are synced in a batch, queue the notifications to avoid 429 errors.",
+    "kintone webhook payload does not include all record fields by default. You may need a follow-up GET request to retrieve the full record details before creating the Backlog issue."
+  ],
+  "kintone-chatwork-status-notify": [
+    "kintone webhook fires on ALL record updates, not just status changes. Filter for the specific process management status field change to avoid sending notifications on every minor edit.",
+    "Chatwork [info] tag formatting is mandatory for structured messages. Plain text messages without [info] tags will appear as a wall of text that is hard to scan.",
+    "kintone field codes are workspace-specific and case-sensitive. The status field code in one kintone environment may be different from another — always confirm field codes in the target environment.",
+    "Chatwork room IDs are numeric and can be found in the room URL. Hardcoding room IDs is fragile — store them in configuration so they can be updated without code changes."
+  ],
+  "kintone-slack-task-assign": [
+    "Slack users.lookupByEmail API is required to resolve kintone user email to Slack user ID before sending a DM. If the kintone user's email does not match their Slack account email, the lookup will fail silently.",
+    "kintone user fields store user codes (login names), not email addresses. You need a separate lookup step to get the email from the user code before calling Slack's lookupByEmail.",
+    "Slack DM (conversations.open + chat.postMessage) requires the bot to have im:write and users:read.email scopes. Missing scopes will return a 'missing_scope' error.",
+    "kintone date format is YYYY-MM-DD but Slack message formatting expects human-readable dates. Convert deadline dates to a user-friendly format (e.g., 'April 15, 2026') for better readability."
+  ],
+  "kintone-freee-client-sync": [
+    "freee trading partner (取引先) names must be unique. If a client with the same name already exists, the API will return an error. Always search for duplicates before creating a new partner.",
+    "kintone payment terms (e.g., '月末締め翌月末払い') are free-text strings while freee expects specific payment term codes. Build a lookup table mapping kintone terms to freee's enum values.",
+    "Syncing back the freee partner_id to kintone (step 3) can trigger the kintone webhook again, creating a potential infinite loop. Use a 'freee連携済み' flag and check it before processing.",
+    "freee API requires a company_id scope in the OAuth token. If the token belongs to a different company, all API calls will silently create records in the wrong company."
+  ],
+  "kintone-asana-task-bridge": [
+    "kintone webhook payload does NOT include subtable (テーブル) data. After receiving the webhook, you must make a separate GET request to fetch the full record including subtask table rows.",
+    "Asana task GID is returned as a string, not a number. Storing it in a kintone number field will cause data loss or errors — use a single-line text field in kintone.",
+    "Writing the Asana task URL back to kintone (step 3) will trigger another kintone webhook. Implement loop detection by checking if the asana_url field is already populated before processing.",
+    "Asana API rate limits are 1,500 requests per minute. Creating a task with many subtasks in rapid succession can hit the limit — add a small delay between subtask creation calls."
+  ],
+  "reserva-line-booking-notify": [
+    "RESERVA customer LINE ID linkage must be set up in advance via RESERVA's LINE連携 feature. Without this linkage, the LINE user ID will be null and the push message will fail.",
+    "LINE push messages are NOT free — each push message counts against your LINE Official Account monthly message quota. For high-volume clinics/salons, this can become expensive. Consider using the LINE reply message (free) when possible.",
+    "RESERVA's webhook/API support varies by plan tier. Free and lower-tier plans may only support polling, adding latency between booking and notification.",
+    "Chatwork [To:account_id] mention tag requires the numeric account_id, not the account name. Maintain a mapping of staff names to Chatwork account IDs for proper @mentions."
+  ],
+  "tablecheck-line-reservation-confirm": [
+    "TableCheck API access requires a partner agreement — it is not self-service. Contact TableCheck sales to get API credentials, which can take days to weeks.",
+    "LINE Flex Messages have complex nested JSON structure. Use the LINE Flex Message Simulator (https://developers.line.biz/flex-simulator/) to design and validate the template before coding.",
+    "The guest's LINE user ID must be collected during the TableCheck reservation flow. If the guest booked via phone or walk-in, there will be no LINE ID available — implement a fallback (SMS or email).",
+    "LINE push message delivery is not guaranteed if the user has blocked your official account or if the user ID is invalid. Check the LINE API response for error codes and handle gracefully."
+  ],
+  "rakumo-slack-workflow-approve": [
+    "rakumo API availability depends on your Google Workspace integration configuration. If the rakumo admin has not enabled API access, all calls will return 403. This is a common setup miss.",
+    "Slack interactive message callback (approve/reject button click) must complete the rakumo approval API call within 3 seconds, or Slack will show a timeout error to the user. Use async processing if the rakumo API is slow.",
+    "rakumo workflow approval may require a comment field for audit trail purposes. Include an optional comment dialog in the Slack interaction flow, or the approval may be rejected by rakumo.",
+    "Polling for pending approvals (schedule-based) means there is a delay between request submission and Slack notification. Reduce polling interval for time-sensitive approvals, but respect rakumo API rate limits."
+  ],
+  "otter-notion-meeting-notes": [
+    "Otter.ai API is only available on Business and Enterprise plans. Free and Pro plans do not have API or webhook access — verify your Otter plan before building this integration.",
+    "Notion page body blocks have a 2,000-character limit per block. Long meeting transcripts must be split across multiple blocks. The Notion API also limits to 100 blocks per append request — very long meetings need multiple API calls.",
+    "Matching Otter participant emails to Slack users via users.lookupByEmail may fail if participants used personal emails for Otter but corporate emails for Slack. Maintain a secondary email mapping.",
+    "Otter transcription quality varies by audio quality and number of speakers. AI-generated summaries and action items should be treated as drafts requiring human review, not final records."
+  ],
+  "google-drive-slack-notion-doc-sharing": [
+    "Google Drive push notification channels expire (default 1 hour, max 24 hours for most resources). You must implement automatic channel renewal or your file-watching integration will stop working silently.",
+    "Notion API integration must be explicitly shared with the target database in Notion's 'Connections' settings. Without this, API calls will return 'object not found' errors even with a valid database ID.",
+    "Google Drive webhook sends only the file ID and change type — not file metadata. You need a follow-up files.get API call to retrieve the file name, owner, and web link for the Notion entry.",
+    "Slack bot token must have chat:write scope AND the bot must be invited to the target channel. A common failure: the bot has permission but was never added to a private channel."
+  ],
+  "brave-search-anthropic-notion-research": [
+    "Brave Search API free tier is limited to 1 request per second and 2,000 queries per month. Automated research workflows can exhaust this quota quickly — upgrade to a paid plan for production use.",
+    "Anthropic API token costs scale with input size. Passing all 10 search result snippets as context can be expensive. Summarize or truncate search results before sending to Claude to control costs.",
+    "Notion API has a 3 requests per second rate limit. If creating research pages in rapid succession (e.g., batch research), add delays between API calls to avoid 429 errors.",
+    "Brave Search results may include unreliable sources. The Anthropic analysis step should include source credibility evaluation in its prompt to avoid propagating misinformation into your Notion knowledge base."
+  ],
+  "mixpanel-amplitude-segment-product-analytics": [
+    "Segment event property names must be consistent across all sources (web, iOS, Android). A property named 'user_id' on web and 'userId' on mobile will create duplicate properties in both Mixpanel and Amplitude.",
+    "Segment destination configurations for Mixpanel and Amplitude must each be enabled and properly mapped. A disabled destination will silently drop events with no error in Segment.",
+    "Mixpanel and Amplitude have different identity resolution models. Mixpanel uses distinct_id while Amplitude uses user_id + device_id. If Segment's identity mapping is misconfigured, you will get inflated user counts in one or both tools.",
+    "Segment server-side tracking does not capture client-side context (device info, IP, user agent) automatically. Add these properties explicitly if they are needed for Mixpanel/Amplitude behavioral analysis."
+  ],
+  "salesforce-docusign-quickbooks-b2b-contract": [
+    "DocuSign envelope template merge fields must match Salesforce field API names exactly. A mismatch means the contract will be sent with blank fields — always test with a sandbox Salesforce org first.",
+    "DocuSign demo vs production environments use completely different base URLs (demo.docusign.net vs docusign.net). Envelopes created in demo do not exist in production — switch URLs when going live.",
+    "QuickBooks customer names must match between Salesforce account names and QuickBooks. Japanese company suffixes (株式会社, 合同会社) and whitespace differences cause silent matching failures.",
+    "The contract signing step is asynchronous — the customer may take days to sign. Your integration must handle the DocuSign Connect callback (webhook) to trigger QuickBooks invoice creation only after completion."
+  ],
+  "zapier-kintone-multi-trigger": [
+    "Zapier webhook URL changes if you delete and recreate the Zap. Any external system posting to the old URL will silently fail. Pin the webhook URL in a configuration management system, not in code.",
+    "Zapier webhooks have a 30-second timeout. If the downstream kintone operation takes longer (e.g., complex record creation with lookups), the Zap will timeout and retry, potentially creating duplicate records.",
+    "kintone API connection in Zapier requires the full subdomain format (subdomain.cybozu.com). A common misconfiguration is omitting .cybozu.com, which causes all kintone steps to fail.",
+    "Zapier test mode sends sample data that may not match production payload structure. Always test with real webhook data before enabling the Zap in production."
+  ],
+  "zapier-slack-google-drive-backup": [
+    "Zapier's Slack trigger for file_shared events requires the files:read OAuth scope on the Zapier Slack connection. If this scope was not granted during initial Zapier-Slack connection, you must reconnect.",
+    "Zapier webhooks have a 30-second timeout. Large Slack files may take longer to download and re-upload to Google Drive within this window, causing the Zap to fail on large attachments.",
+    "Google Drive storage quota applies per workspace. High-volume Slack channels sharing many files can quickly fill up Drive storage — set up quota monitoring alerts.",
+    "Slack files shared via external URL (e.g., links to Figma, Google Docs) are not actual file uploads and will not trigger the file_shared event. Only directly uploaded files are captured."
+  ],
+  "make-hubspot-kintone-crm-bridge": [
+    "HubSpot deprecated API keys in November 2022. Make's HubSpot module must use a private app access token instead. If your Make scenario still references an API key, it will fail with a 401 error.",
+    "Make's kintone module requires the subdomain WITHOUT .cybozu.com (just 'mycompany', not 'mycompany.cybozu.com'). This is the opposite of Zapier's convention — a common misconfiguration source.",
+    "HubSpot deal properties may include custom properties that do not exist in kintone. Map only the fields you need and handle unmapped properties gracefully to avoid Make scenario errors.",
+    "Make scenarios have execution time limits (40 minutes on paid plans). For initial bulk sync of many HubSpot deals to kintone, split into batches to avoid timeout."
+  ],
+  "tableau-slack-dashboard-alert": [
+    "Tableau REST API requires a site-specific authentication using a Personal Access Token (PAT) that expires after 1 year. Set a calendar reminder to rotate the token before expiry, or alerts will stop silently.",
+    "Tableau data-driven alerts trigger based on threshold values. The dashboard view must be refreshed (extract refresh completed) before the alert evaluates — stale data will not trigger alerts even if thresholds are breached.",
+    "Slack file upload (for dashboard image) requires files:write scope AND the bot must be in the target channel. The image upload is a separate API call from the message post — both must succeed.",
+    "Tableau trusted authentication requires IP whitelisting of your integration server. If your server IP changes (e.g., cloud deployment), the auth will break with no useful error message."
+  ],
+  "looker-kintone-weekly-report": [
+    "Looker API credentials (client ID + secret) are tied to a specific user. If that user is deactivated or loses Looker access, all scheduled queries will fail. Use a service account.",
+    "Looker Look results are returned as JSON with string-typed numbers. kintone number fields require numeric types — cast string values to numbers before creating kintone records or you will get type validation errors.",
+    "LINE WORKS Bot API 2.0 requires a registered bot in the Developer Console with message permissions. The bot must be added to the management group before it can send messages to that group.",
+    "Looker query results may include null values for periods with no data. kintone number fields do not accept null — convert null values to 0 or skip those fields to prevent record creation failures."
+  ],
+  "metabase-chatwork-daily-metrics": [
+    "Metabase API session tokens expire after 14 days by default (configurable). Implement automatic re-authentication or the daily metrics post will fail silently after token expiry.",
+    "Chatwork does not support native table formatting. Use [code] tags for monospace-aligned metrics tables, or the numbers will not align properly and will be hard to read.",
+    "Metabase question IDs are environment-specific. If you migrate Metabase between servers or upgrade versions, question IDs may change. Store question IDs in configuration, not hardcoded.",
+    "Chatwork rate limit is 5 requests per second. If your daily metrics include multiple rooms or message segments, add throttling between API calls."
+  ],
+  "metabase-notion-monthly-report": [
+    "Metabase dashboard API returns results for ALL cards on the dashboard. If the dashboard has 20+ cards, the response payload can be very large — filter for the specific question IDs you need for the report.",
+    "Notion API has a 100-block limit per append request. Monthly reports with many KPI tables and charts will exceed this limit — split the content into multiple append calls.",
+    "Metabase session token expiry (14 days default) combined with monthly scheduling means the token will expire between runs. Implement session creation as part of each scheduled execution.",
+    "Notion page sharing permissions are separate from API access. Even if the API creates the page successfully, management team members will not see it unless the page's parent database is shared with them."
+  ],
+  "treasure-data-looker-etl-sync": [
+    "Treasure Data queries can take minutes for large segment datasets. Use Presto engine for interactive (faster) queries and Hive for batch jobs. Choosing wrong engine can mean 10x difference in execution time.",
+    "Looker PDT (Persistent Derived Table) rebuilds are asynchronous and can take significant time. Do not assume the data is immediately available after triggering the rebuild — poll for completion status.",
+    "Treasure Data export format must match the database schema that Looker's LookML model expects. Column name or type mismatches will cause the PDT rebuild to fail silently with stale data.",
+    "Looker API uses datagroups for cache management. Trigger the correct datagroup invalidation instead of forcing a full PDT rebuild — this is more efficient and avoids unnecessary database load."
+  ],
+  "tableau-kintone-dashboard-embed": [
+    "Tableau REST API requires site-id in every request URL. The site-id is different from the site name — use the Tableau REST API to query the correct site-id before making data requests.",
+    "Tableau view data pagination returns max 10,000 rows per page. If your dashboard view has more rows, implement pagination or the kintone app will have incomplete data.",
+    "kintone graph/chart views can visualize imported Tableau data, but kintone chart types are limited compared to Tableau. Complex Tableau visualizations will lose fidelity when represented in kintone.",
+    "Tableau trusted authentication requires your integration server's IP to be whitelisted on the Tableau Server. Without this, every data request will fail with authentication errors."
+  ],
+  "hennge-one-slack-security-alert": [
+    "HENNGE One audit log API requires admin-level scope credentials. Standard user tokens cannot access security event logs — ensure the API token belongs to a tenant administrator.",
+    "HENNGE One access control policies are complex and layered (IP-based, device-based, geo-based). The alert payload may include policy violation codes that need to be translated into human-readable descriptions for the Slack message.",
+    "HENNGE One webhook configuration is done in the Access Control admin settings, not the general API settings. This is a common setup miss — look under the 'Audit Log' or 'Notification' section.",
+    "Security alerts must be acted on quickly. Set the Slack channel notification level to 'Every new message' and consider adding @channel mentions for critical severity events to ensure immediate visibility."
+  ],
+  "hennge-one-kintone-access-log": [
+    "HENNGE One log retention period depends on your plan tier. Enterprise keeps 1 year, lower plans may keep less. Export logs before they expire or you will permanently lose compliance audit data.",
+    "kintone bulk add API is limited to 100 records per request. HENNGE One can generate thousands of access log entries per day — implement chunked uploads with proper error handling for each batch.",
+    "HENNGE One log timestamps are in UTC. kintone date/time fields default to JST (UTC+9). Convert timezones during import or your compliance audit timeline will be off by 9 hours.",
+    "Access log data may contain PII (email addresses, IP addresses). Ensure your kintone app has appropriate field-level permissions and the app is only accessible to authorized IT/compliance personnel."
+  ],
+  "auth0-kintone-user-provision": [
+    "Auth0 Log Streams deliver events with retry logic but no ordering guarantee. A 'user updated' event may arrive before 'user created'. Implement idempotent record creation using Auth0 user_id as the deduplication key.",
+    "Auth0 user metadata (app_metadata, user_metadata) structure varies by connection type (social, database, enterprise). Normalize the metadata before mapping to kintone fields to handle all connection types.",
+    "kintone API token permissions are per-app and do not inherit. The token for the user directory app must explicitly have record add, edit, and view permissions — missing any one will cause partial failures.",
+    "Posting to multiple Slack channels (general + IT) sequentially can hit Slack's rate limit (1 message per second per channel). Add a small delay between posts."
+  ],
+  "auth0-hennge-one-sso-provision": [
+    "Auth0 Actions (post-registration hook) is more reliable than deprecated Rules for capturing new user events. If you are still using Rules, migrate to Actions before building this integration.",
+    "HENNGE One user provisioning may require SCIM (System for Cross-domain Identity Management) endpoint configuration instead of direct API calls. Check if your HENNGE One plan supports SCIM provisioning.",
+    "Department-to-policy mapping (config.department_policy_map) must be kept in sync with both Auth0 role definitions and HENNGE One access policies. A mapping mismatch means new users get wrong access levels — a security risk.",
+    "Never include detailed access policy information in Slack notifications. Use generic descriptions like 'Standard Access' rather than listing specific allowed IPs or applications."
+  ],
+  "1password-slack-security-review": [
+    "1Password Events API requires a Connect server (1Password Connect) to be deployed and running on your infrastructure. This is not a simple API key setup — it requires Docker container deployment.",
+    "Never include actual passwords, vault item names, or specific credential details in Slack messages. Only share aggregate statistics (e.g., '15 weak passwords found') and categories.",
+    "1Password Watchtower data (breached passwords, weak credentials) updates periodically. The security review may show stale data if Watchtower has not been refreshed recently — check the last scan timestamp.",
+    "Slack messages have a 40,000-character limit but Block Kit messages have a 50-block limit. For large security reviews with many findings, use a summary in Slack and link to a detailed report elsewhere."
+  ]
+}

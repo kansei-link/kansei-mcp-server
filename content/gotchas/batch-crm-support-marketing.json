@@ -1,0 +1,138 @@
+{
+  "customer-followup": [
+    "Sansan returns biz card data in batches — contact_id and card_id are different fields, use contact_id for CRM linkage",
+    "Chatwork rate limit is 300 requests per 5 minutes — batch follow-up messages to avoid hitting the cap",
+    "Backlog issue creation requires project_id and issueType_id which are numeric, not human-readable names"
+  ],
+  "kintone-hubspot-contact-sync": [
+    "kintone field codes are workspace-specific — hardcode the actual field codes, not display names",
+    "HubSpot contact properties are case-sensitive — 'Email' and 'email' are different fields",
+    "HubSpot rate limit is 100 requests per 10 seconds — batch kintone record reads to stay under the cap",
+    "kintone record numbers are auto-generated — never try to set them when creating records in HubSpot-to-kintone direction"
+  ],
+  "zendesk-hubspot-support-to-crm": [
+    "Zendesk uses cursor-based pagination (not offset) — follow the next_page URL, don't manually increment page numbers",
+    "Zendesk ticket comments include both public replies and internal notes — filter by 'public: true' before syncing to HubSpot",
+    "HubSpot association API is separate from contact/deal APIs — creating a ticket-contact link requires a second API call",
+    "Zendesk rate limit varies by plan (Team: 200/min, Pro: 400/min) — check your plan before setting batch sizes"
+  ],
+  "salesforce-chatwork-deal-notify": [
+    "Salesforce REST API requires your instance-specific URL (e.g., na1.salesforce.com), not a global endpoint",
+    "Chatwork message format is plain text only — no HTML, no markdown. Use [info] tags for structured layout",
+    "Salesforce OAuth refresh_token expires if unused for 90 days — set up a keep-alive if the workflow runs infrequently",
+    "Chatwork rate limit: 300 requests per 5 minutes. Batch deal notifications to avoid throttling"
+  ],
+  "salesforce-slack-lead-routing": [
+    "Salesforce SOQL queries have a 2000 record limit per query — use OFFSET or queryMore for larger lead pools",
+    "Slack user lookup by email may fail if the Salesforce lead email doesn't match the Slack workspace email",
+    "Salesforce lead assignment rules run server-side — if you reassign via API, assignment rules may override your change",
+    "Slack channel IDs are required (not channel names) — use conversations.list to resolve names to IDs first"
+  ],
+  "marketo-salesforce-lead-sync": [
+    "Marketo uses session-based auth — tokens expire in ~1 hour, always check token validity before batch operations",
+    "Marketo lead sync can be slow for large batches (>300 records) — use bulk extract API for initial sync, then incremental",
+    "Salesforce-Marketo field mapping is strict — field types must match exactly (Marketo string won't auto-convert to Salesforce number)",
+    "Marketo API rate limit is 100 calls per 20 seconds — the bulk API has separate limits"
+  ],
+  "sendgrid-hubspot-email-track": [
+    "SendGrid event webhook payloads are batched — a single POST may contain dozens of events, parse the array",
+    "SendGrid email addresses are case-insensitive but HubSpot treats them as case-sensitive in some contexts — normalize to lowercase",
+    "SendGrid events arrive with variable delay (seconds to minutes) — don't assume real-time delivery for HubSpot timeline updates",
+    "HubSpot engagement API for logging emails requires the contact vid — look up by email first"
+  ],
+  "satori-kintone-lead-capture": [
+    "SATORI MA webhook payloads use internal field IDs — map them to human-readable names before processing",
+    "kintone record creation requires all mandatory fields — SATORI may not provide all fields, set defaults for missing ones",
+    "Chatwork notification rate limit: 300 req/5min. If SATORI sends a burst of leads, queue the Chatwork messages",
+    "kintone query syntax is NOT SQL — use 'field_code = \"value\"' format, not WHERE clauses"
+  ],
+  "b-dash-sendgrid-segment-email": [
+    "b→dash segment export format may vary — verify the CSV/JSON structure before piping to SendGrid contact lists",
+    "SendGrid contact list updates are async — the API returns 202 Accepted, not immediate confirmation",
+    "Slack message limit is 4000 characters — truncate segment summary if the audience list is large",
+    "b→dash API documentation is limited — test endpoints in staging before production automation"
+  ],
+  "zendesk-slack-escalation": [
+    "Zendesk ticket priority field uses specific values: 'urgent', 'high', 'normal', 'low' — case-sensitive",
+    "Slack thread replies require thread_ts parameter — without it, escalation messages go to channel root, not the thread",
+    "Zendesk webhook triggers fire on every ticket update — add conditions to avoid duplicate Slack notifications on comment additions"
+  ],
+  "intercom-kintone-support-log": [
+    "Intercom API v2 merged the lead and user models — use 'contact' type for both, check 'role' field to distinguish",
+    "Intercom pagination uses cursor tokens — follow 'pages.next' URL, tokens expire if not used promptly",
+    "kintone bulk insert is limited to 100 records per request — batch Intercom conversation exports accordingly",
+    "Intercom conversation 'parts' include both messages and events — filter by 'part_type' to get only actual messages"
+  ],
+  "channel-talk-hubspot-sync": [
+    "Channel Talk webhook signatures must be verified — check the X-Signature header with your signing key",
+    "Channel Talk user profiles use 'profile.name' nested structure — flatten before mapping to HubSpot flat properties",
+    "HubSpot contact create vs update returns different status codes (200 vs 200 with vid) — handle both for idempotent sync",
+    "Channel Talk API rate limits are not well-documented — implement exponential backoff"
+  ],
+  "make-salesforce-kintone-bidirectional": [
+    "Make (Integromat) webhooks have a 30-second timeout — Salesforce bulk queries may exceed this, use scheduled polling instead",
+    "Bidirectional sync between Salesforce and kintone can cause infinite loops — add a 'last_synced_by' field to break cycles",
+    "Make scenario data passing between modules loses type information — numbers may become strings, add explicit type conversion",
+    "kintone field codes and Salesforce field API names use different conventions — maintain a mapping table in Make's data store"
+  ],
+  "salesforce-sansan-contact-enrich": [
+    "Sansan rate limit is strict: 100 requests per minute — batch Salesforce contact lookups before hitting Sansan",
+    "Sansan contact_id and card_id are separate — use contact_id for person-level data, card_id for specific business card images",
+    "Salesforce contact update requires the record ID — look up by email first, handle duplicates (Salesforce may have multiple contacts per email)",
+    "Sansan returns Japanese company names in full-width characters — normalize before matching with Salesforce Account names"
+  ],
+  "salesforce-notion-deal-wiki": [
+    "Notion API requires database_id for database operations — page_id is different. Use search API to find the right database",
+    "Salesforce Opportunity field values may contain special characters that break Notion rich text — sanitize before insertion",
+    "Notion property names must exactly match the database schema — 'Deal Name' != 'deal_name'. Check casing and spaces",
+    "Notion rate limit is 3 requests per second — queue Salesforce deal updates if batch processing"
+  ],
+  "google-analytics-slack-traffic-alert": [
+    "GA4 Data API uses 'properties/PROPERTY_ID' format — not the old UA-XXXXX tracking ID",
+    "GA4 API quota: 10 requests per minute per property for free tier — schedule alerts, don't poll frequently",
+    "Slack message formatting: use mrkdwn (not markdown) — *bold* works but **bold** doesn't",
+    "GA4 date ranges use YYYY-MM-DD format — relative dates like 'today' or 'yesterday' are also supported but may cause timezone issues"
+  ],
+  "zendesk-kintone-ticket-mirror": [
+    "Zendesk incremental export API is the efficient way to sync — don't use list-all-tickets for ongoing mirroring",
+    "kintone has a 100-record bulk insert limit — paginate Zendesk ticket exports into chunks of 100",
+    "Zendesk ticket custom fields use numeric IDs (not names) — pre-map IDs to kintone field codes",
+    "Zendesk timestamps are in UTC — convert to JST if kintone records need Japan timezone"
+  ],
+  "intercom-slack-vip-alert": [
+    "Intercom 'company' data is separate from 'contact' — you need the company association to determine VIP status by plan/revenue",
+    "Slack @mentions in messages require the user's Slack ID (not name) — look up via users.lookupByEmail first",
+    "Intercom webhook payloads for 'conversation.user.created' vs 'conversation.user.replied' have different structures",
+    "Intercom rate limit: 1000 requests per minute on most plans — generous but can be hit during bulk webhook replays"
+  ],
+  "channel-talk-zendesk-escalation": [
+    "Channel Talk conversation export includes all message types — filter for 'userMessage' type to exclude system messages",
+    "Zendesk ticket creation requires at least 'subject' and 'comment.body' — Channel Talk messages may lack a subject, generate one from first message",
+    "Channel Talk and Zendesk use different priority/severity scales — build an explicit mapping table",
+    "Zendesk returns the created ticket ID immediately — store it back in Channel Talk as a custom field for bidirectional reference"
+  ],
+  "salesforce-backlog-customer-issue": [
+    "Backlog project and issue type IDs are numeric — use the project/list and issue-type/list APIs to resolve human names to IDs",
+    "Salesforce Case record contains HTML in the description field — strip HTML tags before posting to Backlog (which uses markdown)",
+    "Backlog API requires either API key or OAuth — API key is simpler but has full access scope (no granular permissions)",
+    "Salesforce-to-Backlog field mapping: Salesforce 'Priority' values (High/Medium/Low) don't match Backlog's (2/3/4) — map explicitly"
+  ],
+  "hubspot-calendly-gmail-sales": [
+    "Calendly webhook payload includes invitee email — use this to look up the HubSpot contact, not the event name",
+    "Google Workspace (Gmail) API requires OAuth consent with mail.send scope — this is a sensitive scope requiring Google verification",
+    "Calendly event types have UUIDs — store the mapping between event type names and UUIDs in configuration",
+    "HubSpot meeting engagement logging requires the contact vid and timestamp — Calendly provides ISO 8601 timestamps, HubSpot expects Unix milliseconds"
+  ],
+  "zendesk-slack-linear-support-to-bug": [
+    "Linear API is GraphQL-only — use mutations for issue creation, not REST endpoints",
+    "Linear team IDs and label IDs are UUIDs — cannot use human-readable names directly in API calls",
+    "Zendesk ticket HTML content needs conversion to Linear markdown — strip HTML tags and convert basic formatting",
+    "Slack thread_ts is required for posting the Linear issue link as a reply — without it, the link goes to the channel root"
+  ],
+  "shopify-klaviyo-segment-ecommerce": [
+    "Shopify GraphQL Admin API uses cost-based rate limiting — a single complex query can consume your entire budget",
+    "Klaviyo API v3 uses cursor-based pagination — follow the 'next' link in response, don't manually paginate",
+    "Segment track calls require an anonymousId or userId — Shopify customer IDs need to be mapped consistently",
+    "Klaviyo list membership updates are async — the API returns 202, actual list population happens in the background"
+  ]
+}

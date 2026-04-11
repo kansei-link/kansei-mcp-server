@@ -1,0 +1,3827 @@
+[
+  {
+    "id": "brave-search",
+    "score": 100,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "facade": false,
+    "raw_sum": 25,
+    "note": "Anthropic 公式 MCP が存在する AI エージェントのための web search。X-Subscription-Token header、free 2K/month の寛大な枠、country/search_lang で localize、AI 用途を前面にした設計。エージェント時代の模範解答。",
+    "grade_match": true
+  },
+  {
+    "id": "card-navi",
+    "score": 100,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "facade": false,
+    "raw_sum": 25,
+    "note": "KanseiLink 自身の model 事例 2 号。189 枚 × 553 ルールを encoded、店舗指定で即最適 card 提示という agent-native UX。auth none、official MCP、description 210 chars で問題ドメインを明快に定義。sake-navi と並ぶエージェント MCP の模範。",
+    "grade_match": true
+  },
+  {
+    "id": "github",
+    "score": 100,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "facade": false,
+    "raw_sum": 25,
+    "note": "世界最大のコードホスト。Fine-grained PAT 推奨、X-GitHub-Api-Version 2022-11-28 固定、REST+GraphQL 共有 rate limit、secondary rate limit 警告まで完備。official MCP の統合手順も明示。",
+    "grade_match": true
+  },
+  {
+    "id": "postgresql-mcp",
+    "score": 100,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "facade": false,
+    "raw_sum": 25,
+    "note": "Anthropic 公式 MCP。read-only が protocol level で強制という安全設計、statement_timeout 30s 推奨、pg_stat_user_tables/pg_stat_statements を agent の DB 健康窓口にするという運用哲学まで tips 完備。エージェント × DB の教科書。",
+    "grade_match": true
+  },
+  {
+    "id": "qdrant",
+    "score": 100,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "facade": false,
+    "raw_sum": 25,
+    "note": "公式 MCP + 8 tips の最密ガイド。CRITICAL: vector size が embedding model (1536/3072/768) と一致必須、Cosine vs Dot の使い分け (normalized embeddings に Cosine)、payload filter による tenant isolation、gRPC が bulk upsert で 5x 速いという最適化まで。Pinecone と並ぶ優等生。",
+    "grade_match": true
+  },
+  {
+    "id": "sake-navi",
+    "score": 100,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "facade": false,
+    "raw_sum": 25,
+    "note": "KanseiLink 自身の model 事例。Railway 上 MCP 直接配備、auth none、SSI 4 タイプ × 3 原理という独自ドメイン知識を API 化。has_guide: false だが mcp_endpoint が official で npx で即起動可、description が 222 chars と密度高い。エージェント時代の新世代 MCP の典型。",
+    "grade_match": true
+  },
+  {
+    "id": "slack",
+    "score": 100,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "facade": false,
+    "raw_sum": 25,
+    "note": "CRITICAL: Slack は HTTP 200 でもエラーを返す → `ok` field チェック必須という落とし穴を最初に警告。Tier-based rate limits、チャンネル ID プレフィックス、招待必須など完備。",
+    "grade_match": true
+  },
+  {
+    "id": "tavily",
+    "score": 100,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "facade": false,
+    "raw_sum": 25,
+    "note": "『AI エージェント専用設計』を謳う先駆的 API。公式 MCP あり。CRITICAL: api_key を POST body に入れる非典型仕様、search_depth='advanced' で深掘り、include_answer=true で AI 要約込みという agentic workflow の需要を先取り。",
+    "grade_match": true
+  },
+  {
+    "id": "adyen",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "エンタープライズ決済。X-API-Key header、minor units + currency の object、test (checkout-test) と live (checkout-live/{prefix}) で URL が prefix 込みで異なる罠、250+ payment methods を /paymentMethods で discover。企業向けだが API は整理されている。",
+    "grade_match": false
+  },
+  {
+    "id": "bigquery",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "community MCP + GCP 定番。service account or ADC の auth 選択、useLegacySql:false 必須、client library 推奨、1TB/month + 10GB storage の寛大な free tier、concurrent 100 queries の制限も明記。実用情報完備。",
+    "grade_match": false
+  },
+  {
+    "id": "chroma",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "OSS embedding DB、community MCP あり。CRITICAL: v2 API で collection routing 変更 (/tenants/{tenant}/databases/{db}/collections) で v1 の /collections 直書きは動かない罠を明示。embedding function 内蔵時は documents 直投入、where フィルタの MongoDB 風 operator まで。",
+    "grade_match": false
+  },
+  {
+    "id": "cloudsign",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "日本 No.1 電子契約。CRITICAL: X-Api-Key + X-Client-Id の 2 ヘッダー必須、sandbox は非法的拘束、workflow (create → participants → upload → send → sign) 明示。弁護士ドットコム信頼性。",
+    "grade_match": false
+  },
+  {
+    "id": "elevenlabs",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "音声合成の雄、公式 MCP あり。CRITICAL: auth が xi-api-key header (標準 Bearer ではない)、response が binary mpeg で直接ファイル保存 or stream、eleven_multilingual_v2 で日本語対応、voice cloning は Pro plan 必須まで実装で詰まる箇所を先回り警告。",
+    "grade_match": true
+  },
+  {
+    "id": "firecrawl",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "LLM 最適化 web scraping の先駆。公式 MCP あり、Bearer シンプル、/scrape・/crawl・/map の 3 エンドポイントで役割明快。JS render + anti-bot bypass + markdown 返却という LLM 向け設計、crawl は非同期で job_id polling。",
+    "grade_match": true
+  },
+  {
+    "id": "freee-hr",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "freee accounting と同一 MCP/同一 OAuth 共有を明示 — これは AUC (API Unit Consolidation) の模範例。company_id 必須、姓/名 順序、同一 rate pool など兄弟サービスならではの効率案内。",
+    "grade_match": true
+  },
+  {
+    "id": "github-actions",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "GitHub 親サービスと同じ auth を引き継ぐ設計で情報の重複を避けている。workflow_dispatch による手動 trigger、artifact の zip download、X-GitHub-Api-Version 固定など実践 tips 完備。",
+    "grade_match": false
+  },
+  {
+    "id": "gitlab",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "self-managed 対応 (gitlab.com を自社ドメインに置換でスキーマ同一)、Project ID 数値 vs URL-encoded path 両対応、CRITICAL: issue 'iid' は project 固有、'id' はグローバル。DevSecOps 統合 + Duo MCP 言及。",
+    "grade_match": true
+  },
+  {
+    "id": "google-ai",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "Gemini API。aistudio.google.com でキー即発行 (Cloud Console 経由なしで可) という GCP 他サービスとの違いが大きな利点。2.0 Flash vs 2.5 Pro 使い分け、multimodal の inline_data base64 手順まで実用的。",
+    "grade_match": false
+  },
+  {
+    "id": "groq",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "LPU hardware で最速 token 生成。OpenAI SDK drop-in で base_url 差し替えのみ、Llama 3.3 70B versatile vs 3.1 8B instant の明確な使い分け、30 req/min + 14400/day の free tier も寛大で AI エージェント開発者向きの模範解答。",
+    "grade_match": true
+  },
+  {
+    "id": "huggingface",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "hf_ token、scopes (read/write/inference) 選択肢明示。CRITICAL: 初回 Serverless Inference は 503 + estimated_time で cold start (rate limit ではない)、x-wait-for-model: true で自動待機の裏技まで実用。",
+    "grade_match": false
+  },
+  {
+    "id": "kintone",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "Cybozu 公式。API token 3 種類から最簡単を指示、CRITICAL: {value:} ラップ構造、フィールドコード != 表示ラベル、subdomain 必須の 3 大ハマりどころを全部 tips で押さえている。",
+    "grade_match": false
+  },
+  {
+    "id": "langfuse",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "LLM observability の OSS + 公式 MCP。Basic auth で public_key + secret_key、/ingestion の batch 1000 events まで、SDK 経由推奨、self-host 選択肢 (docker compose) まで明記。LLM ops の標準装備候補。",
+    "grade_match": false
+  },
+  {
+    "id": "linear",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "CRITICAL: Personal API key は『Authorization: {key}』(Bearer なし)、OAuth token は『Bearer {token}』(あり) という 401 量産級の罠を tips で警告。GraphQL only 哲学、teamId scope 推奨、complexity 計算式まで完璧。",
+    "grade_match": true
+  },
+  {
+    "id": "mongodb-atlas",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "CRITICAL: HTTP Digest 認証 (Bearer ではない) という非常識な選択を tips 先頭で警告、多くの generic HTTP client が壊れる。API version pin (Accept: application/vnd.atlas.YYYY-MM-DD+json)、data plane は driver 経由と明示。",
+    "grade_match": false
+  },
+  {
+    "id": "neon-db",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "Control plane + data plane (postgres://) の 2 系統を分けて説明。CRITICAL: serverless/edge からは POOLED URL 必須、auto-suspend (Free 5min) → 初回クエリ 1-3s wake up の遅延罠まで完璧。",
+    "grade_match": false
+  },
+  {
+    "id": "netlify",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "PAT でシンプル、zip upload は Content-Type: application/zip + raw binary body という典型的な罠を tips で警告。prod=true で production promote、form 検知設定前提など実装知識完備。",
+    "grade_match": false
+  },
+  {
+    "id": "notion",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "CRITICAL: Integration を UI から各 page/database に明示共有しないと valid ID でも 404 という最大の落とし穴を筆頭に警告。Notion-Version header、property 深いネスト構造まで全部カバー。完璧。",
+    "grade_match": true
+  },
+  {
+    "id": "openai-api",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "Project-scoped API key 推奨、gpt-4o vs gpt-4o-mini の使い分け、stream:true 推奨、tier 1-5 の RPM table まで実用。x-ratelimit-remaining-* header も記載。",
+    "grade_match": false
+  },
+  {
+    "id": "perplexity",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "検索拡張型 LLM。endpoint 1 個 (/chat/completions) に極振りだが、それが Perplexity の本質。sonar-pro vs sonar の明確な差、response の citations array という research agent 向けの独自価値。支払い方法登録必須の前提も明記。",
+    "grade_match": false
+  },
+  {
+    "id": "pinecone",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A+",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "CRITICAL: auth header は Api-Key (Bearer/Authorization ではない) という generic HTTP client が落ちる罠、control plane と data plane が別 URL で GET /indexes/{name} で host 解決必須、dimension mismatch エラーまで完璧にカバー。",
+    "grade_match": true
+  },
+  {
+    "id": "quickbooks",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "Intuit 世界 No.1 SMB 会計。CRITICAL: URL パスに realmId (company ID) 必須で OAuth flow 中に取得。SQL-like query 言語、pre-populated sandbox、500 req/min + concurrent 10 制限まで具体的。",
+    "grade_match": false
+  },
+  {
+    "id": "segment",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "Twilio 傘下。CRITICAL: Write key を Basic auth の username に入れて password は空という非自明な auth 仕様。/batch で 500KB まで、400+ destinations 自動ルーティングという CDP としての価値提案も明快。",
+    "grade_match": false
+  },
+  {
+    "id": "sendgrid",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "Twilio 系。CRITICAL: 202 Accepted だが EMPTY body という罠を先頭で警告。sender verification 必須、SPF/DKIM/DMARC 影響、sandbox_mode 全部完備。",
+    "grade_match": false
+  },
+  {
+    "id": "shopify-jp",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "4 つの公式 MCP (Dev/Storefront/Customer Account/Checkout) の役割分担明示、store 管理画面からの private app token 発行手順明快。X-Shopify-Access-Token header、2024-10 version 固定まで具体的。",
+    "grade_match": false
+  },
+  {
+    "id": "square",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "sandbox (squareupsandbox.com) で無償テスト可、PAT で即開始、CRITICAL: location_id 必須 (freee の company_id パターンと同じ)、JPY は既に整数で換算不要という重要 tips。",
+    "grade_match": false
+  },
+  {
+    "id": "stripe-global",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "stripe-jp は facade だったが、こちらは完全なガイド付き。CRITICAL: body は form-encoded (response は JSON という非対称)、Payment Intents 推奨 (Charges legacy)、test card 番号まで完備。stripe-jp よりこちらを参照すべき。",
+    "grade_match": false
+  },
+  {
+    "id": "twilio",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "Account SID + Auth Token の Basic Auth 明確。CRITICAL: POST body は JSON でなく x-www-form-urlencoded、JP 番号 +81 prefix / 先頭 0 削除、SMS 70 文字 Shift_JIS 単セグメント境界まで実践 tips 完備。",
+    "grade_match": false
+  },
+  {
+    "id": "twitter-api",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "CRITICAL: 無料 tier が 1500 read/月 + 50 write/月という極端な制限を tips で先頭警告。Basic $100/mo → Pro $5K/mo の階層、OAuth 2.0 PKCE 必須、tweet.fields/expansions で full data 取得まで実用的。community MCP もあり。",
+    "grade_match": false
+  },
+  {
+    "id": "vercel",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "7 endpoints、PAT 手順明快。CRITICAL: team-scoped token でも ?teamId=team_xxx を毎回クエリ必須 (漏れで 403)、deployments は immutable という哲学、target=production の区別まで実践的。",
+    "grade_match": false
+  },
+  {
+    "id": "xero",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "UK/AU/NZ で優勢、multi-tenant 設計。CRITICAL: Xero-tenant-id header 全 request で必須、OAuth 2.0 + PKCE 対応、OData-like 'where' フィルタ、60/min per tenant + 5K/day の rate limit まで。",
+    "grade_match": false
+  },
+  {
+    "id": "youtube-api",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "CRITICAL: quota が unit-based で request-based ではない、search 1 回 = 100 units という罠を tips で警告。10K units/day で search 100 回が実質上限。API key で public data 読取、OAuth は upload 等のみと切り分け明快。",
+    "grade_match": false
+  },
+  {
+    "id": "zendesk",
+    "score": 95,
+    "grade": "AAA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 24,
+    "note": "CRITICAL: auth format {email}/token:{api_token} という特殊記法を警告。subdomain 必須、検索 DSL (type:ticket status:open)、プラン別 rate limit (400-2500/min) まで実践的。",
+    "grade_match": false
+  },
+  {
+    "id": "activecampaign",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: base URL が {account}.api-us1.com とアカウント固有、auth header は 'Api-Token' で Authorization Bearer ではないという 2 重の罠。POST /contact/sync で upsert 動作という実用 tip も明示。",
+    "grade_match": false
+  },
+  {
+    "id": "amplitude",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: API key を request body に入れる (header ではない) という非典型的な仕様を tips で警告。user_id または device_id が必須、Identify API の分離も明示。",
+    "grade_match": false
+  },
+  {
+    "id": "asana",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "PAT で即開始、5 endpoints、{data:} ラップ gotcha、opt_fields 最適化、GID = string 警告まで完備。1500 req/min の rate limit も明記。",
+    "grade_match": false
+  },
+  {
+    "id": "backlog",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Nulab 公式。API Key を ?apiKey= で渡す方式、x-www-form-urlencoded 落とし穴を tips で警告。issue key (PROJ-1) 使用可、配列 params bracket 記法まで具体的。",
+    "grade_match": false
+  },
+  {
+    "id": "bamboohr",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: URL に subdomain (会社固有)、Basic auth で API key を username、literal 'x' を password という freshdesk と同じ奇妙な仕様を tips で警告。employee fields が configurable で /meta/fields で事前取得も実装 tip。",
+    "grade_match": false
+  },
+  {
+    "id": "bigcommerce",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "エンタープライズ EC。CRITICAL: dual header (X-Auth-Token + X-Auth-Client) 必須、URL に store_hash 埋込み、orders だけ v2 API で他は v3 という混在を tips で警告。plan 別 rate limit (4-12 req/sec) も明確。",
+    "grade_match": false
+  },
+  {
+    "id": "brevo",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "旧 Sendinblue。CRITICAL: auth header が小文字 'api-key' で Bearer ではないという罠を警告。email/SMS/WhatsApp/chat を 1 API で統合、transactional vs marketing 分離も明快。",
+    "grade_match": false
+  },
+  {
+    "id": "brex",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Bearer シンプル、dashboard > Developer > API で即発行。金額は cents 整数、Idempotency-Key header 推奨、auto-classify category という corporate card の核価値まで実用 tips。",
+    "grade_match": false
+  },
+  {
+    "id": "buffer",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "SNS 投稿管理。CRITICAL: request body が form-encoded で JSON ではない罠、personal access token で quick start 可、profile = 接続済み SNS で先に list 取得、scheduled_at or 'now' の 2 モードまで実用 tips。",
+    "grade_match": false
+  },
+  {
+    "id": "channel-talk",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: Dual header (X-Access-Key + X-Access-Secret) 必須を tips 最上位で警告。user-chats と team-chats の区別、webhook 設定導線まで完備。4 endpoints と少なめだが密度高い。",
+    "grade_match": false
+  },
+  {
+    "id": "circleci",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Personal API token、Circle-Token header vs Bearer の 2 通り、CRITICAL: project slug format 'gh/{org}/{repo}' の独自記法、parameter 付き trigger パターン。4 endpoints で過不足なし。",
+    "grade_match": false
+  },
+  {
+    "id": "clickup",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: Authorization header に 'Bearer' prefix を付けない (personal token は生の値) という奇妙な仕様を tips で警告。Workspace > Space > Folder > List > Task の階層も明示。",
+    "grade_match": false
+  },
+  {
+    "id": "cloudflare",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Token (scoped) vs API key + email の legacy の違いを明示、CRITICAL: HTTP 200 でも 'success' field 確認必須 (Slack と同じパターン)、Zone ID 前提取得、rate limit 5分単位まで具体的。",
+    "grade_match": false
+  },
+  {
+    "id": "cohere",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "RAG 特化 AI。/chat + /embed + /rerank の 3 本柱、rerank を vector search 後段に使う推奨、Embed v3 の input_type (search_document/search_query) 使い分けという RAG ベストプラクティスまで tips で伝授。",
+    "grade_match": false
+  },
+  {
+    "id": "customer-io",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Track API (Basic auth site_id:api_key) と App API (Bearer) の 2 系統を明確分離。customer_id は内部 user_id を流用するという behavior-first の思想も実装 tip で伝わる。",
+    "grade_match": false
+  },
+  {
+    "id": "databricks",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Spark ベース lakehouse。PAT Bearer シンプル、workspace URL が deployment 固有、SQL Statements API は SQL Warehouse 必須 (warehouse_id 前提)、Unity Catalog の 3 層 namespace (catalog.schema.table) まで tips 完備。",
+    "grade_match": false
+  },
+  {
+    "id": "deel",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "グローバル給与 150+ 国対応。Bearer token シンプル、EOR employee vs contractor で contract 型が異なる旨、multi-currency by design、demo env の存在まで。4 endpoints で実用最小限カバー。",
+    "grade_match": false
+  },
+  {
+    "id": "fly-io",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "flyctl install → fly tokens create の手順明快。CRITICAL: Apps v1 API 廃止 → Machines API が primary、JP workload は 'nrt' region、<300ms start/stop という Firecracker の特性まで実用 tips。",
+    "grade_match": false
+  },
+  {
+    "id": "freee",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      4,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "MCPが認証を巻き取る旨が setup_hint に明記。company_id 必須パターン、JPY整数、JSTなど具体的 tips 6件。一発で実装可。",
+    "grade_match": false
+  },
+  {
+    "id": "freee-sign",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "freee 共通 OAuth 基盤で 1 アプリで sign も利用可能と明示 — freee 会計/人事労務と統一されたエコシステムの強み。契約ステータス draft → sent → signed → completed の workflow も明快。docs_url は freee 共通。",
+    "grade_match": false
+  },
+  {
+    "id": "freshdesk",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: Basic Auth の password が文字列 'X' という奇妙な仕様を tips で明示。status/priority も数値 enum (2=Open, 3=Pending...) を具体的に列挙。プラン別 rate limit も明記。",
+    "grade_match": false
+  },
+  {
+    "id": "front",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "email/SMS/chat/social を conversation に統合する顧客オペ platform。API token Bearer シンプル、q[] query param でフィルタ、shared inbox が核で list から始める手順、plan 別 rate limit (50/100/200 per min) まで具体的。",
+    "grade_match": false
+  },
+  {
+    "id": "garoon",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "kintone と同じ Cybozu 認証パターンを明示して学習コスト削減。スケジュール/ワークフロー/掲示板/スペースの 4 機能明記、ISO 8601 + JST (+09:00) 警告も具体的。",
+    "grade_match": false
+  },
+  {
+    "id": "gorgias",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "EC 特化 helpdesk。subdomain は account 名、Basic auth で email を username + API key を password という独自仕様を tips で警告。Shopify/BigCommerce 統合で ticket に order context という差別化も明快。",
+    "grade_match": false
+  },
+  {
+    "id": "greenhouse",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "構造化採用の ATS。Harvest API (データ) と Job Board API (public) の 2 系統分離、Basic auth で API key を username + 空 password、per_page 500 max の bulk 最適化も実用 tip。50 req/10sec の rate limit も明記。",
+    "grade_match": false
+  },
+  {
+    "id": "helpscout",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "OAuth と API key (Basic) の 2 系統で後者が簡単という実用助言。HAL+JSON で _embedded にネストする形式、conversation threads が別 endpoint、per-mailbox の workflow カスタマイズまで tips 完備。",
+    "grade_match": false
+  },
+  {
+    "id": "heroku",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: Accept: application/vnd.heroku+json; version=3 header 必須 (これなしで 406 エラー)、Range header 独自 pagination という Heroku の癖を tips で警告。app 名のグローバル一意性も明示。",
+    "grade_match": false
+  },
+  {
+    "id": "hubspot-jp",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Private App token が最簡単と明示、Properties explicit 指定必須 gotcha、Search API の強力さ、pipeline stage カスタマイズまで実践知が詰まっている。",
+    "grade_match": false
+  },
+  {
+    "id": "jobcan",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Token ヘッダ方式、管理画面から発行の手順明記。勤怠/ワークフロー/経費/採用/労務の5製品中、APIは勤怠メインと明示。",
+    "grade_match": false
+  },
+  {
+    "id": "kaonavi",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Client credentials OAuth、consumer_key/secret → token 手順明快。一括取得→個別詳細パターン明記、freee と同じ 24h トークン寿命。",
+    "grade_match": false
+  },
+  {
+    "id": "kingoftime",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "勤怠 No.1。Bearer token、管理画面から発行、5 endpoints、JST/分単位残業など具体 tips。Write 操作は premium plan 要注意の警告あり。",
+    "grade_match": false
+  },
+  {
+    "id": "klarna",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "BNPL の雄。Basic auth シンプル、minor units (cents)、sandbox が api.playground.klarna.com と別 URL、session → authorize → capture の 3 段 flow まで実装ポイント完備。rate limit 未記載が唯一の欠点。",
+    "grade_match": false
+  },
+  {
+    "id": "klaviyo",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: Authorization header が 'Klaviyo-API-Key {key}' (Bearer ではない) という generic client 殺しの罠、revision header (日付文字列) でバージョニング必須、JSON:API フォーマットまで tips で警告。",
+    "grade_match": false
+  },
+  {
+    "id": "marketo",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Adobe の本気 MA。Munchkin ID パス置換、client_credentials flow、1h token 期限キャッシング tip、createOrUpdate/createOnly/updateOnly の 3 モード明示。50000 calls/day の rate limit も明快。",
+    "grade_match": false
+  },
+  {
+    "id": "mercury",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "スタートアップ銀行。API token Bearer で即開始、cents 整数、payment 作成は approval 待ちで非同期である旨、read-only token で分析用途を transfer リスクから分離という安全設計まで tips 完備。",
+    "grade_match": false
+  },
+  {
+    "id": "mistral",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "欧州 AI ラボ。OpenAI SDK 互換で base_url 差し替えのみで動く実用性、Large/Small/Codestral のモデル使い分け、FIM (fill-in-middle) endpoint の独自性まで tips で完備。移行コスト最小。",
+    "grade_match": false
+  },
+  {
+    "id": "mixpanel",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "ingestion (project token) と query (service account) の 2 種 auth を明確に区分。/import 推奨 (server-side で /track より信頼性高い)、JQL の位置付けまで実践的。",
+    "grade_match": false
+  },
+  {
+    "id": "moneyforward",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      4,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Remote MCP (2026/3~) で auth 自動処理。office_id パターン明記、journal 借貸バランスルール、AI categorization 紹介。",
+    "grade_match": false
+  },
+  {
+    "id": "pipedrive",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "API token を query param で渡す簡易方式を明示。CRITICAL: 全 response に 'success' bool 必須確認、custom field が hash key (例: abc123_custom_field) で /dealFields での事前マッピング必要という罠を tips で警告。",
+    "grade_match": false
+  },
+  {
+    "id": "planetscale",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: Authorization header に 'Bearer' 無しで {token_id}:{token_secret} をコロン区切りという特殊仕様を先頭警告。deploy request (PR-like schema change) という哲学、branch の無料性まで実用 tips。",
+    "grade_match": false
+  },
+  {
+    "id": "posthog",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: Personal API key (queries) と Project API key (capture) の 2 種を明示。self-host + Docker 選択肢、HogQL 独自クエリ言語の存在も言及。community MCP 統合パスあり。",
+    "grade_match": false
+  },
+  {
+    "id": "postmark",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CRITICAL: X-Postmark-Server-Token header (Bearer ではない)、JSON field が PascalCase (.NET ルーツ)、MessageStream の outbound/broadcast 分離 (TOS 違反警告) までドメイン特有の罠を完璧カバー。",
+    "grade_match": false
+  },
+  {
+    "id": "redis",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "community MCP + 詳細ガイド。CRITICAL: KEYS を production で使うな (O(n) でサーバ block)、SCAN + MATCH 使用、TTL 必須で unbounded growth 警告、ACL user と legacy requirepass の 2 系統、redis:// URI 形式まで運用 know-how 完備。",
+    "grade_match": false
+  },
+  {
+    "id": "render",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "API key bearer シンプル、4 endpoints。service type enum (web_service/private_service/background_worker/static_site/cron_job) 明示、deploy hooks 経由ショートカット、suspended field の注意点まで。",
+    "grade_match": false
+  },
+  {
+    "id": "resend",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "DX 重視の新世代メール API。re_ token、DNS 検証 5-15 分待ちの現実的警告、React Email 統合、batch 100 件/request の仕様明記。SendGrid 比較での使い分けガイダンスも実用的。",
+    "grade_match": false
+  },
+  {
+    "id": "sansan",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      4,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "2026/3 の BREAKING CHANGE (API key → OAuth 2.0) を tips 最上位で警告。OCR 98% 精度、名前検索 kanji/かな両対応など実用 tips 完備。Sumitomo 採用事例で trust も高い。",
+    "grade_match": false
+  },
+  {
+    "id": "turso",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "Platform API (DB 管理) と libSQL protocol (データアクセス) の 2 系統を分けて説明。embedded replicas の local-first 特性、CLI install → auth login → mint token の手順明快。",
+    "grade_match": false
+  },
+  {
+    "id": "typeform",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "対話型フォーム。Personal access token シンプル、fields の type 列挙 (short_text/multiple_choice...)、responses が field.ref で keyed なので ref を明示設定推奨、2 req/sec の rate limit まで。4 tips 完備。",
+    "grade_match": false
+  },
+  {
+    "id": "webflow",
+    "score": 90,
+    "grade": "AA",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 23,
+    "note": "CMS 操作の実用路線。v2 API 現行 (v1 deprecated) を明記、Site API token or OAuth の 2 選択肢、collection schema 事前確認必須、publish は明示的 endpoint が必要という CMS 特有の罠まで tips 完備。",
+    "grade_match": false
+  },
+  {
+    "id": "base-ec",
+    "score": 85,
+    "grade": "A",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      4,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 22,
+    "note": "日本向け EC の標準。OAuth 手順明示、CRITICAL: JSON 非対応 form-urlencoded のみ、access_token 30 日失効 → refresh 必須、内税管理など実装上の罠を全て tips 化。",
+    "grade_match": true
+  },
+  {
+    "id": "box-jp",
+    "score": 85,
+    "grade": "A",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      4,
+      4,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 22,
+    "note": "No.1 エンタープライズストレージ。JWT auth が推奨と明示、CRITICAL: Admin Console 承認しないと silently fail する罠、root folder ID = '0' fixed など重要 tips 完備。setup は 5 ステップとやや長い。",
+    "grade_match": true
+  },
+  {
+    "id": "chatwork",
+    "score": 85,
+    "grade": "A",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      4,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 22,
+    "note": "Personal token 最簡単、アプリ登録不要。CRITICAL: x-www-form-urlencoded の落とし穴を tips で明記。ただし runtime success 0.66 が気になる。",
+    "grade_match": true
+  },
+  {
+    "id": "dropbox-business",
+    "score": 85,
+    "grade": "A",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      4,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 22,
+    "note": "CRITICAL: 全 endpoint が POST (read も) RPC-style という API 哲学を先頭で警告。file path 先頭 / と case-insensitive、upload 専用ドメイン (content.dropboxapi.com) も明記。",
+    "grade_match": true
+  },
+  {
+    "id": "freshbooks",
+    "score": 85,
+    "grade": "A",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      4,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 22,
+    "note": "CRITICAL: URL パスに account_id 必須、取得順序 (/auth/api/v1/users/me が先) を手順明示。金額が文字列 2 decimal ('100.00') という非自明な型、?include[]=lines で line items 埋込みも実装 tip で完備。",
+    "grade_match": true
+  },
+  {
+    "id": "line-messaging",
+    "score": 85,
+    "grade": "A",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      4,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 22,
+    "note": "Channel access token フロー明快、webhook 必須と明記、Flex Messages 複雑性の警告あり。Free プランの 200 通/月制限も注意喚起。",
+    "grade_match": true
+  },
+  {
+    "id": "misoca",
+    "score": 85,
+    "grade": "A",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      4,
+      5,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 22,
+    "note": "弥生グループ、弥生 ID 必須の前提を tips で明示。インボイス制度対応、PDF バイナリレスポンスの Content-Type 警告も具体的。4 endpoints と少ないが請求書用途なら十分。",
+    "grade_match": true
+  },
+  {
+    "id": "upstash",
+    "score": 85,
+    "grade": "A",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      5,
+      4,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 22,
+    "note": "Per-database REST token (UPSTASH_REDIS_REST_URL/TOKEN) という Redis+HTTP の組合せが独特だが明示。管理 API は email:api_key の Basic 認証でこれも特殊。",
+    "grade_match": true
+  },
+  {
+    "id": "hrmos",
+    "score": 80,
+    "grade": "B",
+    "felt_grade": "A",
+    "dims": [
+      4,
+      5,
+      5,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 21,
+    "note": "BizReach-Visional 提供、シンプルな bearer token。エンドポイント 3 個のみだがスコープが attendance に限定されていると明示。",
+    "grade_match": false
+  },
+  {
+    "id": "playwright-mcp",
+    "score": 80,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      3,
+      5
+    ],
+    "facade": false,
+    "raw_sum": 21,
+    "note": "Anthropic 公式 MCP でブラウザ自動化のデファクト。has_guide: false だが mcp_endpoint が明示されているので、エージェントは npx で即起動可能。KanseiLink 上の説明は薄いが公式度で補完されている。",
+    "grade_match": true
+  },
+  {
+    "id": "teams",
+    "score": 80,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      4,
+      5,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 21,
+    "note": "Entra ID/Graph API は完備されているが、Azure Portal 登録 → admin consent → RSC までのステップ数が多い。一発実装は不可。エンドポイント7個と tips 8件は充実。",
+    "grade_match": true
+  },
+  {
+    "id": "aws-lambda",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      4,
+      4,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "SigV4 の複雑性を『AWS SDK を使え』と素直に認める実践的ガイド。JP workload に ap-northeast-1 推奨、InvocationType の Event/RequestResponse/DryRun 区別明示。だが raw REST は事実上不可能で AWS SDK ない環境では苦しい。",
+    "grade_match": true
+  },
+  {
+    "id": "firebase",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      4,
+      4,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "GOOGLE_APPLICATION_CREDENTIALS 前提で setup やや重い。Management API は metadata のみ、データ操作は別 Firestore REST endpoint という非自明な切り分けを tips で警告。security rules 別 deploy の罠も言及。",
+    "grade_match": true
+  },
+  {
+    "id": "framer",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "ガイドあるが正直に『API は CMS content management 向け、design は editor で』と限定を自己申告。Bearer シンプル、sites → collections → items の階層明快だが、Framer の本質 (visual design) は API 外という現実を伝えている点は誠実。",
+    "grade_match": true
+  },
+  {
+    "id": "google-cloud",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      4,
+      4,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "ADC パターンと GOOGLE_APPLICATION_CREDENTIALS の設定ガイド明示、asia-northeast1/2 の JP region も指定。しかし 100+ サービスの巨大 ecosystem を endpoints 3 個で代表させるのは無理があり、実際の実装は必ず外部検索になる。",
+    "grade_match": true
+  },
+  {
+    "id": "google-meet",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "Meet REST API は新しい (2024)、CRITICAL: Workspace 必須で personal Gmail 不可、機能が Calendar API より限定的、という現実的な制約を明示。3 endpoints と少ないが meeting 作成には十分。",
+    "grade_match": true
+  },
+  {
+    "id": "lineworks",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "A",
+    "dims": [
+      5,
+      3,
+      4,
+      5,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "Enterprise 向けの JWT assertion フローは文書化されているが非自明。RSA 2048 private key、jsonwebtoken ライブラリまで具体的ガイドあり。",
+    "grade_match": false
+  },
+  {
+    "id": "ramp",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "client_credentials で user 操作不要なのは AI エージェント向き。ただし partner 申請必須 (dev.ramp.com で) で self-serve ではなく onboarding に時間かかる。transactions/cards/reimbursements の 3 endpoints は妥当。",
+    "grade_match": true
+  },
+  {
+    "id": "rippling",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "HR + IT + Finance 統合で API 領域が広い。OAuth 2.0 で developer.rippling.com 登録、webhook で employee lifecycle event 対応。ただし endpoints_sample 3 個は広大な platform の割に薄く、実装時は外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "servicenow",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      4,
+      4,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "エンタープライズ ITSM の雄。instance URL が会社固有、Table API でほぼ全て table 扱い、sysparm_query の encoded query 記法 (priority=1^state=2) は非自明。OAuth は admin 権限必須で self-serve 不可、setup 重め。",
+    "grade_match": true
+  },
+  {
+    "id": "workday",
+    "score": 75,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      4,
+      4,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 20,
+    "note": "エンタープライズ HCM の雄。tenant URL が会社固有、API client 登録は Workday admin 権限必須で self-serve 不可という現実を明示。WQL 独自言語、ISSG 権限の粒度なども言及。ただし base URL 問題で実装時は常に環境変数必須。",
+    "grade_match": true
+  },
+  {
+    "id": "google-analytics",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      4,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "GA4 Data API の正規 dev URL だがガイドなし。OAuth + service account + GA4 property ID 取得の複雑な前提を外部検索必須。",
+    "grade_match": false
+  },
+  {
+    "id": "google-sheets-api",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      4,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "developers.google.com/sheets/api は正規、community MCP ありだがガイドなし。A1 notation vs GridRange の使い分け、batchUpdate の request array 構造が非自明で外部検索必須。",
+    "grade_match": false
+  },
+  {
+    "id": "google-workspace",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      3,
+      4,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "Gmail/Drive/Calendar/Admin 各 API ごとに scope/rate limit が異なり一括化できない。GCP Console での project/OAuth/service account 作成 + domain-wide delegation という admin 依存ステップが重い。",
+    "grade_match": true
+  },
+  {
+    "id": "gusto",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      4,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "US SMB 給与の雄。partner 申請必須で self-serve ではない制約を明示。payroll 計算が create → calculate → submit の多段階である旨、gusto-demo.com の test env 言及も実用的。ただし JP からは relevance 低め。",
+    "grade_match": true
+  },
+  {
+    "id": "hennge-one",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "JP No.1 クラウドセキュリティ。ガイドあるが正直に『API は限定的』と自己申告、endpoint 3 個のみで admin 用途限定。docs_url は hennge.com/jp (会社 TOP) で実質 portal なし。",
+    "grade_match": true
+  },
+  {
+    "id": "linkedin-api",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      4,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "B2B の雄だが API は厳しい。product approval 必須で即時アクセス不可、Marketing API は更に高 tier パートナーシップ必須という現実を tips で警告。access token 60 日期限、100 req/day の厳しい rate limit。",
+    "grade_match": true
+  },
+  {
+    "id": "salesgo",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      4,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "X-Api-Key 方式でシンプル、日本初 MCP 対応 SFA という差別化ポイント明記。だが rate_limit 未記載、docs_url が salesgo.io (ほぼ会社 TOP)、実績も 2025/10 ローンチで trust 低め。",
+    "grade_match": true
+  },
+  {
+    "id": "satori-ma",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      4,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "国産 MA の個性がある (匿名リードトラッキング、web cookie 連携)。X-Api-Key 方式シンプルだが docs_url は satori.marketing (会社 TOP)、rate limit 未記載、4 endpoints のみで情報は薄め。",
+    "grade_match": true
+  },
+  {
+    "id": "smarthr",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      3,
+      5,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "Guide は完備だが、changelog 自身が『OAuth scope 説明不足で success 39%』と告白。ドキュメントと実行の乖離が可視化されている稀有な例。",
+    "grade_match": true
+  },
+  {
+    "id": "talentio",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      4,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "ATS 特化、bearer token シンプル、4 endpoints。だが docs_url の talentio.com/api-docs はほぼ会社 TOP 近く、rate limit 未記載、trust score 0.4 と実績薄。",
+    "grade_match": true
+  },
+  {
+    "id": "tally",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "無料フォームビルダー。ガイドが正直に『REST API なし、webhook only』と自己申告。endpoint 1 個のみで agent が pull できないので read 用途には向かない。Zapier/Make 経由が本道という誘導も明快。",
+    "grade_match": true
+  },
+  {
+    "id": "teamspirit",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      4,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "Salesforce Platform 上 — SF Connected App 設定 + SOQL + teamspirit__ プレフィックスの学習コストあり。間接的でステップ多い。",
+    "grade_match": true
+  },
+  {
+    "id": "zapier",
+    "score": 70,
+    "grade": "B",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      4,
+      4,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 19,
+    "note": "NLA API は『AI エージェント向けに設計』と謳う先駆的な仕組み。だが endpoint 2 個のみ、各 action をユーザが手動で expose する前提があり、汎用自動化には制約大。MCP endpoint が mcp.zapier.com と明記なのは良い。",
+    "grade_match": true
+  },
+  {
+    "id": "ahrefs",
+    "score": 65,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 18,
+    "note": "SEO 定番、backlink DB の強みあり。ahrefs.com/api は正規だがガイドなし。rows ベースの credit 消費、Enterprise plan 必須の endpoints などコスト計算が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "airtable",
+    "score": 65,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 18,
+    "note": "airtable.com/developers/web/api は正規、community MCP もあるがガイドなし。field type による値の形式差、filterByFormula の関数リストなど実装時に外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "amazon-ses",
+    "score": 65,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 18,
+    "note": "AWS の正規 docs URL、実績十分だがガイドなし。AWS SigV4 の複雑さを考えると外部検索必須で体感は重め。",
+    "grade_match": true
+  },
+  {
+    "id": "anthropic-api",
+    "score": 65,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 18,
+    "note": "docs.anthropic.com/en/api は正規だがガイドなし。皮肉にも KanseiLink 自身が使っている API にガイドなし。x-api-key header、anthropic-version header、tool_use の複雑性は外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "google-drive",
+    "score": 65,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 18,
+    "note": "Google brand で安心感はあるが、ガイドなし。modelcontextprotocol/server-gdrive の記載だけ。Google Workspace guide とリンクされていれば B だが、独立サービスとして見ると情報不足。",
+    "grade_match": true
+  },
+  {
+    "id": "snowflake",
+    "score": 65,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 18,
+    "note": "docs.snowflake.com/developer-guide/sql-api は正規だがガイドなし。エンタープライズ data warehouse で PBI 級の影響力だが、account_identifier + warehouse + database + schema + role の多重前提が非自明で外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "zoom",
+    "score": 65,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 18,
+    "note": "batch-002 の zoom-jp と重複感。developers.zoom.us は正規だがガイドなし。OAuth 2.0 + S2S OAuth の 2 flow、meeting vs webinar vs phone の機能分離が非自明で外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "auth0",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "Okta 傘下、JP SaaS 多数採用。auth0.com/docs/api は正規だがガイドなし。Management API と Authentication API の 2 系統で混乱しやすい。",
+    "grade_match": true
+  },
+  {
+    "id": "aws-s3",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      2,
+      3,
+      3,
+      4
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "世界中で使われる定番だが、ガイドなしでは SigV4 / presigned URL / multipart upload など非自明要素が多い。AWS SDK 前提になる。",
+    "grade_match": true
+  },
+  {
+    "id": "azure",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "learn.microsoft.com の Azure REST は正規だがガイドなし。Entra ID + subscription id + resource group + provider などの多重階層が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "bitbucket",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "Atlassian 系、Jira/Confluence 統合が強みだがガイドなし。developer.atlassian.com/cloud/bitbucket は正規。",
+    "grade_match": true
+  },
+  {
+    "id": "calendly",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "developer.calendly.com は正規だがガイドなし。OAuth2 + Personal Access Token の 2 系統あり、webhook の subscription 作成は非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "canva-api",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "canva.dev/docs/connect は正規だがガイドなし。Connect API は比較的新しく、Design Autofill など主要機能の実装情報は外部依存。",
+    "grade_match": true
+  },
+  {
+    "id": "cloudinary",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "cloudinary.com/documentation は正規だがガイドなし。transformation URL DSL の学習コスト大。",
+    "grade_match": true
+  },
+  {
+    "id": "coda",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "coda.io/developers は正規だがガイドなし。doc/table/column ID の取得順序、formula reference の複雑性が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "colorme",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "GMO ペパボ、4 万店舗の中規模 EC。developer.shop-pro.jp 正規だがガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "confluence",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "Atlassian Confluence Cloud v2 API の正規 URL だがガイドなし。Jira と同じ認証パターンだが ADF (Atlassian Document Format) の学習コスト大。",
+    "grade_match": true
+  },
+  {
+    "id": "datadog",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "日本語 docs も完備の SRE 定番。docs.datadoghq.com は正規だがガイドなし。DD-API-KEY/DD-APPLICATION-KEY の 2 ヘッダー方式は非自明で外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "discord",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "discord.com/developers/docs は正規だがガイドなし。bot token vs OAuth の区別、gateway intents、slash commands 登録の複雑性が非自明で外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "ec-cube",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "JP 最大の OSS EC、実績豊富。doc.ec-cube.net は正規だがガイドなし。self-hosted の base URL 問題あり、バージョン依存も強い。",
+    "grade_match": true
+  },
+  {
+    "id": "figma",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "figma.com/developers は正規だがガイドなし。Dev Mode MCP (別物) の存在が混乱を招きやすい。Personal Access Token vs OAuth の区別も非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "grafana-cloud",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "grafana.com/docs/grafana-cloud は正規だがガイドなし。Prometheus/Loki/Tempo の各 HTTP API と Cloud API の切り分けが非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "intercom",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "グローバルな顧客メッセージングの雄、Fin AI agent あり。developers.intercom.com 正規だがガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "japan-post",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "batch-005 の japanpost (ゆうプリ R 系) と別口。developer.japanpost.jp は正規の開発者 portal 存在だがガイドなし。JP 配送必須なのに実装情報ゼロ。",
+    "grade_match": true
+  },
+  {
+    "id": "jira",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "developer.atlassian.com/cloud/jira v3 は正規だがガイドなし。ADF (Atlassian Document Format) の学習コスト、project/issue key のパターン、JQL など多数の非自明要素あり。",
+    "grade_match": true
+  },
+  {
+    "id": "langchain",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "LangSmith の observability 用途が中心で、LangChain 本体の frameworks は API でなく SDK 経由。docs.smith.langchain.com は正規だがガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "lemonsqueezy",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "docs.lemonsqueezy.com は正規だがガイドなし。MoR モデルで税務を代行する特殊性、JSON:API 準拠という API 設計哲学が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "linepay",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "pay.line.me/developers は正規の dev URL だが KanseiLink 上はガイドなし。JP モバイル決済で重要なのに実装情報ゼロ。",
+    "grade_match": true
+  },
+  {
+    "id": "logiless",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "OMS+WMS 統合の JP EC 物流プレイヤー。app2.logiless.com/developer は正規だがガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "looker",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "GCP 傘下、LookML 独自言語あり。cloud.google.com/looker は正規だがガイドなし。GCP プロジェクト設定前提で重め。",
+    "grade_match": true
+  },
+  {
+    "id": "loom",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "dev.loom.com/docs は正規だがガイドなし。transcripts API 利用パターンは外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "mailchimp",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "mailchimp.com/developer/marketing は正規だがガイドなし。datacenter prefix (us1/us2...) が API URL に埋め込まれる奇妙な仕様、audience_id の MD5 email hash subscriber 識別が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "make",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "make.com の API docs は正規だがガイドなし。visual iPaaS の強みは GUI なので API 経由は本来の使い方から外れる。",
+    "grade_match": true
+  },
+  {
+    "id": "make-integromat",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "batch-004 の make と重複感。make.com/en/api-documentation は正規だがガイドなし。1800+ 連携の visual iPaaS は GUI が主で API 経由は補助的という構造的な弱点。",
+    "grade_match": true
+  },
+  {
+    "id": "metabase",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "OSS BI としてスタートアップで普及。metabase.com/docs は正規だがガイドなし。self-hosted の base URL 問題あり。",
+    "grade_match": true
+  },
+  {
+    "id": "miro",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "developers.miro.com は正規だがガイドなし。board items (sticky, shape, frame, card) の型ごとの差分が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "monday-com",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "developer.monday.com は正規だがガイドなし。GraphQL only、column_values の型別扱いが非自明で実装時ハマりどころ多数。",
+    "grade_match": true
+  },
+  {
+    "id": "mysql-mcp",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "community MCP はあるがガイドなし。api_url が dev.mysql.com で company top 相当、接続 URI の形式、read-only 強制の有無などエージェントが知りたい情報は外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "new-relic",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "docs.newrelic.com は正規だがガイドなし。NerdGraph (GraphQL) vs REST の 2 系統、NRQL の学習コスト大。",
+    "grade_match": true
+  },
+  {
+    "id": "paddle",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "developer.paddle.com は正規だがガイドなし。B2B SaaS 向け MoR の特殊性は Lemon Squeezy 同様、外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "pagerduty",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "developer.pagerduty.com は正規だがガイドなし。Events API v2 vs REST API v2 の使い分け、incident key の dedup 仕様が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "paidy",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "PayPal 傘下の BNPL の雄。paidy.com/docs は正規だがガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "payjp",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "国産の Stripe ライクな決済。pay.jp/docs/api は正規の dev URL だが KanseiLink 上にガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "paypal",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "developer.paypal.com/docs は正規だがガイドなし。sandbox vs live の設定、v1 Classic vs v2 REST の新旧混在が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "railway",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "docs.railway.app/reference/public-api は正規 URL だがガイドなし。GraphQL 専用で REST 無しという非自明性も KanseiLink 上は分からない。",
+    "grade_match": true
+  },
+  {
+    "id": "replicate",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "replicate.com/docs/reference/http は正規だがガイドなし。非同期 prediction の polling パターンが非自明で、外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "reserva",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "30 万社採用の日本最大級予約システム。developer.reserva.be は正規だがガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "sentry",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "docs.sentry.io は正規だがガイドなし。error monitoring の業界標準だが KanseiLink 上の情報では動けない。",
+    "grade_match": true
+  },
+  {
+    "id": "smaregi",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "JP POS の有力、12.5 万店舗採用。smaregi.dev は正規の dev ドメインだが KanseiLink 上はガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "supabase",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "Firebase alternative の OSS として実用的、community MCP もあるがガイドなし。PostgREST 自動生成 API と Management API の 2 系統が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "tableau",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "Salesforce 傘下、JP エンタープライズ BI 優位。help.tableau.com の REST API docs は正規だがガイドなし。サーバー URL (on-prem/cloud) の判別が必要。",
+    "grade_match": true
+  },
+  {
+    "id": "telegram-bot",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "core.telegram.org/bots/api は正規で非常に有名だがガイドなし。BotFather で token 取得の導線は比較的単純だが KanseiLink 上は何もない。",
+    "grade_match": true
+  },
+  {
+    "id": "todoist",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "developer.todoist.com は正規 URL、community MCP もあるがガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "weaviate",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "weaviate.io/developers は正規だがガイドなし。OSS + self-hosted の base URL 問題あり、GraphQL 独自クエリ言語の学習コストも非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "wise-api",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "docs.wise.com は正規だがガイドなし。多通貨 + profile id + quote → transfer の複雑な手順が非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "woocommerce",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "WordPress プラグインで self-hosted 前提、各ショップの base URL が異なるという最大の罠がガイドなしでは伝わらない。consumer key/secret の basic auth パターンも外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "zoho-crm",
+    "score": 60,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 17,
+    "note": "Salesforce 代替の低価格 CRM、日本語 UI あり。www.zoho.com/crm/developer v7 は正規だがガイドなし。Zoho 独自のデータセンター (com/eu/jp) URL 違い罠あり。",
+    "grade_match": true
+  },
+  {
+    "id": "1password-business",
+    "score": 55,
+    "grade": "C",
+    "felt_grade": "B",
+    "dims": [
+      5,
+      3,
+      3,
+      4,
+      4
+    ],
+    "facade": true,
+    "raw_sum": 19,
+    "note": "Connect Server API は実在するが、自己 host 前提で setup が重い。ブランド信頼性は高いが実装時は外部検索必須。",
+    "grade_match": false
+  },
+  {
+    "id": "convertkit",
+    "score": 55,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 16,
+    "note": "developers.convertkit.com は正規だがガイドなし。クリエイター特化で JP SaaS 文脈の relevance は低め。",
+    "grade_match": true
+  },
+  {
+    "id": "docusign-jp",
+    "score": 55,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      2,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 16,
+    "note": "developers.docusign.com は正規だがガイドなし。グローバル e-sign の雄だが KanseiLink 上の情報では動かない。",
+    "grade_match": true
+  },
+  {
+    "id": "gumroad",
+    "score": 55,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 16,
+    "note": "app.gumroad.com/api は正規だがガイドなし。OAuth の scope 粒度が粗い、products/sales の polling パターンが非自明。",
+    "grade_match": true
+  },
+  {
+    "id": "karte",
+    "score": 55,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      2,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 16,
+    "note": "PLAID の CX プラットフォーム、日本大手採用多数。developers.karte.io は正規だがガイドなし。Datahub API の具体情報は外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "twitch-api",
+    "score": 55,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 16,
+    "note": "dev.twitch.tv/docs/api は正規だがガイドなし。ビジネス用途よりゲーム/配信向けで JP SaaS 文脈との relevance 低い。",
+    "grade_match": true
+  },
+  {
+    "id": "uploadthing",
+    "score": 55,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 16,
+    "note": "TypeScript 特化で Next.js/SvelteKit ユーザ向け。docs.uploadthing.com は正規だがガイドなし。",
+    "grade_match": true
+  },
+  {
+    "id": "whatsapp-business",
+    "score": 55,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      2,
+      3,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 16,
+    "note": "Meta Cloud API、developers.facebook.com は正規だがガイドなし。WABA 取得 + Business Manager 承認 + テンプレート審査など setup が非常に重く、外部情報への依存大。",
+    "grade_match": true
+  },
+  {
+    "id": "yayoi",
+    "score": 55,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      2,
+      3,
+      4,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 16,
+    "note": "ドキュメントは正直 — 『パートナー申請必須』と明記。エンドポイントは 2 個のみ、個人開発者には閉鎖。情報は明瞭だが実行不可。",
+    "grade_match": true
+  },
+  {
+    "id": "amazon-jp",
+    "score": 50,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      2,
+      2,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 15,
+    "note": "SP-API は世界的に知名度ありガイド外部に豊富だが、KanseiLink 上は third-party MCP 名だけ。SP-API の OAuth/LWA は非自明で外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "bdash",
+    "score": 50,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      3,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 15,
+    "note": "自己申告で『REST API は限定的、ノーコード ETL がメイン』と正直。エージェント視点では API 経由の自動化が主な用途と噛み合わない。docs_url も会社 TOP。",
+    "grade_match": true
+  },
+  {
+    "id": "redmine",
+    "score": 50,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      2,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 15,
+    "note": "OSS だから仕方ない面もあるが、ガイドなし。self-hosted URL 問題もある。docker MCP の記載のみ、詳細は外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "salesforce-jp",
+    "score": 50,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      4
+    ],
+    "facade": true,
+    "raw_sum": 18,
+    "note": "Salesforce の存在は知られているが、KanseiLink 上の情報だけでは何もできない。必ず developer.salesforce.com 参照になる。",
+    "grade_match": true
+  },
+  {
+    "id": "wrike",
+    "score": 50,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      2,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 15,
+    "note": "community MCP で 8 tools と記載あるがガイドなし。developers.wrike.com は正規 URL だが KanseiLink 上では動けない。",
+    "grade_match": true
+  },
+  {
+    "id": "zoom-jp",
+    "score": 50,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      2,
+      3,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 15,
+    "note": "ガイドなし。api_url は developers.zoom.us と正当だが、community MCP の具体情報ゼロ。エージェントは外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "bakuraku",
+    "score": 45,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      2,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 14,
+    "note": "LayerX の勢いあるが、ガイドが『REST は限定的、CSV/Webhook がメイン』と正直告白。endpoint 2 個のみでエージェントが API 経由で自動化するユースケースとマッチしない。docs_url は bakuraku.jp/docs と一応あり。",
+    "grade_match": true
+  },
+  {
+    "id": "officestation",
+    "score": 45,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      2,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 14,
+    "note": "社保・労務手続きの重要サービスだが、ガイドが『API は限定的、CSV/e-Gov 直連携がメイン』と自己申告。endpoint 2 個のみ。マイナンバー扱う手前リスクも高い。",
+    "grade_match": true
+  },
+  {
+    "id": "shopify-global",
+    "score": 45,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": true,
+    "raw_sum": 17,
+    "note": "shopify-jp がフル guide を持っているので、グローバル版は重複感がある。",
+    "grade_match": true
+  },
+  {
+    "id": "stores-jp",
+    "score": 45,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      2,
+      2,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 14,
+    "note": "developers.stores.jp は正規だがガイドなし。POS 併用まで視野に入る有力サービスなのに、KanseiLink 上の情報だけではエージェントは動けない。",
+    "grade_match": true
+  },
+  {
+    "id": "stripe-jp",
+    "score": 45,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      3,
+      2,
+      4
+    ],
+    "facade": true,
+    "raw_sum": 17,
+    "note": "Stripe の知名度頼りで中身ゼロ。PayPay 統合の具体情報なし。必ず stripe.com/docs を外部参照することになる。",
+    "grade_match": true
+  },
+  {
+    "id": "eight",
+    "score": 40,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      3,
+      3
+    ],
+    "facade": true,
+    "raw_sum": 16,
+    "note": "Sansan の個人向け名刺アプリ。3 endpoints 程度ならなんとかなるが、developer portal への導線が曖昧で一発実装は厳しい。",
+    "grade_match": true
+  },
+  {
+    "id": "treasure-data",
+    "score": 40,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      5,
+      3,
+      2,
+      3,
+      3
+    ],
+    "facade": true,
+    "raw_sum": 16,
+    "note": "CDP としては魅力的だが、エージェントが触れない。docs.treasuredata.com への外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "legalon",
+    "score": 35,
+    "grade": "C",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      2,
+      2,
+      1,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 12,
+    "note": "AI 契約書レビューの有力サービスだがガイドなし、api_url は legalon-cloud.jp (会社 TOP)。",
+    "grade_match": false
+  },
+  {
+    "id": "trello",
+    "score": 35,
+    "grade": "C",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      3,
+      3,
+      2,
+      3
+    ],
+    "facade": true,
+    "raw_sum": 15,
+    "note": "Atlassian ブランドで安心感はあるが、KanseiLink 上の情報だけでは動かせない。",
+    "grade_match": true
+  },
+  {
+    "id": "gmo-pg",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      1,
+      2,
+      1,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "日本 No.1 決済ゲートウェイで超重要なのに、api_url は会社 TOP、かつ『ドキュメントは契約必須』と明記。エージェントが試しに触ることすら不可。",
+    "grade_match": true
+  },
+  {
+    "id": "gmosign",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      3,
+      2,
+      2,
+      1,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "No.2 電子契約だがガイドなし、api_url は www.gmosign.com (会社 TOP)。政府グレードセキュリティで信頼はあるが API 情報ゼロ。",
+    "grade_match": true
+  },
+  {
+    "id": "invox",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "インボイス制度対応の AI-OCR だがガイドなし、api_url は invox.jp (会社 TOP)。",
+    "grade_match": true
+  },
+  {
+    "id": "japanpost",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      1,
+      2,
+      1,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "日本郵便、ゆうパックプリント R はバッチラベル作成の雄だが、ガイドなし、api_url は post.japanpost.jp (会社 TOP)。実質ゆうプリ R アプリ依存で REST API は薄い。",
+    "grade_match": true
+  },
+  {
+    "id": "makeleaps",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "Ricoh 系統、説明は具体的だが connection_guide なし。API docs 直リンクも無し — エージェントは外部検索必須。",
+    "grade_match": true
+  },
+  {
+    "id": "otter",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "AI 会議書起こしの雄だが、ガイドなし、api_url は otter.ai (会社 TOP)。Zoom/Teams/Meet 連携が主で独自 REST API は薄い。",
+    "grade_match": true
+  },
+  {
+    "id": "rakuten",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "C",
+    "dims": [
+      4,
+      2,
+      3,
+      2,
+      3
+    ],
+    "facade": true,
+    "raw_sum": 14,
+    "note": "楽天ブランドの強さで B っぽく見えるが、実質は外部検索必須。Ichiba/Books/Travel/Recipe が別 API で統一性なし。",
+    "grade_match": false
+  },
+  {
+    "id": "tablecheck",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "高級レストラン向け予約の雄だが、ガイドなし、api_url は tablecheck.com (会社 TOP)。",
+    "grade_match": true
+  },
+  {
+    "id": "talknote",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      3,
+      2,
+      2,
+      2,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "ガイドなし、短めの説明のみ。developer.talknote.com 直リンはあるが、中身は自分で探せの世界。",
+    "grade_match": true
+  },
+  {
+    "id": "yamato-b2",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      1,
+      2,
+      1,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "日本 No.1 配送で EC 必須だがガイドなし、api_url は bmypage.kuronekoyamato (顧客向けページ)。B2 Cloud は古い Windows アプリ系で REST API 化が遅れている。",
+    "grade_match": true
+  },
+  {
+    "id": "yoom",
+    "score": 30,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 11,
+    "note": "国産 iPaaS として伸びているが、ガイドなし、api_url は yoom.fun (会社 TOP)。200+ サービス連携を謳うが API 情報ゼロ。",
+    "grade_match": true
+  },
+  {
+    "id": "air-reserve",
+    "score": 25,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      3,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 10,
+    "note": "Recruit の Air シリーズ、ガイドなし、api_url は airregi.jp/reserve (会社 TOP)。Hot Pepper / じゃらん連携が強みだが API 情報ゼロ。",
+    "grade_match": true
+  },
+  {
+    "id": "formrun",
+    "score": 25,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      3,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 10,
+    "note": "ガイドなし、api_url は form.run (会社 TOP)。フォーム+顧客管理の国産 SaaS だが接続情報なし。",
+    "grade_match": true
+  },
+  {
+    "id": "jooto",
+    "score": 25,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      3,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 10,
+    "note": "ガイドなし、api_url も www.jooto.com (会社 TOP)。Kanban だとはわかるが API 情報ゼロ。",
+    "grade_match": true
+  },
+  {
+    "id": "plaud",
+    "score": 25,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      3,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 10,
+    "note": "ガイドなし、api_url は plaud.ai (会社 TOP)。AI meeting recorder として新興、third-party MCP の具体情報ゼロ。",
+    "grade_match": true
+  },
+  {
+    "id": "rakumo",
+    "score": 25,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      3,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 10,
+    "note": "ガイドなし、api_url は rakumo.com (会社 TOP)。Google Workspace アドオンだと分かるだけで API 接続の糸口ゼロ。",
+    "grade_match": true
+  },
+  {
+    "id": "sagawa",
+    "score": 25,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      3,
+      1,
+      2,
+      1,
+      3
+    ],
+    "facade": false,
+    "raw_sum": 10,
+    "note": "飛伝システムだがガイドなし、api_url は sagawa-exp.co.jp (会社 TOP)。API 入手に個別契約必要で事実上クローズド。",
+    "grade_match": true
+  },
+  {
+    "id": "selecttype",
+    "score": 25,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      3,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": false,
+    "raw_sum": 10,
+    "note": "汎用予約の国産サービス。ガイドなし、api_url は select-type.com (会社 TOP)。",
+    "grade_match": true
+  },
+  {
+    "id": "board-billing",
+    "score": 15,
+    "grade": "D",
+    "felt_grade": "D",
+    "dims": [
+      4,
+      2,
+      2,
+      1,
+      2
+    ],
+    "facade": true,
+    "raw_sum": 11,
+    "note": "Velc の board だと分かっても、API URL が会社 TOP では 1 歩も進めない。",
+    "grade_match": true
+  }
+]

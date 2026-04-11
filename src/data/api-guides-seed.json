@@ -5105,5 +5105,1223 @@
       "Treasure Data/Segment の競合だがノーコード志向."
     ],
     "docs_url": "https://bdash-marketing.com/"
+  },
+  {
+    "service_id": "github",
+    "base_url": "https://api.github.com/",
+    "api_version": "2022-11-28 (REST) + GraphQL v4",
+    "auth_overview": "OAuth 2.0 (user-to-server via GitHub App or OAuth App) and Personal Access Tokens (classic or fine-grained). Bearer token in Authorization header. Official MCP server (npx @github/mcp-server) handles auth via GitHub App installation or PAT.",
+    "auth_token_url": "https://github.com/login/oauth/access_token",
+    "auth_scopes": "repo,read:org,workflow,read:user,user:email (PAT) / contents:read,issues:write,pull_requests:write (fine-grained)",
+    "auth_setup_hint": "1. For quickest start: Settings > Developer settings > Personal access tokens > Fine-grained tokens. 2. For production/org-wide: create GitHub App at Settings > Developer settings > GitHub Apps. 3. Or just use: npx @github/mcp-server (handles OAuth/installation).",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "GET",
+        "path": "/repos/{owner}/{repo}",
+        "description": "Get repository metadata",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/repos/{owner}/{repo}/issues",
+        "description": "List issues (supports state, labels, assignee filters)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/repos/{owner}/{repo}/issues",
+        "description": "Create an issue",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/repos/{owner}/{repo}/pulls",
+        "description": "List pull requests",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/repos/{owner}/{repo}/pulls",
+        "description": "Create a pull request",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/search/code",
+        "description": "Search code across repositories (requires auth)",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/repos/{owner}/{repo}/contents/{path}",
+        "description": "Read file content (Base64 encoded)",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "page-based: page and per_page (max 100). Link header with rel=\"next\"/\"last\" for navigation.",
+    "rate_limit": "5,000 req/hour (authenticated PAT). GitHub App: 15,000/hour per installation. Search API: 30 req/min. Secondary rate limits on abuse detection.",
+    "error_format": "JSON: {\"message\":\"...\",\"documentation_url\":\"...\",\"errors\":[{\"resource\":\"...\",\"field\":\"...\",\"code\":\"...\"}]}",
+    "quickstart_example": "GET /repos/octocat/hello-world/issues?state=open&per_page=10\nAuthorization: Bearer {token}\nAccept: application/vnd.github+json\nX-GitHub-Api-Version: 2022-11-28\n\nResponse: [{\"number\":1,\"title\":\"...\",\"state\":\"open\",\"user\":{\"login\":\"octocat\"}}]",
+    "agent_tips": [
+      "Always include X-GitHub-Api-Version: 2022-11-28 header for stable behavior.",
+      "Use fine-grained PATs over classic PATs — scoped to specific repos with least-privilege.",
+      "Rate limit is shared across all REST + GraphQL calls under the same token. Check X-RateLimit-Remaining header.",
+      "Use conditional requests with ETag / If-None-Match to save rate limit quota on polling.",
+      "For large-scale reads, prefer GraphQL v4 — one query can replace many REST calls.",
+      "Issue/PR numbers are per-repo (not globally unique). Always scope by {owner}/{repo}.",
+      "File contents >1MB require the Git Data API (blobs endpoint), not /contents.",
+      "The official MCP server (npx @github/mcp-server) covers repos, issues, PRs, Actions, and code search — recommended over direct REST for agents."
+    ],
+    "docs_url": "https://docs.github.com/en/rest"
+  },
+  {
+    "service_id": "teams",
+    "base_url": "https://graph.microsoft.com/v1.0/",
+    "api_version": "Microsoft Graph v1.0 (+ beta for preview features)",
+    "auth_overview": "OAuth 2.0 via Microsoft Entra ID (formerly Azure AD). Supports authorization code flow, client credentials (app-only), and device code flow. Register app at Azure Portal > App registrations. Access token as Bearer. Official MCP via Teams AI Library (public preview).",
+    "auth_token_url": "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
+    "auth_scopes": "Chat.ReadWrite,ChannelMessage.Send,Team.ReadBasic.All,OnlineMeetings.ReadWrite,User.Read",
+    "auth_setup_hint": "1. Azure Portal > App registrations > New registration. 2. Add API permissions: Microsoft Graph > Delegated (or Application for daemons). 3. Admin consent required for most Teams scopes. 4. Generate client secret or certificate. 5. Or use: npx @microsoft/teams-mcp for managed setup.",
+    "sandbox_url": "https://developer.microsoft.com/en-us/microsoft-365/dev-program",
+    "key_endpoints": [
+      {
+        "method": "GET",
+        "path": "/me/joinedTeams",
+        "description": "List teams the user is a member of",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/teams/{team-id}/channels",
+        "description": "List channels in a team",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/teams/{team-id}/channels/{channel-id}/messages",
+        "description": "Post a message to a channel",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/chats/{chat-id}/messages",
+        "description": "List messages in a 1:1 or group chat",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/chats/{chat-id}/messages",
+        "description": "Send a chat message",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/me/onlineMeetings",
+        "description": "Create a Teams meeting",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/users/{id}/presence",
+        "description": "Get user presence (available, busy, etc.)",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "OData: @odata.nextLink in response for next page. $top parameter for page size (max varies by endpoint, often 999).",
+    "rate_limit": "Per-app and per-tenant throttling. Teams messaging: ~30 requests/sec per app per tenant. Graph overall: ~10,000 requests per 10 min per app per tenant. HTTP 429 with Retry-After header.",
+    "error_format": "JSON: {\"error\":{\"code\":\"...\",\"message\":\"...\",\"innerError\":{\"date\":\"...\",\"request-id\":\"...\"}}}",
+    "quickstart_example": "POST /v1.0/teams/{team-id}/channels/{channel-id}/messages\nAuthorization: Bearer {token}\nContent-Type: application/json\n\n{\"body\":{\"contentType\":\"html\",\"content\":\"Hello from agent!\"}}",
+    "agent_tips": [
+      "Always honor Retry-After header on 429 — Microsoft Graph enforces it strictly.",
+      "For bot/daemon scenarios, use application permissions (client credentials flow) — no user login required.",
+      "Teams messaging requires RSC (Resource-Specific Consent) or admin consent for most write scopes.",
+      "Channel messages have a 28KB limit on body content. Use attachments for larger payloads.",
+      "Adaptive Cards are the recommended rich message format — Teams renders them natively.",
+      "Use webhooks (Incoming Webhook connector) for simple one-way posting without OAuth — not a Graph API call.",
+      "Presence API is heavily rate-limited — batch with /communications/getPresencesByUserId for multiple users.",
+      "Teams AI Library MCP (public preview) is the official agent path. Watch the docs for GA timing."
+    ],
+    "docs_url": "https://learn.microsoft.com/en-us/graph/teams-concept-overview"
+  },
+  {
+    "service_id": "gitlab",
+    "base_url": "https://gitlab.com/api/v4/",
+    "api_version": "v4",
+    "auth_overview": "OAuth 2.0 (Authorization Code) or Personal/Project/Group Access Tokens. Bearer token in Authorization header, or PRIVATE-TOKEN header for PATs. Self-managed GitLab instances use the same schema at their own domain. Official MCP server for Duo integration: npx @gitlab/mcp-server.",
+    "auth_token_url": "https://gitlab.com/oauth/token",
+    "auth_scopes": "api,read_api,read_repository,write_repository,read_user",
+    "auth_setup_hint": "1. User Settings > Access Tokens > Personal Access Token with 'api' scope (simplest). 2. Or: Preferences > Applications for OAuth apps. 3. For CI/CD: use Project Access Tokens. 4. Self-managed: replace gitlab.com with your instance domain. 5. Or use: npx @gitlab/mcp-server (Duo MCP).",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "GET",
+        "path": "/projects",
+        "description": "List projects accessible to the authenticated user",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/projects/{id}/issues",
+        "description": "List issues in a project (id is URL-encoded path or numeric ID)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/projects/{id}/issues",
+        "description": "Create an issue",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/projects/{id}/merge_requests",
+        "description": "List merge requests",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/projects/{id}/merge_requests",
+        "description": "Create a merge request",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/projects/{id}/pipelines",
+        "description": "List CI/CD pipelines for a project",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/projects/{id}/pipeline",
+        "description": "Trigger a new pipeline on a ref",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "page-based: page and per_page (max 100). Response headers include X-Total, X-Next-Page, X-Prev-Page, Link.",
+    "rate_limit": "GitLab.com: 2,000 req/min per authenticated user (unauthenticated: 500/min per IP). Project-level rate limits configurable on self-managed. HTTP 429 with RateLimit-Reset header.",
+    "error_format": "JSON: {\"message\":\"...\"} or {\"error\":\"...\",\"error_description\":\"...\"} for OAuth errors. 4xx include field-level details: {\"message\":{\"name\":[\"has already been taken\"]}}",
+    "quickstart_example": "GET /api/v4/projects/gitlab-org%2Fgitlab/issues?state=opened&per_page=10\nPRIVATE-TOKEN: {pat}\nAccept: application/json\n\nResponse: [{\"id\":1,\"iid\":42,\"title\":\"...\",\"state\":\"opened\",\"web_url\":\"...\"}]",
+    "agent_tips": [
+      "Project IDs can be numeric (fast) OR URL-encoded namespace/path (e.g., 'gitlab-org%2Fgitlab'). Prefer numeric for performance.",
+      "Issue 'iid' is per-project; 'id' is globally unique. Use iid when referencing from URLs, id for API calls.",
+      "For self-managed GitLab, swap gitlab.com with your instance — all endpoints and schemas are identical.",
+      "Use Project Access Tokens (not PATs) for CI/CD and service accounts — scoped to a single project, revocable independently.",
+      "Check X-Total and X-Total-Pages headers for pagination planning — avoids unnecessary round-trips.",
+      "Merge Request 'Draft:' prefix is significant — use work_in_progress flag or prefix in title.",
+      "Pipeline triggers require either trigger tokens or 'api' scope — trigger tokens are safer for webhooks.",
+      "Official Duo MCP (npx @gitlab/mcp-server) integrates with GitLab Duo AI features — preferred for agent workflows."
+    ],
+    "docs_url": "https://docs.gitlab.com/ee/api/rest/"
+  },
+  {
+    "service_id": "postgresql-mcp",
+    "base_url": "https://www.postgresql.org/docs/current/libpq.html",
+    "api_version": "PostgreSQL protocol (MCP server wraps libpq)",
+    "auth_overview": "Connection string with PostgreSQL credentials (user/password/host/db). The official MCP server by Anthropic (npx @anthropic/postgres-mcp) is strictly read-only and accepts a PostgreSQL connection URL as its argument. Authentication is delegated to Postgres itself (password, scram, client cert, or peer).",
+    "auth_token_url": null,
+    "auth_scopes": "read-only (enforced by MCP server — no INSERT/UPDATE/DELETE)",
+    "auth_setup_hint": "1. Create a read-only Postgres role: CREATE ROLE agent_ro LOGIN PASSWORD '...'; GRANT pg_read_all_data TO agent_ro; 2. Connection string: postgres://agent_ro:***@host:5432/db. 3. Run: npx @anthropic/postgres-mcp 'postgres://...' — the server enforces read-only at the protocol level.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "TOOL",
+        "path": "query",
+        "description": "Execute a read-only SQL query and return rows. Blocks any statement that isn't SELECT/WITH.",
+        "auth_required": true
+      },
+      {
+        "method": "TOOL",
+        "path": "list_schemas",
+        "description": "List all schemas in the database (excluding system schemas)",
+        "auth_required": true
+      },
+      {
+        "method": "TOOL",
+        "path": "list_tables",
+        "description": "List tables in a given schema with row count estimates",
+        "auth_required": true
+      },
+      {
+        "method": "TOOL",
+        "path": "describe_table",
+        "description": "Get columns, types, constraints, and indexes for a table",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "MCP tool call (JSON-RPC over stdio)",
+    "pagination_style": "SQL LIMIT/OFFSET in query text. No built-in pagination at the MCP layer.",
+    "rate_limit": "No MCP-level rate limit. Postgres-side: respect statement_timeout, max_connections, and any pg_stat_statements throttling. Agents should honor statement_timeout (recommended 30s) to prevent runaway queries.",
+    "error_format": "SQL errors returned as JSON: {\"error\":{\"code\":\"42P01\",\"message\":\"relation \\\"x\\\" does not exist\",\"position\":\"15\"}}",
+    "quickstart_example": "Tool call: {\"name\":\"query\",\"arguments\":{\"sql\":\"SELECT table_name, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC LIMIT 10\"}}\n\nResponse: [{\"table_name\":\"orders\",\"n_live_tup\":1234567},...]",
+    "agent_tips": [
+      "The official MCP server is READ-ONLY by design — attempting INSERT/UPDATE/DELETE returns an error at the MCP layer before hitting Postgres.",
+      "Always set statement_timeout in the connection string (e.g., ?options=-c%20statement_timeout%3D30s) to prevent runaway queries from blocking other agents.",
+      "Use pg_stat_user_tables and pg_stat_statements for schema and performance inspection — these are the agent's main windows into DB health.",
+      "For multi-tenant databases, create a dedicated read-only role per tenant and pass the correct connection string — don't try to filter at the query level.",
+      "Avoid SELECT * on large tables — always project specific columns and use LIMIT. Postgres-MCP doesn't truncate responses.",
+      "EXPLAIN (FORMAT JSON, ANALYZE false) is safe read-only and gives agents plan info without actually running the query.",
+      "Information_schema and pg_catalog are the canonical sources for schema metadata. Prefer them over vendor-specific tables.",
+      "For very large result sets, use server-side cursors via DECLARE CURSOR ... WITH HOLD, then FETCH in batches."
+    ],
+    "docs_url": "https://www.postgresql.org/docs/current/index.html"
+  },
+  {
+    "service_id": "qdrant",
+    "base_url": "http://localhost:6333/",
+    "api_version": "v1 (REST) + gRPC",
+    "auth_overview": "API key authentication via Api-Key header (Qdrant Cloud) or open access (self-hosted by default, secure with a reverse proxy). Qdrant Cloud clusters expose HTTPS endpoints per cluster. Official MCP server: npx @qdrant/mcp-server.",
+    "auth_token_url": null,
+    "auth_scopes": "collection:read,collection:write (or cluster-wide with a cluster API key)",
+    "auth_setup_hint": "1. Qdrant Cloud: create a free cluster at cloud.qdrant.io, generate an API key from the cluster dashboard. 2. Self-host: docker run -p 6333:6333 qdrant/qdrant (no auth by default — add API key via QDRANT__SERVICE__API_KEY env var). 3. MCP: npx @qdrant/mcp-server --url https://xyz.qdrant.io --api-key ***",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "PUT",
+        "path": "/collections/{collection_name}",
+        "description": "Create a collection with vector size, distance metric (Cosine/Dot/Euclid), and optional quantization",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/collections/{collection_name}",
+        "description": "Get collection info (vector count, status, config)",
+        "auth_required": true
+      },
+      {
+        "method": "PUT",
+        "path": "/collections/{collection_name}/points",
+        "description": "Upsert points (id, vector, payload). Supports batch via the 'batch' variant.",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/collections/{collection_name}/points/search",
+        "description": "Similarity search with optional payload filter and score threshold",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/collections/{collection_name}/points/query",
+        "description": "Unified query (vector + filter + prefetch for hybrid search)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/collections/{collection_name}/points/delete",
+        "description": "Delete points by id or filter",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Scroll API: POST /points/scroll with limit and offset (point_id). Search limit max 10,000.",
+    "rate_limit": "No documented hard rate limit on self-hosted. Qdrant Cloud: depends on cluster tier — free tier ~100 req/s, paid tiers scale with cluster size. gRPC is preferred for bulk upserts (~5x faster than REST).",
+    "error_format": "JSON: {\"status\":{\"error\":\"Wrong input: Vector dimension error: expected dim 1536, got 768\"},\"time\":0.001}",
+    "quickstart_example": "POST /collections/docs/points/search\nApi-Key: {key}\nContent-Type: application/json\n\n{\"vector\":[0.1,0.2,...],\"limit\":5,\"with_payload\":true,\"score_threshold\":0.7}\n\nResponse: {\"result\":[{\"id\":42,\"score\":0.87,\"payload\":{\"source\":\"docs/intro.md\"}}]}",
+    "agent_tips": [
+      "Vector size MUST match the embedding model (1536 for text-embedding-3-small, 3072 for text-embedding-3-large, 768 for nomic-embed-text). Mismatched sizes produce errors on upsert.",
+      "Use Cosine distance for normalized embeddings (most OpenAI/Anthropic models) and Dot for raw inner-product semantics.",
+      "Payload filters combine with vector search — use them for tenant isolation, time filtering, or source restriction without re-indexing.",
+      "Quantization (scalar or binary) reduces memory 4-32x with minimal recall loss — enable it for large collections.",
+      "For hybrid search (dense + sparse), use the /points/query endpoint with prefetch — Qdrant supports BM25-style sparse vectors natively.",
+      "Always set a score_threshold (typically 0.6-0.8 for cosine) to filter out irrelevant results — improves RAG quality significantly.",
+      "Batch upserts via gRPC or REST's batch variant — single upserts are ~5-10x slower at scale.",
+      "The official MCP server (npx @qdrant/mcp-server) exposes search, upsert, and collection management — preferred over raw REST for agents."
+    ],
+    "docs_url": "https://qdrant.tech/documentation/"
+  },
+  {
+    "service_id": "linear",
+    "base_url": "https://api.linear.app/graphql",
+    "api_version": "GraphQL (v2 schema, backward-compatible)",
+    "auth_overview": "Two auth methods: (1) OAuth 2.0 with PKCE for user-installed apps (preferred) and (2) Personal API Key (for personal / service-account use). Bearer token in Authorization header: `Authorization: {api_key}` — note the absence of the word \"Bearer\" for API keys; OAuth tokens use \"Bearer {token}\".",
+    "auth_token_url": "https://api.linear.app/oauth/token",
+    "auth_scopes": "read, write, issues:create, comments:create, admin (least-privilege scopes available)",
+    "auth_setup_hint": "1. For personal scripts/agents: Settings > API > Personal API keys > Create key. 2. For multi-user integrations: create an OAuth application at Settings > API > OAuth applications. 3. The official Linear MCP server handles the full OAuth flow.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "POST",
+        "path": "/graphql (query: issue)",
+        "description": "Get a single issue by ID or identifier",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/graphql (query: issues)",
+        "description": "Search/list issues with filters (team, state, assignee)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/graphql (mutation: issueCreate)",
+        "description": "Create a new issue",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/graphql (mutation: issueUpdate)",
+        "description": "Update an existing issue (status, assignee, labels)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/graphql (query: teams)",
+        "description": "List teams the authenticated user belongs to",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/graphql (mutation: commentCreate)",
+        "description": "Add a comment to an issue",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Relay-style cursor pagination: `first`/`after` and `last`/`before` arguments with `pageInfo { endCursor hasNextPage }`.",
+    "rate_limit": "1,500 GraphQL complexity points per hour per API key for personal tokens, 5,000 complexity/hour for OAuth apps. Each field/mutation has a complexity weight — check the X-Complexity and X-RateLimit-Remaining response headers.",
+    "error_format": "GraphQL standard: {\"errors\":[{\"message\":\"...\",\"extensions\":{\"code\":\"...\",\"type\":\"...\"}}],\"data\":null}",
+    "quickstart_example": "POST https://api.linear.app/graphql\nAuthorization: {api_key}\nContent-Type: application/json\n\n{\"query\":\"{ viewer { id name email } issues(first: 5) { nodes { id identifier title state { name } } } }\"}",
+    "agent_tips": [
+      "Linear is GraphQL-only — there is no REST API. Every call is POST /graphql.",
+      "Personal API keys use plain Authorization header WITHOUT the word \"Bearer\". OAuth tokens DO require \"Bearer\". This is a common source of 401 errors.",
+      "Always scope queries to a team (teamId) when searching issues — the workspace may have thousands.",
+      "Watch the X-Complexity header; complex nested queries eat rate-limit budget faster than simple ones.",
+      "Use issue identifiers (e.g., ENG-42) instead of UUIDs for human-readable workflows.",
+      "The `subscription` GraphQL type supports real-time updates via WebSocket for agents that need push.",
+      "Linear's webhooks are the preferred way to listen for changes — polling /graphql is wasteful."
+    ],
+    "docs_url": "https://developers.linear.app/docs/graphql/working-with-the-graphql-api"
+  },
+  {
+    "service_id": "vercel",
+    "base_url": "https://api.vercel.com/",
+    "api_version": "v1 (most endpoints), v2/v6/v13 per resource",
+    "auth_overview": "Bearer token authentication. Use a Personal Access Token (Settings > Tokens) for individual use, or OAuth 2.0 for multi-tenant integrations. Team endpoints require the `teamId` query parameter when operating on a team scope.",
+    "auth_token_url": null,
+    "auth_scopes": "Full-access tokens (all scopes) or scoped tokens (deployments, projects, etc.).",
+    "auth_setup_hint": "1. Go to https://vercel.com/account/tokens and create a token. 2. For team operations, pass `teamId=team_xxx` as a query parameter. 3. The official Vercel MCP adapter handles this automatically.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "POST",
+        "path": "/v13/deployments",
+        "description": "Create a new deployment from a Git source or files",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/v6/deployments",
+        "description": "List deployments for a project/team",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/v13/deployments/{id}",
+        "description": "Get deployment details and status",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/v9/projects",
+        "description": "List all projects",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/v9/projects",
+        "description": "Create a new project",
+        "auth_required": true
+      },
+      {
+        "method": "PATCH",
+        "path": "/v9/projects/{idOrName}/env",
+        "description": "Update environment variables",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/v2/deployments/{id}/events",
+        "description": "Stream build logs for a deployment",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Cursor-based: `limit` and `until` (timestamp) query params; response includes `pagination.next` cursor.",
+    "rate_limit": "Personal tokens: varies by endpoint, typically 100 req/min per token. Team plans get higher limits. Deployments endpoint is stricter (~30/min). Exceeding returns 429 with Retry-After header.",
+    "error_format": "JSON: {\"error\":{\"code\":\"...\",\"message\":\"...\"}} — HTTP status code 4xx/5xx matches the error class.",
+    "quickstart_example": "GET https://api.vercel.com/v9/projects?limit=20\nAuthorization: Bearer {token}\n\nResponse: {\"projects\":[{\"id\":\"prj_...\",\"name\":\"my-app\",\"framework\":\"nextjs\",\"updatedAt\":...}],\"pagination\":{\"count\":20}}",
+    "agent_tips": [
+      "Team-scoped tokens still need `?teamId=team_xxx` appended to every call. Omitting it returns 403 on team resources.",
+      "Deployments are immutable once created — to \"update\" you must create a new deployment. Plan your agent flows accordingly.",
+      "Use `target=production` when creating deployments that should become the live URL; otherwise they become preview URLs.",
+      "Environment variable updates do NOT trigger redeploys automatically — call /v13/deployments after updating env.",
+      "Build logs (`/v2/deployments/{id}/events`) are streamed with Server-Sent Events format; parse incrementally.",
+      "The Vercel MCP adapter (npx @vercel/mcp-adapter) is the recommended entry point for agents — wraps most of the REST API."
+    ],
+    "docs_url": "https://vercel.com/docs/rest-api"
+  },
+  {
+    "service_id": "netlify",
+    "base_url": "https://api.netlify.com/api/v1/",
+    "api_version": "v1",
+    "auth_overview": "Personal Access Token (recommended for agents) or OAuth 2.0 for multi-user apps. Bearer token in Authorization header. Tokens are scoped to the user's team memberships.",
+    "auth_token_url": "https://app.netlify.com/authorize",
+    "auth_scopes": "Full account access (personal tokens) or selected scopes (OAuth): deploy, sites, forms, logs.",
+    "auth_setup_hint": "1. Go to https://app.netlify.com/user/applications/personal to create a personal access token. 2. For production integrations: register an OAuth application. 3. Official Netlify MCP (`npx -y @netlify/mcp`) handles token exchange.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "GET",
+        "path": "/sites",
+        "description": "List all sites for the authenticated user/team",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/sites",
+        "description": "Create a new site",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/sites/{site_id}/deploys",
+        "description": "List deployments for a site",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/sites/{site_id}/deploys",
+        "description": "Trigger a new deploy (from zip or Git)",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/sites/{site_id}/forms",
+        "description": "List form submissions",
+        "auth_required": true
+      },
+      {
+        "method": "PATCH",
+        "path": "/sites/{site_id}/env",
+        "description": "Update environment variables",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Offset-based: `page` and `per_page` (max 100) query parameters. Link header contains next/prev URLs.",
+    "rate_limit": "500 requests/minute per access token for most endpoints. Deploys endpoint stricter. 429 with Retry-After header when exceeded.",
+    "error_format": "JSON: {\"code\":400,\"message\":\"...\"} — standard HTTP status codes.",
+    "quickstart_example": "GET https://api.netlify.com/api/v1/sites?per_page=20\nAuthorization: Bearer {token}\n\nResponse: [{\"id\":\"...\",\"name\":\"my-site\",\"url\":\"https://my-site.netlify.app\",\"state\":\"current\"}]",
+    "agent_tips": [
+      "Deploys from zip uploads need Content-Type: application/zip and the raw binary body — not JSON.",
+      "Form submissions are accessible only if the site has form detection enabled in site settings.",
+      "Use `prod=true` query param when triggering a deploy to promote it to the production URL.",
+      "Environment variable updates take effect on the NEXT deploy — existing builds keep their old env.",
+      "The Netlify MCP server is the easiest way for agents to authenticate and interact with sites."
+    ],
+    "docs_url": "https://docs.netlify.com/api/get-started/"
+  },
+  {
+    "service_id": "firebase",
+    "base_url": "https://firebase.googleapis.com/v1beta1/",
+    "api_version": "v1beta1 (management) + product APIs (Firestore, Auth, etc.)",
+    "auth_overview": "Google OAuth 2.0 with service account or user credentials. Service accounts use JWT-based access tokens (ADC). Admin SDK is preferred for server-side agent use. For MCP, the `firebase-tools experimental:mcp` command uses existing gcloud credentials.",
+    "auth_token_url": "https://oauth2.googleapis.com/token",
+    "auth_scopes": "https://www.googleapis.com/auth/cloud-platform (all Firebase features), or scoped per-product.",
+    "auth_setup_hint": "1. Create a service account in Google Cloud Console > IAM & Admin > Service Accounts. 2. Download the JSON key and set GOOGLE_APPLICATION_CREDENTIALS. 3. Run `firebase login` for interactive use. 4. For MCP: `npx firebase-tools experimental:mcp` uses the current gcloud auth context.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "GET",
+        "path": "/projects/{projectId}",
+        "description": "Get project metadata",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/projects/{projectId}/databases",
+        "description": "List Firestore databases",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/projects/{projectId}/databases/{dbId}/documents:runQuery",
+        "description": "Run a structured Firestore query",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/projects/{projectId}/webApps",
+        "description": "List web apps registered under the project",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/projects/{projectId}/rules:deploy",
+        "description": "Deploy new security rules",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Standard Google API pagination: `pageSize` and `pageToken` query params; response has `nextPageToken`.",
+    "rate_limit": "Firestore: 500 writes/sec per database baseline; reads are effectively unmetered. Auth: 3,000 requests/min. Management API: 600 req/min per project. 429 or 403 quotaExceeded errors on overload.",
+    "error_format": "Google RPC error format: {\"error\":{\"code\":403,\"message\":\"...\",\"status\":\"PERMISSION_DENIED\",\"details\":[...]}}",
+    "quickstart_example": "GET https://firebase.googleapis.com/v1beta1/projects/my-project\nAuthorization: Bearer {access_token}\n\nResponse: {\"projectId\":\"my-project\",\"displayName\":\"My App\",\"resources\":{\"realtimeDatabaseInstance\":\"...\"}}",
+    "agent_tips": [
+      "The Firebase REST Management API only manages project metadata — for actual data ops use Firestore REST (/v1/projects/{p}/databases/{db}/documents).",
+      "Always prefer the Admin SDK over REST on the server side — it handles token refresh and connection pooling.",
+      "Security rules are deployed separately from data — an agent that writes \"correctly\" may still hit PERMISSION_DENIED if rules are strict.",
+      "Firestore indexes must be created (or inferred) before composite queries work — errors return with a URL to create the missing index.",
+      "Running `firebase-tools experimental:mcp` exposes project, hosting, functions, and Firestore tooling to an agent with low setup cost."
+    ],
+    "docs_url": "https://firebase.google.com/docs/reference/rest"
+  },
+  {
+    "service_id": "mongodb-atlas",
+    "base_url": "https://cloud.mongodb.com/api/atlas/v2/",
+    "api_version": "Atlas Admin API v2",
+    "auth_overview": "Digest authentication with a Programmatic API Key (public+private key pair) is the Atlas Admin API standard. For data access, use the MongoDB driver with a connection string (SRV URI). The MongoDB MCP server (`mongodb-mcp-server`) accepts a connection string directly.",
+    "auth_token_url": null,
+    "auth_scopes": "Atlas roles assigned to the API key: Organization Owner, Project Owner, Project Data Access Read Only, etc.",
+    "auth_setup_hint": "1. In Atlas, go to Organization > Access Manager > API Keys. 2. Create a key pair with the required Atlas roles. 3. Whitelist your agent's IP/CIDR range. 4. For data queries, create a database user under Project > Database Access and use the SRV connection string.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "GET",
+        "path": "/groups/{groupId}/clusters",
+        "description": "List all clusters in a project",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/groups/{groupId}/clusters",
+        "description": "Create a new cluster",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/groups/{groupId}/clusters/{clusterName}",
+        "description": "Get cluster details",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/groups/{groupId}/databaseUsers",
+        "description": "List database users (for data access)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/groups/{groupId}/accessList",
+        "description": "Add an IP to the project access list",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/groups/{groupId}/backup/snapshots/{clusterName}",
+        "description": "List cluster snapshots",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Offset-based: `itemsPerPage` and `pageNum` query parameters; response wraps results under `results` and has `links` array for navigation.",
+    "rate_limit": "Atlas Admin API: 100 requests/minute per API key. Returns 429 with Retry-After header. Data plane (via MongoDB driver) is limited by cluster size, not by API key.",
+    "error_format": "JSON: {\"error\":401,\"errorCode\":\"...\",\"detail\":\"...\",\"reason\":\"...\"} — 4xx/5xx HTTP status.",
+    "quickstart_example": "GET https://cloud.mongodb.com/api/atlas/v2/groups/{groupId}/clusters\nAuthorization: Digest {publicKey}:{privateKey}\nAccept: application/vnd.atlas.2023-11-15+json\n\nResponse: {\"results\":[{\"name\":\"Cluster0\",\"stateName\":\"IDLE\",...}],\"totalCount\":1}",
+    "agent_tips": [
+      "Atlas Admin API uses HTTP Digest auth — not Bearer. This is an uncommon choice and breaks many HTTP clients; use a library that supports it.",
+      "Always set the `Accept: application/vnd.atlas.YYYY-MM-DD+json` header to pin an API version.",
+      "Data-plane operations (CRUD against collections) do NOT go through this API — use a MongoDB driver with the SRV connection string instead.",
+      "Cluster creation is async — poll /clusters/{name} until stateName === \"IDLE\" before connecting.",
+      "The IP access list must include your agent's outbound IP before connection strings will work.",
+      "For agents, the `mongodb-mcp-server` package wraps both admin and data-plane operations behind a single MCP interface."
+    ],
+    "docs_url": "https://www.mongodb.com/docs/atlas/reference/api-resources-spec/"
+  },
+  {
+    "service_id": "pinecone",
+    "base_url": "https://api.pinecone.io/",
+    "api_version": "2024-10 (control plane) + index-specific data-plane URLs",
+    "auth_overview": "API key authentication via the Api-Key header (NOT Authorization). Each Pinecone project has its own API keys. The control plane (api.pinecone.io) manages indexes; the data plane has per-index URLs like https://{index-name}-{project-id}.svc.{environment}.pinecone.io/.",
+    "auth_token_url": null,
+    "auth_scopes": "Project-scoped (one API key controls all indexes in the project).",
+    "auth_setup_hint": "1. Go to https://app.pinecone.io and create a project. 2. Copy the API key from the API Keys tab. 3. For data ops you also need the index host URL — get it from the console or from GET /indexes/{name}.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "GET",
+        "path": "/indexes",
+        "description": "List indexes in the project",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/indexes",
+        "description": "Create a new serverless or pod-based index",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/indexes/{index_name}",
+        "description": "Get index metadata including data-plane host",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/vectors/upsert",
+        "description": "[data-plane] Upsert vectors to an index",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/query",
+        "description": "[data-plane] Similarity search",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/vectors/delete",
+        "description": "[data-plane] Delete vectors by ID or filter",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Query results return topK matches; for listing operations, response may include a `pagination.next` token.",
+    "rate_limit": "Serverless: scales automatically, billed per operation (no hard per-minute cap). Pod-based: limited by pod size and replica count. Control plane: ~100 requests/min for admin endpoints.",
+    "error_format": "JSON: {\"code\":3,\"message\":\"...\",\"details\":[...]} — gRPC-style codes for the data plane.",
+    "quickstart_example": "POST https://{index-host}/query\nApi-Key: {api_key}\nContent-Type: application/json\n\n{\"vector\":[0.1,0.2,...],\"topK\":5,\"includeMetadata\":true,\"namespace\":\"default\"}\n\nResponse: {\"matches\":[{\"id\":\"v1\",\"score\":0.92,\"metadata\":{...}}],\"namespace\":\"default\"}",
+    "agent_tips": [
+      "Data plane and control plane use DIFFERENT base URLs. Always call GET /indexes/{name} first to resolve the data-plane host, then cache it.",
+      "The auth header is `Api-Key: {key}` — it is NOT Authorization/Bearer. This trips up most generic HTTP clients.",
+      "Vector dimension must match the index dimension exactly — a mismatch returns 400 with \"Vector dimension X does not match index dimension Y\".",
+      "Use namespaces to partition data within a single index — much cheaper than creating multiple indexes.",
+      "Serverless indexes are cheaper for sparse / bursty workloads; pod-based is cheaper for sustained high QPS.",
+      "The Pinecone MCP server (`@pinecone-database/mcp`) exposes query/upsert/delete with the key+host pre-configured."
+    ],
+    "docs_url": "https://docs.pinecone.io/reference/api/introduction"
+  },
+  {
+    "service_id": "redis",
+    "base_url": "redis:// or rediss:// (TLS) — binary RESP protocol, not HTTP",
+    "api_version": "RESP3 (Redis 7+), RESP2 (legacy)",
+    "auth_overview": "Redis uses the AUTH command at connection time. Modern Redis (6+) supports ACL users with fine-grained command/key permissions: `AUTH {username} {password}`. Legacy single-password mode uses `AUTH {password}` only. TLS is recommended for any network-exposed deployment.",
+    "auth_token_url": null,
+    "auth_scopes": "ACL-based: per-user command categories (@read, @write, @admin) and key patterns.",
+    "auth_setup_hint": "1. In redis.conf, set `requirepass` (legacy) or configure ACL users via `ACL SETUSER`. 2. For managed Redis (Upstash, AWS ElastiCache, Redis Cloud) the credentials are provided in the dashboard. 3. The Redis MCP server accepts a connection string: `redis://user:pass@host:port/db`.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "SET",
+        "path": "key value [EX seconds]",
+        "description": "Set a string value with optional TTL",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "key",
+        "description": "Read a string value",
+        "auth_required": true
+      },
+      {
+        "method": "HSET",
+        "path": "key field value [field value ...]",
+        "description": "Set fields on a hash",
+        "auth_required": true
+      },
+      {
+        "method": "ZADD",
+        "path": "key score member",
+        "description": "Add to a sorted set (for rankings/leaderboards)",
+        "auth_required": true
+      },
+      {
+        "method": "EXPIRE",
+        "path": "key seconds",
+        "description": "Set TTL on an existing key",
+        "auth_required": true
+      },
+      {
+        "method": "SCAN",
+        "path": "cursor [MATCH pattern] [COUNT n]",
+        "description": "Iterate keys without blocking (preferred over KEYS)",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "RESP binary protocol",
+    "pagination_style": "SCAN/HSCAN/SSCAN with cursor — returns 0 when iteration is complete.",
+    "rate_limit": "No protocol-level rate limit — throughput is bound by CPU, network, and client count. Managed services (Upstash, ElastiCache) may throttle at the network layer. Watch `INFO clients` and `slowlog get` for overload signs.",
+    "error_format": "RESP error: `-ERR message\\r\\n` or `-WRONGTYPE message\\r\\n`. Client libraries surface these as exceptions.",
+    "quickstart_example": "# Connect and set a key with TTL\nSET session:abc123 \"user_42\" EX 3600\nOK\nGET session:abc123\n\"user_42\"\nTTL session:abc123\n(integer) 3598",
+    "agent_tips": [
+      "NEVER use KEYS in production — it's O(n) and blocks the server. Use SCAN with a MATCH pattern instead.",
+      "Set TTLs on everything by default (SET with EX, EXPIRE) — unbounded growth is the #1 Redis incident.",
+      "For atomic multi-step operations, use MULTI/EXEC (transactions) or Lua scripts via EVAL.",
+      "Use pipelining for bulk operations — round-trip time dominates latency for small commands.",
+      "Sorted sets (ZSET) are the right answer for rate limiters, leaderboards, and time-windowed counters.",
+      "The Redis MCP server is a good fit for caching and session use-cases — avoid using Redis as a primary datastore from an agent."
+    ],
+    "docs_url": "https://redis.io/docs/latest/commands/"
+  },
+  {
+    "service_id": "chroma",
+    "base_url": "http://localhost:8000/api/v2/ (default local) or self-hosted URL",
+    "api_version": "v2 (REST API as of Chroma 0.5+)",
+    "auth_overview": "Chroma supports static API token authentication (Authorization header with `Bearer {token}`) and basic auth. Self-hosted deployments can be configured via env vars: `CHROMA_SERVER_AUTHN_CREDENTIALS` and `CHROMA_SERVER_AUTHN_PROVIDER`. Local/dev usage often runs with no auth.",
+    "auth_token_url": null,
+    "auth_scopes": "Tenant/database scoped (Chroma supports multi-tenant isolation at the tenant level).",
+    "auth_setup_hint": "1. For local dev: `pip install chromadb` and run `chroma run --path ./data` — no auth by default. 2. For production: set CHROMA_SERVER_AUTHN_PROVIDER=token and CHROMA_SERVER_AUTHN_CREDENTIALS. 3. The `chroma-mcp` package wraps the HTTP client and handles auth via env vars.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/v2/tenants/{tenant}/databases/{db}/collections",
+        "description": "Create a collection",
+        "auth_required": false
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/tenants/{tenant}/databases/{db}/collections",
+        "description": "List collections",
+        "auth_required": false
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/collections/{collection_id}/add",
+        "description": "Add documents (auto-embeds if embedder configured)",
+        "auth_required": false
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/collections/{collection_id}/query",
+        "description": "Vector similarity query with n_results and where filters",
+        "auth_required": false
+      },
+      {
+        "method": "POST",
+        "path": "/api/v2/collections/{collection_id}/delete",
+        "description": "Delete by IDs or where filter",
+        "auth_required": false
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "limit / offset parameters on list endpoints. Query results return topK matches directly.",
+    "rate_limit": "No built-in rate limit (self-hosted). Throughput bound by hardware and embedding model latency.",
+    "error_format": "JSON: {\"error\":\"...\",\"type\":\"...\"} — 4xx/5xx HTTP status.",
+    "quickstart_example": "POST /api/v2/collections/{collection_id}/query\nContent-Type: application/json\n\n{\"query_texts\":[\"What is agent-readiness?\"],\"n_results\":3,\"include\":[\"documents\",\"metadatas\",\"distances\"]}\n\nResponse: {\"ids\":[[\"doc1\",\"doc7\",\"doc12\"]],\"distances\":[[0.12,0.23,0.31]],\"documents\":[[...]]}",
+    "agent_tips": [
+      "Chroma's v2 API changed collection routing — use /tenants/{tenant}/databases/{db}/collections, not the v1 /collections path.",
+      "If you configure an embedding function at collection creation, `add` accepts raw `documents` and Chroma embeds them automatically.",
+      "The `where` filter supports MongoDB-style operators ($and, $or, $in, $ne) for metadata filtering.",
+      "Always include `include: [\"documents\",\"metadatas\",\"distances\"]` in queries — by default only IDs are returned.",
+      "Collections are eventually consistent after add — for write-then-query flows, allow a short delay or call /flush.",
+      "For agents, chroma-mcp is the recommended interface; it handles collection caching and embedding setup."
+    ],
+    "docs_url": "https://docs.trychroma.com/reference/python/client"
+  },
+  {
+    "service_id": "huggingface",
+    "base_url": "https://huggingface.co/api/ (hub) + https://api-inference.huggingface.co/ (inference)",
+    "api_version": "v1 (Hub) + Inference Endpoints API",
+    "auth_overview": "Bearer token authentication with a Hugging Face User Access Token (hf_...). Tokens have scopes (read, write, inference) configurable at creation. The Inference API accepts the same token. For dedicated endpoints, use the Inference Endpoints API with the same token.",
+    "auth_token_url": null,
+    "auth_scopes": "read, write, inference.serverless (Serverless Inference), inference.endpoints (Dedicated Endpoints).",
+    "auth_setup_hint": "1. Go to https://huggingface.co/settings/tokens and create a token with the scopes you need. 2. For inference, choose \"Read\" + \"Make calls to the serverless Inference API\". 3. Set HF_TOKEN env var for the huggingface_hub Python library to pick it up.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "GET",
+        "path": "/api/models",
+        "description": "Search/list models with filter by task, language, etc.",
+        "auth_required": false
+      },
+      {
+        "method": "GET",
+        "path": "/api/models/{model_id}",
+        "description": "Get model metadata, tags, downloads",
+        "auth_required": false
+      },
+      {
+        "method": "POST",
+        "path": "/models/{model_id} (inference)",
+        "description": "Run inference on a Serverless Inference model",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/api/datasets",
+        "description": "Search/list datasets",
+        "auth_required": false
+      },
+      {
+        "method": "POST",
+        "path": "/api/repos/create",
+        "description": "Create a new model/dataset/space repository",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Link header with rel=\"next\" for list endpoints. `limit` parameter supported.",
+    "rate_limit": "Serverless Inference: free tier has strict per-minute/hour limits (varies by model). Pro tier: higher limits. Dedicated endpoints bypass this limit entirely. 503 with `X-Compute-Time` header indicates cold start — not rate limiting.",
+    "error_format": "JSON: {\"error\":\"...\"} for inference. {\"error\":\"...\",\"type\":\"...\"} for Hub API.",
+    "quickstart_example": "POST https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2\nAuthorization: Bearer hf_...\nContent-Type: application/json\n\n{\"inputs\":\"This is a test sentence\"}\n\nResponse: [[0.123, -0.045, 0.891, ...]]",
+    "agent_tips": [
+      "First call to a Serverless Inference model may return 503 with `estimated_time` — the model is cold-starting. Retry after the specified delay.",
+      "Set `x-wait-for-model: true` header to automatically block until the model is ready instead of getting 503.",
+      "Model IDs use the format `{owner}/{name}` (e.g., `meta-llama/Llama-3-8b`). Private model access requires an HF token with read scope to that repo.",
+      "For production workloads, use Dedicated Inference Endpoints — they cost more but have no cold starts and higher rate limits.",
+      "The `huggingface_hub` Python library is the recommended client; it handles retries, caching, and multipart uploads.",
+      "Respect model licenses — gated models require accepting the license page in the browser before the token can access them."
+    ],
+    "docs_url": "https://huggingface.co/docs/api-inference/index"
+  },
+  {
+    "service_id": "sendgrid",
+    "base_url": "https://api.sendgrid.com/v3/",
+    "api_version": "v3",
+    "auth_overview": "Bearer token authentication with a SendGrid API key. Keys have three permission modes: Full Access, Restricted Access (granular per-endpoint), and Billing Access. Mail Send permission is required for the /mail/send endpoint.",
+    "auth_token_url": null,
+    "auth_scopes": "Mail Send, Template Engine, Suppressions, Stats, Marketing Campaigns, etc.",
+    "auth_setup_hint": "1. Go to https://app.sendgrid.com/settings/api_keys and create a key with the `Mail Send` permission. 2. Verify your sender identity (domain or single sender) before sending — unverified senders return 403. 3. Store the key in SENDGRID_API_KEY env var.",
+    "sandbox_url": "https://api.sendgrid.com/v3/mail/send — supports `mail_settings.sandbox_mode.enable: true`",
+    "key_endpoints": [
+      {
+        "method": "POST",
+        "path": "/mail/send",
+        "description": "Send a transactional email",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/templates",
+        "description": "List dynamic templates",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/stats",
+        "description": "Get email statistics for a date range",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/suppression/bounces",
+        "description": "List bounced addresses",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/marketing/contacts",
+        "description": "Add/update marketing contacts",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Offset-based: `limit` and `offset` parameters. Some endpoints use `page_size`/`page_token`.",
+    "rate_limit": "Mail Send: 1,000 requests/sec for Pro+; Free: 100/day. Marketing API: 100 requests/min. 429 with `X-RateLimit-Reset` header.",
+    "error_format": "JSON: {\"errors\":[{\"message\":\"...\",\"field\":\"...\",\"help\":\"...\"}]}",
+    "quickstart_example": "POST https://api.sendgrid.com/v3/mail/send\nAuthorization: Bearer SG....\nContent-Type: application/json\n\n{\"personalizations\":[{\"to\":[{\"email\":\"user@example.com\"}]}],\"from\":{\"email\":\"hello@yourdomain.com\"},\"subject\":\"Hi\",\"content\":[{\"type\":\"text/plain\",\"value\":\"Test\"}]}\n\nResponse: 202 Accepted (empty body)",
+    "agent_tips": [
+      "A successful /mail/send returns 202 Accepted with an EMPTY body — there is no message ID in the response. To track delivery, enable Event Webhook or query /messages.",
+      "Domain authentication (SPF/DKIM/DMARC) dramatically improves deliverability — unauthenticated sends from shared IPs land in spam.",
+      "Use sandbox_mode during development — the request is validated but no email is sent.",
+      "Dynamic templates are stored in SendGrid and referenced by template_id in the send request — preferred over inline HTML for versioning.",
+      "Bounced addresses stay on the suppression list — clear them via /suppression/bounces/{email} before retrying."
+    ],
+    "docs_url": "https://www.twilio.com/docs/sendgrid/api-reference"
+  },
+  {
+    "service_id": "resend",
+    "base_url": "https://api.resend.com/",
+    "api_version": "v1 (implicit — no version in URL)",
+    "auth_overview": "Bearer token authentication with a Resend API key (re_...). Keys are created per-project in the Resend dashboard and can be scoped to a single domain. Each key grants full send access to the domains it authorizes.",
+    "auth_token_url": null,
+    "auth_scopes": "All Access or Sending Access (per-domain restricted).",
+    "auth_setup_hint": "1. Sign up at https://resend.com and verify a sending domain (add DNS records: MX, TXT for SPF, DKIM). 2. Go to API Keys > Create API Key, scope to the verified domain. 3. Store in RESEND_API_KEY env var — the @resend/node SDK picks it up automatically.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "POST",
+        "path": "/emails",
+        "description": "Send a transactional email (HTML, text, or React component)",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/emails/{email_id}",
+        "description": "Get email delivery status",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/domains",
+        "description": "Add a new sending domain",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/domains",
+        "description": "List verified domains",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/audiences",
+        "description": "Create an audience (for marketing contacts)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/batch",
+        "description": "Send up to 100 emails in a single request",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Cursor-based: `limit` + `after` (an email ID) for /emails listings.",
+    "rate_limit": "10 requests/second per API key on the Free tier. Pro tier: 20/sec. 429 with Retry-After header. Batch endpoint counts as one request regardless of payload size (up to 100 emails).",
+    "error_format": "JSON: {\"statusCode\":422,\"name\":\"validation_error\",\"message\":\"...\"}",
+    "quickstart_example": "POST https://api.resend.com/emails\nAuthorization: Bearer re_...\nContent-Type: application/json\n\n{\"from\":\"you@yourdomain.com\",\"to\":\"user@example.com\",\"subject\":\"Hi\",\"html\":\"<p>Hello</p>\"}\n\nResponse: {\"id\":\"4ef9a417-02e9-4d39-ad75-9611e0fcc33c\"}",
+    "agent_tips": [
+      "Resend is optimized for developers — the API surface is small (emails, domains, audiences, batch) and well-typed. Prefer it over SendGrid when you don't need marketing features.",
+      "Domain verification requires DNS propagation — allow 5-15 minutes after adding records before retrying verification.",
+      "React Email templates are a first-class feature — you can pass a React component as the body in the official SDK.",
+      "Batch endpoint sends up to 100 emails atomically — use it for newsletter/broadcast workloads.",
+      "Webhooks (configured per-domain) are the right way to listen for delivery/bounce/click events rather than polling /emails/{id}.",
+      "Free tier is 3,000 emails/month and 100/day — monitor usage via /usage to avoid surprise failures."
+    ],
+    "docs_url": "https://resend.com/docs/api-reference/introduction"
+  },
+  {
+    "service_id": "postmark",
+    "base_url": "https://api.postmarkapp.com/",
+    "api_version": "v1 (implicit)",
+    "auth_overview": "Token authentication via custom headers: `X-Postmark-Server-Token` for transactional operations (bound to a single Postmark Server), or `X-Postmark-Account-Token` for account-level operations (managing servers, domains). NOT Bearer auth.",
+    "auth_token_url": null,
+    "auth_scopes": "Server tokens: scoped to one Server. Account tokens: full account access.",
+    "auth_setup_hint": "1. In the Postmark dashboard, create a Server (one per environment — prod/staging). 2. Copy the Server API Token from the Server > API Tokens tab. 3. Verify a Sender Signature or Domain before sending. 4. Store tokens in POSTMARK_SERVER_TOKEN env var.",
+    "sandbox_url": "Use a dedicated \"Test\" server in Postmark — it behaves identically but emails are marked as test.",
+    "key_endpoints": [
+      {
+        "method": "POST",
+        "path": "/email",
+        "description": "Send a single transactional email",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/email/batch",
+        "description": "Send up to 500 emails in one request",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/email/withTemplate",
+        "description": "Send using a stored template with merge variables",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/messages/outbound",
+        "description": "List sent messages with filtering",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/stats/outbound",
+        "description": "Delivery/bounce/open/click statistics",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/bounces",
+        "description": "List bounced addresses",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Offset-based: `count` and `offset` query params on list endpoints.",
+    "rate_limit": "No hard per-second rate limit — Postmark is optimized for high throughput. Large accounts can send millions/hour. 429 responses indicate abuse-detection triggers (e.g., unverified senders).",
+    "error_format": "JSON: {\"ErrorCode\":300,\"Message\":\"...\"} — note PascalCase fields (Postmark uses .NET conventions).",
+    "quickstart_example": "POST https://api.postmarkapp.com/email\nX-Postmark-Server-Token: {server_token}\nContent-Type: application/json\nAccept: application/json\n\n{\"From\":\"hello@yourdomain.com\",\"To\":\"user@example.com\",\"Subject\":\"Hi\",\"TextBody\":\"Hello\",\"MessageStream\":\"outbound\"}\n\nResponse: {\"To\":\"user@example.com\",\"SubmittedAt\":\"...\",\"MessageID\":\"...\",\"ErrorCode\":0,\"Message\":\"OK\"}",
+    "agent_tips": [
+      "Authentication is NOT Bearer — use `X-Postmark-Server-Token` header. Many generic HTTP clients will need custom header config.",
+      "All JSON field names are PascalCase (From, To, TextBody, MessageID) — a Postmark quirk from its .NET roots.",
+      "MessageStream field distinguishes transactional (\"outbound\") from broadcast (\"broadcast\") — mixing them violates Postmark TOS.",
+      "Bounces must be handled — Postmark suppresses auto-retried bounced addresses but expects you to clean your list.",
+      "Postmark's strong point is deliverability — SPF/DKIM setup is enforced before sending, which is why inbox placement is high.",
+      "Batch endpoint (up to 500 messages) is the right choice for newsletters — single /email is for 1-to-1 transactional."
+    ],
+    "docs_url": "https://postmarkapp.com/developer/api/overview"
+  },
+  {
+    "service_id": "neon-db",
+    "base_url": "https://console.neon.tech/api/v2/ (control plane) + postgres:// connection strings (data plane)",
+    "api_version": "v2 (control plane)",
+    "auth_overview": "Bearer token authentication for the control plane (Neon API Key from console). Data plane uses PostgreSQL wire protocol with connection strings — authentication is by database role/password. Neon supports pooled and direct connection strings.",
+    "auth_token_url": null,
+    "auth_scopes": "Account-level (API keys currently grant full account access).",
+    "auth_setup_hint": "1. Go to https://console.neon.tech and create a project. 2. Generate an API Key at Account Settings > API Keys. 3. For data access, copy the connection string from Project > Connection Details — note the difference between \"pooled\" (via pgBouncer) and \"direct\" URLs. 4. The Neon MCP server wraps both control and data planes.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "POST",
+        "path": "/projects",
+        "description": "Create a Neon project (creates a primary branch and compute)",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/projects/{project_id}/branches",
+        "description": "List branches (Neon supports Git-like DB branching)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/projects/{project_id}/branches",
+        "description": "Create a new branch from an existing branch",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/projects/{project_id}/endpoints",
+        "description": "List compute endpoints for a project",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/projects/{project_id}/databases",
+        "description": "Create a database within a project",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Cursor-based: `limit` + `cursor` query params for list endpoints.",
+    "rate_limit": "Control plane: 700 requests/minute per API key. Data plane: bound by compute size (Free tier: 0.25 CU = ~100 connections via pooled URL).",
+    "error_format": "JSON: {\"code\":\"...\",\"message\":\"...\"} for control plane. Standard PostgreSQL errors for data plane.",
+    "quickstart_example": "GET https://console.neon.tech/api/v2/projects\nAuthorization: Bearer {neon_api_key}\n\nResponse: {\"projects\":[{\"id\":\"quiet-snowflake-123\",\"name\":\"My App\",\"region_id\":\"aws-us-east-1\",\"created_at\":\"...\"}]}",
+    "agent_tips": [
+      "Neon's killer feature is DB branching — create a branch of production for testing migrations, then merge back. Branches are near-instant and copy-on-write.",
+      "ALWAYS use the POOLED connection string from serverless/edge functions — direct connections exhaust the connection limit fast.",
+      "Neon auto-suspends compute after inactivity (Free tier: 5 min). The first query after suspend takes 1-3 seconds to wake up.",
+      "Separate control-plane ops (create branch, list projects) from data-plane ops (SELECT, INSERT) — they use different auth.",
+      "For schema migrations across environments, use a new branch per migration and test idempotency before promoting.",
+      "The Neon MCP server is especially useful for agents that need to spin up ephemeral test DBs."
+    ],
+    "docs_url": "https://api-docs.neon.tech/reference/getting-started-with-neon-api"
+  },
+  {
+    "service_id": "upstash",
+    "base_url": "https://api.upstash.com/v2/ (management) + database-specific REST URLs (data plane)",
+    "api_version": "v2 (management) + Redis-over-HTTPS for data",
+    "auth_overview": "Basic authentication for the management API (email:api_key from account settings). Data plane uses per-database REST tokens: each database has a UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN pair; the token goes in the Authorization: Bearer header.",
+    "auth_token_url": null,
+    "auth_scopes": "Management API keys are account-wide. Database REST tokens are scoped to one database.",
+    "auth_setup_hint": "1. Create an account at https://console.upstash.com. 2. Create a database (Redis or Kafka). 3. Copy UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN from the database details page. 4. For admin ops (listing DBs), create an API key at Account > Management API.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "POST",
+        "path": "/v2/redis/database",
+        "description": "[management] Create a new Redis database",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/v2/redis/databases",
+        "description": "[management] List all databases in the account",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "{REST_URL}/set/{key}/{value}",
+        "description": "[data] Set a key (REST command syntax)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "{REST_URL}/get/{key}",
+        "description": "[data] Get a key value",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "{REST_URL}/pipeline",
+        "description": "[data] Pipeline multiple Redis commands in one HTTP call",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json or path-encoded command",
+    "pagination_style": "Management API: typically paginated with `cursor`. Data plane: scan cursor (SCAN command).",
+    "rate_limit": "Free tier: 10,000 commands/day per database, 1,000 requests/sec. Pay-as-you-go scales to millions. Per-second limits are enforced at the REST edge.",
+    "error_format": "JSON: {\"error\":\"...\"} for data plane. {\"error\":\"...\",\"code\":\"...\"} for management.",
+    "quickstart_example": "POST https://{database}-12345.upstash.io/set/session:abc/user_42/EX/3600\nAuthorization: Bearer {REST_TOKEN}\n\nResponse: {\"result\":\"OK\"}",
+    "agent_tips": [
+      "Upstash's REST-over-HTTPS is designed for serverless/edge — no connection pooling needed, unlike regular Redis drivers.",
+      "Use /pipeline to batch multiple commands — one HTTP call instead of N, dramatically reduces latency on edge functions.",
+      "Commands with arguments are path-encoded: /set/{key}/{value}/EX/{ttl} — URL-encode values that contain special chars.",
+      "Global databases (multi-region replication) have eventual consistency — don't use for strongly-consistent session state.",
+      "Free tier is generous enough for hobby projects but 10k commands/day caps early. Monitor in the console.",
+      "Upstash also offers Kafka and QStash — same REST-token model; ideal for serverless event pipelines."
+    ],
+    "docs_url": "https://upstash.com/docs/redis/features/restapi"
+  },
+  {
+    "service_id": "planetscale",
+    "base_url": "https://api.planetscale.com/v1/",
+    "api_version": "v1",
+    "auth_overview": "Service Token authentication (tokens from Organization > Service Tokens), sent in the Authorization header as `Bearer {token_id}:{token_secret}`. Data plane uses MySQL protocol with username/password credentials generated per database.",
+    "auth_token_url": null,
+    "auth_scopes": "Service tokens are scoped with granular permissions: read/write databases, manage branches, run schema migrations.",
+    "auth_setup_hint": "1. In the PlanetScale console, go to Organization > Service Tokens > New. 2. Grant the token access to specific databases. 3. For data access, create a password under Database > Connect and use the MySQL SRV-like connection string. 4. Enable safe migrations mode before applying schema changes.",
+    "sandbox_url": null,
+    "key_endpoints": [
+      {
+        "method": "GET",
+        "path": "/organizations/{org}/databases",
+        "description": "List databases in an organization",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/organizations/{org}/databases",
+        "description": "Create a new database",
+        "auth_required": true
+      },
+      {
+        "method": "GET",
+        "path": "/organizations/{org}/databases/{db}/branches",
+        "description": "List branches (schema isolation)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/organizations/{org}/databases/{db}/deploy-requests",
+        "description": "Create a deploy request (schema migration PR)",
+        "auth_required": true
+      },
+      {
+        "method": "POST",
+        "path": "/organizations/{org}/databases/{db}/branches/{branch}/passwords",
+        "description": "Generate a connection password",
+        "auth_required": true
+      }
+    ],
+    "request_content_type": "application/json",
+    "pagination_style": "Cursor-based: `page` + `per_page`. Response includes `next_page` and `previous_page` tokens.",
+    "rate_limit": "Management API: ~100 requests/min per service token. 429 with Retry-After header. Data plane is bound by compute plan (Scaler Pro and above have higher limits).",
+    "error_format": "JSON: {\"code\":\"...\",\"message\":\"...\",\"errors\":[{\"message\":\"...\",\"field\":\"...\"}]}",
+    "quickstart_example": "GET https://api.planetscale.com/v1/organizations/{org}/databases\nAuthorization: {token_id}:{token_secret}\n\nResponse: {\"data\":[{\"id\":\"...\",\"name\":\"my-db\",\"region\":{\"slug\":\"us-east\"},\"state\":\"ready\"}]}",
+    "agent_tips": [
+      "Auth header format is unusual: `Authorization: {token_id}:{token_secret}` — NO \"Bearer\" prefix, just the two parts separated by a colon.",
+      "PlanetScale enforces schema changes via deploy requests (like PRs for databases) — direct ALTER TABLE on main is blocked.",
+      "Branches are free to create and destroy — use them for migration testing and PR previews.",
+      "Connection passwords are single-use tokens — generate a new one per environment and rotate them regularly.",
+      "PlanetScale doesn't support foreign keys in the default mode (Vitess-native sharding reasons) — schema design must account for this.",
+      "For agents doing schema analysis, list branches and generate read-only passwords scoped to a dev branch."
+    ],
+    "docs_url": "https://api-docs.planetscale.com/"
   }
 ]

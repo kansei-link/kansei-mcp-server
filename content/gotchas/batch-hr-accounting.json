@@ -1,0 +1,218 @@
+{
+  "new-employee-onboarding": [
+    "SmartHR is API-only (no MCP) — employee data contains PII (My Number, address); never log or forward raw payloads to Chatwork messages.",
+    "KING OF TIME shift_pattern IDs are opaque integers that vary per tenant; hard-code a lookup or fetch via /shift_patterns before assigning.",
+    "Chatwork rate limit is 300 req/5 min and messages are plain text only — no Markdown or rich formatting. Use [info][title]...[/title]...[/info] tags for visual structure.",
+    "SmartHR webhook payloads differ between create and update events; always check the event type before mapping fields to KING OF TIME registration."
+  ],
+  "talent-review-workflow": [
+    "SmartHR is API-only; employee list endpoint paginates via cursor — follow the 'next' link in response headers or you will silently miss employees.",
+    "Kaonavi API rate limit is strict at 30 req/min. For bulk evaluation updates, use the batch export endpoint and throttle writes.",
+    "Employee IDs between SmartHR and Kaonavi are not guaranteed to match. Establish a shared key (e.g., email) in your field mapping before syncing.",
+    "Kaonavi evaluation data may contain private performance scores — redact or summarize before posting to Chatwork to avoid PII leaks."
+  ],
+  "attendance-payroll-sync": [
+    "KING OF TIME is API-only; clock-in/out times may include open records (employees who forgot to clock out). Validate all records are closed before exporting.",
+    "freee OAuth token expires every 24 hours — implement automatic token refresh or the monthly payroll import will fail silently.",
+    "Overtime rate calculation must follow Japanese labor law: 25% premium for standard overtime, 50% for late-night (22:00–05:00), 35% for holiday work. Mismatch causes payroll errors.",
+    "freee HR requires company_id on every API call. If your org has multiple freee companies, ensure the correct one is selected for the target payroll."
+  ],
+  "year-end-adjustment": [
+    "SmartHR is API-only; year-end adjustment document types (扶養控除申告書, 保険料控除申告書) use specific API endpoints — the generic employee endpoint won't return them.",
+    "freee HR fiscal year setting determines which tax year endpoints return data. Verify fiscal_year parameter matches the target 年末調整 year.",
+    "Housing loan deduction (住宅ローン控除) requires special handling: first-year submissions go to the tax office directly, not through year-end adjustment.",
+    "Chatwork rate limit is 300 req/5 min — if processing hundreds of employees, batch the completion report into a single message rather than per-employee notifications."
+  ],
+  "smarthr-kintone-onboarding-sync": [
+    "SmartHR is API-only and webhook payloads differ between create/update — filter by employment status '入社予定' to avoid processing existing employee updates.",
+    "kintone field codes are workspace-specific; the onboarding app field codes in staging will differ from production. Externalize field code mapping in config.",
+    "kintone lookup fields cannot be set directly via API — if your checklist template uses lookups, set the source field value instead and let kintone resolve the lookup.",
+    "Slack channel names max 80 characters, must be lowercase with no spaces or Japanese characters. Sanitize employee name to romaji before creating the channel."
+  ],
+  "smarthr-freee-hr-employee-sync": [
+    "SmartHR is API-only with cursor-based pagination — always follow the 'next' link in response headers or you will miss employees beyond the first page.",
+    "freee OAuth token expires every 24 hours. Schedule syncs to refresh the token first, or the upsert step will return 401.",
+    "Employee number formats differ between SmartHR and freee HR. Use email as a secondary match key to avoid creating duplicates when IDs don't align.",
+    "SmartHR employee data is PII-heavy — the Chatwork sync report should only include counts and error summaries, never names or personal details."
+  ],
+  "jobcan-slack-attendance-alert": [
+    "Jobcan is API-only with Basic Auth using an API key. Rate limit is 100 req/min — if polling multiple departments, stagger requests to avoid 429 errors.",
+    "Jobcan department IDs are numeric and do not match Slack channel IDs. Maintain a department-to-channel mapping in config and keep it updated when org changes occur.",
+    "Attendance anomaly definitions (late, missing clock-out, overtime threshold) must be configured in your logic — Jobcan API returns raw records, not pre-classified anomalies.",
+    "Slack bot must be invited to each target channel before posting. Use conversations.join or manually invite the bot to all manager channels during setup."
+  ],
+  "kingoftime-freee-overtime-journal": [
+    "KING OF TIME is API-only; overtime classification distinguishes 法定内 (statutory within) and 法定外 (statutory excess) with different multiplier rates (1.25x vs 1.35x for 60+ hours/month).",
+    "freee OAuth token expires every 24 hours and company_id is required on every call. Refresh the token and validate company_id before posting journal entries.",
+    "Always reverse the previous month's overtime accrual entry before posting the new one to avoid double-counting in freee's ledger.",
+    "KING OF TIME returns overtime hours in decimal format (2.5 = 2h30m). Convert to yen amounts using configured hourly rates before creating the freee journal entry."
+  ],
+  "officestation-smarthr-insurance-sync": [
+    "SmartHR webhooks may fire before all related fields are updated. Add a short delay (5+ seconds) before fetching employee details to ensure data consistency.",
+    "OfficeStation form fields must match e-Gov format exactly — My Number (マイナンバー) handling requires encryption in transit and must never appear in Chatwork notifications.",
+    "SmartHR webhook payloads differ between create and update events. Map change_type to the correct OfficeStation form type (取得届 for hire, 喪失届 for termination, 変更届 for changes).",
+    "Chatwork rate limit is 300 req/5 min and only supports plain text. Never include employee PII (My Number, insurance numbers) in notification messages."
+  ],
+  "talentio-slack-interview-schedule": [
+    "Talentio API is invite-only — you must contact Talentio support to enable API access before this recipe can work. There is no self-service API key generation.",
+    "Slack users.lookupByEmail may fail if interviewers use different email addresses in Slack vs Talentio. Maintain an explicit email mapping table.",
+    "Google Calendar API requires the calendar write scope and service account domain-wide delegation must be configured for the calendar to create events on behalf of users.",
+    "Candidate names and interview details are sensitive recruiting data. Avoid posting candidate full names in public Slack channels — use DMs to interviewers only."
+  ],
+  "kaonavi-smarthr-talent-sync": [
+    "Kaonavi API rate limit is strict at 30 req/min. Use the bulk export endpoint for large evaluation datasets instead of per-employee calls.",
+    "SmartHR custom field groups must be pre-created in the SmartHR admin console. The API will return 422 if the target field group ID does not exist.",
+    "Employee ID formats differ between Kaonavi and SmartHR. Establish a shared unique key (email or employee number) in your mapping configuration.",
+    "Evaluation data contains sensitive performance information classified as PII under Japanese privacy law. Ensure API calls use HTTPS and never cache scores in plain text."
+  ],
+  "freee-hr-jobcan-leave-sync": [
+    "freee HR leave balance API returns balances as of the query date but does not reflect pending/unapproved leave requests. Warn users about potential discrepancies.",
+    "Jobcan leave types (有休, 特別休暇, 代休, etc.) must be manually mapped to freee HR leave categories. Mismatched types will silently fail or overwrite wrong balances.",
+    "freee OAuth token expires every 24 hours. If this sync runs on a daily schedule, implement token refresh at the start of each run.",
+    "Jobcan is API-only with a rate limit of 100 req/min. For organizations with 100+ employees, batch the balance updates to stay under the limit."
+  ],
+  "smarthr-garoon-employee-directory": [
+    "SmartHR is API-only; the employee list may include inactive/terminated employees. Filter by employment_status = 'employed' before syncing to Garoon.",
+    "Garoon address book API requires cybozu.com admin privileges. For on-premises Garoon versions, the XML-based API must be used instead of the REST API.",
+    "SmartHR employee data is PII-heavy (phone, address, email). Only sync fields that belong in a corporate directory — omit salary, My Number, and personal details.",
+    "Garoon does not support upsert natively. Query existing entries by employee ID first, then decide whether to create or update to avoid duplicate directory entries."
+  ],
+  "freee-smarthr-payroll-sync": [
+    "SmartHR is API-only and the payroll endpoint requires the 'payroll' OAuth scope. Verify the OAuth token has this scope or the export will return 403.",
+    "freee OAuth token expires every 24 hours and requires company_id on every call. Refresh token and confirm company_id before creating journal entries.",
+    "SmartHR deduction categories (法定福利費, 給与手当) must be mapped to freee account codes. If target accounts don't exist in freee's chart of accounts, journal creation will fail.",
+    "Payroll data is highly sensitive PII. The Slack notification should only include employee count and totals — never individual salary amounts or names."
+  ],
+  "smarthr-slack-onboarding-checklist": [
+    "SmartHR is API-only; the webhook fires on employee status change to 在籍. Check employment_type to differentiate part-time vs full-time checklist templates.",
+    "Slack channel names max 80 characters, must be lowercase with no spaces. Japanese characters in employee names must be converted to romaji or initials.",
+    "Slack conversations.invite requires the bot to already be a member of the channel. Call conversations.join first, then invite HR team, manager, and buddy.",
+    "SmartHR webhook payloads differ between create and update events. Deduplicate to avoid creating multiple onboarding channels for the same employee."
+  ],
+  "kingoftime-smarthr-overtime-report": [
+    "KING OF TIME is API-only; overtime hours come in decimal format (e.g., 2.5 = 2h30m). Convert to the format SmartHR custom fields expect before updating.",
+    "SmartHR custom field for overtime must be number type. If the field group ID or field code is wrong, the API returns a generic 422 with no helpful message.",
+    "36 Agreement (三六協定) limits are 45h/month and 360h/year by default. Your alert threshold should trigger before hitting the legal limit (e.g., at 40h/month, 320h/year).",
+    "Both KING OF TIME and SmartHR are API-only with no MCP. Build retry logic for both APIs as neither provides webhook delivery guarantees."
+  ],
+  "smarthr-line-works-hr-announce": [
+    "SmartHR is API-only; the announcements API may require SmartHR Plus (add-on) and custom webhook setup. Verify your plan includes this feature.",
+    "LINE WORKS Bot API v2 has rate limits per bot — distribute messages to department groups sequentially with a delay between each to avoid throttling.",
+    "SmartHR department IDs must be mapped to LINE WORKS group IDs in configuration. Keep this mapping updated when organization restructures occur.",
+    "LINE WORKS message API has a 5000 character limit per message. Truncate long HR announcements and include a link to the full text in SmartHR."
+  ],
+  "kintone-kingoftime-attendance": [
+    "KING OF TIME is API-only; check for open records (employees who forgot to clock out) before importing — incomplete records will cause data integrity issues in kintone.",
+    "kintone field codes are workspace-specific and change between environments. Externalize the attendance app field code mapping in config, not in code.",
+    "kintone does not support native upsert. Query by employee_id + date composite key first, then add or update to avoid duplicate attendance rows.",
+    "Chatwork rate limit is 300 req/5 min. Send anomaly alerts only when issues exist, and batch all anomalies into a single message rather than per-employee notifications."
+  ],
+  "invoice-processing": [
+    "freee OAuth token expires every 24 hours. If invoice creation and MoneyForward journaling span separate scheduled runs, both tokens must be refreshed independently.",
+    "freee amounts are in JPY (integers, no decimals). MoneyForward journal entry format differs from freee — map the debit/credit structure before posting.",
+    "freee requires company_id on every API call. If you manage multiple companies, ensure the invoice is created under the correct company context.",
+    "Japanese consumption tax has two rates (10% standard, 8% reduced for food/beverages). Ensure line items use the correct tax_rate or the 適格請求書 will be non-compliant."
+  ],
+  "stripe-freee-payment-sync": [
+    "Stripe JP amounts for JPY are already in whole yen (amount=1000 means ¥1000, NOT ¥10). Do not divide by 100 — this is the most common integration bug.",
+    "freee OAuth token expires every 24 hours and company_id is required on every call. Implement auto-refresh and validate company_id before posting journals.",
+    "Record Stripe processing fee (typically 3.6% for domestic cards) as 支払手数料 in a separate expense line. Net amount = payment amount minus fee.",
+    "Stripe test keys (sk_test_*) and live keys (sk_live_*) hit different environments. Verify you are using live keys in production to avoid missing real payments."
+  ],
+  "freee-cloudsign-invoice-esign": [
+    "CloudSign document status transitions are strict: draft → sent → agreed. You cannot skip steps or move backwards. Send only after confirming the draft is complete.",
+    "freee OAuth token expires every 24 hours. If invoice creation and CloudSign envelope happen in separate sessions, refresh the freee token before updating invoice status.",
+    "CloudSign free plan limits to 5 documents per month. Check remaining quota via API before creating the envelope to avoid a hard failure.",
+    "Ensure freee invoice uses 適格請求書 (qualified invoice) format for Invoice System compliance. Missing registration number will make the e-signed document non-compliant."
+  ],
+  "square-freee-pos-accounting": [
+    "Square amounts are in JPY (integers). freee also expects JPY integers — no currency conversion needed, but verify both sides agree on tax-inclusive vs tax-exclusive totals.",
+    "freee OAuth token expires every 24 hours and company_id is required. Refresh before the daily journal post or the entire day's sales will fail to record.",
+    "Split journal entries by payment method: cash → 現金 (debit), card/QR → 売掛金 (debit), total → 売上高 (credit). Missing this split makes bank reconciliation impossible.",
+    "Chatwork rate limit is 300 req/5 min and supports plain text only. Use [info] tags for the daily summary, and format ¥ amounts with comma separators for readability."
+  ],
+  "square-moneyforward-daily-sales": [
+    "Square API uses UTC timestamps. Convert to JST (UTC+9) for date boundaries or you will split a single business day's sales across two journal entries.",
+    "MoneyForward OAuth behaves similarly to freee but journal entry format differs. Ensure debit/credit structure matches MoneyForward's expected schema, not freee's.",
+    "Square processing fees must be recorded separately as 支払手数料. MoneyForward requires balanced debit/credit entries — omitting fees will cause an imbalanced journal error.",
+    "Square amounts are in JPY (integers). MoneyForward also expects integers — do not introduce decimal amounts or the journal entry will be rejected."
+  ],
+  "stripe-freee-recurring-sync": [
+    "Stripe JP amounts for JPY have NO decimal conversion — amount=1000 means ¥1000. Do not divide by 100 or subscription revenue will be recorded at 1% of actual value.",
+    "Stripe webhook signature verification requires the endpoint secret (STRIPE_WEBHOOK_SECRET). Without it, you cannot distinguish legitimate events from spoofed payloads.",
+    "freee OAuth token expires every 24 hours. For webhook-triggered flows, implement token refresh within the handler or recurring payments will fail to journal after 24h.",
+    "For subscription revenue recognition, record the journal entry date as the invoice period_start, not the payment date, to comply with Japanese accrual accounting rules."
+  ],
+  "stripe-moneyforward-refund-sync": [
+    "Stripe sends the same charge.refunded event type for both full and partial refunds. Always check refund.amount vs original charge.amount to determine the correct reversal amount.",
+    "Stripe JP amounts for JPY have NO decimal conversion — amount=1000 means ¥1000. Apply the same logic to refund amounts.",
+    "MoneyForward requires a 売上返品 or 返金 account in the chart of accounts. Verify this account exists before creating the reversal entry or the API will return a validation error.",
+    "Stripe test keys (sk_test_*) generate test refund events. Ensure your webhook endpoint filters by key environment to avoid posting test refunds to production MoneyForward."
+  ],
+  "gmo-pg-freee-payment-notify": [
+    "GMO-PG callbacks use form-encoded POST (not JSON). Your webhook handler must parse application/x-www-form-urlencoded or the payment data will be empty.",
+    "Verify GMO-PG callbacks using the shop password hash. Without signature verification, malicious actors can forge payment success notifications.",
+    "GMO-PG settlement is batched (not real-time). Record the transaction date as the payment date, not the settlement date, to maintain accurate freee accounting records.",
+    "freee OAuth token expires every 24 hours and company_id is required. For webhook-driven flows, implement token refresh within the handler to avoid 401 failures."
+  ],
+  "linepay-freee-settlement-sync": [
+    "LINE Pay settlement API requires a Payment API key, not the Channel API key used for messaging. Using the wrong key returns a confusing authentication error.",
+    "LINE Pay fees include consumption tax. The freee journal entry must separate the fee base amount and its tax component, or tax reporting will be inaccurate.",
+    "freee OAuth token expires every 24 hours and company_id is required on every call. Refresh before processing each settlement batch.",
+    "LINE Pay settlements aggregate multiple transactions. Map settlement_id to individual transaction IDs if you need per-transaction reconciliation in freee."
+  ],
+  "paidy-moneyforward-bnpl-accounting": [
+    "Paidy webhook requires HMAC-SHA256 signature verification. Store the secret key securely (env var, not in code) and validate every incoming payload.",
+    "Paidy settlement timing is typically 2 business days after month-end. Set the receivable due date in MoneyForward to the actual settlement date, not the purchase date.",
+    "MoneyForward OAuth token management mirrors freee — token refresh is required. Implement auto-refresh or scheduled BNPL recording will fail on expired tokens.",
+    "Paidy captures may be partial. Always use the capture amount from the webhook payload, not the original order amount, for the MoneyForward receivable entry."
+  ],
+  "freee-slack-expense-approval": [
+    "freee expense webhooks require Business plan or higher. If on a lower tier, this recipe will not receive trigger events.",
+    "freee OAuth token expires every 24 hours. Both the webhook handler (read expense) and approval updater (write status) need valid tokens — refresh proactively.",
+    "Slack interactive message payloads must be acknowledged within 3 seconds or the button click will appear to fail. Send an immediate 200 response, then process the approval asynchronously.",
+    "Slack interactive messages require a Request URL configured in your Slack app settings. Without it, button clicks are silently dropped."
+  ],
+  "freee-kintone-invoice-dashboard": [
+    "freee invoices API returns max 100 records per page. Implement offset-based pagination or the dashboard will only show the first 100 invoices.",
+    "freee OAuth token expires every 24 hours and company_id is required. Refresh before each sync run or the scheduled dashboard update will fail.",
+    "kintone does not support native upsert. Query existing records by freee invoice_id first, then add or update to avoid duplicate rows in the dashboard app.",
+    "kintone field codes are workspace-specific. Map freee invoice fields to kintone field codes in configuration — hard-coding field codes will break across environments."
+  ],
+  "freee-cloudsign-nda-workflow": [
+    "CloudSign document status transitions are strict: draft → sent → agreed. You must create as draft first, then explicitly send. Attempting to send a non-draft document will fail.",
+    "freee OAuth token expires every 24 hours and the partner API uses company_id scope. Ensure the token belongs to the correct freee company before retrieving partner data.",
+    "CloudSign template placeholders must exactly match the field names passed via API. Test with draft mode first to verify placeholder mapping before sending live NDAs.",
+    "CloudSign free plan limits to 5 documents per month. For bulk NDA generation, check remaining quota before each send to avoid hard failures mid-batch."
+  ],
+  "yayoi-box-receipt-archive": [
+    "Yayoi API (via Misoca) uses separate OAuth credentials from Yayoi desktop software. Ensure you are using cloud version credentials — desktop license keys will not work.",
+    "Box folder auto-creation may fail if the parent folder does not exist. Create the year folder first, then the month subfolder, in two sequential API calls.",
+    "Receipt images from Yayoi may be large. Box upload has a 50MB file size limit per single upload; use chunked upload API for larger receipt batches.",
+    "Japanese e-Tax law (電子帳簿保存法) requires receipt archives to be tamper-proof. Enable Box's content retention policy on the archive folder to prevent accidental deletion."
+  ],
+  "smaregi-freee-pos-journal": [
+    "Smaregi API uses a contract-specific subdomain (e.g., api.smaregi.dev/{contract_id}/). Ensure the base URL includes your contract ID or all requests will 404.",
+    "freee OAuth token expires every 24 hours and company_id is required. Refresh before the daily journal post or the entire day's POS data will fail to record.",
+    "Map Smaregi product categories to freee account items (勘定科目) in advance. Unmapped categories will either fail or land in a catch-all account, making reconciliation difficult.",
+    "Smaregi and freee both use JPY integers, but Smaregi may include tax-exclusive amounts while freee expects tax-inclusive. Confirm tax handling alignment before posting."
+  ],
+  "make-freee-google-sheets-report": [
+    "freee OAuth token expires every 24 hours. Make (Integromat) must refresh the token before each scheduled scenario run — configure the freee connection with refresh token enabled.",
+    "freee reports API may timeout for large datasets (full fiscal year trial balance). Use start_date/end_date filters to narrow the query and avoid 504 errors.",
+    "Make scenario execution timeout is 40 minutes. For large financial reports, split data extraction into multiple Make runs to avoid hitting the timeout.",
+    "Google Sheets API has a rate limit of 100 requests per 100 seconds. Use batch update (values.batchUpdate) instead of cell-by-cell writes for the report population."
+  ],
+  "salesforce-freee-deal-invoice": [
+    "freee requires a trading partner (取引先) to exist before creating an invoice. Use the partner API to search-and-create if the Salesforce account doesn't yet exist in freee.",
+    "freee OAuth token expires every 24 hours and company_id is required. Salesforce process builder may trigger at any time — ensure token refresh is automated, not manual.",
+    "Salesforce opportunity amounts may be in a non-JPY currency. Convert to JPY integers before passing to freee — freee does not accept decimal amounts or non-JPY currencies.",
+    "The custom field 'freee_invoice_id__c' must be pre-created in the Salesforce schema. The API will silently ignore writes to non-existent custom fields."
+  ],
+  "base-ec-freee-order-accounting": [
+    "BASE API uses OAuth2 with a 30-day access token and 60-day refresh token. Implement auto-refresh well before expiry — if the refresh token expires, re-authorization requires manual user intervention.",
+    "BASE includes shipping fees in the order total. Separate shipping into its own freee account (発送手数料) or shipping revenue will be incorrectly classified as product sales.",
+    "freee OAuth token expires every 24 hours and company_id is required. Both BASE and freee tokens must be valid simultaneously for the sync to work.",
+    "Japanese consumption tax has two rates (10% standard, 8% reduced for food). BASE order items may mix rates — ensure each freee line item carries the correct tax_rate classification."
+  ]
+}

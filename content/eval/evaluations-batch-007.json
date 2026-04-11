@@ -1,0 +1,199 @@
+[
+  {
+    "id": "discord",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "discord.com/developers/docs は正規だがガイドなし。bot token vs OAuth の区別、gateway intents、slash commands 登録の複雑性が非自明で外部検索必須。"
+  },
+  {
+    "id": "telegram-bot",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "core.telegram.org/bots/api は正規で非常に有名だがガイドなし。BotFather で token 取得の導線は比較的単純だが KanseiLink 上は何もない。"
+  },
+  {
+    "id": "whatsapp-business",
+    "grade": "C",
+    "dims": [5, 2, 3, 3, 3],
+    "facade": false,
+    "note": "Meta Cloud API、developers.facebook.com は正規だがガイドなし。WABA 取得 + Business Manager 承認 + テンプレート審査など setup が非常に重く、外部情報への依存大。"
+  },
+  {
+    "id": "twitch-api",
+    "grade": "C",
+    "dims": [4, 3, 3, 3, 3],
+    "facade": false,
+    "note": "dev.twitch.tv/docs/api は正規だがガイドなし。ビジネス用途よりゲーム/配信向けで JP SaaS 文脈との relevance 低い。"
+  },
+  {
+    "id": "linear",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "CRITICAL: Personal API key は『Authorization: {key}』(Bearer なし)、OAuth token は『Bearer {token}』(あり) という 401 量産級の罠を tips で警告。GraphQL only 哲学、teamId scope 推奨、complexity 計算式まで完璧。"
+  },
+  {
+    "id": "jira",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "developer.atlassian.com/cloud/jira v3 は正規だがガイドなし。ADF (Atlassian Document Format) の学習コスト、project/issue key のパターン、JQL など多数の非自明要素あり。"
+  },
+  {
+    "id": "monday-com",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "developer.monday.com は正規だがガイドなし。GraphQL only、column_values の型別扱いが非自明で実装時ハマりどころ多数。"
+  },
+  {
+    "id": "figma",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "figma.com/developers は正規だがガイドなし。Dev Mode MCP (別物) の存在が混乱を招きやすい。Personal Access Token vs OAuth の区別も非自明。"
+  },
+  {
+    "id": "canva-api",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "canva.dev/docs/connect は正規だがガイドなし。Connect API は比較的新しく、Design Autofill など主要機能の実装情報は外部依存。"
+  },
+  {
+    "id": "miro",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "developers.miro.com は正規だがガイドなし。board items (sticky, shape, frame, card) の型ごとの差分が非自明。"
+  },
+  {
+    "id": "airtable",
+    "grade": "C",
+    "dims": [5, 3, 3, 4, 3],
+    "facade": false,
+    "note": "airtable.com/developers/web/api は正規、community MCP もあるがガイドなし。field type による値の形式差、filterByFormula の関数リストなど実装時に外部検索必須。"
+  },
+  {
+    "id": "coda",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "coda.io/developers は正規だがガイドなし。doc/table/column ID の取得順序、formula reference の複雑性が非自明。"
+  },
+  {
+    "id": "google-sheets-api",
+    "grade": "C",
+    "dims": [5, 3, 3, 4, 4],
+    "facade": false,
+    "note": "developers.google.com/sheets/api は正規、community MCP ありだがガイドなし。A1 notation vs GridRange の使い分け、batchUpdate の request array 構造が非自明で外部検索必須。"
+  },
+  {
+    "id": "calendly",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "developer.calendly.com は正規だがガイドなし。OAuth2 + Personal Access Token の 2 系統あり、webhook の subscription 作成は非自明。"
+  },
+  {
+    "id": "loom",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "dev.loom.com/docs は正規だがガイドなし。transcripts API 利用パターンは外部検索必須。"
+  },
+  {
+    "id": "mailchimp",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "mailchimp.com/developer/marketing は正規だがガイドなし。datacenter prefix (us1/us2...) が API URL に埋め込まれる奇妙な仕様、audience_id の MD5 email hash subscriber 識別が非自明。"
+  },
+  {
+    "id": "resend",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "DX 重視の新世代メール API。re_ token、DNS 検証 5-15 分待ちの現実的警告、React Email 統合、batch 100 件/request の仕様明記。SendGrid 比較での使い分けガイダンスも実用的。"
+  },
+  {
+    "id": "postmark",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: X-Postmark-Server-Token header (Bearer ではない)、JSON field が PascalCase (.NET ルーツ)、MessageStream の outbound/broadcast 分離 (TOS 違反警告) までドメイン特有の罠を完璧カバー。"
+  },
+  {
+    "id": "convertkit",
+    "grade": "C",
+    "dims": [4, 3, 3, 3, 3],
+    "facade": false,
+    "note": "developers.convertkit.com は正規だがガイドなし。クリエイター特化で JP SaaS 文脈の relevance は低め。"
+  },
+  {
+    "id": "pagerduty",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "developer.pagerduty.com は正規だがガイドなし。Events API v2 vs REST API v2 の使い分け、incident key の dedup 仕様が非自明。"
+  },
+  {
+    "id": "grafana-cloud",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "grafana.com/docs/grafana-cloud は正規だがガイドなし。Prometheus/Loki/Tempo の各 HTTP API と Cloud API の切り分けが非自明。"
+  },
+  {
+    "id": "new-relic",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "docs.newrelic.com は正規だがガイドなし。NerdGraph (GraphQL) vs REST の 2 系統、NRQL の学習コスト大。"
+  },
+  {
+    "id": "cloudflare",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "Token (scoped) vs API key + email の legacy の違いを明示、CRITICAL: HTTP 200 でも 'success' field 確認必須 (Slack と同じパターン)、Zone ID 前提取得、rate limit 5分単位まで具体的。"
+  },
+  {
+    "id": "shopify-global",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": true,
+    "facade_reason": "shopify-jp と同じ shopify.dev/docs/api を参照しながらガイドなし。shopify-jp に全部任せる設計なら独立エントリの意味が薄い。",
+    "note": "shopify-jp がフル guide を持っているので、グローバル版は重複感がある。"
+  },
+  {
+    "id": "woocommerce",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "WordPress プラグインで self-hosted 前提、各ショップの base URL が異なるという最大の罠がガイドなしでは伝わらない。consumer key/secret の basic auth パターンも外部検索必須。"
+  },
+  {
+    "id": "lemonsqueezy",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 3],
+    "facade": false,
+    "note": "docs.lemonsqueezy.com は正規だがガイドなし。MoR モデルで税務を代行する特殊性、JSON:API 準拠という API 設計哲学が非自明。"
+  },
+  {
+    "id": "gumroad",
+    "grade": "C",
+    "dims": [4, 3, 3, 3, 3],
+    "facade": false,
+    "note": "app.gumroad.com/api は正規だがガイドなし。OAuth の scope 粒度が粗い、products/sales の polling パターンが非自明。"
+  },
+  {
+    "id": "pipedrive",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 3],
+    "facade": false,
+    "note": "API token を query param で渡す簡易方式を明示。CRITICAL: 全 response に 'success' bool 必須確認、custom field が hash key (例: abc123_custom_field) で /dealFields での事前マッピング必要という罠を tips で警告。"
+  }
+]

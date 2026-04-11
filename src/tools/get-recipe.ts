@@ -8,6 +8,7 @@ interface RecipeRow {
   description: string | null;
   steps: string;
   required_services: string;
+  gotchas: string | null;
 }
 
 interface ServiceInfo {
@@ -134,6 +135,17 @@ export function getRecipes(
         error_hint: string;
       }>;
       const requiredServices = JSON.parse(recipe.required_services) as string[];
+      // gotchas: Tier-B KanseiLink integration warnings (may be missing in
+      // legacy rows); default to empty array.
+      let gotchas: string[] = [];
+      if (recipe.gotchas) {
+        try {
+          const parsed = JSON.parse(recipe.gotchas);
+          if (Array.isArray(parsed)) gotchas = parsed;
+        } catch {
+          // ignore malformed JSON; keep gotchas empty
+        }
+      }
 
       // Enrich steps with service info
       const enrichedSteps = steps.map((step) => {
@@ -166,6 +178,7 @@ export function getRecipes(
           available: availableSet.size > 0 ? availableSet.has(id) : null,
         })),
         coverage_percent: coverage,
+        gotchas,
       };
     })
     .sort((a, b) => (b.coverage_percent ?? 0) - (a.coverage_percent ?? 0));

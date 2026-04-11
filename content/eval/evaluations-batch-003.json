@@ -1,0 +1,144 @@
+[
+  {
+    "id": "base-ec",
+    "grade": "A",
+    "dims": [5, 5, 4, 5, 3],
+    "facade": false,
+    "note": "日本向け EC の標準。OAuth 手順明示、CRITICAL: JSON 非対応 form-urlencoded のみ、access_token 30 日失効 → refresh 必須、内税管理など実装上の罠を全て tips 化。"
+  },
+  {
+    "id": "stores-jp",
+    "grade": "C",
+    "dims": [4, 3, 2, 2, 3],
+    "facade": false,
+    "note": "developers.stores.jp は正規だがガイドなし。POS 併用まで視野に入る有力サービスなのに、KanseiLink 上の情報だけではエージェントは動けない。"
+  },
+  {
+    "id": "rakuten",
+    "grade": "C",
+    "dims": [4, 2, 3, 2, 3],
+    "facade": true,
+    "facade_reason": "semantic_mismatch 検知済み。『楽天市場』と書きながら community MCP は Travel だけ。説明と実体が乖離。",
+    "note": "楽天ブランドの強さで B っぽく見えるが、実質は外部検索必須。Ichiba/Books/Travel/Recipe が別 API で統一性なし。"
+  },
+  {
+    "id": "amazon-jp",
+    "grade": "C",
+    "dims": [5, 2, 2, 3, 3],
+    "facade": false,
+    "note": "SP-API は世界的に知名度ありガイド外部に豊富だが、KanseiLink 上は third-party MCP 名だけ。SP-API の OAuth/LWA は非自明で外部検索必須。"
+  },
+  {
+    "id": "cloudsign",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "日本 No.1 電子契約。CRITICAL: X-Api-Key + X-Client-Id の 2 ヘッダー必須、sandbox は非法的拘束、workflow (create → participants → upload → send → sign) 明示。弁護士ドットコム信頼性。"
+  },
+  {
+    "id": "gmosign",
+    "grade": "D",
+    "dims": [3, 2, 2, 1, 3],
+    "facade": false,
+    "note": "No.2 電子契約だがガイドなし、api_url は www.gmosign.com (会社 TOP)。政府グレードセキュリティで信頼はあるが API 情報ゼロ。"
+  },
+  {
+    "id": "docusign-jp",
+    "grade": "C",
+    "dims": [5, 3, 3, 2, 3],
+    "facade": false,
+    "note": "developers.docusign.com は正規だがガイドなし。グローバル e-sign の雄だが KanseiLink 上の情報では動かない。"
+  },
+  {
+    "id": "legalon",
+    "grade": "D",
+    "dims": [4, 2, 2, 1, 3],
+    "facade": false,
+    "note": "AI 契約書レビューの有力サービスだがガイドなし、api_url は legalon-cloud.jp (会社 TOP)。"
+  },
+  {
+    "id": "sendgrid",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "Twilio 系。CRITICAL: 202 Accepted だが EMPTY body という罠を先頭で警告。sender verification 必須、SPF/DKIM/DMARC 影響、sandbox_mode 全部完備。"
+  },
+  {
+    "id": "treasure-data",
+    "grade": "C",
+    "dims": [5, 3, 2, 3, 3],
+    "facade": true,
+    "facade_reason": "official MCP と謳うがガイド null。PLAUD 共同事業の宣伝だけで、接続手順ゼロ。",
+    "note": "CDP としては魅力的だが、エージェントが触れない。docs.treasuredata.com への外部検索必須。"
+  },
+  {
+    "id": "plaud",
+    "grade": "D",
+    "dims": [3, 2, 2, 1, 2],
+    "facade": false,
+    "note": "ガイドなし、api_url は plaud.ai (会社 TOP)。AI meeting recorder として新興、third-party MCP の具体情報ゼロ。"
+  },
+  {
+    "id": "formrun",
+    "grade": "D",
+    "dims": [3, 2, 2, 1, 2],
+    "facade": false,
+    "note": "ガイドなし、api_url は form.run (会社 TOP)。フォーム+顧客管理の国産 SaaS だが接続情報なし。"
+  },
+  {
+    "id": "google-workspace",
+    "grade": "B",
+    "dims": [5, 3, 3, 4, 4],
+    "facade": false,
+    "note": "Gmail/Drive/Calendar/Admin 各 API ごとに scope/rate limit が異なり一括化できない。GCP Console での project/OAuth/service account 作成 + domain-wide delegation という admin 依存ステップが重い。"
+  },
+  {
+    "id": "misoca",
+    "grade": "A",
+    "dims": [5, 4, 5, 5, 3],
+    "facade": false,
+    "note": "弥生グループ、弥生 ID 必須の前提を tips で明示。インボイス制度対応、PDF バイナリレスポンスの Content-Type 警告も具体的。4 endpoints と少ないが請求書用途なら十分。"
+  },
+  {
+    "id": "wrike",
+    "grade": "C",
+    "dims": [4, 3, 3, 2, 3],
+    "facade": false,
+    "note": "community MCP で 8 tools と記載あるがガイドなし。developers.wrike.com は正規 URL だが KanseiLink 上では動けない。"
+  },
+  {
+    "id": "freee-hr",
+    "grade": "A+",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "freee accounting と同一 MCP/同一 OAuth 共有を明示 — これは AUC (API Unit Consolidation) の模範例。company_id 必須、姓/名 順序、同一 rate pool など兄弟サービスならではの効率案内。"
+  },
+  {
+    "id": "box-jp",
+    "grade": "A",
+    "dims": [5, 4, 4, 5, 4],
+    "facade": false,
+    "note": "No.1 エンタープライズストレージ。JWT auth が推奨と明示、CRITICAL: Admin Console 承認しないと silently fail する罠、root folder ID = '0' fixed など重要 tips 完備。setup は 5 ステップとやや長い。"
+  },
+  {
+    "id": "google-drive",
+    "grade": "C",
+    "dims": [5, 3, 3, 3, 4],
+    "facade": false,
+    "note": "Google brand で安心感はあるが、ガイドなし。modelcontextprotocol/server-gdrive の記載だけ。Google Workspace guide とリンクされていれば B だが、独立サービスとして見ると情報不足。"
+  },
+  {
+    "id": "dropbox-business",
+    "grade": "A",
+    "dims": [5, 4, 5, 5, 3],
+    "facade": false,
+    "note": "CRITICAL: 全 endpoint が POST (read も) RPC-style という API 哲学を先頭で警告。file path 先頭 / と case-insensitive、upload 専用ドメイン (content.dropboxapi.com) も明記。"
+  },
+  {
+    "id": "zendesk",
+    "grade": "A",
+    "dims": [5, 5, 5, 5, 4],
+    "facade": false,
+    "note": "CRITICAL: auth format {email}/token:{api_token} という特殊記法を警告。subdomain 必須、検索 DSL (type:ticket status:open)、プラン別 rate limit (400-2500/min) まで実践的。"
+  }
+]

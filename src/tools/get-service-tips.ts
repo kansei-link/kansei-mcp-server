@@ -168,8 +168,24 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     .all(serviceId) as RecentOutcomeRow[];
 
   // Build auth section
+  //
+  // IMPORTANT: `auth_method === 'none'` is the AGENT-FRIENDLY case, not an
+  // "undocumented" case. Never return a "not documented yet" note for it —
+  // that makes agents mistake a no-auth public service for a broken one.
+  //
+  // Agent-friendliness ordering:
+  //   none   → ★ best (no token, no refresh, no rotation, no secret store)
+  //   oauth2 → standard (refresh flow but well understood)
+  //   bearer → standard
+  //   api_key→ requires secure storage + rotation
+  //   missing→ actually unknown (the worst case for an agent)
   const auth: Record<string, unknown> = {};
-  if (guide) {
+  if (service.api_auth_method === "none") {
+    auth.type = "none";
+    auth.agent_friendly = true;
+    auth.note =
+      "認証不要 — そのまま利用可能。トークン管理・リフレッシュ・ローテーション不要。 (No auth required — ready to use. No token management, refresh, or rotation needed.)";
+  } else if (guide) {
     auth.type = guide.auth_overview;
     if (guide.auth_token_url) auth.token_url = guide.auth_token_url;
     if (guide.auth_scopes) auth.scopes = guide.auth_scopes;
@@ -177,7 +193,8 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     if (guide.sandbox_url) auth.sandbox_url = guide.sandbox_url;
   } else if (service.api_auth_method) {
     auth.type = service.api_auth_method;
-    auth.note = "Detailed auth guide not yet available. Check docs_url for setup instructions.";
+    auth.note =
+      "Detailed auth guide not yet available. Check docs_url for setup instructions.";
   } else {
     auth.type = "unknown";
     auth.note = "Auth method not documented yet.";
