@@ -18,7 +18,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createServer } from "./server.js";
-import { closeDb } from "./db/connection.js";
+import { getDb, closeDb } from "./db/connection.js";
+import { initializeDb } from "./db/schema.js";
 import {
   handleStripeWebhook,
   handleAccessCheck,
@@ -30,6 +31,10 @@ const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
 
 const app = express();
+
+// ─── Database Initialization ─────────────────────────────────────
+// Ensure all tables (including subscriptions) exist before handling requests
+initializeDb(getDb());
 
 // ─── Security Hardening ───────────────────────────────────────────
 // Helmet: sets secure HTTP headers (CSP, HSTS, X-Frame-Options, etc.)
