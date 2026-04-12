@@ -14,6 +14,8 @@
 
 import express from "express";
 import type { Request, Response } from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createServer } from "./server.js";
 import { closeDb } from "./db/connection.js";
@@ -28,6 +30,29 @@ const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
 
 const app = express();
+
+// ─── Security Hardening ───────────────────────────────────────────
+// Helmet: sets secure HTTP headers (CSP, HSTS, X-Frame-Options, etc.)
+app.use(helmet());
+
+// Rate limiting — general (100 req/min per IP)
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+});
+app.use(generalLimiter);
+
+// Strict rate limit for sensitive API endpoints (20 req/min per IP)
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many API requests, please try again later." },
+});
 
 // Stripe webhook needs raw body for signature verification — must be before express.json()
 app.post("/webhooks/stripe", express.raw({ type: "application/json" }), handleStripeWebhook);
@@ -59,9 +84,9 @@ app.get("/api/config", (_req: Request, res: Response) => {
     },
   });
 });
-app.get("/api/access", handleAccessCheck);
-app.post("/api/checkout", handleCreateCheckout);
-app.post("/api/portal", handleCustomerPortal);
+app.get("/api/access", apiLimiter, handleAccessCheck);
+app.post("/api/checkout", apiLimiter, handleCreateCheckout);
+app.post("/api/portal", apiLimiter, handleCustomerPortal);
 
 // ─── MCP + Health ──────────────────────────────────────────────────
 // Health check endpoint
