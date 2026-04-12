@@ -687,10 +687,10 @@
           <div class="widget-header"><span class="widget-title">Plan Details</span></div>
           <table class="data-table">
             <tbody>
-              <tr><td style="color:var(--gray-500)">Plan</td><td><strong>Team</strong></td></tr>
-              <tr><td style="color:var(--gray-500)">Billing</td><td>Monthly ($149/mo)</td></tr>
-              <tr><td style="color:var(--gray-500)">Members</td><td>3 / 10</td></tr>
-              <tr><td style="color:var(--gray-500)">Next billing</td><td>May 11, 2026</td></tr>
+              <tr><td style="color:var(--gray-500)">Plan</td><td><strong id="planName">—</strong></td></tr>
+              <tr><td style="color:var(--gray-500)">Billing</td><td id="planBilling">—</td></tr>
+              <tr><td style="color:var(--gray-500)">Status</td><td id="planStatus">—</td></tr>
+              <tr><td style="color:var(--gray-500)">Expires</td><td id="planExpires">—</td></tr>
               <tr><td style="color:var(--gray-500)">Manage</td><td><a href="#" style="color:var(--blue);text-decoration:none;" onclick="openPortal(event)">Manage subscription &rarr;</a></td></tr>
             </tbody>
           </table>
@@ -742,10 +742,33 @@
 const AUTH_KEY = 'kansei_dash_email';
 const AUTH_TIER_KEY = 'kansei_dash_tier';
 
-function checkAuth() {
+async function checkAuth() {
   const email = localStorage.getItem(AUTH_KEY);
   if (email) {
-    showApp(email);
+    // Re-verify subscription status from API
+    const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:3000'
+      : 'https://kansei-link-mcp-production-b054.up.railway.app';
+    try {
+      const res = await fetch(apiBase + '/api/access?email=' + encodeURIComponent(email), { mode: 'cors' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.tier !== 'free' && data.active) {
+          showApp(email, data);
+          return;
+        }
+      }
+    } catch(e) { /* API unavailable, use cached tier */ }
+    // Fallback: use cached tier if API fails
+    const cachedTier = localStorage.getItem(AUTH_TIER_KEY);
+    if (cachedTier && cachedTier !== 'free') {
+      showApp(email, null);
+    } else {
+      localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(AUTH_TIER_KEY);
+      document.getElementById('authGate').style.display = 'flex';
+      document.getElementById('app').classList.remove('active');
+    }
   } else {
     document.getElementById('authGate').style.display = 'flex';
     document.getElementById('app').classList.remove('active');
@@ -777,10 +800,10 @@ async function handleAuth() {
 
     if (res && res.ok) {
       const data = await res.json();
-      if (data.tier === 'team' || data.tier === 'pro') {
+      if (data.tier === 'team' || data.tier === 'pro' || data.tier === 'enterprise') {
         localStorage.setItem(AUTH_KEY, email);
         localStorage.setItem(AUTH_TIER_KEY, data.tier);
-        showApp(email);
+        showApp(email, data);
         return;
       } else {
         error.textContent = 'No active Team/Pro subscription found for this email.';
@@ -799,18 +822,42 @@ async function handleAuth() {
   btn.textContent = 'Dashboard';
 }
 
-function showApp(email) {
+function showApp(email, accessData) {
   document.getElementById('authGate').style.display = 'none';
   document.getElementById('app').classList.add('active');
 
-  const tier = localStorage.getItem(AUTH_TIER_KEY) || 'team';
+  const tier = (accessData && accessData.tier) || localStorage.getItem(AUTH_TIER_KEY) || 'pro';
   const initial = email.charAt(0).toUpperCase();
 
   document.getElementById('userAvatar').textContent = initial;
   document.getElementById('userName').textContent = email.split('@')[0];
   document.getElementById('userEmail').textContent = email;
   document.getElementById('settingsEmail').textContent = email;
-  document.getElementById('planBadge').textContent = tier.charAt(0).toUpperCase() + tier.slice(1);
+
+  // Plan badge
+  const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
+  document.getElementById('planBadge').textContent = tierLabel;
+
+  // Plan details
+  const planInfo = {
+    pro: { name: 'Pro', billing: 'Monthly ($19/mo)' },
+    team: { name: 'Team', billing: 'Monthly ($149/mo)' },
+    enterprise: { name: 'Enterprise', billing: 'Custom' }
+  };
+  const info = planInfo[tier] || { name: tierLabel, billing: '—' };
+  document.getElementById('planName').textContent = info.name;
+  document.getElementById('planBilling').textContent = info.billing;
+
+  if (accessData && accessData.active) {
+    document.getElementById('planStatus').innerHTML = '<span style="color:var(--green);">Active</span>';
+  } else {
+    document.getElementById('planStatus').innerHTML = '<span style="color:var(--orange);">Inactive</span>';
+  }
+
+  if (accessData && accessData.expires) {
+    const d = new Date(accessData.expires);
+    document.getElementById('planExpires').textContent = d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+  }
 }
 
 function handleLogout() {
