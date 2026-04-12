@@ -18,12 +18,12 @@ RUN npm run build
 RUN npm prune --omit=dev
 
 # Expose port (default 3000, overridable via PORT env)
-ENV PORT=3000
+ENV PORT=8080
 ENV KANSEI_HOST=0.0.0.0
-EXPOSE 3000
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD node -e "fetch('http://localhost:${process.env.PORT||3000}/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://localhost:8080/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"
 
 CMD ["node", "dist/http-server.js"]
