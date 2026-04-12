@@ -15,7 +15,7 @@
 (function () {
   "use strict";
 
-  var API_BASE = window.KANSEI_API_BASE || "";
+  var API_BASE = window.KANSEI_API_BASE || "https://kansei-link-mcp-production-b054.up.railway.app";
   var TIER_RANK = { free: 0, pro: 1, team: 2, enterprise: 3 };
   var STORAGE_KEY = "kl_email";
   var CACHE_KEY = "kl_access";

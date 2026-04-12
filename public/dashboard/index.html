@@ -691,7 +691,7 @@
               <tr><td style="color:var(--gray-500)">Billing</td><td>Monthly ($149/mo)</td></tr>
               <tr><td style="color:var(--gray-500)">Members</td><td>3 / 10</td></tr>
               <tr><td style="color:var(--gray-500)">Next billing</td><td>May 11, 2026</td></tr>
-              <tr><td style="color:var(--gray-500)">Manage</td><td><a href="#" style="color:var(--blue);text-decoration:none;" onclick="alert('Stripe Customer Portal coming soon')">Manage subscription &rarr;</a></td></tr>
+              <tr><td style="color:var(--gray-500)">Manage</td><td><a href="#" style="color:var(--blue);text-decoration:none;" onclick="openPortal(event)">Manage subscription &rarr;</a></td></tr>
             </tbody>
           </table>
         </div>
@@ -770,8 +770,8 @@ async function handleAuth() {
   // Try to check subscription via API
   try {
     const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:3456'
-      : 'https://kansei-link-mcp.fly.dev';
+      ? 'http://localhost:3000'
+      : 'https://kansei-link-mcp-production-b054.up.railway.app';
 
     const res = await fetch(apiBase + '/api/access?email=' + encodeURIComponent(email), { mode: 'cors' }).catch(() => null);
 
@@ -792,10 +792,11 @@ async function handleAuth() {
     }
   } catch(e) { /* API not available, fall through to demo mode */ }
 
-  // Demo mode: allow access for testing
-  localStorage.setItem(AUTH_KEY, email);
-  localStorage.setItem(AUTH_TIER_KEY, 'team');
-  showApp(email);
+  // API not available — reject login
+  error.textContent = 'Service temporarily unavailable. Please try again later.';
+  error.style.display = 'block';
+  btn.disabled = false;
+  btn.textContent = 'Dashboard';
 }
 
 function showApp(email) {
@@ -875,6 +876,34 @@ function handleHash() {
 document.getElementById('authEmail').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') handleAuth();
 });
+
+// ===== Stripe Portal =====
+async function openPortal(e) {
+  e.preventDefault();
+  const email = localStorage.getItem(AUTH_KEY);
+  if (!email) return;
+
+  const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000'
+    : 'https://kansei-link-mcp-production-b054.up.railway.app';
+
+  try {
+    const res = await fetch(apiBase + '/api/portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+      mode: 'cors'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } else {
+      alert('Could not open billing portal. Please contact support.');
+    }
+  } catch (err) {
+    alert('Network error. Please try again.');
+  }
+}
 
 // Init
 checkAuth();
