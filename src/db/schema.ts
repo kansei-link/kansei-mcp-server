@@ -294,6 +294,55 @@ export function initializeDb(db: Database.Database): void {
     }
   }
 
+  // Migration: add cost optimization columns to outcomes
+  const hasModelName = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('outcomes') WHERE name = 'model_name'")
+    .get() as { cnt: number };
+  if (hasModelName.cnt === 0) {
+    db.exec("ALTER TABLE outcomes ADD COLUMN model_name TEXT");
+    db.exec("ALTER TABLE outcomes ADD COLUMN agent_type TEXT");
+    db.exec("ALTER TABLE outcomes ADD COLUMN task_type TEXT");
+    db.exec("ALTER TABLE outcomes ADD COLUMN input_tokens INTEGER");
+    db.exec("ALTER TABLE outcomes ADD COLUMN output_tokens INTEGER");
+    db.exec("ALTER TABLE outcomes ADD COLUMN cost_usd REAL");
+  }
+
+  // Model-level performance stats per service (for audit_cost routing)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS model_service_stats (
+      service_id TEXT NOT NULL REFERENCES services(id),
+      model_name TEXT NOT NULL,
+      task_type TEXT NOT NULL DEFAULT 'general',
+      total_calls INTEGER DEFAULT 0,
+      success_count INTEGER DEFAULT 0,
+      success_rate REAL DEFAULT 0,
+      avg_latency_ms REAL DEFAULT 0,
+      avg_cost_usd REAL DEFAULT 0,
+      avg_input_tokens REAL DEFAULT 0,
+      avg_output_tokens REAL DEFAULT 0,
+      last_updated TEXT DEFAULT (datetime('now')),
+      UNIQUE(service_id, model_name, task_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_mss_service ON model_service_stats(service_id);
+    CREATE INDEX IF NOT EXISTS idx_mss_model ON model_service_stats(model_name);
+    CREATE INDEX IF NOT EXISTS idx_mss_composite ON model_service_stats(service_id, task_type);
+  `);
+
+  // Routing request audit log (for tracking audit_cost usage)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS routing_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agent_id_hash TEXT DEFAULT 'anonymous',
+      service_id TEXT,
+      task_type TEXT,
+      current_model TEXT,
+      recommended_model TEXT,
+      estimated_savings_pct REAL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_routing_created ON routing_requests(created_at);
+  `);
+
   // FTS5 virtual table for full-text search on services
   // Check if it already exists first (CREATE VIRTUAL TABLE IF NOT EXISTS not supported in all SQLite builds)
   const ftsExists = db
