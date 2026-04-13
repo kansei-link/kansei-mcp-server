@@ -343,6 +343,28 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_routing_created ON routing_requests(created_at);
   `);
 
+  // Infrastructure cost optimization tips (verified from X buzz + research)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS infrastructure_tips (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tip_id TEXT UNIQUE NOT NULL,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      from_stack TEXT NOT NULL,
+      to_stack TEXT NOT NULL,
+      savings_pct REAL,
+      confidence TEXT NOT NULL DEFAULT 'verified',
+      conditions TEXT,
+      evidence_url TEXT,
+      evidence_summary TEXT,
+      related_services TEXT DEFAULT '[]',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_tips_category ON infrastructure_tips(category);
+    CREATE INDEX IF NOT EXISTS idx_tips_confidence ON infrastructure_tips(confidence);
+  `);
+
   // FTS5 virtual table for full-text search on services
   // Check if it already exists first (CREATE VIRTUAL TABLE IF NOT EXISTS not supported in all SQLite builds)
   const ftsExists = db

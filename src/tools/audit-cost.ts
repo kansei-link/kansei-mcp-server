@@ -37,6 +37,19 @@ interface ArchRow {
   agent_tips: string | null;
 }
 
+interface TipRow {
+  tip_id: string;
+  category: string;
+  title: string;
+  from_stack: string;
+  to_stack: string;
+  savings_pct: number;
+  confidence: string;
+  conditions: string;
+  evidence_url: string;
+  evidence_summary: string;
+}
+
 interface SpendRow {
   total_spend: number | null;
 }
@@ -49,7 +62,7 @@ export function register(server: McpServer, db: Database.Database): void {
     {
       title: "Audit Cost",
       description:
-        "Analyze your agent's API spending and get optimization recommendations across 3 layers: model selection, service alternatives, and architecture improvements.",
+        "Analyze your agent's API spending and get optimization recommendations across 4 layers: model selection, service alternatives, architecture improvements, and infrastructure tips.",
       inputSchema: z.object({
         service_id: z
           .string()
@@ -258,6 +271,31 @@ function auditCost(
         });
       }
     }
+  }
+
+  // ─── Layer 4: Infrastructure Tips ──────────────────────
+  const tipsSql = `
+    SELECT tip_id, category, title, from_stack, to_stack,
+           savings_pct, confidence, conditions, evidence_url, evidence_summary
+    FROM infrastructure_tips
+    WHERE confidence IN ('verified', 'conditional')
+    ORDER BY savings_pct DESC
+  `;
+  const tips = db.prepare(tipsSql).all() as TipRow[];
+
+  for (const tip of tips) {
+    recommendations.push({
+      layer: "infrastructure",
+      priority: tip.savings_pct >= 80 ? "high" : tip.savings_pct >= 40 ? "medium" : "low",
+      tip_id: tip.tip_id,
+      title: tip.title,
+      from: tip.from_stack,
+      to: tip.to_stack,
+      savings_pct: tip.savings_pct,
+      confidence: tip.confidence,
+      conditions: tip.conditions,
+      evidence: tip.evidence_url,
+    });
   }
 
   // ─── Totals ─────────────────────────────────────────────

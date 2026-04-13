@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getDb } from "./db/connection.js";
 import { initializeDb } from "./db/schema.js";
 import { seedDatabase } from "./db/seed.js";
+import { seedInfrastructureTips } from "./db/seed-tips.js";
 import { register as registerSearchServices } from "./tools/search-services.js";
 import { register as registerGetRecipe } from "./tools/get-recipe.js";
 import { register as registerReportOutcome } from "./tools/report-outcome.js";
@@ -36,6 +37,7 @@ export function createServer(): McpServer {
   const db = getDb();
   initializeDb(db);
   seedDatabase(db);
+  seedInfrastructureTips(db);
   recalculateTrustScores(db);
 
   // Register all tools
