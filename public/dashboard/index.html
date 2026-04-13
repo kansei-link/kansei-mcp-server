@@ -263,6 +263,10 @@
         <button class="sidebar-link" data-page="rankings">
           <span class="icon">&#x1f3c6;</span> Rankings
         </button>
+        <button class="sidebar-link" data-page="costs">
+          <span class="icon">&#x1f4b0;</span> Cost Auditor
+          <span class="badge" style="background:var(--teal)">NEW</span>
+        </button>
       </div>
 
       <div class="sidebar-section">
@@ -698,6 +702,96 @@
         </div>
       </div>
 
+      <!-- ===== PAGE: Cost Auditor ===== -->
+      <div class="page" id="page-costs">
+        <!-- Summary Cards -->
+        <div class="widget-grid">
+          <div class="widget">
+            <div class="widget-header"><span class="widget-title">Total Estimated Spend</span></div>
+            <div class="stat-value blue" id="costs-total-spend">$0</div>
+            <div class="stat-change neutral" id="costs-period">Last 30 days</div>
+          </div>
+          <div class="widget">
+            <div class="widget-header"><span class="widget-title">Models Tracked</span></div>
+            <div class="stat-value" id="costs-models-count">0</div>
+            <div class="stat-change neutral">Unique models</div>
+          </div>
+          <div class="widget">
+            <div class="widget-header"><span class="widget-title">Services with Data</span></div>
+            <div class="stat-value green" id="costs-services-count">0</div>
+            <div class="stat-change neutral">Reporting cost data</div>
+          </div>
+          <div class="widget">
+            <div class="widget-header"><span class="widget-title">Outcome Reports</span></div>
+            <div class="stat-value orange" id="costs-outcomes-count">0</div>
+            <div class="stat-change neutral">Total reports</div>
+          </div>
+        </div>
+
+        <!-- Optimization Opportunities -->
+        <div class="widget" style="margin-bottom:24px;">
+          <div class="widget-header">
+            <span class="widget-title">&#x1f4a1; Model Optimization Opportunities</span>
+          </div>
+          <div id="costs-opportunities-empty" class="alert alert-info" style="display:none;">
+            <span class="icon">&#x2139;</span>
+            <div>No optimization data yet. Start reporting outcomes with <code>model_name</code> and token counts to unlock recommendations.<br>
+            <code style="font-size:12px;background:var(--gray-100);padding:4px 8px;border-radius:4px;margin-top:8px;display:inline-block;">report_outcome({ service_id: 'freee', success: true, model_name: 'claude-sonnet-4', input_tokens: 500, output_tokens: 200 })</code></div>
+          </div>
+          <table class="data-table" id="costs-opportunities-table" style="display:none;">
+            <thead>
+              <tr><th>Service</th><th>Current Model</th><th>Recommended</th><th>Success Rate</th><th>Potential Savings</th></tr>
+            </thead>
+            <tbody id="costs-opportunities-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Model Spend Breakdown -->
+        <div class="widget-grid widget-grid-2">
+          <div class="widget">
+            <div class="widget-header"><span class="widget-title">Spend by Model</span></div>
+            <table class="data-table">
+              <thead><tr><th>Model</th><th>Calls</th><th>Spend</th><th>Avg/Call</th><th>Success</th></tr></thead>
+              <tbody id="costs-model-body"></tbody>
+            </table>
+            <div id="costs-model-empty" class="alert alert-info" style="margin-top:12px;display:none;">
+              <span class="icon">&#x2139;</span><div>No model spend data yet.</div>
+            </div>
+          </div>
+
+          <div class="widget">
+            <div class="widget-header"><span class="widget-title">Spend by Service</span></div>
+            <table class="data-table">
+              <thead><tr><th>Service</th><th>Category</th><th>Calls</th><th>Spend</th></tr></thead>
+              <tbody id="costs-service-body"></tbody>
+            </table>
+            <div id="costs-service-empty" class="alert alert-info" style="margin-top:12px;display:none;">
+              <span class="icon">&#x2139;</span><div>No service spend data yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Infrastructure Tips -->
+        <div class="widget" style="margin-top:24px;">
+          <div class="widget-header">
+            <span class="widget-title">&#x1f680; Infrastructure Cost Tips (Verified)</span>
+          </div>
+          <div id="costs-tips-body"></div>
+        </div>
+
+        <!-- How to Start -->
+        <div class="widget" style="margin-top:24px;background:var(--blue-bg);border-color:var(--blue);">
+          <div class="widget-header"><span class="widget-title">&#x1f4d6; How to use Cost Auditor</span></div>
+          <div style="font-size:14px;line-height:1.8;color:var(--gray-600);">
+            <p><strong>Step 1:</strong> Report outcomes with model &amp; token data via MCP:</p>
+            <code style="display:block;background:var(--white);padding:12px;border-radius:8px;margin:8px 0;font-size:12px;overflow-x:auto;">report_outcome({ service_id: "freee", success: true, model_name: "claude-sonnet-4", input_tokens: 500, output_tokens: 200 })</code>
+            <p><strong>Step 2:</strong> Run the cost audit to get recommendations:</p>
+            <code style="display:block;background:var(--white);padding:12px;border-radius:8px;margin:8px 0;font-size:12px;">audit_cost({ period_days: 30 })</code>
+            <p><strong>Step 3:</strong> Apply recommendations — switch models, batch APIs, enable caching.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- ===== PAGE: Settings ===== -->
       <div class="page" id="page-settings">
         <div class="widget" style="max-width:600px;">
@@ -878,6 +972,7 @@ const pageTitles = {
   voice: 'Agent Voice',
   recipes: 'Recipes',
   rankings: 'Rankings',
+  costs: 'Cost Auditor',
   reports: 'Consulting Reports',
   export: 'Export Data',
   team: 'Team Members',
@@ -969,6 +1064,89 @@ function mcpLabel(status, endpoint) {
   if (status === 'official' || (endpoint && endpoint.length > 0)) return 'Official';
   if (status === 'third_party') return '3rd Party';
   return 'API only';
+}
+
+// ─── Cost Auditor Data ──────────────────────────────────────────
+async function loadCostData() {
+  try {
+    const res = await fetch(API_BASE + '/api/dashboard/costs', { mode: 'cors' });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // Summary cards
+    document.getElementById('costs-total-spend').textContent = '$' + (data.summary.total_spend_usd || 0).toLocaleString();
+    document.getElementById('costs-models-count').textContent = data.summary.models_tracked || 0;
+    document.getElementById('costs-services-count').textContent = data.summary.services_with_data || 0;
+    document.getElementById('costs-outcomes-count').textContent = (data.summary.total_outcome_reports || 0).toLocaleString();
+
+    // Model spend table
+    const modelBody = document.getElementById('costs-model-body');
+    if (data.model_spend && data.model_spend.length > 0) {
+      modelBody.innerHTML = data.model_spend.map(function(m) {
+        return '<tr><td><strong>' + m.model_name + '</strong></td>'
+          + '<td>' + (m.total_calls || 0).toLocaleString() + '</td>'
+          + '<td>$' + (m.total_spend || 0).toFixed(2) + '</td>'
+          + '<td>$' + (m.avg_cost_per_call || 0).toFixed(4) + '</td>'
+          + '<td>' + (m.avg_success_rate || 0) + '%</td></tr>';
+      }).join('');
+    } else {
+      document.getElementById('costs-model-empty').style.display = '';
+    }
+
+    // Service spend table
+    var serviceBody = document.getElementById('costs-service-body');
+    if (data.service_spend && data.service_spend.length > 0) {
+      serviceBody.innerHTML = data.service_spend.map(function(s) {
+        return '<tr><td><strong>' + s.service_name + '</strong></td>'
+          + '<td><span class="category-tag">' + (s.category || '—') + '</span></td>'
+          + '<td>' + (s.total_calls || 0).toLocaleString() + '</td>'
+          + '<td>$' + (s.total_spend || 0).toFixed(2) + '</td></tr>';
+      }).join('');
+    } else {
+      document.getElementById('costs-service-empty').style.display = '';
+    }
+
+    // Optimization opportunities
+    var opBody = document.getElementById('costs-opportunities-body');
+    var opTable = document.getElementById('costs-opportunities-table');
+    var opEmpty = document.getElementById('costs-opportunities-empty');
+    if (data.optimization_opportunities && data.optimization_opportunities.length > 0) {
+      opTable.style.display = '';
+      opBody.innerHTML = data.optimization_opportunities.map(function(o) {
+        return '<tr><td><strong>' + o.service_name + '</strong></td>'
+          + '<td><code>' + o.current_model + '</code></td>'
+          + '<td><code style="color:var(--teal)">' + o.cheaper_model + '</code></td>'
+          + '<td>' + o.current_sr + '% &rarr; ' + o.cheaper_sr + '%</td>'
+          + '<td style="color:var(--teal);font-weight:600;">$' + (o.potential_savings || 0).toFixed(2) + '</td></tr>';
+      }).join('');
+    } else {
+      opEmpty.style.display = '';
+    }
+
+    // Infrastructure tips
+    var tipsBody = document.getElementById('costs-tips-body');
+    if (data.infrastructure_tips && data.infrastructure_tips.length > 0) {
+      tipsBody.innerHTML = data.infrastructure_tips.map(function(t) {
+        var color = t.savings_pct >= 80 ? 'var(--teal)' : t.savings_pct >= 40 ? 'var(--blue)' : 'var(--gray-600)';
+        var badge = t.confidence === 'verified'
+          ? '<span style="background:#065F46;color:white;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">Verified</span>'
+          : '<span style="background:var(--orange);color:white;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">Conditional</span>';
+        return '<div style="padding:16px 0;border-bottom:1px solid var(--gray-200);">'
+          + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">'
+          + '<span style="font-size:24px;font-weight:700;color:' + color + ';">' + (t.savings_pct || 0) + '%</span>'
+          + '<div><strong>' + t.title + '</strong> ' + badge + '</div></div>'
+          + '<div style="font-size:13px;color:var(--gray-500);margin-bottom:4px;">'
+          + '<span style="text-decoration:line-through;">' + t.from_stack + '</span> &rarr; <strong>' + t.to_stack + '</strong></div>'
+          + '<div style="font-size:13px;color:var(--gray-600);">' + (t.conditions || '') + '</div>'
+          + (t.evidence_url ? '<a href="' + t.evidence_url + '" target="_blank" style="font-size:12px;color:var(--blue);margin-top:4px;display:inline-block;">Evidence &rarr;</a>' : '')
+          + '</div>';
+      }).join('');
+    } else {
+      tipsBody.innerHTML = '<div class="alert alert-info"><span class="icon">&#x2139;</span><div>No infrastructure tips available.</div></div>';
+    }
+  } catch(e) {
+    console.error('Cost data load failed:', e);
+  }
 }
 
 // ─── Export Functions ──────────────────────────────────────────
@@ -1215,6 +1393,9 @@ async function loadDashboardData() {
   } catch (e) {
     console.error('Dashboard data load error:', e);
   }
+
+  // Load cost auditor data
+  loadCostData();
 }
 
 // Init

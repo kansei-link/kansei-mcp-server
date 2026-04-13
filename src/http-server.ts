@@ -215,6 +215,96 @@ app.get("/api/dashboard/recipes", apiLimiter, (_req: Request, res: Response) => 
   }
 });
 
+// ─── Cost Auditor API ─────────────────────────────────────────────
+app.get("/api/dashboard/costs", apiLimiter, (_req: Request, res: Response) => {
+  try {
+    const db = getDb();
+
+    // Model-level spending summary
+    const modelSpend = db.prepare(`
+      SELECT model_name,
+             SUM(total_calls) as total_calls,
+             ROUND(SUM(avg_cost_usd * total_calls), 2) as total_spend,
+             ROUND(AVG(avg_cost_usd), 4) as avg_cost_per_call,
+             ROUND(AVG(success_rate) * 100) as avg_success_rate
+      FROM model_service_stats
+      WHERE total_calls > 0
+      GROUP BY model_name
+      ORDER BY total_spend DESC
+    `).all();
+
+    // Service-level spending summary
+    const serviceSpend = db.prepare(`
+      SELECT mss.service_id, s.name as service_name, s.category,
+             SUM(mss.total_calls) as total_calls,
+             ROUND(SUM(mss.avg_cost_usd * mss.total_calls), 2) as total_spend,
+             GROUP_CONCAT(DISTINCT mss.model_name) as models_used
+      FROM model_service_stats mss
+      JOIN services s ON mss.service_id = s.id
+      WHERE mss.total_calls > 0
+      GROUP BY mss.service_id
+      ORDER BY total_spend DESC
+      LIMIT 20
+    `).all();
+
+    // Model-service cost comparison (for optimization recommendations)
+    const modelPairs = db.prepare(`
+      SELECT mss1.service_id, s.name as service_name,
+             mss1.model_name as current_model, mss1.avg_cost_usd as current_cost,
+             ROUND(mss1.success_rate * 100) as current_sr,
+             mss1.total_calls as current_calls,
+             mss2.model_name as cheaper_model, mss2.avg_cost_usd as cheaper_cost,
+             ROUND(mss2.success_rate * 100) as cheaper_sr,
+             ROUND((mss1.avg_cost_usd - mss2.avg_cost_usd) * mss1.total_calls, 2) as potential_savings
+      FROM model_service_stats mss1
+      JOIN model_service_stats mss2
+        ON mss1.service_id = mss2.service_id
+        AND mss1.task_type = mss2.task_type
+        AND mss1.model_name != mss2.model_name
+      JOIN services s ON mss1.service_id = s.id
+      WHERE mss2.avg_cost_usd < mss1.avg_cost_usd
+        AND mss2.success_rate >= mss1.success_rate - 0.05
+        AND mss1.total_calls >= 3 AND mss2.total_calls >= 3
+      ORDER BY potential_savings DESC
+      LIMIT 10
+    `).all();
+
+    // Infrastructure tips
+    const tips = db.prepare(`
+      SELECT tip_id, category, title, from_stack, to_stack,
+             savings_pct, confidence, conditions, evidence_url, evidence_summary
+      FROM infrastructure_tips
+      WHERE confidence IN ('verified', 'conditional')
+      ORDER BY savings_pct DESC
+    `).all();
+
+    // Totals
+    const totalSpend = db.prepare(`
+      SELECT ROUND(SUM(avg_cost_usd * total_calls), 2) as total
+      FROM model_service_stats
+    `).get() as any;
+
+    const totalOutcomes = db.prepare(`
+      SELECT COUNT(*) as cnt FROM outcomes
+    `).get() as any;
+
+    res.json({
+      summary: {
+        total_spend_usd: totalSpend?.total ?? 0,
+        total_outcome_reports: totalOutcomes?.cnt ?? 0,
+        models_tracked: modelSpend.length,
+        services_with_data: serviceSpend.length,
+      },
+      model_spend: modelSpend,
+      service_spend: serviceSpend,
+      optimization_opportunities: modelPairs,
+      infrastructure_tips: tips,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── MCP + Health ──────────────────────────────────────────────────
 // Health check endpoint
 app.get("/health", (_req: Request, res: Response) => {
