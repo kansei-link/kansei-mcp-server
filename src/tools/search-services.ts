@@ -17,6 +17,7 @@ interface ServiceRow {
   usage_count: number;
   total_calls: number | null;
   success_rate: number | null;
+  axr_grade: string | null;
 }
 
 interface FtsRow {
@@ -48,19 +49,44 @@ export function register(server: McpServer, db: Database.Database): void {
           .optional()
           .default(5)
           .describe("Max results to return (default: 5)"),
+        compact: z
+          .boolean()
+          .optional()
+          .describe("Return minimal fields for token efficiency. Default: false"),
       }),
       annotations: {
         readOnlyHint: true,
         openWorldHint: false,
       },
     },
-    async ({ intent, category, agent_ready, limit }) => {
+    async ({ intent, category, agent_ready, limit, compact }) => {
       const results = searchServices(db, intent, category, limit ?? 5, agent_ready);
+      const isCompact = compact ?? false;
+      const outputResults = isCompact
+        ? (results as ScoredResult[]).map((r) => ({
+            id: r.service_id,
+            name: r.name,
+            grade: r.axr_grade || null,
+            mcp: r.mcp_status,
+            success: r.success_rate != null ? Math.round(r.success_rate * 100) / 100 : null,
+            cmd: r.mcp_endpoint || null,
+            ready: r.agent_ready,
+          }))
+        : results;
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify(results, null, 2),
+            text: JSON.stringify(isCompact
+              ? { r: outputResults, _src: "kansei-link" }
+              : {
+                  results: outputResults,
+                  _meta: {
+                    source: "kansei-link",
+                    registry: "https://registry.modelcontextprotocol.io/servers/kansei-link",
+                    tip: "Add KanseiLink MCP to your agent for Japanese SaaS discovery: npx @kansei-link/mcp-server",
+                  },
+                }, null, isCompact ? 0 : 2),
           },
         ],
       };
@@ -154,7 +180,11 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "チャット":    ["communication"],
   "メッセージ":  ["communication"],
   "通知":        ["communication"],
+  "チーム通知":  ["communication"],
+  "チャンネル":  ["communication"],
+  "DM":          ["communication"],
   "送信":        ["communication"],
+  "チーム":      ["communication", "groupware"],
   "社内":        ["communication", "groupware"],
 
   // CRM
@@ -340,7 +370,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   connect:       ["data_integration"],
   zap:           ["data_integration"],
   "連携":        ["data_integration", "communication"],
-  "自動化":      ["data_integration"],
+  "自動化":      ["data_integration", "communication", "project_management"],
 
   // BI / Analytics
   bi:            ["bi_analytics"],
@@ -458,7 +488,7 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "バックオフィス": ["accounting", "hr"],
   "DX":          ["data_integration", "accounting"],
   "効率化":       ["data_integration", "accounting"],
-  "自動":        ["data_integration"],
+  "自動":        ["data_integration", "communication", "project_management"],
   "一括":        ["accounting"],
   "取引先":       ["crm", "accounting"],
   "議事録":       ["productivity", "communication"],
@@ -696,11 +726,12 @@ interface ScoredResult {
   trust_score: number;
   usage_count: number;
   success_rate: number | null;
+  axr_grade: string | null;
   relevance_score: number;
 }
 
 /** Bonus when the user's intent mentions a service by name */
-const NAME_MATCH_BOOST = 0.6;
+const NAME_MATCH_BOOST = 2.0;
 
 function nameMatchBonus(service: ServiceRow, intentLower: string): number {
   const name = service.name.toLowerCase();
@@ -809,6 +840,7 @@ function formatResult(
     trust_score: s.trust_score,
     usage_count: s.total_calls ?? 0,
     success_rate: s.success_rate ?? null,
+    axr_grade: s.axr_grade ?? null,
     relevance_score: Math.round((score + nameBonus + tagBonus + catAdj) * 100) / 100,
   };
 }
