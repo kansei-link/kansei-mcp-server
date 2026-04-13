@@ -641,23 +641,23 @@
       <!-- ===== PAGE: Export ===== -->
       <div class="page" id="page-export">
         <div class="widget-grid widget-grid-3">
-          <div class="widget" style="text-align:center;cursor:pointer;" onclick="alert('CSV export coming soon!')">
+          <div class="widget" style="text-align:center;cursor:pointer;" onclick="exportCSV()">
             <div style="font-size:36px;margin-bottom:12px;">&#x1f4c4;</div>
             <div style="font-weight:600;margin-bottom:4px;">CSV Export</div>
             <div style="font-size:13px;color:var(--gray-500);">AEO scores, grades, success rates</div>
           </div>
-          <div class="widget" style="text-align:center;cursor:pointer;" onclick="alert('JSON export coming soon!')">
+          <div class="widget" style="text-align:center;cursor:pointer;" onclick="exportJSON()">
             <div style="font-size:36px;margin-bottom:12px;">&#x1f4be;</div>
             <div style="font-weight:600;margin-bottom:4px;">JSON Export</div>
             <div style="font-size:13px;color:var(--gray-500);">Full AXR data + Agent Voice</div>
           </div>
-          <div class="widget" style="text-align:center;cursor:pointer;" onclick="alert('PDF export coming soon!')">
+          <div class="widget" style="text-align:center;cursor:pointer;" onclick="exportPDF()">
             <div style="font-size:36px;margin-bottom:12px;">&#x1f4d1;</div>
             <div style="font-weight:600;margin-bottom:4px;">PDF Report</div>
-            <div style="font-size:13px;color:var(--gray-500);">Formatted consulting report</div>
+            <div style="font-size:13px;color:var(--gray-500);">Consulting report (coming soon)</div>
           </div>
         </div>
-        <div class="alert alert-info"><span class="icon">&#x2139;</span><div>Export features coming soon. Data retrieval via MCP server is already available: <code>search_services()</code>, <code>get_service_detail()</code></div></div>
+        <div id="export-status" style="display:none;" class="alert alert-info"><span class="icon">&#x2139;</span><div id="export-status-text"></div></div>
       </div>
 
       <!-- ===== PAGE: Team ===== -->
@@ -969,6 +969,80 @@ function mcpLabel(status, endpoint) {
   if (status === 'official' || (endpoint && endpoint.length > 0)) return 'Official';
   if (status === 'third_party') return '3rd Party';
   return 'API only';
+}
+
+// ─── Export Functions ──────────────────────────────────────────
+function showExportStatus(msg) {
+  const el = document.getElementById('export-status');
+  const txt = document.getElementById('export-status-text');
+  if (el && txt) { txt.textContent = msg; el.style.display = ''; setTimeout(() => el.style.display = 'none', 4000); }
+}
+
+function downloadFile(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+async function fetchExportData() {
+  const [rankRes, statsRes, voicesRes] = await Promise.all([
+    fetch(API_BASE + '/api/dashboard/rankings?limit=225', { mode: 'cors' }).catch(() => null),
+    fetch(API_BASE + '/api/dashboard/stats', { mode: 'cors' }).catch(() => null),
+    fetch(API_BASE + '/api/dashboard/voices', { mode: 'cors' }).catch(() => null),
+  ]);
+  const rankings = rankRes && rankRes.ok ? await rankRes.json() : { services: [] };
+  const stats = statsRes && statsRes.ok ? await statsRes.json() : {};
+  const voices = voicesRes && voicesRes.ok ? await voicesRes.json() : { voices: [] };
+  return { rankings, stats, voices };
+}
+
+async function exportCSV() {
+  showExportStatus('Generating CSV...');
+  try {
+    const { rankings } = await fetchExportData();
+    const services = rankings.services || [];
+    const header = 'Rank,Service,Category,AXR Grade,AEO Score,MCP Status,Success Rate,Avg Latency (ms)';
+    const rows = services.map((s, i) =>
+      [i+1, '"'+s.name+'"', s.category||'', s.axr_grade||'', s.axr_score ? (s.axr_score/100).toFixed(2) : '',
+       s.mcp_status||'', Math.round(s.success_rate*100)+'%', Math.round(s.avg_latency_ms)].join(',')
+    );
+    const csv = '\uFEFF' + header + '\n' + rows.join('\n');
+    const date = new Date().toISOString().slice(0,10);
+    downloadFile(csv, 'kansei-link-rankings-' + date + '.csv', 'text/csv;charset=utf-8');
+    showExportStatus('CSV downloaded (' + services.length + ' services)');
+  } catch (e) { showExportStatus('Export failed: ' + e.message); }
+}
+
+async function exportJSON() {
+  showExportStatus('Generating JSON...');
+  try {
+    const data = await fetchExportData();
+    const exportObj = {
+      exported_at: new Date().toISOString(),
+      source: 'KanseiLink Dashboard',
+      rankings: (data.rankings.services || []).map((s, i) => ({
+        rank: i+1, id: s.id, name: s.name, category: s.category,
+        axr_grade: s.axr_grade, aeo_score: s.axr_score ? s.axr_score/100 : null,
+        mcp_status: s.mcp_status, mcp_endpoint: s.mcp_endpoint || null,
+        success_rate: s.success_rate, avg_latency_ms: s.avg_latency_ms
+      })),
+      stats: data.stats,
+      agent_voices: data.voices.voices || [],
+    };
+    const json = JSON.stringify(exportObj, null, 2);
+    const date = new Date().toISOString().slice(0,10);
+    downloadFile(json, 'kansei-link-data-' + date + '.json', 'application/json');
+    showExportStatus('JSON downloaded (Rankings + Stats + Agent Voice)');
+  } catch (e) { showExportStatus('Export failed: ' + e.message); }
+}
+
+function exportPDF() {
+  showExportStatus('PDF report is coming soon. Please use CSV or JSON export.');
 }
 
 async function loadDashboardData() {
