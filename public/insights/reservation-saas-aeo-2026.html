@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>予約管理SaaS AEO対応比較 2026 — RESERVA・スマレジ・TableCheck・Airリザーブ格付けレポート | KanseiLink</title>
+  <meta name="description" content="日本予約管理SaaS主要5サービス（RESERVA・スマレジ・TableCheck・Airリザーブ・SELECTTYPE）のAEO格付けを比較。全社MCP未対応の実態、API連携の現状、エージェント活用の可能性を解説。">
+  <meta name="keywords" content="予約管理 AEO, RESERVA API, スマレジ API, TableCheck API, Airリザーブ MCP, 予約システム AIエージェント, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/reservation-saas-aeo-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/reservation-saas-aeo-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/reservation-saas-aeo-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/reservation-saas-aeo-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="予約管理SaaS AEO対応比較 2026 — RESERVA・スマレジ・TableCheck・Airリザーブ">
+  <meta property="og:description" content="予約管理カテゴリは全社MCP未対応。最高グレードCの現実と、エージェント連携への道筋をKanseiLinkが解説。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/reservation-saas-aeo-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-13">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Industry Report">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="予約管理SaaS AEO対応比較 2026 — RESERVA・スマレジ・TableCheck・Airリザーブ">
+  <meta name="twitter:description" content="予約管理カテゴリは全社MCP未対応。最高グレードCの現実と、エージェント連携への道筋をKanseiLinkが解説。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "予約管理SaaS AEO対応比較 2026 — RESERVA・スマレジ・TableCheck・Airリザーブ格付けレポート",
+    "description": "日本予約管理SaaS主要5サービスのAEO格付けを比較。全社MCP未対応の実態、API連携の現状、エージェント活用の可能性を解説。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-13",
+    "dateModified": "2026-04-13",
+    "mainEntityOfPage": "https://kansei-link.com/insights/reservation-saas-aeo-2026",
+    "keywords": ["AEO", "予約管理", "RESERVA", "スマレジ", "TableCheck", "Airリザーブ", "MCP", "AIエージェント"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "予約管理SaaSの中でAEOスコアが最も高いサービスはどれですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLinkのデータではRESSERVAとスマレジがCグレードで最上位です。どちらもMCPサーバーは未対応ですが、REST APIとAPI Key認証（RESERVA）またはOAuth2（スマレジ）を提供しています。スマレジはOAuth2採用により認証の安全性と自動化しやすさでやや優位です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "予約管理SaaSをAIエージェントと連携させる方法はありますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "現時点では公式MCPサーバーが存在しないため、各サービスのREST APIに対してカスタムMCPサーバーを自作するか、Zapier・Make等のiPaaSを経由してエージェントと連携する方法が現実的です。RESERVA・スマレジはAPI仕様が公開されているため、カスタムMCP構築の起点として使用できます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "TableCheckはレストラン予約の自動化に適していますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "TableCheckはREST APIで予約・ゲストプロフィール・テーブル管理機能を提供しており、プレミアムレストランでの活用が可能です。ただしDグレード（trust score 0.4）であり、公式MCPサーバーが存在しないため、カスタム実装が必要です。高級レストランのCRMとの統合シナリオを想定する場合は、API Keyによる認証設定から始めることを推奨します。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights" },
+      { "@type": "ListItem", "position": 3, "name": "予約管理SaaS AEO対応比較 2026", "item": "https://kansei-link.com/insights/reservation-saas-aeo-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3;
+      --black: #000000; --white: #FFFFFF; --lavender: #F4F5FD;
+      --gray-light: #F5F5F5; --gray-mid: #E5E7EB; --gray-text: #6B7280; --gray-dark: #374151;
+      --grade-aaa: #065F46; --grade-aa: #059669; --grade-a: #0891B2;
+      --grade-bbb: #D97706; --grade-bb: #EA580C; --grade-b: #DC2626; --grade-ccc: #991B1B;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter','Noto Sans JP',-apple-system,BlinkMacSystemFont,sans-serif; color: var(--black); background: var(--white); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a { color: var(--black); text-decoration: none; font-size: 16px; font-weight: 400; padding: 20px 0; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-teal { background: var(--teal); color: var(--black); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-teal:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; }
+    .hamburger span { display: block; width: 24px; height: 2.5px; background: var(--black); border-radius: 2px; transition: transform 0.3s, opacity 0.3s; }
+
+    .breadcrumb-bar { background: var(--gray-light); padding: 12px 0; font-size: 14px; color: var(--gray-text); }
+    .breadcrumb-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 50%, #7B2D8B 100%); padding: 80px 0 64px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); color: var(--white); font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 9999px; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .article-hero h1 { font-size: 42px; font-weight: 600; letter-spacing: -2.1px; line-height: 1.2; margin-bottom: 24px; }
+    .article-hero .subtitle { font-size: 18px; font-weight: 300; line-height: 1.7; opacity: 0.9; margin-bottom: 32px; }
+    .article-meta { display: flex; align-items: center; gap: 24px; font-size: 14px; opacity: 0.8; flex-wrap: wrap; }
+    .article-meta .divider { width: 1px; height: 16px; background: rgba(255,255,255,0.3); }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 48px 40px 80px; color: var(--gray-dark); font-size: 16px; line-height: 1.7; }
+    .article-body h2 { font-size: 28px; font-weight: 600; color: var(--black); letter-spacing: -1px; margin-top: 56px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--lavender); }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin-top: 36px; margin-bottom: 12px; }
+    .article-body p { margin-bottom: 20px; }
+    .article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .article-body a:hover { border-bottom-color: var(--blue); }
+    .article-body code { background: var(--gray-light); padding: 2px 6px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .key-concept { background: var(--lavender); border-left: 4px solid var(--blue); padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .key-concept .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .key-concept p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .toc-box { background: var(--gray-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 14px; font-weight: 600; color: var(--black); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .toc-box ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+    .toc-box li { counter-increment: toc; margin-bottom: 6px; }
+    .toc-box li::before { content: counter(toc) "."; color: var(--blue); font-weight: 600; margin-right: 8px; font-size: 13px; }
+    .toc-box a { color: var(--gray-dark); text-decoration: none; font-size: 14px; }
+    .toc-box a:hover { color: var(--blue); }
+
+    .comparison-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 28px 0; }
+    .comparison-table thead th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 500; font-size: 13px; letter-spacing: 0.5px; }
+    .comparison-table thead th:first-child { border-radius: 8px 0 0 0; }
+    .comparison-table thead th:last-child { border-radius: 0 8px 0 0; }
+    .comparison-table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); vertical-align: middle; }
+    .comparison-table tbody tr:hover { background: var(--lavender); }
+    .grade-badge { display: inline-block; padding: 3px 12px; border-radius: 4px; font-size: 13px; font-weight: 700; color: var(--white); min-width: 48px; text-align: center; }
+    .bg-aaa { background: var(--grade-aaa); }
+    .bg-aa { background: var(--grade-aa); }
+    .bg-a { background: var(--grade-a); }
+    .bg-bbb { background: var(--grade-bbb); }
+    .bg-bb { background: var(--grade-bb); }
+    .bg-b { background: var(--grade-b); }
+    .bg-c { background: #6B7280; }
+    .bg-d { background: #9CA3AF; color: #111; }
+
+    .service-card { border: 1px solid var(--gray-mid); border-radius: 12px; padding: 32px; margin: 24px 0; border-left: 4px solid var(--blue); }
+    .service-card.grade-c { border-left-color: #6B7280; }
+    .service-card.grade-d { border-left-color: #9CA3AF; }
+    .service-card-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .service-card-header h3 { font-size: 20px; font-weight: 700; color: var(--black); margin: 0; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
+    .metric-item { text-align: center; }
+    .metric-item .val { font-size: 24px; font-weight: 700; color: var(--blue); line-height: 1; }
+    .metric-item .val.neutral { color: #6B7280; }
+    .metric-item .lbl { font-size: 11px; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .metric-row { gap: 16px; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/reservation-saas-aeo-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      予約管理SaaS AEO対応比較 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Industry Report</span>
+      <h1>予約管理SaaS AEO対応比較 2026</h1>
+      <p class="subtitle">RESERVA・スマレジ・TableCheck・Airリザーブ・SELECTTYPE — 全社MCP未対応の現実とエージェント連携の展望</p>
+      <div class="article-meta">
+        <span>2026-04-13</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約7分</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#overview">予約管理カテゴリのAEO概況 — なぜ全社がMCP未対応なのか</a></li>
+        <li><a href="#reserva">RESERVA — Cグレード：40業種対応の国内最大級予約プラットフォーム</a></li>
+        <li><a href="#smaregi">スマレジ — Cグレード：小売・飲食向けPOS×予約統合の可能性</a></li>
+        <li><a href="#tablecheck">TableCheck — Dグレード：プレミアムレストラン向けの専門性</a></li>
+        <li><a href="#others">Airリザーブ・SELECTTYPE — DグレードのRecruit系・マルチ業種対応</a></li>
+        <li><a href="#comparison">5サービス比較と実装推奨</a></li>
+        <li><a href="#future">予約管理SaaSのAEO進化シナリオ — 誰が最初にMCP対応するか</a></li>
+      </ol>
+    </div>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示</div>
+      <p>本レポートのデータはKanseiLink MCPサーバーを通じてAIエージェントが収集した実運用データに基づきます（2026年4月13日時点）。RESERVA・スマレジ・TableCheck・Airリザーブ・SELECTTYPEの公開API仕様、MCP対応状況、trust scoreを使用。</p>
+    </div>
+
+    <h2 id="overview">予約管理カテゴリのAEO概況 — なぜ全社がMCP未対応なのか</h2>
+
+    <p>予約管理SaaSは日本の実店舗ビジネスに深く根ざしたカテゴリだ。美容院・クリニック・レストラン・フィットネスジム・ホテル——あらゆる「時間を売る」ビジネスに予約管理システムが存在する。しかし<strong>AIエージェントとの連携という観点では、このカテゴリは日本SaaS市場の中でも最も遅れている領域の一つ</strong>だ。</p>
+
+    <p>KanseiLinkが追跡する予約管理カテゴリ5サービスは全社MCP未対応。最高グレードはCであり、カテゴリ全体の平均trust scoreは0.42にとどまる。この低さにはいくつかの構造的要因がある。</p>
+
+    <div class="key-concept">
+      <div class="label">予約管理 AEO 概況スナップショット（2026-Q2）</div>
+      <p>調査対象5サービス全社MCP未対応（API only）。グレード分布: C×2、D×3。カテゴリ平均trust score: 0.42（日本SaaS全体平均0.55を大幅に下回る）。主なエージェント連携障壁: API Key認証の多さ、OAuth2未対応サービスの存在、予約データの業種ごとのスキーマ差異。</p>
+    </div>
+
+    <p>予約管理SaaSのMCP未対応が続く理由として、KanseiLinkは以下を指摘する。第一に、<strong>業種別カスタマイズの複雑さ</strong>。美容院の予約スキーマとクリニックの予約スキーマは異なり、汎用MCPサーバーの設計が困難。第二に、<strong>中小企業・個人事業主が主要顧客</strong>であるため、APIエコノミーへの投資優先度が低い。第三に、<strong>予約データの機密性</strong>——顧客の行動パターンや医療情報に近いデータをエージェントに開放することへのリスク認識が強い。</p>
+
+    <h2 id="reserva">RESERVA — Cグレード：40業種対応の国内最大級予約プラットフォーム</h2>
+
+    <div class="service-card grade-c">
+      <div class="service-card-header">
+        <h3>RESERVA</h3>
+        <span class="grade-badge bg-c">C</span>
+        <span style="font-size:13px;color:var(--gray-text);">API only（MCP未対応）</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item">
+          <div class="val neutral">0.4</div>
+          <div class="lbl">Trust Score</div>
+        </div>
+        <div class="metric-item">
+          <div class="val neutral">API Key</div>
+          <div class="lbl">Auth Method</div>
+        </div>
+        <div class="metric-item">
+          <div class="val neutral">300K+</div>
+          <div class="lbl">登録事業者数</div>
+        </div>
+        <div class="metric-item">
+          <div class="val neutral">40+</div>
+          <div class="lbl">対応業種</div>
+        </div>
+      </div>
+      <p>RESSERVAは30万社以上の登録事業者数と40業種以上への対応で、国内予約管理SaaS市場でトップシェアを誇る。医療・美容・フィットネス・飲食・官公庁まで幅広い業種に対応するREST APIを提供しており、<strong>カテゴリ最高評価のCグレード（スマレジと同率）</strong>を獲得している。</p>
+      <p>API Key認証は実装が容易な反面、OAuth2に比べてセキュリティ管理（トークンローテーション等）はエージェント実装側で担保する必要がある。開発者向けドキュメントは<code>developer.reserva.be</code>に公開されており、予約の取得・作成・変更のエンドポイントが整備されている。</p>
+    </div>
+
+    <h3>RESSERVAカスタムMCP構築の考え方</h3>
+
+    <p>現時点でRESSERVAの公式MCPサーバーは存在しないが、公開APIを元にカスタムMCPサーバーを構築することは技術的に可能だ。KanseiLinkが推奨する最小実装は以下の3ツール構成：</p>
+
+    <ol>
+      <li><strong>list_reservations</strong>（日付範囲・ステータスでフィルタリング）</li>
+      <li><strong>create_reservation</strong>（顧客情報・日時・サービス種別を引数）</li>
+      <li><strong>update_reservation_status</strong>（確認・キャンセル・リスケジュール）</li>
+    </ol>
+
+    <p>この3ツールだけでも「本日の予約状況を確認して未確定の予約に確認メールを送る」といった基本的なエージェントタスクが実現できる。業種ごとのスキーマ差異は、エージェントシステムプロンプトで業種コンテキストを固定することで対応する。</p>
+
+    <h2 id="smaregi">スマレジ — Cグレード：小売・飲食向けPOS×予約統合の可能性</h2>
+
+    <div class="service-card grade-c">
+      <div class="service-card-header">
+        <h3>スマレジ</h3>
+        <span class="grade-badge bg-c">C</span>
+        <span style="font-size:13px;color:var(--gray-text);">API only（MCP未対応）</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item">
+          <div class="val neutral">0.4</div>
+          <div class="lbl">Trust Score</div>
+        </div>
+        <div class="metric-item">
+          <div class="val neutral">OAuth2</div>
+          <div class="lbl">Auth Method</div>
+        </div>
+        <div class="metric-item">
+          <div class="val neutral">125K+</div>
+          <div class="lbl">登録店舗数</div>
+        </div>
+      </div>
+      <p>スマレジは小売・飲食向けクラウドPOSシステムとして国内最大規模。12万5千店舗以上で採用されており、在庫管理・売上分析・スタッフ管理のPlatform APIを提供する。予約機能はPOSと統合された形で提供され、<strong>OAuth2認証の採用がRESSERVAと比べてセキュリティ面での優位性</strong>を生む。</p>
+      <p>スマレジの真の強みは、予約管理単体ではなく<strong>POSデータとの統合</strong>にある。「予約した顧客の過去購買履歴を参照して接客提案を行う」というエージェントシナリオは、スマレジのPlatform APIを使うことで技術的に実現可能だ。</p>
+    </div>
+
+    <h2 id="tablecheck">TableCheck — Dグレード：プレミアムレストラン向けの専門性</h2>
+
+    <div class="service-card grade-d">
+      <div class="service-card-header">
+        <h3>TableCheck</h3>
+        <span class="grade-badge bg-d">D</span>
+        <span style="font-size:13px;color:var(--gray-text);">API only（MCP未対応）</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item">
+          <div class="val neutral">0.4</div>
+          <div class="lbl">Trust Score</div>
+        </div>
+        <div class="metric-item">
+          <div class="val neutral">API Key</div>
+          <div class="lbl">Auth Method</div>
+        </div>
+      </div>
+      <p>TableCheckは日本のプレミアムレストランを中心に展開する予約・ゲスト管理プラットフォーム。ミシュラン星付き店舗や高級ホテルレストランでの採用事例が多く、顧客プロフィール・アレルギー情報・訪問履歴の高度な管理に強みを持つ。REST APIで予約・ゲストプロフィール・テーブル管理が可能だが、<strong>MCP未対応でDグレード</strong>にとどまる。</p>
+      <p>ハイエンドレストランのエージェント活用シナリオ（常連客の好みを参照した席割り、アレルギー対応の自動確認等）はTableCheck APIで原理的に実現できるが、カスタムMCP実装とゲストデータの取り扱いに関する法的・倫理的配慮が必要だ。</p>
+    </div>
+
+    <h2 id="others">Airリザーブ・SELECTTYPE — DグレードのRecruit系・マルチ業種対応</h2>
+
+    <p><strong>Airリザーブ</strong>はRecruit傘下のSaaSで、Hot Pepper BeautyやじゃらんのRecruit系プラットフォームとの連携を強みとする。無料プランから利用可能で個人事業主・小規模店舗での導入が多い。API提供はあるがAirレジエコシステム経由の連携に限定される部分が大きく、AEO観点ではDグレード。</p>
+
+    <p><strong>SELECTTYPE</strong>はイベント・施設・サービス予約に対応するマルチ目的予約システム。サロン・クリニック・スタジオでの利用が多く、カレンダーウィジェットの埋め込みが特徴だ。API経由の予約管理は可能だが公式ドキュメントが限定的で、エージェント実装の難易度が高い。</p>
+
+    <h2 id="comparison">5サービス比較と実装推奨</h2>
+
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>サービス</th>
+          <th>AEOグレード</th>
+          <th>MCP対応</th>
+          <th>認証方式</th>
+          <th>Trust Score</th>
+          <th>主要ターゲット</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>RESERVA</strong></td>
+          <td><span class="grade-badge bg-c">C</span></td>
+          <td>API only</td>
+          <td>API Key</td>
+          <td>0.4</td>
+          <td>40業種・中小企業</td>
+        </tr>
+        <tr>
+          <td><strong>スマレジ</strong></td>
+          <td><span class="grade-badge bg-c">C</span></td>
+          <td>API only</td>
+          <td>OAuth2</td>
+          <td>0.4</td>
+          <td>小売・飲食・POS連携</td>
+        </tr>
+        <tr>
+          <td><strong>TableCheck</strong></td>
+          <td><span class="grade-badge bg-d">D</span></td>
+          <td>API only</td>
+          <td>API Key</td>
+          <td>0.4</td>
+          <td>プレミアムレストラン</td>
+        </tr>
+        <tr>
+          <td><strong>Airリザーブ</strong></td>
+          <td><span class="grade-badge bg-d">D</span></td>
+          <td>API only</td>
+          <td>API Key</td>
+          <td>0.4</td>
+          <td>個人事業主・Recruit連携</td>
+        </tr>
+        <tr>
+          <td><strong>SELECTTYPE</strong></td>
+          <td><span class="grade-badge bg-d">D</span></td>
+          <td>API only</td>
+          <td>API Key</td>
+          <td>0.4</td>
+          <td>サロン・クリニック・スタジオ</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>エージェント連携を今すぐ始めたい場合の推奨は以下の通り。<strong>業種を問わず汎用的に使いたい場合</strong>はRESSERVAのREST APIをベースにカスタムMCP構築。<strong>小売・飲食でPOSとの統合が重要な場合</strong>はスマレジのPlatform APIがベストチョイス（OAuth2採用でセキュリティ管理も容易）。<strong>短期間で実装したい場合</strong>はZapier・Make等のiPaaSをMCPとの中間層として活用する方法も有効だ。</p>
+
+    <div class="warning-box">
+      <div class="label">実装上の注意</div>
+      <p>予約データには顧客の個人情報（氏名・連絡先・訪問パターン）が含まれる。AIエージェントに予約管理APIを接続する場合、最小権限の原則（読み取り専用スコープから開始）と、エージェントが取得したデータの保存・学習への使用可否を必ず確認すること。医療・美容関連の予約データには特に慎重な取り扱いが必要。</p>
+    </div>
+
+    <h2 id="future">予約管理SaaSのAEO進化シナリオ — 誰が最初にMCP対応するか</h2>
+
+    <p>予約管理カテゴリ全社のMCP未対応は現時点の現実だが、変化の兆しも見える。AIエージェントによる予約自動化のユースケースは、事業者・消費者双方のニーズが高く市場規模も大きい。「AIが予約を自動取得して顧客にリマインド送信する」「エージェントが顧客の嗜好に合わせた時間帯を推薦する」といったシナリオは、ツーリズム・美容・医療分野での競争優位に直結する。</p>
+
+    <p>KanseiLinkは<strong>スマレジが最初にMCP対応する可能性が最も高い</strong>と見ている。理由は三つ。第一に、OAuth2採用により認証アーキテクチャが既にMCP親和的。第二に、kintone連携やSaaSエコシステムへの積極的なAPI提供実績。第三に、POSとの統合シナリオがエンタープライズ顧客からのMCP要求を生む可能性が高い。</p>
+
+    <p>RESSERVAは登録事業者数30万社というスケールを持つが、中小企業・個人事業主中心の顧客ベースではAPI投資の優先度が上がりにくい。ただし、RESSERVAがMCP対応した際の市場インパクトはカテゴリ最大になるだろう。</p>
+
+    <div style="margin:32px 0;padding:28px 32px;background:linear-gradient(135deg,#1A3FD6 0%,#7882DC 100%);border-radius:16px;color:white;text-align:center;">
+      <div style="font-size:20px;font-weight:700;margin-bottom:8px;">予約管理AEO詳細データをMCPで取得</div>
+      <p style="font-size:15px;opacity:0.9;margin:0 0 16px;line-height:1.6;">各サービスのAPI仕様詳細、カスタムMCP構築ガイド、最新AEOスコア推移をProプランで解放。</p>
+      <a href="../pricing.html" style="display:inline-block;padding:12px 32px;background:white;color:#1A3FD6;border-radius:8px;font-weight:700;text-decoration:none;font-size:15px;">料金プランを見る →</a>
+    </div>
+
+    <div class="cta-banner">
+      <h3>予約管理カテゴリの最新AEOデータをMCPで取得</h3>
+      <p>KanseiLink MCPサーバーに接続して予約管理カテゴリのリアルタイムデータを確認できます。</p>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" class="btn-teal" target="_blank">MCPサーバーを見る</a>
+    </div>
+
+    <div class="related-section">
+      <h2>関連リサーチ</h2>
+      <div class="related-grid">
+        <a href="ecommerce-saas-aeo-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>ECコマースSaaS AEO比較 2026 — Shopify・BASE・Amazon・楽天市場の格付けレポート</h4>
+        </a>
+        <a href="payment-saas-aeo-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>決済SaaS AEO比較 2026 — Stripe・PayPay・Square格付けレポート</h4>
+        </a>
+        <a href="mcp-common-issues.html" class="related-card">
+          <div class="tag">Technical Guide</div>
+          <h4>MCP導入でよくある問題と解決策</h4>
+        </a>
+        <a href="aeo-ranking-q2-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>AEO Readiness Ranking Q2 2026 — SaaS/API 225社 AEO格付けレポート</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        このレポートのデータはKanseiLink MCPサーバーから取得できます。
+        <code>search_services(intent="reservation booking management", category="reservation")</code>で予約管理サービスを検索し、
+        <code>get_service_detail(service_id="reserva")</code>でAPIエンドポイント仕様を確認できます。
+        カスタムMCP構築の参考データとして<code>get_insights(service_id="smaregi")</code>も合わせて参照してください。
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Connect</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+<script src="/js/paywall.js"></script>
+</body>
+</html>
