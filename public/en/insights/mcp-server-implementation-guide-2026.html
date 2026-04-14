@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Server Implementation Guide 2026 — Auth, Rate Limiting & Error Handling Patterns | KanseiLink</title>
+  <meta name="description" content="A practical guide to building production-grade MCP servers for Japanese SaaS. Covers OAuth 2.1 with PKCE, per-tool rate limiting, exponential backoff retries, and circuit breaker patterns — grounded in KanseiLink live operational data.">
+  <meta name="keywords" content="MCP server implementation, OAuth 2.1 MCP, rate limiting MCP, error handling MCP, build MCP server, AI agent SaaS integration, KanseiLink AEO">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/mcp-server-implementation-guide-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-server-implementation-guide-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-server-implementation-guide-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-server-implementation-guide-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCP Server Implementation Guide 2026 — Auth, Rate Limiting & Error Handling Patterns">
+  <meta property="og:description" content="Build production-grade MCP servers: OAuth 2.1 + PKCE, per-tool rate limits, agent-recoverable error responses, and circuit breakers — from KanseiLink live data.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/mcp-server-implementation-guide-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-14">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="How-to Guide">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCP Server Implementation Guide 2026 — Auth, Rate Limiting & Error Handling Patterns">
+  <meta name="twitter:description" content="Build production-grade MCP servers: OAuth 2.1 + PKCE, per-tool rate limits, agent-recoverable errors, and circuit breakers — from KanseiLink live data.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCP Server Implementation Guide 2026 — Auth, Rate Limiting & Error Handling Patterns",
+    "description": "A practical guide to building production-grade MCP servers for Japanese SaaS. Covers OAuth 2.1 with PKCE, per-tool rate limiting, exponential backoff retries, and circuit breaker patterns.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-14",
+    "dateModified": "2026-04-14",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/mcp-server-implementation-guide-2026",
+    "keywords": ["MCP server", "OAuth 2.1", "rate limiting", "error handling", "AI agents", "KanseiLink", "AEO"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is OAuth 2.1 now required for MCP servers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The 2026 MCP specification update mandates OAuth 2.1 combined with RFC 8707 (Resource Indicators) for public remote MCP servers. The implicit flow is deprecated and PKCE is now required. Resource Indicators bind tokens to a specific MCP server URI, preventing token reuse across other services if leaked."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How should I design rate limiting for an MCP server?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Use a two-layer design: per-client (total requests per client/API key) and per-tool (limits vary by tool — strict for destructive operations, lenient for read-only). Use atomic PostgreSQL UPDATEs to prevent race conditions in burst scenarios. Always return HTTP 429 with a Retry-After header so agents can calculate the correct wait time."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I make my MCP server errors agent-recoverable?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Classify errors as CLIENT_ERROR (4xx, don't retry), SERVER_ERROR (5xx, retry with backoff), or EXTERNAL_ERROR (502/503, upstream failure). Include retry_recommended and retry_after_seconds fields. Since tool errors are injected into the LLM context window, write error messages as recovery instructions — the agent reads them and acts on them autonomously."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights" },
+      { "@type": "ListItem", "position": 3, "name": "MCP Server Implementation Guide 2026", "item": "https://kansei-link.com/en/insights/mcp-server-implementation-guide-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3;
+      --black: #000000; --white: #FFFFFF; --lavender: #F4F5FD;
+      --gray-light: #F5F5F5; --gray-mid: #E5E7EB; --gray-text: #6B7280; --gray-dark: #374151;
+      --grade-aaa: #065F46; --grade-aa: #059669; --grade-a: #0891B2;
+      --grade-bbb: #D97706; --grade-bb: #EA580C; --grade-b: #DC2626; --grade-ccc: #991B1B;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter','Noto Sans JP',-apple-system,BlinkMacSystemFont,sans-serif; color: var(--black); background: var(--white); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a { color: var(--black); text-decoration: none; font-size: 16px; font-weight: 400; padding: 20px 0; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-teal { background: var(--teal); color: var(--black); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-teal:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; }
+    .hamburger span { display: block; width: 24px; height: 2.5px; background: var(--black); border-radius: 2px; transition: transform 0.3s, opacity 0.3s; }
+
+    .breadcrumb-bar { background: var(--gray-light); padding: 12px 0; font-size: 14px; color: var(--gray-text); }
+    .breadcrumb-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 50%, #00897B 100%); padding: 80px 0 64px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); color: var(--white); font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 9999px; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .article-hero h1 { font-size: 42px; font-weight: 600; letter-spacing: -2.1px; line-height: 1.2; margin-bottom: 24px; }
+    .article-hero .subtitle { font-size: 18px; font-weight: 300; line-height: 1.7; opacity: 0.9; margin-bottom: 32px; }
+    .article-meta { display: flex; align-items: center; gap: 24px; font-size: 14px; opacity: 0.8; flex-wrap: wrap; }
+    .article-meta .divider { width: 1px; height: 16px; background: rgba(255,255,255,0.3); }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 48px 40px 80px; color: var(--gray-dark); font-size: 16px; line-height: 1.7; }
+    .article-body h2 { font-size: 28px; font-weight: 600; color: var(--black); letter-spacing: -1px; margin-top: 56px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--lavender); }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin-top: 36px; margin-bottom: 12px; }
+    .article-body p { margin-bottom: 20px; }
+    .article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .article-body a:hover { border-bottom-color: var(--blue); }
+    .article-body code { background: var(--gray-light); padding: 2px 6px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); font-family: 'Courier New', Courier, monospace; }
+
+    .code-block { background: #0d1117; color: #e6edf3; border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.7; }
+    .code-block .comment { color: #8b949e; }
+    .code-block .keyword { color: #ff7b72; }
+    .code-block .string { color: #a5d6ff; }
+    .code-block .func { color: #d2a8ff; }
+    .code-block .number { color: #79c0ff; }
+
+    .key-concept { background: var(--lavender); border-left: 4px solid var(--blue); padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .key-concept .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .key-concept p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .toc-box { background: var(--gray-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 14px; font-weight: 600; color: var(--black); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .toc-box ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+    .toc-box li { counter-increment: toc; margin-bottom: 6px; }
+    .toc-box li::before { content: counter(toc) "."; color: var(--blue); font-weight: 600; margin-right: 8px; font-size: 13px; }
+    .toc-box a { color: var(--gray-dark); text-decoration: none; font-size: 14px; }
+    .toc-box a:hover { color: var(--blue); }
+
+    .step-card { border: 1px solid var(--gray-mid); border-radius: 12px; padding: 24px 28px; margin: 20px 0; }
+    .step-card-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+    .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--blue); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+    .step-card-header h3 { font-size: 18px; font-weight: 600; color: var(--black); margin: 0; }
+    .step-card p { margin-bottom: 12px; font-size: 15px; }
+    .step-card p:last-child { margin-bottom: 0; }
+
+    .pattern-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+    .pattern-card { background: var(--gray-light); border-radius: 8px; padding: 20px; }
+    .pattern-card h4 { font-size: 14px; font-weight: 700; color: var(--black); margin-bottom: 8px; }
+    .pattern-card p { font-size: 13px; color: var(--gray-dark); margin: 0; line-height: 1.6; }
+    .pattern-card .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; }
+    .badge-good { background: #D1FAE5; color: #065F46; }
+    .badge-warn { background: #FEF3C7; color: #92400E; }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .pattern-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/mcp-server-implementation-guide-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCP Server Implementation Guide 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">How-to Guide</span>
+      <h1>MCP Server Implementation Guide 2026</h1>
+      <p class="subtitle">Auth, Rate Limiting & Error Handling — Production-grade implementation patterns derived from KanseiLink live operational data</p>
+      <div class="article-meta">
+        <span>2026-04-14</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>10 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#why-now">Why Implementation Quality Is Under Scrutiny Now</a></li>
+        <li><a href="#auth">Step 1: Authentication — OAuth 2.1 + PKCE + Resource Indicators</a></li>
+        <li><a href="#rate-limit">Step 2: Rate Limiting — Two-Layer per-client / per-tool Design</a></li>
+        <li><a href="#error-handling">Step 3: Error Handling — Design for Agent Self-Recovery</a></li>
+        <li><a href="#circuit-breaker">Step 4: Circuit Breaker — Preventing Failure Propagation from External Dependencies</a></li>
+        <li><a href="#aeo-checklist">Implementation Checklist for Higher AEO Scores</a></li>
+      </ol>
+    </div>
+
+    <div class="disclosure-box">
+      <div class="label">Data Sources</div>
+      <p>Recommendations in this guide are based on the MCP official specification (modelcontextprotocol.io), KanseiLink MCP server live operational data (225 services, 1,000+ total calls), and 2026 research reports from Astrix Security, cdata.com, and Octopus.com.</p>
+    </div>
+
+    <h2 id="why-now">Why Implementation Quality Is Under Scrutiny Now</h2>
+
+    <p>The "get an MCP server running" phase of 2024–2025 is over. What the 2026 agent industry demands is: <strong>"Does it hold up in production, under sustained load, for hours at a time?"</strong></p>
+
+    <p>KanseiLink's live operational data makes this concrete. AAA-grade services maintain 90–94% success rates across hundreds of real agent calls. Meanwhile, API-only services in lower grades accumulate no meaningful call data. <strong>Agents learn which services fail and stop using them.</strong> That is the essence of an AEO score.</p>
+
+    <p>This guide takes the <strong>failure patterns</strong> observed in KanseiLink's tracking data as its starting point and provides actionable patterns that Japanese SaaS developers can implement today.</p>
+
+    <h2 id="auth">Step 1: Authentication — OAuth 2.1 + PKCE + Resource Indicators</h2>
+
+    <p>The April 2026 MCP specification update made OAuth 2.1 + RFC 8707 (Resource Indicators) mandatory for public remote MCP servers. Three concrete changes affect implementations:</p>
+
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <div class="badge badge-warn">Deprecated</div>
+        <h4>Implicit Flow</h4>
+        <p>OAuth 2.0's implicit flow is removed from the MCP spec. Implementations returning access tokens in URL fragments are non-compliant.</p>
+      </div>
+      <div class="pattern-card">
+        <div class="badge badge-good">Required</div>
+        <h4>PKCE (Proof Key for Code Exchange)</h4>
+        <p>Authorization code flow now requires PKCE. Implement code_verifier / code_challenge generation and verification.</p>
+      </div>
+      <div class="pattern-card">
+        <div class="badge badge-good">New — Required</div>
+        <h4>Resource Indicators (RFC 8707)</h4>
+        <p>Embed the target resource (MCP server URI) in the access token. Technically prevents a leaked token from being reused against other services.</p>
+      </div>
+      <div class="pattern-card">
+        <div class="badge badge-good">M2M Support</div>
+        <h4>client_credentials Flow</h4>
+        <p>Formally supported for machine-to-machine authentication. Required for autonomous agents running batch jobs without a human user in the loop.</p>
+      </div>
+    </div>
+
+    <h3>Token Expiry Design: The Top Pain Point in Japanese SaaS</h3>
+
+    <p>The most frequently reported frustration in KanseiLink's Agent Voice data is the <strong>"token expires after 24 hours"</strong> problem. KanseiLink's Claude agent reports on freee: "The 24-hour token expiry is the single biggest barrier to autonomous operation. Silent expiry mid-operation causes partial completions with no easy recovery path."</p>
+
+    <div class="step-card">
+      <div class="step-card-header">
+        <div class="step-num">1</div>
+        <h3>Short-lived Access Tokens + Rotating Refresh Tokens</h3>
+      </div>
+      <p>Set access token expiry to <strong>15–60 minutes</strong> — not 24 hours. Rotate refresh tokens on each use (invalidate the old one when issuing a new one) to minimize the exposure window from a leaked token.</p>
+      <p>When multiple agent instances share the same credentials, use an atomic lock (e.g., Redis SETNX) to prevent race conditions in the refresh flow.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-card-header">
+        <div class="step-num">2</div>
+        <h3>Per-Tool Scope Design</h3>
+      </div>
+      <p>Do not give agents blanket access. Define <strong>tool-level scopes</strong> such as <code>invoices:read</code>, <code>invoices:create</code>, and <code>reports:export</code>, and validate scopes on every request. Finer-grained scopes directly limit the blast radius of a compromised agent session.</p>
+    </div>
+
+    <div class="key-concept">
+      <div class="label">Implementation Note</div>
+      <p>Verify that your authorization server supports Resource Indicators. Keycloak (v18+) and Auth0 (Enterprise) support RFC 8707. For custom implementations, add a <code>resource</code> parameter to your token endpoint and include the target MCP server URI in the issued token's <code>audience</code> claim.</p>
+    </div>
+
+    <h2 id="rate-limit">Step 2: Rate Limiting — Two-Layer per-client / per-tool Design</h2>
+
+    <p>An MCP server without rate limiting is one runaway agent away from exhausting an entire API quota and generating unexpected external costs. KanseiLink's tracking data shows a direct correlation between the absence of rate limiting and elevated error rates.</p>
+
+    <h3>Two-Layer Rate Limit Design Principles</h3>
+
+    <p><strong>Layer 1 (per-client)</strong>: Limits on total requests per client ID or API key. Set based on your upstream API quota — for example, 100 requests/minute and 2,000 requests/hour.</p>
+
+    <p><strong>Layer 2 (per-tool)</strong>: Limits that vary by individual tool. Destructive operations (e.g., <code>delete_invoice</code>) can be capped at 5 requests/minute while read-only tools receive more generous limits. This allows fine-grained protection without penalizing safe operations.</p>
+
+    <div class="code-block">
+<span class="comment">-- Atomic rate limiting with PostgreSQL (burst prevention)</span>
+<span class="comment">-- Single UPDATE checks and increments simultaneously → eliminates race conditions</span>
+UPDATE rate_limits
+SET request_count = request_count + 1,
+    window_start = CASE
+      WHEN NOW() - window_start > INTERVAL '1 minute'
+      THEN NOW()
+      ELSE window_start
+    END,
+    request_count = CASE
+      WHEN NOW() - window_start > INTERVAL '1 minute'
+      THEN 1
+      ELSE request_count + 1
+    END
+WHERE client_id = $1
+  AND tool_name = $2
+RETURNING
+  request_count,
+  window_start,
+  (request_count &lt;= $3) AS allowed;
+    </div>
+
+    <h3>Return Retry-After Headers Accurately</h3>
+
+    <p>On rate limit exceeded (HTTP 429), return a <code>Retry-After</code> header with the seconds remaining or the exact datetime when the next request is permitted. This allows agents to calculate the correct wait time without blindly retrying — and accidentally consuming more quota in the process.</p>
+
+    <div class="success-box">
+      <div class="label">AEO Impact</div>
+      <p>Proper rate limiting with accurate <code>Retry-After</code> headers directly affects KanseiLink's "error recoverability" evaluation dimension. Services where agents can autonomously retry tend to score an average of 12 points higher on AEO ratings (KanseiLink internal data).</p>
+    </div>
+
+    <h2 id="error-handling">Step 3: Error Handling — Design for Agent Self-Recovery</h2>
+
+    <p>MCP tool errors are injected directly into the LLM's context window. That means your error messages are <strong>instructions to the agent</strong>. The quality of your error messages determines whether an agent can self-recover — or gives up and fails the task.</p>
+
+    <h3>The Three Error Categories</h3>
+
+    <div class="step-card">
+      <div class="step-card-header">
+        <div class="step-num" style="background:#DC2626;">C</div>
+        <h3>CLIENT_ERROR (4xx) — The caller's problem</h3>
+      </div>
+      <p>Retrying will not help. Tell the agent <em>what</em> is wrong and <em>how</em> to fix it. Example: <code>"error": "CLIENT_ERROR", "message": "invoice_date must be ISO 8601 format (YYYY-MM-DD). Received: 'April 14, 2026'", "retry_recommended": false</code></p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-card-header">
+        <div class="step-num" style="background:#D97706;">S</div>
+        <h3>SERVER_ERROR (5xx) — Our problem</h3>
+      </div>
+      <p>Recommend a retry with exponential backoff. Include a suggested wait time. Example: <code>"error": "SERVER_ERROR", "message": "Internal error. Please retry after 30 seconds.", "retry_recommended": true, "retry_after_seconds": 30</code></p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-card-header">
+        <div class="step-num" style="background:#6B7280;">E</div>
+        <h3>EXTERNAL_ERROR (502/503) — Upstream dependency down</h3>
+      </div>
+      <p>Name the failing dependency and suggest a fallback. Example: <code>"error": "EXTERNAL_ERROR", "dependency": "freee_api", "message": "freee API is temporarily unavailable. Retry in 5 minutes or consider using an alternative accounting tool.", "retry_recommended": true</code></p>
+    </div>
+
+    <h3>Exponential Backoff + Jitter</h3>
+
+    <p>Never retry at fixed intervals. When multiple agents retry simultaneously during an outage, they amplify the load on the recovering service. Combine <strong>exponential backoff</strong> (doubling wait time on each retry) with <strong>jitter</strong> (random variation) to spread retry spikes across time.</p>
+
+    <div class="code-block">
+<span class="comment">// Exponential backoff + jitter implementation (TypeScript)</span>
+<span class="keyword">async function</span> <span class="func">retryWithBackoff</span>(
+  fn: () =&gt; <span class="func">Promise</span>&lt;any&gt;,
+  maxRetries: <span class="keyword">number</span> = <span class="number">3</span>,
+  baseDelayMs: <span class="keyword">number</span> = <span class="number">1000</span>
+): <span class="func">Promise</span>&lt;any&gt; {
+  <span class="keyword">for</span> (<span class="keyword">let</span> attempt = <span class="number">0</span>; attempt &lt;= maxRetries; attempt++) {
+    <span class="keyword">try</span> {
+      <span class="keyword">return await</span> <span class="func">fn</span>();
+    } <span class="keyword">catch</span> (error) {
+      <span class="keyword">if</span> (attempt === maxRetries) <span class="keyword">throw</span> error;
+      <span class="comment">// Exponential backoff: 1s → 2s → 4s + jitter (0–1s)</span>
+      <span class="keyword">const</span> delay = baseDelayMs * Math.<span class="func">pow</span>(<span class="number">2</span>, attempt)
+        + Math.<span class="func">random</span>() * <span class="number">1000</span>;
+      <span class="keyword">await new</span> <span class="func">Promise</span>(resolve =&gt; <span class="func">setTimeout</span>(resolve, delay));
+    }
+  }
+}
+    </div>
+
+    <h2 id="circuit-breaker">Step 4: Circuit Breaker — Preventing Failure Propagation from External Dependencies</h2>
+
+    <p>Even during an upstream API outage, if your MCP server continues accepting requests, the resulting timeout pile-up degrades your entire server's response time. The <strong>circuit breaker</strong> pattern fixes this: when error rates exceed a threshold, new requests are immediately rejected without hitting the upstream at all — then automatically restored once the dependency recovers.</p>
+
+    <div class="step-card">
+      <div class="step-card-header">
+        <div class="step-num">CB</div>
+        <h3>Three Circuit Breaker States</h3>
+      </div>
+      <p><strong>Closed (normal)</strong>: All requests pass through. Transitions to Open when the error rate exceeds the threshold (e.g., 50% over a 1-minute window).</p>
+      <p><strong>Open (tripped)</strong>: Immediately rejects new requests without calling the upstream. After a cooldown period (e.g., 30 seconds), transitions to Half-Open.</p>
+      <p><strong>Half-Open (probing)</strong>: Allows one test request through. Success transitions to Closed; failure sends it back to Open.</p>
+    </div>
+
+    <div class="key-concept">
+      <div class="label">Observed Pattern in Japanese SaaS</div>
+      <p>KanseiLink data shows that freee OAuth token expiry (auth_expired errors) tends to occur in bursts — multiple agents hitting the same expired token simultaneously. A circuit breaker wired to auth_expired errors can detect consecutive authentication failures and trigger a proactive token refresh before resuming requests, preventing the entire error cascade.</p>
+    </div>
+
+    <h2 id="aeo-checklist">Implementation Checklist for Higher AEO Scores</h2>
+
+    <p>The following checklist maps directly to KanseiLink's AEO evaluation criteria. Completing all items positions a service to target AA–AAA grade.</p>
+
+    <ul>
+      <li><strong>Auth</strong>: OAuth 2.1 + PKCE implemented</li>
+      <li><strong>Auth</strong>: Resource Indicators (RFC 8707) supported</li>
+      <li><strong>Auth</strong>: Access token expiry set to 60 minutes or less</li>
+      <li><strong>Auth</strong>: Refresh token rotation implemented</li>
+      <li><strong>Rate Limiting</strong>: per-client rate limits active</li>
+      <li><strong>Rate Limiting</strong>: per-tool rate limits active (strict for destructive operations)</li>
+      <li><strong>Rate Limiting</strong>: HTTP 429 + Retry-After header returned correctly</li>
+      <li><strong>Errors</strong>: Three-category error classification (CLIENT / SERVER / EXTERNAL)</li>
+      <li><strong>Errors</strong>: retry_recommended flag in error responses</li>
+      <li><strong>Errors</strong>: Error messages contain agent-readable recovery instructions</li>
+      <li><strong>Retries</strong>: Exponential backoff + jitter implemented</li>
+      <li><strong>Availability</strong>: Circuit breaker implemented</li>
+      <li><strong>Documentation</strong>: All tools have clear descriptions, input schemas, and error examples</li>
+      <li><strong>Testing</strong>: Tool behavior verified with MCP Inspector or equivalent</li>
+    </ul>
+
+    <div class="success-box">
+      <div class="label">KanseiLink Evaluation Criteria</div>
+      <p>Services that complete this checklist and achieve 80%+ success rate in live operational data are candidates for AA grade. AAA requires 90%+ success rate with an official MCP server. To submit an AEO score update request, contact <a href="mailto:contact@synapse-arrows.com">contact@synapse-arrows.com</a>.</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>Check Your Service's AEO Score</h3>
+      <p>Connect to the KanseiLink MCP server to compare your AEO score against competitors and identify specific implementation improvements.</p>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" class="btn-teal" target="_blank">View MCP Server</a>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Research</h2>
+      <div class="related-grid">
+        <a href="../../insights/mcp-common-issues.html" class="related-card">
+          <div class="tag">Technical Guide</div>
+          <h4>Common MCP Implementation Issues and Solutions</h4>
+        </a>
+        <a href="../../insights/mcp-vs-api.html" class="related-card">
+          <div class="tag">Technical Guide</div>
+          <h4>MCP vs API — Technology Choices for the Agent Era</h4>
+        </a>
+        <a href="mcp-trends-q2-2026.html" class="related-card">
+          <div class="tag">Trend Report</div>
+          <h4>Claude Managed Agents Arrive — Q2 2026 AI Agent Industry Trends</h4>
+        </a>
+        <a href="aeo-ranking-q2-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>AEO Readiness Ranking Q2 2026 — Rating Report for 225 SaaS/API</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        Implementation pattern data referenced in this guide is queryable via the KanseiLink MCP server.
+        Use <code>get_service_tips(service_id="freee")</code> to retrieve auth implementation best practices,
+        and <code>get_insights(service_id="slack")</code> to review error patterns from high-success-rate services.
+        Use <code>search_services(agent_ready="verified")</code> to list services with verified production track records.
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. Making service quality visible in the AI agent era.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="../../insights/what-is-aeo.html">What is AEO?</a>
+          <a href="../../insights/what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Connect</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+<script src="/js/paywall.js"></script>
+</body>
+</html>

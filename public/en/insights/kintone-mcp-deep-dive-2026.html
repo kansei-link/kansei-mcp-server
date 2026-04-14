@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>kintone MCP Deep Dive — Behind the AAA Grade, Three Auth Methods &amp; Developer Pitfalls | KanseiLink</title>
+  <meta name="description" content="A comprehensive guide to kintone's MCP server. Understand why kintone earns AAA, how to choose between API token, password, and OAuth 2.0 authentication, the {value} wrapper trap, field code gotchas, and rate limit strategies for agent developers.">
+  <meta name="keywords" content="kintone MCP, kintone API, kintone agent integration, MCP server, kintone authentication, kintone OAuth, AEO, KanseiLink, Cybozu">
+  <meta name="author" content="KanseiLink / Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/kintone-mcp-deep-dive-2026.html">
+
+  <!-- hreflang -->
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/kintone-mcp-deep-dive-2026.html">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/kintone-mcp-deep-dive-2026.html">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/kintone-mcp-deep-dive-2026.html">
+
+  <!-- OGP -->
+  <meta property="og:title" content="kintone MCP Deep Dive — Behind the AAA Grade, Three Auth Methods &amp; Developer Pitfalls">
+  <meta property="og:description" content="A comprehensive guide to kintone's MCP server. Three auth methods, {value} wrapper trap, field code gotchas, rate limit strategies — all for agent developers.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/kintone-mcp-deep-dive-2026.html">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-14">
+  <meta property="article:section" content="Service Deep-Dive">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="kintone MCP Deep Dive — AAA Grade, Auth Methods &amp; Pitfalls">
+  <meta name="twitter:description" content="KanseiLink's complete guide to kintone MCP: three auth methods, {value} trap, field codes, and rate limits.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "kintone MCP Deep Dive — Behind the AAA Grade, Three Auth Methods & Developer Pitfalls",
+    "description": "KanseiLink's complete guide to kintone's MCP server: AAA grade rationale, three auth methods, the {value} wrapper trap, field code gotchas, and rate limit strategies.",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-14",
+    "dateModified": "2026-04-14",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/kintone-mcp-deep-dive-2026.html",
+    "keywords": ["kintone", "MCP", "kintone API", "kintone agent integration", "Cybozu", "AEO", "KanseiLink"],
+    "articleSection": "Service Deep-Dive",
+    "inLanguage": "en"
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What authentication methods does the kintone MCP server support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "kintone supports three authentication methods: 1) API Token (recommended): generate a token in app settings and pass it in the X-Cybozu-API-Token header. 2) Password authentication: Base64-encode 'username:password' and pass in the X-Cybozu-Authorization header. 3) OAuth 2.0: requires app registration at developer.cybozu.io. For agent use cases, API Token is the simplest and recommended method."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are all kintone API field values wrapped in {value: '...'}?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This is a kintone API design choice. All field values are wrapped in object format ({value: 'actual value'}) — this applies to number fields, text fields, and all other types without exception. You must always access values via record.field_code.value."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are kintone API's rate limits?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The standard plan has a limit of 10,000 requests per day. Concurrent connections are limited to 10. Use bulk operations (POST /records.json can insert up to 100 records at once) to reduce total request count when processing large data volumes."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "KanseiLink", "item": "https://kansei-link.com"},
+      {"@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/"},
+      {"@type": "ListItem", "position": 3, "name": "kintone MCP Deep Dive", "item": "https://kansei-link.com/en/insights/kintone-mcp-deep-dive-2026.html"}
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; font-weight: 400; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a { color: var(--black); text-decoration: none; font-size: 16px; font-weight: 400; padding: 20px 0; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; }
+    .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+    .breadcrumb { max-width: 800px; margin: 24px auto 0; padding: 0 24px; font-size: 14px; color: var(--gray-text); }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 8px; color: var(--gray-mid); }
+    .article { max-width: 800px; margin: 0 auto; padding: 0 24px 80px; }
+    .article-meta { margin: 32px 0 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .article-meta .tag { background: var(--lavender); color: var(--blue); font-size: 13px; font-weight: 600; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .article-meta .date { font-size: 14px; color: var(--gray-text); }
+    .article-meta .reading-time { font-size: 14px; color: var(--gray-text); }
+    .article h1 { font-size: 42px; font-weight: 800; line-height: 1.2; margin: 16px 0 24px; letter-spacing: -1px; }
+    .article .lead { font-size: 20px; line-height: 1.7; color: var(--gray-dark); margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid var(--gray-mid); }
+    .article h2 { font-size: 28px; font-weight: 700; margin: 56px 0 20px; letter-spacing: -0.5px; }
+    .article h3 { font-size: 22px; font-weight: 600; margin: 40px 0 16px; }
+    .article h4 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
+    .article p { margin-bottom: 20px; line-height: 1.7; }
+    .article ul, .article ol { margin: 0 0 20px 24px; }
+    .article li { margin-bottom: 8px; line-height: 1.7; }
+    .grade-badge { display: inline-flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #1A3FD6 0%, #00C4B3 100%); color: var(--white); border-radius: 12px; padding: 20px 28px; margin: 24px 0; font-weight: 700; }
+    .grade-badge .grade-letter { font-size: 48px; line-height: 1; letter-spacing: -2px; }
+    .grade-badge .grade-detail { font-size: 15px; line-height: 1.5; }
+    .grade-badge .grade-detail strong { font-size: 18px; display: block; margin-bottom: 4px; }
+    .code-block { background: #1E293B; color: #E2E8F0; border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; font-family: 'Fira Code', 'SF Mono', 'Consolas', monospace; font-size: 14px; line-height: 1.6; }
+    .code-block .code-label { display: block; color: var(--teal); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .code-block code { font-family: inherit; white-space: pre; }
+    .code-block .comment { color: #64748B; }
+    .code-block .keyword { color: #C084FC; }
+    .code-block .string { color: #34D399; }
+    .code-block .func { color: #60A5FA; }
+    .code-block .number { color: #FB923C; }
+    .code-block .prop { color: #FCD34D; }
+    .auth-card { border: 1px solid var(--gray-mid); border-radius: 12px; padding: 24px; margin: 20px 0; }
+    .auth-card.recommended { border-color: var(--teal); border-width: 2px; }
+    .auth-card .auth-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .auth-card .auth-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 3px 10px; border-radius: 9999px; }
+    .auth-label-recommended { background: #D1FAE5; color: #065F46; }
+    .auth-label-basic { background: var(--lavender); color: var(--blue); }
+    .auth-label-advanced { background: #EDE9FE; color: #5B21B6; }
+    .auth-card h4 { font-size: 18px; font-weight: 700; margin: 0; }
+    .auth-card p { font-size: 15px; color: var(--gray-dark); margin-bottom: 12px; line-height: 1.6; }
+    .auth-card .auth-steps { list-style: none; padding: 0; margin: 12px 0 0; }
+    .auth-card .auth-steps li { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-top: 1px solid var(--gray-mid); font-size: 14px; color: var(--gray-dark); margin: 0; }
+    .auth-steps .step-num { background: var(--blue); color: var(--white); width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .pitfall-card { background: #FFF7ED; border: 1px solid #FED7AA; border-left: 4px solid #EA580C; border-radius: 8px; padding: 20px 24px; margin: 20px 0; }
+    .pitfall-card .pitfall-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .pitfall-card .pitfall-icon { font-size: 18px; }
+    .pitfall-card .pitfall-title { font-size: 16px; font-weight: 700; color: #9A3412; }
+    .pitfall-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+    .tip-card { background: #F0FDF4; border: 1px solid #BBF7D0; border-left: 4px solid #16A34A; border-radius: 8px; padding: 20px 24px; margin: 20px 0; }
+    .tip-card .tip-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .tip-card .tip-icon { font-size: 18px; }
+    .tip-card .tip-title { font-size: 16px; font-weight: 700; color: #166534; }
+    .tip-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+    .data-table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; }
+    .data-table th { background: var(--blue); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--gray-mid); vertical-align: top; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--lavender); }
+    .cta-section { background: linear-gradient(135deg, var(--blue) 0%, #2A1FA0 100%); color: var(--white); border-radius: 16px; padding: 48px; margin: 56px 0 40px; text-align: center; }
+    .cta-section h2 { color: var(--white); font-size: 28px; margin: 0 0 12px; }
+    .cta-section p { font-size: 16px; opacity: 0.9; margin-bottom: 28px; }
+    .cta-section .btn-cta { display: inline-block; background: var(--teal); color: var(--black); font-size: 16px; font-weight: 600; padding: 14px 40px; border-radius: 9999px; text-decoration: none; transition: opacity 0.2s; }
+    .cta-section .btn-cta:hover { opacity: 0.9; }
+    .related-section { margin: 40px 0 0; padding-top: 40px; border-top: 1px solid var(--gray-mid); }
+    .related-section h3 { font-size: 20px; font-weight: 700; margin-bottom: 24px; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { border: 1px solid var(--gray-mid); border-radius: 12px; padding: 24px; text-decoration: none; color: var(--black); transition: box-shadow 0.2s; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .related-card .rc-tag { font-size: 12px; font-weight: 600; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card .rc-title { font-size: 16px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+    .related-card .rc-desc { font-size: 14px; color: var(--gray-text); line-height: 1.5; }
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; margin-top: 80px; }
+    .footer .inner { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .footer .footer-brand { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: var(--teal); }
+    .footer .footer-desc { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 24px; }
+    .footer .footer-copy { font-size: 13px; color: rgba(255,255,255,0.4); padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; }
+    .hamburger span { display: block; width: 24px; height: 2.5px; background: var(--black); border-radius: 2px; transition: transform 0.3s, opacity 0.3s; }
+    @media (max-width: 900px) {
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; padding: 0 16px; }
+      .utility-bar .inner { flex-wrap: wrap; justify-content: center; gap: 12px; padding: 0 16px; }
+      .article h1 { font-size: 28px; letter-spacing: -1px; }
+      .article h2 { font-size: 22px; }
+      .article .lead { font-size: 17px; }
+      .related-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 32px 16px; }
+      .code-block { font-size: 12px; padding: 16px; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
+      th, td { padding: 8px 10px; white-space: nowrap; }
+      .grade-badge { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/kintone-mcp-deep-dive-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Nav -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="/en/index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="/en/index.html#methodology">Methodology</a></li>
+        <li><a href="/pricing.html">Pricing</a></li>
+        <li><a href="/about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="../../index.html">KanseiLink</a>
+    <span class="sep">/</span>
+    <a href="index.html">Insights</a>
+    <span class="sep">/</span>
+    kintone MCP Deep Dive
+  </div>
+
+  <!-- Article -->
+  <article class="article">
+
+    <div class="article-meta">
+      <span class="tag">Service Deep-Dive</span>
+      <span class="date">2026-04-14</span>
+      <span class="reading-time">15 min read</span>
+    </div>
+
+    <h1>kintone MCP Deep Dive &#8212; Behind the AAA Grade, Three Auth Methods &amp; Developer Pitfalls</h1>
+
+    <p class="lead">
+      Cybozu&#8217;s kintone is one of the few Japan-made SaaS platforms that has earned an AAA grade in KanseiLink&#8217;s AEO evaluation. Its official MCP server is available in three deployment formats — npm, Docker, and Desktop Extension — and March 2026 brought new additions: a process management API and Desktop Extension support. Yet kintone&#8217;s API has idiosyncrasies that will reliably trip up agent developers on the first pass. This article uses KanseiLink&#8217;s data to thoroughly explain the rationale behind the AAA grade, how to choose between three authentication methods, and five pitfalls to navigate during implementation.
+    </p>
+
+    <h2>1. Why kintone Earns AAA</h2>
+
+    <div class="grade-badge">
+      <div class="grade-letter">AAA</div>
+      <div class="grade-detail">
+        <strong>kintone MCP — AXR Rating</strong>
+        Official MCP: ✅ (npm / Docker / Desktop Extension)<br>
+        Auth: API Token / Password / OAuth 2.0<br>
+        Last updated: 2026-04-13
+      </div>
+    </div>
+
+    <p>KanseiLink&#8217;s AAA designation for kintone rests on three pillars:</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Evaluation Criterion</th>
+          <th>kintone Performance</th>
+          <th>Rating</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Official MCP Server</strong></td>
+          <td>Officially by Cybozu (github.com/kintone/mcp-server); available as npm, Docker, and Desktop Extension</td>
+          <td>✅ Best-in-class</td>
+        </tr>
+        <tr>
+          <td><strong>Auth Method Diversity</strong></td>
+          <td>Supports three methods: API Token (simple), password auth, and OAuth 2.0</td>
+          <td>✅ Excellent</td>
+        </tr>
+        <tr>
+          <td><strong>API Maturity</strong></td>
+          <td>RESTful API v1 with pagination, bulk operations, and process management API</td>
+          <td>✅ Excellent</td>
+        </tr>
+        <tr>
+          <td><strong>Update Cadence</strong></td>
+          <td>Process management API (Mar 30, 2026) and Desktop Extension (Mar 10, 2026) added in March</td>
+          <td>✅ Active</td>
+        </tr>
+        <tr>
+          <td><strong>Documentation Quality</strong></td>
+          <td>Official Japanese and English documentation maintained at cybozu.dev</td>
+          <td>✅ Good</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      That said, the trust_score sits at 0.7 (out of 1.0). The reason: kintone&#8217;s idiosyncratic API design (the <code>{value}</code> wrapper and field code system discussed below) makes initial agent implementation difficult. The AAA grade reflects <strong>ecosystem maturity</strong>, not &#8220;easy to use immediately.&#8221; This distinction matters.
+    </p>
+
+    <h2>2. Three Authentication Methods — How to Choose</h2>
+
+    <p>kintone supports three authentication methods. Here&#8217;s a practical guide for different agent development scenarios:</p>
+
+    <div class="auth-card recommended">
+      <div class="auth-header">
+        <span class="auth-label auth-label-recommended">Recommended / Agent Use Cases</span>
+        <h4>① API Token Authentication</h4>
+      </div>
+      <p>The simplest authentication method. Generate a token per kintone app and pass it in the <code>X-Cybozu-API-Token</code> header. No complex OAuth flows required — ideal for agent implementations.</p>
+      <ul class="auth-steps">
+        <li><span class="step-num">1</span> kintone admin panel → App Settings → API Token → "Add"</li>
+        <li><span class="step-num">2</span> Check the required permissions (record read/add/edit) and generate the token</li>
+        <li><span class="step-num">3</span> Send requests with header: <code>X-Cybozu-API-Token: {generated_token}</code></li>
+        <li><span class="step-num">4</span> For multiple apps, join tokens with a comma: <code>token1,token2</code></li>
+      </ul>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-header">
+        <span class="auth-label auth-label-basic">Simple / Development Testing</span>
+        <h4>② Password Authentication (Basic Auth)</h4>
+      </div>
+      <p>Base64-encode <code>username:password</code> and set it in the <code>X-Cybozu-Authorization</code> header. Not recommended for production, but useful for rapid development testing.</p>
+      <ul class="auth-steps">
+        <li><span class="step-num">1</span> Base64-encode <code>username:password</code></li>
+        <li><span class="step-num">2</span> Set header: <code>X-Cybozu-Authorization: {base64_string}</code></li>
+        <li><span class="step-num">3</span> Switch to API Token or OAuth for production environments</li>
+      </ul>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-header">
+        <span class="auth-label auth-label-advanced">Advanced / Enterprise</span>
+        <h4>③ OAuth 2.0 Authentication</h4>
+      </div>
+      <p>The most secure method, with fine-grained user permission control. Scopes: <code>k:app_record:read</code>, <code>k:app_record:write</code>. Best suited for enterprise applications and multi-user systems.</p>
+      <ul class="auth-steps">
+        <li><span class="step-num">1</span> Register an OAuth app at developer.cybozu.io</li>
+        <li><span class="step-num">2</span> Authorization URL: <code>https://{subdomain}.cybozu.com/oauth2/authorization</code></li>
+        <li><span class="step-num">3</span> Token URL: <code>https://{subdomain}.cybozu.com/oauth2/token</code></li>
+        <li><span class="step-num">4</span> Set scopes: <code>k:app_record:read k:app_record:write</code></li>
+      </ul>
+    </div>
+
+    <h2>3. Five Pitfalls Every Agent Developer Will Hit</h2>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 1: Every Field Value Is Wrapped in {value: ...}</span>
+      </div>
+      <p>kintone&#8217;s biggest trap. All field values in API responses are wrapped in object format: <code>{"value": "actual_value"}</code>. This applies to number fields, text fields — everything without exception. Always access values via <code>record.field_code.value</code>, never <code>record.field_code</code>.</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">kintone API Response Example (Pitfall 1)</span>
+<code><span class="comment">// kintone GET /k/v1/record.json response</span>
+{
+  <span class="prop">"record"</span>: {
+    <span class="prop">"$id"</span>: { <span class="prop">"value"</span>: <span class="string">"42"</span> },              <span class="comment">// ID is also a string inside value</span>
+    <span class="prop">"Title"</span>: { <span class="prop">"value"</span>: <span class="string">"Project Alpha"</span> }, <span class="comment">// ✅ access via .value</span>
+    <span class="prop">"Quantity"</span>: { <span class="prop">"value"</span>: <span class="string">"100"</span> },      <span class="comment">// Numbers are returned as strings!</span>
+    <span class="prop">"Assignee"</span>: {
+      <span class="prop">"value"</span>: [{ <span class="prop">"code"</span>: <span class="string">"user1"</span>, <span class="prop">"name"</span>: <span class="string">"Taro Yamada"</span> }]
+    }
+  }
+}
+
+<span class="comment">// ❌ Wrong: record.Quantity → undefined</span>
+<span class="comment">// ✅ Right:  record.Quantity.value → "100" (string)</span>
+<span class="comment">// ✅ Right:  parseInt(record.Quantity.value) → 100 (for numeric use)</span></code>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 2: Field Codes and Display Names Are Different Things</span>
+      </div>
+      <p>kintone fields have both a &#8220;display name&#8221; (e.g., "Assignee Name") and a &#8220;field code&#8221; (e.g., <code>assignee_name</code>). API calls require field codes. Always call <code>GET /k/v1/app/form/fields.json?app={app_id}</code> first to retrieve the field code list before making data requests.</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">Correct Sequence: Get Field Codes → Then Query Records</span>
+<code><span class="comment">// Step 1: Retrieve field code list</span>
+<span class="keyword">const</span> fieldsRes = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">`https://${subdomain}.cybozu.com/k/v1/app/form/fields.json?app=${appId}`</span>,
+  { headers: { <span class="string">'X-Cybozu-API-Token'</span>: apiToken } }
+);
+<span class="keyword">const</span> { properties } = <span class="keyword">await</span> fieldsRes.<span class="func">json</span>();
+<span class="comment">// properties = { "Title": { type: "SINGLE_LINE_TEXT", code: "Title", label: "Deal Name" } }</span>
+
+<span class="comment">// Step 2: Query records using field codes</span>
+<span class="keyword">const</span> recordsRes = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">`https://${subdomain}.cybozu.com/k/v1/records.json?app=${appId}&query=Status%3D"In+Progress"&totalCount=true`</span>,
+  { headers: { <span class="string">'X-Cybozu-API-Token'</span>: apiToken } }
+);
+<span class="keyword">const</span> { records, totalCount } = <span class="keyword">await</span> recordsRes.<span class="func">json</span>();
+console.<span class="func">log</span>(<span class="string">`Total: ${totalCount} records`</span>); <span class="comment">// totalCount is a string: "42"</span></code>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 3: You Must Ask the User for Their Subdomain</span>
+      </div>
+      <p>kintone API base URLs follow the format <code>https://{subdomain}.cybozu.com</code>, requiring each company&#8217;s unique subdomain. There is no fixed universal API endpoint. Your agent implementation must either prompt users to enter their subdomain or configure it in advance as an environment variable (<code>KINTONE_SUBDOMAIN</code>).</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 4: 10,000 Requests/Day Limit + 10 Concurrent Connections</span>
+      </div>
+      <p>Standard plan limits: 10,000 requests per day and maximum 10 concurrent connections. Agents processing large record volumes must leverage bulk operations (POST /records.json accepts up to 100 records at once) to maximize throughput per request. Managing concurrency is equally critical.</p>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-header">
+        <span class="tip-icon">💡</span>
+        <span class="tip-title">Best Practice: Minimize Request Count with Bulk Operations</span>
+      </div>
+      <p>Instead of POSTing records one by one, batch up to 100 records in a single POST. This theoretically enables up to 1 million record operations per day within the 10,000 request limit.</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">Bulk Insert — Up to 100 Records at Once</span>
+<code><span class="comment">// ✅ Bulk insert (up to 100 records)</span>
+<span class="keyword">const</span> records = Array.<span class="func">from</span>({ length: <span class="number">100</span> }, (_, i) => ({
+  <span class="prop">Title</span>: { value: <span class="string">`Task ${i + 1}`</span> },
+  <span class="prop">Status</span>: { value: <span class="string">"Not Started"</span> },
+}));
+
+<span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">`https://${subdomain}.cybozu.com/k/v1/records.json`</span>,
+  {
+    method: <span class="string">'POST'</span>,
+    headers: {
+      <span class="string">'X-Cybozu-API-Token'</span>: apiToken,
+      <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,
+    },
+    body: JSON.<span class="func">stringify</span>({ app: appId, records }),
+  }
+);
+<span class="comment">// → { "ids": ["1","2",...,"100"], "revisions": ["1","1",...,"1"] }</span></code>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 5: Query Syntax Resembles SQL but Is Proprietary</span>
+      </div>
+      <p>kintone&#8217;s query syntax is SQL-like but proprietary. Key rules: string values must be in double quotes (<code>Status = "In Progress"</code>), URL encoding is required, you must add <code>totalCount: true</code> to get total record counts, and ORDER BY/LIMIT/OFFSET are available for pagination.</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">kintone Query Syntax Reference</span>
+<code><span class="comment">// Pagination (100 records at a time)</span>
+<span class="string">`/k/v1/records.json?app=${appId}&query=Status%20%3D%20"In+Progress"%20order%20by%20updated_time%20desc%20limit%20100%20offset%200&totalCount=true`</span>
+
+<span class="comment">// Compound conditions</span>
+<span class="string">`query=Status%20%3D%20"Completed"%20and%20Assignee%20in%20("user1")%20and%20DueDate%20%3C%20"2026-04-30"`</span>
+
+<span class="comment">// Key rules:</span>
+<span class="comment">// - String values use "double quotes" (no single quotes)</span>
+<span class="comment">// - in operator: field_code in ("val1", "val2")</span>
+<span class="comment">// - totalCount=true required to get the total count</span>
+<span class="comment">// - Default limit=100, max limit=500</span></code>
+    </div>
+
+    <h2>4. The Cybozu Dual-Stack: Combining kintone and Garoon</h2>
+
+    <p>
+      kintone and Garoon (Cybozu&#8217;s enterprise groupware) share the same API Token authentication format and <code>X-Cybozu-API-Token</code> header pattern. This makes the &#8220;Cybozu dual-stack&#8221; — where a single agent manages records in kintone while simultaneously checking schedules and approving workflows in Garoon — a natural integration rather than an engineering challenge.
+    </p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Function</th>
+          <th>kintone MCP</th>
+          <th>Garoon MCP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Record management (CRM, project tracking, etc.)</td>
+          <td>✅ /k/v1/records.json</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>Schedule &amp; calendar</td>
+          <td>—</td>
+          <td>✅ /g/api/v1/schedule/events</td>
+        </tr>
+        <tr>
+          <td>Workflow approvals</td>
+          <td>✅ /k/v1/record/status.json (process management)</td>
+          <td>✅ /g/api/v1/workflow/requests</td>
+        </tr>
+        <tr>
+          <td>Bulletin boards &amp; announcements</td>
+          <td>—</td>
+          <td>✅ /g/api/v1/bulletin</td>
+        </tr>
+        <tr>
+          <td>Authentication format</td>
+          <td>API Token / OAuth2</td>
+          <td>API Token (same format)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Conclusion — kintone Is AAA, but It Requires Preparation</h2>
+
+    <p>
+      kintone&#8217;s MCP ecosystem is among the most complete in the Japanese SaaS landscape. The official MCP server in three deployment formats, three authentication methods, and an API that covers bulk operations, process management, and workflow automation form a powerful foundation for business process automation.
+    </p>
+
+    <p>
+      However, without understanding kintone&#8217;s idiosyncratic design — the <code>{value}</code> wrapper and field code system — you will reliably lose hours on the first implementation. Understanding the five pitfalls documented here before starting will dramatically cut your ramp-up time.
+    </p>
+
+    <p>
+      As real agent telemetry for kintone (success rates, latency distributions, error patterns) accumulates in KanseiLink&#8217;s dataset, we will update the AEO score dynamically. The latest score is always available through the links below.
+    </p>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <h2>Check kintone&#8217;s Latest AEO Score</h2>
+      <p>Real-time success rate, latency, and Agent Voice data are available in the consulting plan.</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-cta">Request Data Access</a>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="related-section">
+      <h3>Related Articles</h3>
+      <div class="related-grid">
+        <a href="groupware-saas-aeo-2026.html" class="related-card">
+          <div class="rc-tag">Industry Report</div>
+          <div class="rc-title">Groupware SaaS AEO Rankings 2026 — Garoon, Notion, Confluence &amp; rakumo</div>
+          <div class="rc-desc">The Cybozu dual-stack strategy (Garoon + kintone) analyzed in a category comparison.</div>
+        </a>
+        <a href="project-mgmt-saas-aeo-2026.html" class="related-card">
+          <div class="rc-tag">Industry Report</div>
+          <div class="rc-title">Project Management SaaS AEO Rankings 2026 — Backlog vs kintone vs Asana</div>
+          <div class="rc-desc">kintone&#8217;s AAA rating in context: how it compares with Backlog and Asana.</div>
+        </a>
+        <a href="/en/insights/mcp-common-issues.html" class="related-card">
+          <div class="rc-tag">Technical Guide</div>
+          <div class="rc-title">Common MCP Implementation Issues and Solutions</div>
+          <div class="rc-desc">Auth failures, Rate Limit strategies, and more — applicable across kintone and 13 other services.</div>
+        </a>
+        <a href="aaif-mcp-open-standard-2026.html" class="related-card">
+          <div class="rc-tag">MCP Trend</div>
+          <div class="rc-title">MCP Donated to Linux Foundation&#8217;s AAIF — Three Changes for Japanese SaaS</div>
+          <div class="rc-desc">Where the MCP standard that kintone implements is heading.</div>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-brand">KanseiLink</div>
+      <div class="footer-desc">AEO Rating Agency for Japanese SaaS. Visualizing service quality in the AI agent era.</div>
+      <div class="footer-copy">&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+</body>
+</html>
