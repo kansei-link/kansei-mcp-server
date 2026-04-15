@@ -365,6 +365,55 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_tips_confidence ON infrastructure_tips(confidence);
   `);
 
+  // Crawl queue: newly discovered MCP candidates awaiting review or auto-ingestion
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS crawl_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source TEXT NOT NULL,                  -- github-topics, awesome-punkpeye, awesome-wong2, awesome-tensorblock, mcp-registry
+      source_url TEXT NOT NULL,              -- original URL of the entry
+      repo_full_name TEXT,                   -- e.g. "owner/repo"
+      candidate_name TEXT NOT NULL,
+      description TEXT,
+      stars INTEGER DEFAULT 0,
+      last_commit_at TEXT,
+      readme_excerpt TEXT,
+      proposed_category TEXT,
+      proposed_tags TEXT DEFAULT '[]',
+      trust_score_initial REAL DEFAULT 0,
+      tier TEXT NOT NULL DEFAULT 'review',   -- auto-accept, review, reject
+      status TEXT NOT NULL DEFAULT 'pending', -- pending, accepted, rejected, ingested, duplicate
+      reject_reason TEXT,
+      ingested_service_id TEXT,               -- populated after ingestion
+      raw_data TEXT,                          -- JSON dump of full source row
+      discovered_at TEXT DEFAULT (datetime('now')),
+      reviewed_at TEXT,
+      reviewed_by TEXT,
+      UNIQUE(source, source_url)
+    );
+    CREATE INDEX IF NOT EXISTS idx_crawl_queue_status ON crawl_queue(status);
+    CREATE INDEX IF NOT EXISTS idx_crawl_queue_tier ON crawl_queue(tier);
+    CREATE INDEX IF NOT EXISTS idx_crawl_queue_source ON crawl_queue(source);
+    CREATE INDEX IF NOT EXISTS idx_crawl_queue_repo ON crawl_queue(repo_full_name);
+  `);
+
+  // Crawl runs: log of each daily crawl execution
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS crawl_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      started_at TEXT DEFAULT (datetime('now')),
+      finished_at TEXT,
+      status TEXT NOT NULL DEFAULT 'running', -- running, success, failed
+      sources_crawled TEXT DEFAULT '[]',      -- JSON array
+      discovered_count INTEGER DEFAULT 0,
+      auto_accepted_count INTEGER DEFAULT 0,
+      review_queue_count INTEGER DEFAULT 0,
+      rejected_count INTEGER DEFAULT 0,
+      duplicates_count INTEGER DEFAULT 0,
+      errors TEXT DEFAULT '[]'
+    );
+    CREATE INDEX IF NOT EXISTS idx_crawl_runs_started ON crawl_runs(started_at DESC);
+  `);
+
   // FTS5 virtual table for full-text search on services
   // Check if it already exists first (CREATE VIRTUAL TABLE IF NOT EXISTS not supported in all SQLite builds)
   const ftsExists = db
