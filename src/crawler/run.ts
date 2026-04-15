@@ -1,10 +1,14 @@
 /**
  * Crawler entry point. Run daily via cron.
  *
- * Usage:
+ * Usage (CLI):
  *   pnpm tsx src/crawler/run.ts
  *   pnpm tsx src/crawler/run.ts --dry-run
  *   pnpm tsx src/crawler/run.ts --since-days=30 --max=200
+ *
+ * Usage (programmatic, e.g. from an admin HTTP endpoint):
+ *   import { runCrawler } from "./crawler/run.js";
+ *   const summary = await runCrawler(db, { dryRun: false });
  */
 import Database from "better-sqlite3";
 import { initializeDb } from "../db/schema.js";
@@ -19,28 +23,51 @@ import { refreshExistingServices } from "./refresh.js";
 import { snapshotAllServices } from "./snapshot.js";
 import { detectRecipeDrift } from "./drift.js";
 
-function parseFlags(argv: string[]): Record<string, string | boolean> {
-  const flags: Record<string, string | boolean> = {};
-  for (const a of argv.slice(2)) {
-    if (a.startsWith("--")) {
-      const [k, v] = a.slice(2).split("=");
-      flags[k] = v === undefined ? true : v;
-    }
-  }
-  return flags;
+export interface CrawlerOptions {
+  dryRun?: boolean;
+  sinceDays?: number;
+  maxResults?: number;
 }
 
-async function main() {
-  const flags = parseFlags(process.argv);
-  const dryRun = Boolean(flags["dry-run"]);
-  const sinceDays = flags["since-days"] ? Number(flags["since-days"]) : 90;
-  const maxResults = flags["max"] ? Number(flags["max"]) : 300;
+export interface CrawlerSummary {
+  run_id: number;
+  status: "success" | "success_with_errors" | "failed";
+  discovered: number;
+  fresh: number;
+  duplicates: number;
+  already_queued: number;
+  auto_accepted: number;
+  queued_for_review: number;
+  rejected: number;
+  refresh: {
+    eligible: number;
+    refreshed: number;
+    archived_detected: number;
+    errors: number;
+  };
+  snapshot: {
+    services_snapshotted: number;
+    active_services: number;
+    total_reports: number;
+  };
+  drift: {
+    recipes_scanned: number;
+    gotchas_appended: number;
+    services_flagged: number;
+  };
+  errors: string[];
+  ingested_service_ids: string[];
+}
 
-  const dbPath = process.env.DB_PATH || "kansei-link.db";
-  const db = new Database(dbPath);
-  initializeDb(db);
+export async function runCrawler(
+  db: Database.Database,
+  options: CrawlerOptions = {}
+): Promise<CrawlerSummary> {
+  const dryRun = Boolean(options.dryRun);
+  const sinceDays = options.sinceDays ?? 90;
+  const maxResults = options.maxResults ?? 300;
 
-  console.log(`[crawler] start | db=${dbPath} dryRun=${dryRun} sinceDays=${sinceDays} max=${maxResults}`);
+  console.log(`[crawler] start | dryRun=${dryRun} sinceDays=${sinceDays} max=${maxResults}`);
   const runInsert = db.prepare(`
     INSERT INTO crawl_runs (status, sources_crawled)
     VALUES ('running', ?)
@@ -51,10 +78,26 @@ async function main() {
   const runId = runInfo.lastInsertRowid as number;
 
   const errors: string[] = [];
+  const summaryOut: CrawlerSummary = {
+    run_id: runId,
+    status: "success",
+    discovered: 0,
+    fresh: 0,
+    duplicates: 0,
+    already_queued: 0,
+    auto_accepted: 0,
+    queued_for_review: 0,
+    rejected: 0,
+    refresh: { eligible: 0, refreshed: 0, archived_detected: 0, errors: 0 },
+    snapshot: { services_snapshotted: 0, active_services: 0, total_reports: 0 },
+    drift: { recipes_scanned: 0, gotchas_appended: 0, services_flagged: 0 },
+    errors,
+    ingested_service_ids: [],
+  };
 
   try {
     // 1. Discovery
-    console.log("[crawler] step 1/6: discovering from GitHub topics + awesome lists");
+    console.log("[crawler] step 1/9: discovering from GitHub topics + awesome lists");
     const [githubResults, awesomeResults] = await Promise.all([
       crawlGitHubTopics({ sinceDays, maxResults }).catch((e) => {
         errors.push(`github-topics: ${e.message}`);
@@ -66,20 +109,27 @@ async function main() {
       }),
     ]);
     const allCandidates = [...githubResults, ...awesomeResults];
-    console.log(`[crawler]   github-topics: ${githubResults.length}, awesome-lists: ${awesomeResults.length}, total: ${allCandidates.length}`);
+    summaryOut.discovered = allCandidates.length;
+    console.log(
+      `[crawler]   github-topics: ${githubResults.length}, awesome-lists: ${awesomeResults.length}, total: ${allCandidates.length}`
+    );
 
     // 2. Dedupe
-    console.log("[crawler] step 2/6: deduping against existing services + queue");
+    console.log("[crawler] step 2/9: deduping against existing services + queue");
     const dedupe = dedupeAgainstDb(db, allCandidates);
-    console.log(`[crawler]   fresh: ${dedupe.fresh.length}, duplicates: ${dedupe.duplicates.length}, already-queued: ${dedupe.alreadyQueued.length}`);
+    summaryOut.fresh = dedupe.fresh.length;
+    summaryOut.duplicates = dedupe.duplicates.length;
+    summaryOut.already_queued = dedupe.alreadyQueued.length;
+    console.log(
+      `[crawler]   fresh: ${dedupe.fresh.length}, duplicates: ${dedupe.duplicates.length}, already-queued: ${dedupe.alreadyQueued.length}`
+    );
 
     // 3. Enrich (fetch README, star counts for awesome-list entries)
-    console.log("[crawler] step 3/6: enriching via GitHub API");
+    console.log("[crawler] step 3/9: enriching via GitHub API");
     const enriched = await enrichCandidates(dedupe.fresh);
     console.log(`[crawler]   enriched: ${enriched.length}`);
 
-    // 3b. Post-enrichment mainstream filter: drop low-traction repos before
-    //     paying for LLM classification. Keeps the daily cron cost bounded.
+    // 3b. Post-enrichment mainstream filter
     const MIN_STARS_POST = 15;
     const MAX_STALE_DAYS = 365;
     const now = Date.now();
@@ -92,15 +142,17 @@ async function main() {
       }
       return true;
     });
-    console.log(`[crawler]   mainstream-filtered: ${mainstream.length} (dropped ${enriched.length - mainstream.length} low-traction)`);
+    console.log(
+      `[crawler]   mainstream-filtered: ${mainstream.length} (dropped ${enriched.length - mainstream.length} low-traction)`
+    );
 
     // 4. Classify
-    console.log("[crawler] step 4/6: LLM classification");
+    console.log("[crawler] step 4/9: LLM classification");
     const classified = await classifyCandidates(mainstream);
     console.log(`[crawler]   classified: ${classified.length}`);
 
     // 5. Score + triage
-    console.log("[crawler] step 5/6: scoring + tier triage");
+    console.log("[crawler] step 5/9: scoring + tier triage");
     const scored = scoreAll(classified);
     const byTier = scored.reduce(
       (acc, c) => {
@@ -112,22 +164,30 @@ async function main() {
     console.log(`[crawler]   tier distribution:`, byTier);
 
     // 6. Ingest
-    let summary = { autoAccepted: 0, queuedForReview: 0, rejected: 0, ingestedServiceIds: [] as string[] };
     if (!dryRun) {
       console.log("[crawler] step 6/9: ingesting into DB");
-      summary = ingestCandidates(db, scored);
+      const ingest = ingestCandidates(db, scored);
+      summaryOut.auto_accepted = ingest.autoAccepted;
+      summaryOut.queued_for_review = ingest.queuedForReview;
+      summaryOut.rejected = ingest.rejected;
+      summaryOut.ingested_service_ids = ingest.ingestedServiceIds;
     } else {
       console.log("[crawler] step 6/9: dry-run — skipping DB writes");
     }
 
-    // 7. Refresh existing services (GitHub-hosted only)
-    let refreshSummary = { eligible: 0, refreshed: 0, archived_detected: 0, errors: 0, changelog_entries: 0 };
+    // 7. Refresh
     if (!dryRun) {
       console.log("[crawler] step 7/9: refreshing existing service metadata");
       try {
-        refreshSummary = await refreshExistingServices(db);
+        const r = await refreshExistingServices(db);
+        summaryOut.refresh = {
+          eligible: r.eligible,
+          refreshed: r.refreshed,
+          archived_detected: r.archived_detected,
+          errors: r.errors,
+        };
         console.log(
-          `[crawler]   eligible: ${refreshSummary.eligible}, refreshed: ${refreshSummary.refreshed}, archived-flagged: ${refreshSummary.archived_detected}, errors: ${refreshSummary.errors}`
+          `[crawler]   eligible: ${r.eligible}, refreshed: ${r.refreshed}, archived-flagged: ${r.archived_detected}, errors: ${r.errors}`
         );
       } catch (e) {
         const msg = `refresh: ${(e as Error).message}`;
@@ -139,14 +199,17 @@ async function main() {
     }
 
     // 8. Daily snapshots
-    let snapshotSummary = { snapshot_date: "", services_snapshotted: 0, active_services: 0, total_reports: 0, total_unique_agents: 0 };
     if (!dryRun) {
       console.log("[crawler] step 8/9: writing daily snapshots");
       try {
         const snap = snapshotAllServices(db);
-        snapshotSummary = snap.summary;
+        summaryOut.snapshot = {
+          services_snapshotted: snap.summary.services_snapshotted,
+          active_services: snap.summary.active_services,
+          total_reports: snap.summary.total_reports,
+        };
         console.log(
-          `[crawler]   snapshotted: ${snapshotSummary.services_snapshotted}, active: ${snapshotSummary.active_services}, reports: ${snapshotSummary.total_reports}, agents: ${snapshotSummary.total_unique_agents}`
+          `[crawler]   snapshotted: ${snap.summary.services_snapshotted}, active: ${snap.summary.active_services}, reports: ${snap.summary.total_reports}`
         );
       } catch (e) {
         const msg = `snapshot: ${(e as Error).message}`;
@@ -158,13 +221,13 @@ async function main() {
     }
 
     // 9. Recipe drift detection
-    let driftSummary = { recipes_scanned: 0, gotchas_appended: 0, services_flagged: 0 };
     if (!dryRun) {
       console.log("[crawler] step 9/9: recipe drift detection");
       try {
-        driftSummary = detectRecipeDrift(db);
+        const d = detectRecipeDrift(db);
+        summaryOut.drift = d;
         console.log(
-          `[crawler]   recipes: ${driftSummary.recipes_scanned}, gotchas appended: ${driftSummary.gotchas_appended}, services flagged: ${driftSummary.services_flagged}`
+          `[crawler]   recipes: ${d.recipes_scanned}, gotchas appended: ${d.gotchas_appended}, services flagged: ${d.services_flagged}`
         );
       } catch (e) {
         const msg = `drift: ${(e as Error).message}`;
@@ -175,25 +238,26 @@ async function main() {
       console.log("[crawler] step 9/9: dry-run — skipping drift detection");
     }
 
-    // Update run record
-    db.prepare(`
-      UPDATE crawl_runs
-      SET finished_at = datetime('now'),
-          status = ?,
-          discovered_count = ?,
-          auto_accepted_count = ?,
-          review_queue_count = ?,
-          rejected_count = ?,
-          duplicates_count = ?,
-          errors = ?
-      WHERE id = ?
-    `).run(
-      errors.length > 0 ? "success_with_errors" : "success",
-      allCandidates.length,
-      summary.autoAccepted,
-      summary.queuedForReview,
-      summary.rejected,
-      dedupe.duplicates.length + dedupe.alreadyQueued.length,
+    summaryOut.status = errors.length > 0 ? "success_with_errors" : "success";
+
+    db.prepare(
+      `UPDATE crawl_runs
+       SET finished_at = datetime('now'),
+           status = ?,
+           discovered_count = ?,
+           auto_accepted_count = ?,
+           review_queue_count = ?,
+           rejected_count = ?,
+           duplicates_count = ?,
+           errors = ?
+       WHERE id = ?`
+    ).run(
+      summaryOut.status,
+      summaryOut.discovered,
+      summaryOut.auto_accepted,
+      summaryOut.queued_for_review,
+      summaryOut.rejected,
+      summaryOut.duplicates + summaryOut.already_queued,
       JSON.stringify(errors),
       runId
     );
@@ -202,46 +266,82 @@ async function main() {
 ============================================
 [crawler] ✅ DONE
   Discovery:
-    Discovered:        ${allCandidates.length}
-    Fresh candidates:  ${dedupe.fresh.length}
-    Duplicates:        ${dedupe.duplicates.length}
-    Already-queued:    ${dedupe.alreadyQueued.length}
-    Auto-accepted:     ${summary.autoAccepted}
-    Queued for review: ${summary.queuedForReview}
-    Rejected:          ${summary.rejected}
+    Discovered:        ${summaryOut.discovered}
+    Fresh candidates:  ${summaryOut.fresh}
+    Duplicates:        ${summaryOut.duplicates}
+    Already-queued:    ${summaryOut.already_queued}
+    Auto-accepted:     ${summaryOut.auto_accepted}
+    Queued for review: ${summaryOut.queued_for_review}
+    Rejected:          ${summaryOut.rejected}
   Refresh:
-    Eligible:          ${refreshSummary.eligible}
-    Refreshed:         ${refreshSummary.refreshed}
-    Archived-flagged:  ${refreshSummary.archived_detected}
+    Eligible:          ${summaryOut.refresh.eligible}
+    Refreshed:         ${summaryOut.refresh.refreshed}
+    Archived-flagged:  ${summaryOut.refresh.archived_detected}
   Snapshot:
-    Services:          ${snapshotSummary.services_snapshotted}
-    Active today:      ${snapshotSummary.active_services}
-    Total reports:     ${snapshotSummary.total_reports}
+    Services:          ${summaryOut.snapshot.services_snapshotted}
+    Active today:      ${summaryOut.snapshot.active_services}
+    Total reports:     ${summaryOut.snapshot.total_reports}
   Drift:
-    Recipes scanned:   ${driftSummary.recipes_scanned}
-    Gotchas appended:  ${driftSummary.gotchas_appended}
-    Services flagged:  ${driftSummary.services_flagged}
+    Recipes scanned:   ${summaryOut.drift.recipes_scanned}
+    Gotchas appended:  ${summaryOut.drift.gotchas_appended}
+    Services flagged:  ${summaryOut.drift.services_flagged}
   Errors:              ${errors.length}
 ============================================
 `);
 
-    if (summary.ingestedServiceIds.length > 0) {
+    if (summaryOut.ingested_service_ids.length > 0) {
       console.log("New services ingested:");
-      summary.ingestedServiceIds.slice(0, 20).forEach((id) => console.log(`  - ${id}`));
-      if (summary.ingestedServiceIds.length > 20) {
-        console.log(`  ... and ${summary.ingestedServiceIds.length - 20} more`);
+      summaryOut.ingested_service_ids.slice(0, 20).forEach((id) => console.log(`  - ${id}`));
+      if (summaryOut.ingested_service_ids.length > 20) {
+        console.log(`  ... and ${summaryOut.ingested_service_ids.length - 20} more`);
       }
     }
   } catch (err) {
     console.error("[crawler] fatal error:", err);
-    db.prepare(`UPDATE crawl_runs SET status = 'failed', finished_at = datetime('now'), errors = ? WHERE id = ?`).run(
-      JSON.stringify([...errors, (err as Error).message]),
-      runId
-    );
-    process.exitCode = 1;
+    db.prepare(
+      `UPDATE crawl_runs SET status = 'failed', finished_at = datetime('now'), errors = ? WHERE id = ?`
+    ).run(JSON.stringify([...errors, (err as Error).message]), runId);
+    summaryOut.status = "failed";
+    summaryOut.errors.push((err as Error).message);
+  }
+
+  return summaryOut;
+}
+
+// ─── CLI entry point ────────────────────────────────────────────
+function parseFlags(argv: string[]): Record<string, string | boolean> {
+  const flags: Record<string, string | boolean> = {};
+  for (const a of argv.slice(2)) {
+    if (a.startsWith("--")) {
+      const [k, v] = a.slice(2).split("=");
+      flags[k] = v === undefined ? true : v;
+    }
+  }
+  return flags;
+}
+
+async function cli() {
+  const flags = parseFlags(process.argv);
+  const dbPath = process.env.DB_PATH || "kansei-link.db";
+  const db = new Database(dbPath);
+  initializeDb(db);
+
+  try {
+    const summary = await runCrawler(db, {
+      dryRun: Boolean(flags["dry-run"]),
+      sinceDays: flags["since-days"] ? Number(flags["since-days"]) : undefined,
+      maxResults: flags["max"] ? Number(flags["max"]) : undefined,
+    });
+    if (summary.status === "failed") process.exitCode = 1;
   } finally {
     db.close();
   }
 }
 
-main();
+// Run as CLI if invoked directly (not imported)
+const isDirectRun =
+  import.meta.url === `file://${process.argv[1]}` ||
+  import.meta.url.endsWith(process.argv[1]?.replace(/\\/g, "/") ?? "");
+if (isDirectRun) {
+  cli();
+}

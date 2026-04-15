@@ -26,6 +26,7 @@ import {
   handleCreateCheckout,
   handleCustomerPortal,
 } from "./stripe.js";
+import { runCrawler } from "./crawler/run.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
@@ -314,6 +315,98 @@ app.get("/health", (_req: Request, res: Response) => {
     version: "0.20.1",
     transport: "streamable-http",
   });
+});
+
+// ─── Admin endpoints (secret-token-protected) ─────────────────────
+// Tracks whether a crawler run is currently in flight so repeated cron
+// pings don't launch overlapping runs.
+let crawlerRunning = false;
+
+function requireAdminSecret(req: Request, res: Response): boolean {
+  const expected = process.env.CRAWLER_SECRET;
+  if (!expected) {
+    res.status(503).json({ error: "CRAWLER_SECRET not configured on server" });
+    return false;
+  }
+  const authHeader = req.header("authorization") || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const provided = bearer || req.header("x-crawler-secret");
+  if (provided !== expected) {
+    res.status(401).json({ error: "unauthorized" });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * POST /admin/run-crawler
+ *   Headers:  Authorization: Bearer <CRAWLER_SECRET>
+ *   Body:     { dry_run?: boolean, since_days?: number, max?: number }
+ *
+ * Returns 202 Accepted immediately; the crawler runs async in-process.
+ * Poll /admin/last-crawl-run or query crawl_runs directly for status.
+ */
+app.post("/admin/run-crawler", async (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+
+  if (crawlerRunning) {
+    return res.status(409).json({ error: "crawler_already_running" });
+  }
+
+  const body = (req.body || {}) as {
+    dry_run?: boolean;
+    since_days?: number;
+    max?: number;
+  };
+  const options = {
+    dryRun: Boolean(body.dry_run),
+    sinceDays: typeof body.since_days === "number" ? body.since_days : undefined,
+    maxResults: typeof body.max === "number" ? body.max : undefined,
+  };
+
+  crawlerRunning = true;
+  res.status(202).json({
+    status: "started",
+    options,
+    poll: "/admin/last-crawl-run",
+  });
+
+  // Fire and forget — shared DB connection, no new process needed
+  runCrawler(getDb(), options)
+    .then((summary) => {
+      console.log(
+        `[admin] crawler finished: status=${summary.status}, run_id=${summary.run_id}, ingested=${summary.auto_accepted}`
+      );
+    })
+    .catch((err) => {
+      console.error("[admin] crawler crashed:", err);
+    })
+    .finally(() => {
+      crawlerRunning = false;
+    });
+});
+
+/**
+ * GET /admin/last-crawl-run
+ *   Headers:  Authorization: Bearer <CRAWLER_SECRET>
+ *
+ * Returns the most recent row from crawl_runs.
+ */
+app.get("/admin/last-crawl-run", (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+
+  const row = getDb()
+    .prepare(
+      `SELECT id, started_at, finished_at, status,
+              discovered_count, auto_accepted_count, review_queue_count,
+              rejected_count, duplicates_count, errors
+       FROM crawl_runs
+       ORDER BY id DESC
+       LIMIT 1`
+    )
+    .get();
+
+  res.json({ running: crawlerRunning, last_run: row || null });
 });
 
 // MCP endpoint — stateless: each request gets a fresh server
