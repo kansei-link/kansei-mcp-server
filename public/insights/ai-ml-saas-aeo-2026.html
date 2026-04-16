@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI/MLツール × エージェント対応格付け 2026 — エージェントがAIを呼ぶ時代の10サービス比較 | KanseiLink</title>
+  <meta name="description" content="ElevenLabs・Langfuse・OpenAI・Groq・Perplexity・Gemini・Cohere・Mistral・Hugging Face・PineconeのAEO格付けを比較。エージェントがAIサービスを呼ぶという新構造で何が変わるか。KanseiLink実測データによるAI/MLカテゴリ初の格付けレポート。">
+  <meta name="keywords" content="AI ML SaaS AEO, ElevenLabs MCP, Langfuse MCP, OpenAI API エージェント, Groq API, Perplexity API 2026, AI/ML AEO格付け, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/ai-ml-saas-aeo-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/ai-ml-saas-aeo-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/ai-ml-saas-aeo-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/ai-ml-saas-aeo-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="AI/MLツール × エージェント対応格付け 2026 — エージェントがAIを呼ぶ時代の10サービス比較">
+  <meta property="og:description" content="ElevenLabs公式MCPは88msで100%成功率、GroqはAAA格付けだが実測50%——AIエージェントがAIサービスを呼ぶという新構造のAEO格付けをKanseiLinkが初公開。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/ai-ml-saas-aeo-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-15">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Industry Report">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AI/MLツール AEO格付け 2026 — エージェントがAIを呼ぶ時代の10サービス比較">
+  <meta name="twitter:description" content="ElevenLabs MCPは88ms・100%成功率。GroqはAAA格付けでも実測50%。AI/MLカテゴリのAEO格付けをKanseiLink初公開。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "AI/MLツール × エージェント対応格付け 2026 — エージェントがAIを呼ぶ時代の10サービス比較",
+    "description": "ElevenLabs・Langfuse・OpenAI・Groq・Perplexity・Gemini・Cohere・Mistral・Hugging Face・PineconeのAEO格付けをKanseiLink実測データで比較。AI/MLカテゴリ初の格付けレポート。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-15",
+    "dateModified": "2026-04-15",
+    "mainEntityOfPage": "https://kansei-link.com/insights/ai-ml-saas-aeo-2026",
+    "keywords": ["AI/ML SaaS", "AEO格付け", "ElevenLabs MCP", "Langfuse MCP", "OpenAI API", "Groq", "Perplexity", "Gemini API", "Cohere", "Mistral", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "ElevenLabsのMCPサーバーはどのように使いますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ElevenLabsは公式MCPサーバーを提供しており、npx elevenlabs-mcpで起動できます。認証はxi-api-keyヘッダーにAPIキーを指定する方式です。KanseiLinkの実測データでは成功率100%・平均レイテンシ88msを記録しており、AI/MLカテゴリで最も安定した公式MCP実装の一つです。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "GroqのAPIはなぜ成功率が低いのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLinkのGroqデータは現時点でサンプル数が2件と少なく（成功1件・失敗1件）、統計的信頼性は低いです（confidence_score 0.3）。失敗1件はinvalid_inputエラーで、Groqのサービス品質の問題というよりもパラメータ設定の問題と推測されます。Groqは独自LPUハードウェアで超高速推論（Llama 3 70B: 約280トークン/秒）を提供しており、LLM推論速度を重視するユースケースでは有力な選択肢です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AIエージェントのLLMOps監視にLangfuseは有効ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "はい。LangfuseはLLMエージェントのトレース・プロンプト管理・評価・データセット管理をオープンソースで提供するLLMObsプラットフォームです。公式MCPサーバー（npx langfuse-mcp）を持ち、KanseiLink実測で成功率100%・平均レイテンシ78ms（AI/MLカテゴリ最速）を記録。エージェントがLangfuseを通じて自分自身のトレースデータにアクセスするという「エージェントの自己観察」ユースケースも実現可能です。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights" },
+      { "@type": "ListItem", "position": 3, "name": "AI/MLツール AEO格付け 2026", "item": "https://kansei-link.com/insights/ai-ml-saas-aeo-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3;
+      --black: #000000; --white: #FFFFFF; --lavender: #F4F5FD;
+      --gray-light: #F5F5F5; --gray-mid: #E5E7EB; --gray-text: #6B7280; --gray-dark: #374151;
+      --grade-aaa: #065F46; --grade-aa: #059669; --grade-a: #0891B2;
+      --grade-bbb: #D97706; --grade-bb: #EA580C; --grade-b: #DC2626; --grade-ccc: #991B1B;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter','Noto Sans JP',-apple-system,BlinkMacSystemFont,sans-serif; color: var(--black); background: var(--white); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a { color: var(--black); text-decoration: none; font-size: 16px; font-weight: 400; padding: 20px 0; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-teal { background: var(--teal); color: var(--black); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-teal:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; }
+    .hamburger span { display: block; width: 24px; height: 2.5px; background: var(--black); border-radius: 2px; transition: transform 0.3s, opacity 0.3s; }
+
+    .breadcrumb-bar { background: var(--gray-light); padding: 12px 0; font-size: 14px; color: var(--gray-text); }
+    .breadcrumb-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 50%, #00C4B3 100%); padding: 80px 0 64px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); color: var(--white); font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 9999px; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .article-hero h1 { font-size: 38px; font-weight: 600; letter-spacing: -1.9px; line-height: 1.2; margin-bottom: 24px; }
+    .article-hero .subtitle { font-size: 18px; font-weight: 300; line-height: 1.7; opacity: 0.9; margin-bottom: 32px; }
+    .article-meta { display: flex; align-items: center; gap: 24px; font-size: 14px; opacity: 0.8; flex-wrap: wrap; }
+    .article-meta .divider { width: 1px; height: 16px; background: rgba(255,255,255,0.3); }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 48px 40px 80px; color: var(--gray-dark); font-size: 16px; line-height: 1.7; }
+    .article-body h2 { font-size: 28px; font-weight: 600; color: var(--black); letter-spacing: -1px; margin-top: 56px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--lavender); }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin-top: 36px; margin-bottom: 12px; }
+    .article-body p { margin-bottom: 20px; }
+    .article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .article-body a:hover { border-bottom-color: var(--blue); }
+    .article-body code { background: var(--gray-light); padding: 2px 6px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); font-family: 'Courier New', monospace; }
+
+    .key-concept { background: var(--lavender); border-left: 4px solid var(--blue); padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .key-concept .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .key-concept p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .toc-box { background: var(--gray-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 14px; font-weight: 600; color: var(--black); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .toc-box ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+    .toc-box li { counter-increment: toc; margin-bottom: 6px; }
+    .toc-box li::before { content: counter(toc) "."; color: var(--blue); font-weight: 600; margin-right: 8px; font-size: 13px; }
+    .toc-box a { color: var(--gray-dark); text-decoration: none; font-size: 14px; }
+    .toc-box a:hover { color: var(--blue); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }
+    .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--gray-mid); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .grade-badge { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+    .grade-aaa { background: #D1FAE5; color: #065F46; }
+    .grade-aa { background: #A7F3D0; color: #065F46; }
+    .grade-a { background: #E0F2FE; color: #0369A1; }
+    .grade-b { background: #FEE2E2; color: #991B1B; }
+
+    .success-bar { display: flex; align-items: center; gap: 8px; }
+    .bar-outer { width: 80px; height: 8px; background: var(--gray-mid); border-radius: 4px; flex-shrink: 0; }
+    .bar-inner { height: 8px; border-radius: 4px; }
+    .bar-high { background: #059669; }
+    .bar-mid { background: #D97706; }
+    .bar-low { background: #DC2626; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 28px 0; }
+    .stat-card { background: var(--lavender); border-radius: 12px; padding: 24px 20px; text-align: center; }
+    .stat-card .stat-num { font-size: 36px; font-weight: 800; color: var(--blue); letter-spacing: -2px; line-height: 1; margin-bottom: 8px; }
+    .stat-card .stat-label { font-size: 13px; color: var(--gray-dark); line-height: 1.4; }
+
+    .service-card { border: 1px solid var(--gray-mid); border-radius: 12px; padding: 24px 28px; margin: 24px 0; }
+    .service-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .service-card-header h3 { font-size: 20px; font-weight: 700; color: var(--black); margin: 0; flex: 1; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
+    .metric-item { text-align: center; }
+    .metric-item .val { font-size: 22px; font-weight: 800; color: var(--black); letter-spacing: -1px; }
+    .metric-item .lbl { font-size: 11px; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -1px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { gap: 16px; }
+      .bar-outer { width: 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/ai-ml-saas-aeo-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      AI/MLツール AEO格付け 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Industry Report / カテゴリレポート</span>
+      <h1>AI/MLツール × エージェント対応格付け 2026</h1>
+      <p class="subtitle">エージェントがAIを呼ぶ時代 — ElevenLabs・Langfuse・OpenAI・Groq・Perplexity他10サービスのAEO格付けをKanseiLink初公開</p>
+      <div class="article-meta">
+        <span>2026-04-15</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約10分</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#intro">「エージェントがAIを呼ぶ」という新構造</a></li>
+        <li><a href="#overview">AI/MLカテゴリ全体像とMCPステータス分布</a></li>
+        <li><a href="#elevenlabs">ElevenLabs — AAA: 公式MCPで88ms・音声AI最速</a></li>
+        <li><a href="#langfuse">Langfuse — AAA: LLMObs最速78ms・エージェントの自己観察基盤</a></li>
+        <li><a href="#llm-apis">OpenAI・Google AI・Perplexity・Mistral・Cohere — AAA/AA: LLM APIの格付け比較</a></li>
+        <li><a href="#groq">Groq — AAA格付けだが実測50%: 超高速推論の信頼性に注意</a></li>
+        <li><a href="#no-data">Hugging Face・Pinecone — MCPはあるが実績データなし</a></li>
+        <li><a href="#summary">AI/MLカテゴリの総括: エージェントネイティブ設計の優位性</a></li>
+      </ol>
+    </div>
+
+    <h2 id="intro">「エージェントがAIを呼ぶ」という新構造</h2>
+
+    <p>KanseiLinkがカバーする225+サービスの大半は、CRM・会計・HR・ECといった「人間向けに作られたSaaS」だ。エージェントはその外部APIを通じて、本来は人間が行う業務を自動化する。しかしAI/MLカテゴリは根本的に異なる。</p>
+
+    <p>このカテゴリでは<strong>エージェントがAIサービスそのものを呼び出す</strong>。Claude（エージェント）がElevenLabs（音声AI）を呼び出してユーザーに音声回答を返す。あるいはエージェントがGroq（超高速LLM推論）を使ってリアルタイム応答が必要なサブタスクを処理する。エージェントがLangfuse（LLMObs）で自分自身の実行トレースを読み取り、パフォーマンスを自己評価する——これは「エージェントによるエージェントの監視」だ。</p>
+
+    <p>このメタ構造において、AI/MLサービスのAEO格付けは従来カテゴリとは別の重みを持つ。失敗が「業務の遅延」ではなく「エージェントアーキテクチャ全体の機能不全」を引き起こす可能性があるからだ。</p>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-num">4/10</div>
+        <div class="stat-label">MCPサーバー対応率<br>（公式2件 + サードパーティ2件）<br><small>全カテゴリ中トップクラス</small></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">78ms</div>
+        <div class="stat-label">カテゴリ最速レイテンシ<br>（Langfuse）<br><small>KanseiLink実測値</small></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">8/10</div>
+        <div class="stat-label">AAAまたはAAグレード<br><small>高格付けが集中するカテゴリ</small></div>
+      </div>
+    </div>
+
+    <h2 id="overview">AI/MLカテゴリ全体像とMCPステータス分布</h2>
+
+    <p>KanseiLinkが追跡するAI/MLカテゴリ10サービスのAEOサマリーテーブルを以下に示す。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>サービス</th>
+          <th>AEOグレード</th>
+          <th>MCPステータス</th>
+          <th>成功率</th>
+          <th>平均レイテンシ</th>
+          <th>認証方式</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ElevenLabs</strong></td>
+          <td><span class="grade-badge grade-aaa">AAA</span></td>
+          <td>公式MCP ✅</td>
+          <td><div class="success-bar"><div class="bar-outer"><div class="bar-inner bar-high" style="width:100%"></div></div>100%</div></td>
+          <td>88ms</td>
+          <td>APIキー</td>
+        </tr>
+        <tr>
+          <td><strong>Langfuse</strong></td>
+          <td><span class="grade-badge grade-aaa">AAA</span></td>
+          <td>公式MCP ✅</td>
+          <td><div class="success-bar"><div class="bar-outer"><div class="bar-inner bar-high" style="width:100%"></div></div>100%</div></td>
+          <td>78ms</td>
+          <td>APIキー</td>
+        </tr>
+        <tr>
+          <td><strong>OpenAI API</strong></td>
+          <td><span class="grade-badge grade-aaa">AAA</span></td>
+          <td>API only</td>
+          <td><div class="success-bar"><div class="bar-outer"><div class="bar-inner bar-high" style="width:100%"></div></div>100%</div></td>
+          <td>500ms</td>
+          <td>Bearer Token</td>
+        </tr>
+        <tr>
+          <td><strong>Perplexity</strong></td>
+          <td><span class="grade-badge grade-aaa">AAA</span></td>
+          <td>API only</td>
+          <td><div class="success-bar"><div class="bar-outer"><div class="bar-inner bar-high" style="width:100%"></div></div>100%</div></td>
+          <td>—</td>
+          <td>Bearer Token</td>
+        </tr>
+        <tr>
+          <td><strong>Google AI (Gemini)</strong></td>
+          <td><span class="grade-badge grade-aaa">AAA</span></td>
+          <td>API only</td>
+          <td><div class="success-bar"><div class="bar-outer"><div class="bar-inner bar-high" style="width:100%"></div></div>100%</div></td>
+          <td>—</td>
+          <td>APIキー</td>
+        </tr>
+        <tr>
+          <td><strong>Hugging Face</strong></td>
+          <td><span class="grade-badge grade-aaa">AAA</span></td>
+          <td>サードパーティMCP</td>
+          <td>—</td>
+          <td>—</td>
+          <td>Bearer Token</td>
+        </tr>
+        <tr>
+          <td><strong>Cohere</strong></td>
+          <td><span class="grade-badge grade-aa">AA</span></td>
+          <td>API only</td>
+          <td><div class="success-bar"><div class="bar-outer"><div class="bar-inner bar-high" style="width:100%"></div></div>100%</div></td>
+          <td>—</td>
+          <td>Bearer Token</td>
+        </tr>
+        <tr>
+          <td><strong>Mistral AI</strong></td>
+          <td><span class="grade-badge grade-aa">AA</span></td>
+          <td>API only</td>
+          <td><div class="success-bar"><div class="bar-outer"><div class="bar-inner bar-high" style="width:100%"></div></div>100%</div></td>
+          <td>—</td>
+          <td>Bearer Token</td>
+        </tr>
+        <tr>
+          <td><strong>Groq</strong></td>
+          <td><span class="grade-badge grade-aaa">AAA</span></td>
+          <td>API only</td>
+          <td><div class="success-bar"><div class="bar-outer"><div class="bar-inner bar-low" style="width:50%"></div></div>50%⚠️</div></td>
+          <td>120ms</td>
+          <td>Bearer Token</td>
+        </tr>
+        <tr>
+          <td><strong>Pinecone</strong></td>
+          <td><span class="grade-badge grade-aaa">AAA</span></td>
+          <td>サードパーティMCP</td>
+          <td>—</td>
+          <td>—</td>
+          <td>APIキー</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="key-concept">
+      <div class="label">なぜAI/MLカテゴリはMCP対応率が高いのか</div>
+      <p>AI/MLサービスの開発者はエージェントAPIの主なユーザー層でもある。エージェントを使って自社サービスを連携させる需要が内側から発生するため、MCP対応への投資が早い。ElevenLabsとLangfuseが公式MCPサーバーを提供しており、Hugging FaceとPineconeはサードパーティ実装が存在する。これはBI・マーケティング・予約管理カテゴリ（MCP対応ゼロまたは極少）と対照的だ。</p>
+    </div>
+
+    <h2 id="elevenlabs">ElevenLabs — AAA: 公式MCPで88ms・AI/MLカテゴリ最速クラス</h2>
+
+    <div class="service-card">
+      <div class="service-card-header">
+        <h3>ElevenLabs</h3>
+        <span class="grade-badge grade-aaa">AAA</span>
+        <span style="font-size:13px;color:var(--gray-text);">Trust Score 0.80</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">100%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">88ms</div><div class="lbl">平均レイテンシ</div></div>
+        <div class="metric-item"><div class="val">公式MCP</div><div class="lbl">MCPステータス</div></div>
+        <div class="metric-item"><div class="val">npx elevenlabs-mcp</div><div class="lbl">接続コマンド</div></div>
+      </div>
+    </div>
+
+    <p>ElevenLabsは音声合成・音声クローン・吹き替え・効果音生成を提供するAI音声プラットフォームだ。注目すべきは、<strong>公式MCPサーバーを持つ数少ないAI/MLサービス</strong>の一つであり、実測レイテンシ88msという高速応答を記録していることだ。</p>
+
+    <p>認証は<code>xi-api-key</code>ヘッダーにAPIキーを指定する方式で、OAuthのような複雑なフローは不要だ。<a href="https://elevenlabs.io/app/settings/api-keys" target="_blank">elevenlabs.io</a>でAPIキーを取得し、ヘッダーに設定するだけで接続できる。</p>
+
+    <h3>エージェントでのElevenLabs活用ユースケース</h3>
+    <ul>
+      <li><strong>音声回答エージェント:</strong> テキスト回答を<code>POST /v1/text-to-speech/{voice_id}</code>で音声化し、ユーザーに音声で返答する</li>
+      <li><strong>多言語対応:</strong> <code>eleven_multilingual_v2</code>モデルで日本語を含む多言語テキストを自然な音声に変換</li>
+      <li><strong>長文ストリーミング:</strong> 長い回答は<code>/text-to-speech/{voice_id}/stream</code>エンドポイントでストリーミング処理</li>
+      <li><strong>音声クローン:</strong> Professionalプランでは1分以上のオーディオサンプルからカスタム音声を生成可能</li>
+    </ul>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 注意: キャラクタークォータの管理</div>
+      <p>ElevenLabsの利用量はすべてのエンドポイントで「文字数（characters）」単位で計測される。Freeプランは月10,000文字、Starterプランは月30,000文字が上限（✅ <a href="https://elevenlabs.io/docs/api-reference" target="_blank">ElevenLabs公式ドキュメントで確認済み</a>）。エージェントがTTSを多用するユースケースでは、<code>GET /v1/user/subscription</code>でクォータを定期確認する実装を推奨。</p>
+    </div>
+
+    <h2 id="langfuse">Langfuse — AAA: LLMObs最速78ms・エージェントの「自己観察」基盤</h2>
+
+    <div class="service-card">
+      <div class="service-card-header">
+        <h3>Langfuse</h3>
+        <span class="grade-badge grade-aaa">AAA</span>
+        <span style="font-size:13px;color:var(--gray-text);">Trust Score 0.80</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">100%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">78ms</div><div class="lbl">平均レイテンシ（最速）</div></div>
+        <div class="metric-item"><div class="val">公式MCP</div><div class="lbl">MCPステータス</div></div>
+        <div class="metric-item"><div class="val">npx langfuse-mcp</div><div class="lbl">接続コマンド</div></div>
+      </div>
+    </div>
+
+    <p>Langfuseは<strong>LLMエージェントの観察基盤（LLMObs）</strong>として最も注目度の高いオープンソースプラットフォームだ。トレース・プロンプト管理・評価スコアリング・データセット管理を提供し、エージェント開発チームがモデルの品質と挙動を継続的に監視するためのインフラとなる。</p>
+
+    <p>平均レイテンシ78msはAI/MLカテゴリ内で最速だ。これはLangfuseのAPIが計装（instrumentation）用途——すなわち大量の観測データを素早く受け取ることを設計目標としているためと考えられる。</p>
+
+    <p>特に興味深いのは「エージェントによるエージェントの自己観察」というユースケースだ。エージェントがLangfuse MCPを通じて自分自身の過去のトレースを読み取り、「前回のタスクでどのプロンプトが最も効率的だったか」「コスト超過はどのステップで発生したか」を自律的に分析できる。これはエージェントの自己改善ループを可能にする重要な能力だ。</p>
+
+    <h2 id="llm-apis">OpenAI・Google AI・Perplexity・Mistral・Cohere — LLM APIの格付け比較</h2>
+
+    <p>このグループはいずれもAPI onlyでMCPサーバーは持たないが、エージェントがLLMサブタスクを委任するための重要なインフラサービスだ。</p>
+
+    <h3>OpenAI API — AAA: 最広範な互換性、500msレイテンシ</h3>
+    <p>OpenAI APIはGPT-4o・DALL-E・Whisper・Embeddingsを含む最も広く使われているLLM APIだ。エージェントフレームワークの多くがOpenAI互換フォーマットをデファクトスタンダードとして採用しているため、接続の難易度が最も低い。KanseiLink実測では成功率100%・平均レイテンシ500ms（推論時間含む）を記録している。</p>
+
+    <h3>Perplexity — AAA: 検索統合LLM、引用トークン課金廃止</h3>
+    <p>PerplexityはリアルタイムWeb検索を組み込んだ検索拡張LLM APIだ。エージェントが最新情報を必要とするタスクで特に有効で、Sonar・Sonar ProモデルはOpenAI互換フォーマットで呼び出せる。重要な2026年の変更として、<strong>引用トークン（citations）がStandard Sonar・Sonar Proモデルで課金対象外になった</strong>（✅ <a href="https://docs.perplexity.ai/docs/getting-started/pricing" target="_blank">Perplexity公式ドキュメントで確認済み</a>）。検索結果の引用が含まれる回答のコストが実質下がっている。</p>
+
+    <h3>Mistral AI — AA: EUデータ主権とGDPR対応、最安プレミアムAIチャット</h3>
+    <p>Mistral AIはフランス発のAIラボで、EU内でのデータ処理を保証する欧州データ主権オプションを提供する。日本企業にとって「EU圏内データ処理」は直接的な要件ではないが、GDPR準拠が求められるグローバル展開では有力な選択肢だ。Le Chat Proは月$14.99と主要AIチャットサブスクリプションの中で最安値クラスを維持している（✅ <a href="https://www.grizzlypeaksoftware.com/articles/p/mistral-ai-pricing-in-2026-pro-costs-free-tier-limits-and-api-rates-lx4o2n2v" target="_blank">2026年価格確認済み</a>）。</p>
+
+    <h3>Cohere — AA: エンタープライズRAGの専門家</h3>
+    <p>CohereはCommandモデル（生成）、Embed（埋め込み）、Rerank（再ランキング）を組み合わせたエンタープライズRAGパイプラインに特化したAIプラットフォームだ。エージェントが社内ドキュメントを検索・回答するRAGユースケースでは、Cohereのリランキング機能がRetrieval精度を大きく向上させる。</p>
+
+    <h2 id="groq">Groq — AAA格付けだが実測50%: 超高速推論の信頼性に注意</h2>
+
+    <div class="service-card" style="border-color: #FCA5A5;">
+      <div class="service-card-header">
+        <h3>Groq</h3>
+        <span class="grade-badge grade-aaa">AAA</span>
+        <span style="font-size:13px;color:#DC2626;font-weight:600;">⚠️ 実測成功率 50%（サンプル2件）</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">50%</div><div class="lbl">実測成功率</div></div>
+        <div class="metric-item"><div class="val">120ms</div><div class="lbl">平均レイテンシ</div></div>
+        <div class="metric-item"><div class="val">LPU</div><div class="lbl">推論ハードウェア</div></div>
+        <div class="metric-item"><div class="val">n=2</div><div class="lbl">サンプル数（低信頼性）</div></div>
+      </div>
+    </div>
+
+    <p>GroqはAAAグレードを持つが、KanseiLinkデータで唯一50%の実測成功率を記録している。ただし<strong>重要な注意点がある: サンプル数が2件のみ</strong>（confidence_score 0.3）だ。1件の失敗は<code>invalid_input</code>エラーで、Groqのサービス品質の問題というよりもAPIパラメータの設定ミスと推測される。</p>
+
+    <p>Groqの技術的強みは独自開発のLPU（Language Processing Unit）ハードウェアによる超高速推論だ。Llama 3 70Bで約280トークン/秒という推論速度は主要LLMプロバイダーの中でも突出している（✅ <a href="https://tokenmix.ai/blog/groq-api-pricing" target="_blank">Groq速度確認済み</a>）。価格はLlama 8Bで入力$0.05/M・Llama 70Bで入力$0.59/Mと、速度対コストバランスが優れている。</p>
+
+    <p>Groqのユースケースはリアルタイムレスポンスかつコスト効率が求められるサブタスク——例えばユーザーとのチャット中に短い判断を行うような場面——に最も適している。現時点ではサンプル不足で断言はできないため、本番導入前に十分なインテグレーションテストを推奨する。</p>
+
+    <h2 id="no-data">Hugging Face・Pinecone — MCPはあるが実績データなし</h2>
+
+    <p>Hugging FaceとPineconeはともにAAAグレードを持ち、サードパーティMCPサーバーが存在するが、KanseiLinkには現時点でエージェント実績データがない。</p>
+
+    <ul>
+      <li><strong>Hugging Face</strong> (<code>npx -y @huggingface/mcp-server</code>): 数十万のオープンソースモデルへのアクセスを提供するハブ。特定のモデルを試験的に使うエージェント開発では有力だが、Inference APIのレイテンシはホスティング形態によって大きく異なる。</li>
+      <li><strong>Pinecone</strong> (<code>npx -y @pinecone-database/mcp</code>): マネージドベクターデータベース。RAGパイプラインの検索層として広く採用されており、エージェントが意味検索を行うインフラとして重要な位置を占める。</li>
+    </ul>
+
+    <p>両サービスについては、実績データが蓄積された段階で格付けを更新する予定だ。</p>
+
+    <h2 id="summary">AI/MLカテゴリの総括: エージェントネイティブ設計の優位性</h2>
+
+    <p>AI/MLカテゴリから見えてくる最も重要なパターンは「<strong>エージェント開発者向けに設計されたサービスはAEO格付けが高い</strong>」という事実だ。</p>
+
+    <div class="success-box">
+      <div class="label">AI/MLカテゴリ格付けサマリー</div>
+      <p>
+        <strong>公式MCPサーバー保有（2件）:</strong> ElevenLabs（88ms・100%）、Langfuse（78ms・100%）——どちらも実測データが優秀。開発者向けサービスが認証・接続の摩擦を最小化した設計を持つことを示す。<br><br>
+        <strong>AAA・API only（5件）:</strong> OpenAI・Perplexity・Google AI・Groq・Hugging Face——最高格付けだが、MCP統合はエコシステム依存。Groqの実測50%はサンプル不足由来であり、サービス品質の問題と断定できない。<br><br>
+        <strong>AA・API only（2件）:</strong> Cohere・Mistral——それぞれエンタープライズRAGとEUデータ主権という明確な差別化を持つ。汎用LLMではなく特定ユースケースでの選択肢。<br><br>
+        <strong>サードパーティMCP（2件）:</strong> Pinecone・Hugging Face——MCPサーバーは存在するが実績データなし。先行投資的な採用には注意が必要。
+      </p>
+    </div>
+
+    <p>AI/MLカテゴリは「エージェントのためのインフラ」という性質上、他カテゴリよりも速くMCP対応が進んでいる。しかし高格付けとMCPの存在は「すぐに本番で使える」を意味しない。GroqのようにAAAでも実測サンプルが少ない場合は、自社のユースケースでのテストが不可欠だ。</p>
+
+    <div class="disclosure-box">
+      <div class="label">開示事項</div>
+      <p>本記事のAEO格付けはKanseiLink実測データに基づきます。Groqの実測成功率50%はサンプル数2件（confidence_score 0.3）であり、統計的な信頼性は低いことに注意してください。ElevenLabsの文字クォータ・Perplexityの引用課金廃止・Mistralの価格情報はそれぞれの公式ドキュメントで確認済みの情報です。本記事は2026年4月15日時点の情報に基づいており、価格・仕様は変更される場合があります。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>AI/MLサービスの最新データをMCPで取得する</h3>
+      <p><code style="background:rgba(255,255,255,0.2);color:#fff;border:none;">search_services(category="ai_ml")</code>でAI/MLカテゴリ全サービスを取得。<code style="background:rgba(255,255,255,0.2);color:#fff;border:none;">get_insights(service_id="elevenlabs")</code>で最新の実測データを確認。</p>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" class="btn-teal" target="_blank">MCPサーバーを見る</a>
+    </div>
+
+    <div class="related-section">
+      <h2>関連リサーチ</h2>
+      <div class="related-grid">
+        <a href="devtools-saas-aeo-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>開発者ツール AEO比較 2026 — GitHub・GitLab・AWS・Playwright MCPの格付けレポート</h4>
+        </a>
+        <a href="data-integration-saas-aeo-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>データ連携・iPaaS AEO比較 2026 — Zapier・Make・Yoom・Tavily・Firecrawl格付け</h4>
+        </a>
+        <a href="mcp-success-patterns-data-2026.html" class="related-card">
+          <div class="tag">Data Story</div>
+          <h4>225+サービス分析が示すMCP成功の法則 — 成功率90%超えの共通点</h4>
+        </a>
+        <a href="agent-auth-patterns-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>認証の罠: エージェントが本当に困るOAuth落とし穴3パターン</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        AI/MLカテゴリのデータはKanseiLink MCPサーバーで直接取得できます。
+        <code>search_services(category="ai_ml")</code>でカテゴリ全サービスを取得。
+        <code>get_insights(service_id="elevenlabs")</code>・<code>get_insights(service_id="langfuse")</code>で最新の実測データを確認。
+        <code>get_service_detail(service_id="elevenlabs")</code>でAPIキー設定・エンドポイント・エージェントTipsを取得できます。
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Connect</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+<script src="/js/paywall.js"></script>
+</body>
+</html>
