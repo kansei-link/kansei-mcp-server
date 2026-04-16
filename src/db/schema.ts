@@ -307,6 +307,17 @@ export function initializeDb(db: Database.Database): void {
     db.exec("ALTER TABLE outcomes ADD COLUMN cost_usd REAL");
   }
 
+  // Migration: add MCP tool inventory columns to services (for analyze_mcp_config)
+  // mcp_tool_count: how many tools this MCP server exposes
+  // avg_tool_def_tokens: estimated tokens per tool definition (default 500)
+  const hasMcpToolCount = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = 'mcp_tool_count'")
+    .get() as { cnt: number };
+  if (hasMcpToolCount.cnt === 0) {
+    db.exec("ALTER TABLE services ADD COLUMN mcp_tool_count INTEGER");
+    db.exec("ALTER TABLE services ADD COLUMN avg_tool_def_tokens INTEGER DEFAULT 500");
+  }
+
   // Model-level performance stats per service (for audit_cost routing)
   db.exec(`
     CREATE TABLE IF NOT EXISTS model_service_stats (
