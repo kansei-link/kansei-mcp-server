@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4 Enterprise MCP Challenges That Are Blocking Production Deployments — April 2026 Roadmap Deep Dive | KanseiLink</title>
+  <meta name="description" content="The official MCP roadmap names four enterprise blockers: SSO-integrated auth, gateway design, audit logging, and configuration portability. We analyze each with KanseiLink real-world data from 225 Japanese SaaS services.">
+  <meta name="keywords" content="MCP enterprise production, MCP gateway, MCP SSO, MCP audit log, MCP roadmap 2026, KanseiLink, AEO, Japanese SaaS">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/mcp-enterprise-readiness-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-enterprise-readiness-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-enterprise-readiness-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-enterprise-readiness-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="4 Enterprise MCP Challenges Blocking Production Deployments — April 2026 Roadmap">
+  <meta property="og:description" content="SSO auth, gateway design, audit logging, configuration portability — the official MCP roadmap defines the four blockers. KanseiLink data shows they're already happening in Japanese SaaS production.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/mcp-enterprise-readiness-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-16">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="MCP Trends">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="4 Enterprise MCP Challenges Blocking Production — April 2026 Roadmap">
+  <meta name="twitter:description" content="SSO auth, gateway design, audit logging, config portability — the MCP roadmap's four enterprise blockers, explained with real data.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "4 Enterprise MCP Challenges That Are Blocking Production Deployments — April 2026 Roadmap Deep Dive",
+    "description": "The official MCP roadmap names four enterprise blockers: SSO-integrated auth, gateway design, audit logging, and configuration portability. We analyze each with KanseiLink real-world data.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-16",
+    "dateModified": "2026-04-16",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/mcp-enterprise-readiness-2026",
+    "keywords": ["MCP", "enterprise", "production deployment", "SSO", "gateway", "audit log", "KanseiLink", "AEO"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What are the biggest enterprise challenges when deploying MCP in production?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The April 2026 official MCP roadmap defines four core enterprise challenges: (1) SSO-integrated auth — brokering access through an organization's existing identity layer; (2) gateway and proxy design — how downstream servers verify client authorization when a request passes through a gateway; (3) audit and compliance — producing consistent, auditable logs across multi-server agent workflows; (4) configuration portability — moving MCP settings cleanly between dev, staging, and production environments."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "When will MCP's enterprise features be ready?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "According to the official roadmap, most enterprise readiness work will land as extensions rather than core spec changes. The maintainers are actively recruiting contributors with enterprise infrastructure experience. Incremental releases are expected throughout 2026, with no single 'enterprise release' date announced."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is an MCP gateway and why does it matter for enterprises?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "An MCP gateway is an intermediary component — such as an API gateway, security proxy, or load balancer — that sits between AI agents and MCP servers. The current MCP spec does not define how a downstream server verifies what the original client was authorized to do when a request passes through a gateway. This architectural ambiguity is the biggest source of uncertainty for enterprise MCP deployments today."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights" },
+      { "@type": "ListItem", "position": 3, "name": "4 Enterprise MCP Challenges", "item": "https://kansei-link.com/en/insights/mcp-enterprise-readiness-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3;
+      --black: #000000; --white: #FFFFFF; --lavender: #F4F5FD;
+      --gray-light: #F5F5F5; --gray-mid: #E5E7EB; --gray-text: #6B7280; --gray-dark: #374151;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif; color: var(--black); background: var(--white); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a { color: var(--black); text-decoration: none; font-size: 16px; font-weight: 400; padding: 20px 0; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; }
+    .hamburger span { display: block; width: 24px; height: 2.5px; background: var(--black); border-radius: 2px; }
+
+    .breadcrumb-bar { background: var(--gray-light); padding: 12px 0; font-size: 14px; color: var(--gray-text); }
+    .breadcrumb-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 50%, #00897B 100%); padding: 80px 0 64px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); color: var(--white); font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 9999px; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .article-hero h1 { font-size: 40px; font-weight: 600; letter-spacing: -2px; line-height: 1.2; margin-bottom: 24px; }
+    .article-hero .subtitle { font-size: 18px; font-weight: 300; line-height: 1.7; opacity: 0.9; margin-bottom: 32px; }
+    .article-meta { display: flex; align-items: center; gap: 24px; font-size: 14px; opacity: 0.8; flex-wrap: wrap; }
+    .article-meta .divider { width: 1px; height: 16px; background: rgba(255,255,255,0.3); }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 48px 40px 80px; color: var(--gray-dark); font-size: 16px; line-height: 1.7; }
+    .article-body h2 { font-size: 28px; font-weight: 600; color: var(--black); letter-spacing: -1px; margin-top: 56px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--lavender); }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin-top: 36px; margin-bottom: 12px; }
+    .article-body p { margin-bottom: 20px; }
+    .article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .article-body a:hover { border-bottom-color: var(--blue); }
+    .article-body code { background: var(--gray-light); padding: 2px 6px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .key-concept { background: var(--lavender); border-left: 4px solid var(--blue); padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .key-concept .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .key-concept p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .toc-box { background: var(--gray-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 14px; font-weight: 600; color: var(--black); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .toc-box ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+    .toc-box li { counter-increment: toc; margin-bottom: 6px; }
+    .toc-box li::before { content: counter(toc) "."; color: var(--blue); font-weight: 600; margin-right: 8px; font-size: 13px; }
+    .toc-box a { color: var(--gray-dark); text-decoration: none; font-size: 14px; }
+    .toc-box a:hover { color: var(--blue); }
+
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 32px 0; }
+    .stat-card { background: var(--lavender); border-radius: 12px; padding: 20px 16px; text-align: center; }
+    .stat-card .val { font-size: 30px; font-weight: 800; color: var(--blue); line-height: 1; margin-bottom: 8px; }
+    .stat-card .lbl { font-size: 12px; color: var(--gray-text); line-height: 1.4; }
+    .stat-card .src { font-size: 11px; color: var(--gray-text); margin-top: 6px; opacity: 0.7; }
+
+    .challenge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0; }
+    .challenge-card { background: var(--gray-light); border-radius: 12px; padding: 24px; border-top: 4px solid var(--blue); }
+    .challenge-card.orange { border-top-color: #D97706; }
+    .challenge-card.teal { border-top-color: var(--teal); }
+    .challenge-card.red { border-top-color: #DC2626; }
+    .challenge-card .num { font-size: 12px; font-weight: 700; color: var(--gray-text); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .challenge-card h4 { font-size: 17px; font-weight: 600; color: var(--black); margin-bottom: 10px; line-height: 1.3; }
+    .challenge-card p { font-size: 14px; color: var(--gray-dark); line-height: 1.6; margin: 0; }
+    .challenge-card .status { display: inline-block; margin-top: 12px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 9999px; background: #FEF3C7; color: #92400E; }
+    .challenge-card .status.in-progress { background: #DBEAFE; color: #1E40AF; }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -1px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner, .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid, .challenge-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: 1fr 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/mcp-enterprise-readiness-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" style="width:32px;height:32px;">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      4 Enterprise MCP Challenges Blocking Production
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">MCP / AI Trends</span>
+      <h1>4 Enterprise MCP Challenges That Are Blocking Production Deployments — April 2026 Roadmap Deep Dive</h1>
+      <p class="subtitle">SSO-integrated auth, gateway design, audit logging, configuration portability — the official MCP roadmap finally names what enterprises keep running into, and KanseiLink data shows it's already happening in Japanese SaaS production</p>
+      <div class="article-meta">
+        <span>2026-04-16</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>7 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#background">Background — MCP enters the production phase in spring 2026</a></li>
+        <li><a href="#challenge1">Challenge 1: SSO-Integrated Auth — Connecting to the organizational identity layer</a></li>
+        <li><a href="#challenge2">Challenge 2: Gateway Design — The authorization propagation problem</a></li>
+        <li><a href="#challenge3">Challenge 3: Audit Logging and Compliance</a></li>
+        <li><a href="#challenge4">Challenge 4: Configuration Portability</a></li>
+        <li><a href="#kansei-data">KanseiLink data: Where Japanese SaaS stands today</a></li>
+        <li><a href="#roadmap-approach">The roadmap's approach: The extension strategy</a></li>
+        <li><a href="#japan-implications">Implications for Japanese SaaS vendors</a></li>
+      </ol>
+    </div>
+
+    <div class="disclosure-box">
+      <div class="label">Sources and Disclosure</div>
+      <p>This report is based on the <a href="https://blog.modelcontextprotocol.io/posts/2026-mcp-roadmap/" target="_blank" rel="noopener">official Model Context Protocol roadmap blog</a> (published April 2026), <a href="https://thenewstack.io/model-context-protocol-roadmap-2026/" target="_blank" rel="noopener">The New Stack analysis</a>, <a href="https://workos.com/blog/2026-mcp-roadmap-enterprise-readiness" target="_blank" rel="noopener">WorkOS commentary</a>, and KanseiLink MCP server operational data as of April 16, 2026. Roadmap implementation timelines are subject to change.</p>
+    </div>
+
+    <h2 id="background">Background — MCP Enters the Production Phase in Spring 2026</h2>
+
+    <p>Model Context Protocol (MCP), open-sourced by Anthropic in late 2024, has grown to over 5,800 servers as of April 2026. But the industry's attention has clearly shifted — from "how many servers exist" to "how do enterprises run this reliably in production."</p>
+
+    <p>On April 8, 2026, the official MCP roadmap was updated and for the first time publicly named the real enterprise deployment challenges. The same day, Clare Liguori (AWS Senior Principal Engineer) joined the Core Maintainer group and Den Delimarsky joined as Lead Maintainer. AWS's deep commitment signals that MCP's enterprise trajectory is being shaped by those who build at scale.</p>
+
+    <p>The roadmap defines four primary enterprise blockers. Each maps precisely to what KanseiLink observes in Japanese SaaS production data.</p>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="val">5,800+</div>
+        <div class="lbl">MCP servers<br>(April 2026)</div>
+        <div class="src">Source: MCP official roadmap</div>
+      </div>
+      <div class="stat-card">
+        <div class="val">4</div>
+        <div class="lbl">Enterprise deployment<br>blockers named</div>
+        <div class="src">Source: MCP official roadmap</div>
+      </div>
+      <div class="stat-card">
+        <div class="val">90%</div>
+        <div class="lbl">freee MCP<br>success rate (212 calls)</div>
+        <div class="src">Source: KanseiLink production</div>
+      </div>
+      <div class="stat-card">
+        <div class="val">91%</div>
+        <div class="lbl">Slack MCP<br>success rate (113 calls)</div>
+        <div class="src">Source: KanseiLink production</div>
+      </div>
+    </div>
+
+    <h2 id="challenge1">Challenge 1: SSO-Integrated Auth — Connecting to the Organizational Identity Layer</h2>
+
+    <p>The first wall enterprises hit when deploying MCP at scale is integrating with existing identity infrastructure. Current MCP servers each manage their own credentials and authentication flows independently. That's fine for a proof-of-concept, but when multiple teams across a company share the same pool of MCP servers, administration complexity explodes.</p>
+
+    <p>The roadmap's target model: <strong>route access through an organization's existing SSO layer (Okta, Microsoft Entra, Google Workspace Identity, etc.) as the access broker</strong>. The flow becomes: SSO login → scoped token issued → MCP connection established — with IT retaining full visibility and control.</p>
+
+    <div class="key-concept">
+      <div class="label">Impact on Japanese SaaS</div>
+      <p>Of the 225 Japanese SaaS services tracked by KanseiLink, approximately 60% support OAuth 2.0 or better. However, full SSO integration (SAML/OIDC) is limited to top-tier services — most mid-market Japanese SaaS still relies on per-service API keys. If SSO integration becomes a standard MCP requirement, non-compliant services risk exclusion from enterprise shortlists.</p>
+    </div>
+
+    <p>KanseiLink's production data shows freee MCP logging 4 <code>auth_expired</code> errors out of 212 calls — all caused by OAuth 2.0's 24-hour token lifetime. In long-running overnight batch workflows, tokens silently expire mid-operation. SSO-brokered scoped token issuance would structurally eliminate this entire class of failure.</p>
+
+    <h2 id="challenge2">Challenge 2: Gateway Design — The Authorization Propagation Problem</h2>
+
+    <p>Enterprise MCP deployments almost never look like a direct agent-to-server connection. In practice, API gateways, security proxies, and load balancers sit in between. This gateway and proxy pattern is the area where the current MCP spec is most silent.</p>
+
+    <div class="warning-box">
+      <div class="label">The Undefined Core Problem</div>
+      <p>When a request passes through a gateway, how does the downstream MCP server verify what the original client was authorized to do? The current spec does not answer this. This is the single biggest source of architectural uncertainty in enterprise MCP deployments today.</p>
+    </div>
+
+    <p>Without a defined mechanism for authorization propagation through gateways, deployments face a binary failure: either requests are processed with excessive permissions, or all requests get blocked. Neither is acceptable for production.</p>
+
+    <p>The leading proposed solution is a <strong>standard protocol for gateways to propagate the original client's authorization scope to downstream servers in a verifiable form</strong>. A JWT claims-based approach is being discussed, but the spec work is ongoing.</p>
+
+    <div class="challenge-grid">
+      <div class="challenge-card">
+        <div class="num">Gateway Issue 1</div>
+        <h4>Authorization Propagation</h4>
+        <p>No standard method for a gateway to pass a client's authorization scope to downstream servers in a verifiable way</p>
+        <span class="status">Spec in progress</span>
+      </div>
+      <div class="challenge-card orange">
+        <div class="num">Gateway Issue 2</div>
+        <h4>Configuration Portability</h4>
+        <p>Gateway behavior definitions (rate limits, routing, failover) cannot be reliably moved between environments</p>
+        <span class="status">Spec in progress</span>
+      </div>
+      <div class="challenge-card teal">
+        <div class="num">Gateway Issue 3</div>
+        <h4>Audit Log Consistency</h4>
+        <p>Log formats between gateways and MCP servers diverge, fragmenting the audit trail</p>
+        <span class="status">Under discussion</span>
+      </div>
+      <div class="challenge-card red">
+        <div class="num">Gateway Issue 4</div>
+        <h4>Failover Behavior</h4>
+        <p>No standard spec for how agents should behave when a gateway goes down</p>
+        <span class="status">Under discussion</span>
+      </div>
+    </div>
+
+    <h2 id="challenge3">Challenge 3: Audit Logging and Compliance</h2>
+
+    <p>The moment enterprises start connecting AI agents to internal systems, legal, compliance, and security teams ask the same question: <strong>"What did the agent do, when, and to whom — and can we prove it?"</strong></p>
+
+    <p>For Japanese enterprises, the stakes vary by sector: Financial Services Agency (FSA) guidelines for financial firms, APPI (Act on Protection of Personal Information) for any service handling personal data, ISO 27001 for manufacturers. If an agent's action history cannot be recorded in a form that satisfies these audit requirements, production approval is realistically unobtainable.</p>
+
+    <p>The current MCP spec defines no standard format for audit logs. Each MCP server emits logs in its own format, making it structurally difficult to assemble a coherent audit trail across multi-server agent workflows.</p>
+
+    <div class="key-concept">
+      <div class="label">Current Practical Workaround</div>
+      <p>The pragmatic answer before standardization arrives is <strong>OpenTelemetry (OTel)</strong> tracing. MCP servers emit OTel spans, which are aggregated by a central observability platform (Datadog, Grafana, AWS CloudWatch, etc.). Anthropic's enterprise Claude Cowork includes native OpenTelemetry integration — a signal that OTel-based audit logging is the near-term industry direction.</p>
+    </div>
+
+    <h2 id="challenge4">Challenge 4: Configuration Portability</h2>
+
+    <p>Enterprise development requires strict environment separation: Development → Staging → Production. Current MCP configurations — server URLs, credentials, scope settings — tend to get hardcoded per environment or managed through custom tooling, resulting in <strong>low portability across environments</strong>.</p>
+
+    <p>No standard integration pattern exists for IaC tools (Terraform, Pulumi) or secrets management systems (Vault, AWS Secrets Manager), which means DevOps teams building MCP into CI/CD pipelines must roll their own implementations.</p>
+
+    <p>The roadmap explicitly recognizes "configuration portability" and plans to address it through guidance and best practices before any spec changes — an appropriately scoped starting point given the diversity of enterprise tooling.</p>
+
+    <h2 id="kansei-data">KanseiLink Data: Where Japanese SaaS Stands Today</h2>
+
+    <p>KanseiLink's AEO data for Japanese SaaS confirms that all four roadmap challenges are already manifesting in production:</p>
+
+    <ul>
+      <li><strong>SSO integration:</strong> freee's OAuth 24-hour token expiry problem (4 auth_expired errors in 212 calls) is a structural consequence of missing SSO-brokered token lifecycle management</li>
+      <li><strong>Gateway handling:</strong> Slack achieves 91% success through MCP, but Block Kit format errors (invalid_input) increase when requests pass through intermediary layers</li>
+      <li><strong>Audit logging:</strong> KanseiLink's AEO scoring includes "error log consistency" as an evaluation axis — even AAA-rated services (Slack, Shopify Japan, Notion) still have room to improve on structured audit output</li>
+      <li><strong>Config portability:</strong> Of 225 tracked Japanese SaaS services, Terraform/IaC integration is officially supported only by international services (GitHub, AWS, Shopify) — near zero among domestic Japanese SaaS vendors</li>
+    </ul>
+
+    <div class="key-concept">
+      <div class="label">Data Point: freee MCP (KanseiLink production)</div>
+      <p>freee MCP (AA grade, 90% success rate) recorded 21 errors across 212 calls. <strong>4 of those (19%) were auth_expired</strong>. The only verified workaround is manual OAuth token refresh every 24 hours. The root fix requires SSO-brokered token management — the exact capability the MCP roadmap is working toward.</p>
+    </div>
+
+    <h2 id="roadmap-approach">The Roadmap's Approach: The Extension Strategy</h2>
+
+    <p>The most architecturally significant aspect of the roadmap is its decision to implement enterprise capabilities as <strong>extensions rather than core spec changes</strong>.</p>
+
+    <p>This preserves the core protocol as a "lightweight protocol for everyone" while letting enterprises opt into SSO, audit, and gateway capabilities as needed:</p>
+
+    <ul>
+      <li>PoC and startup MCP deployments continue working unchanged with the current spec</li>
+      <li>Enterprise governance and compliance capabilities are added as opt-in extensions</li>
+      <li>The maintainer team is explicitly recruiting contributors with enterprise infrastructure experience</li>
+    </ul>
+
+    <p>Combined with MCP's donation to the Linux Foundation under the AAIF (Agentic AI Foundation), this signals MCP maturing into a vendor-neutral standard — not Anthropic's proprietary protocol.</p>
+
+    <h2 id="japan-implications">Implications for Japanese SaaS Vendors</h2>
+
+    <p>With the MCP enterprise roadmap now clearly defined, the action items for Japanese SaaS vendors are correspondingly clear.</p>
+
+    <h3>Short-term (Q2–Q3 2026): Top priorities</h3>
+    <ol>
+      <li><strong>Migrate to OAuth 2.1:</strong> Prepare for the deprecation of the implicit flow and mandatory PKCE (already reflected in KanseiLink AEO scoring)</li>
+      <li><strong>Implement OpenTelemetry logging:</strong> Don't wait for the standard audit log format — instrument with OTel spans now as the pragmatic interim solution</li>
+      <li><strong>Test with enterprise identity providers:</strong> Verify SSO behavior against Okta, Microsoft Entra, and Google Workspace before customers ask</li>
+    </ol>
+
+    <h3>Medium-term (Q4 2026 and beyond): Building competitive advantage</h3>
+    <p>Enterprise MCP readiness is on track to become a key SaaS selection criterion within 12–24 months. KanseiLink's AEO grading will progressively incorporate SSO integration, audit logging, and configuration portability as evaluation axes. Services that act early will gain both higher AEO scores and a defensible enterprise positioning advantage.</p>
+
+    <div class="cta-banner">
+      <h3>Check Your SaaS's Enterprise MCP Readiness</h3>
+      <p>KanseiLink's AEO ratings give you a baseline for auth, audit, and gateway readiness today — and track your progress as the roadmap lands.</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-primary" style="background:white;color:#1A3FD6;">Contact us</a>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Articles</h2>
+      <div class="related-grid">
+        <a href="mcp-trends-q2-2026.html" class="related-card">
+          <div class="tag">MCP Trends</div>
+          <h4>Claude Managed Agents Arrive — Q2 2026 AI Agent Industry Update</h4>
+        </a>
+        <a href="agent-auth-patterns-2026.html" class="related-card">
+          <div class="tag">How-to Guide</div>
+          <h4>MCP Agent Auth Patterns — OAuth 2.1, API Keys, and M2M Design in Practice</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">How-to Guide</div>
+          <h4>MCP Server Implementation Guide 2026 — Auth, Rate Limiting, Error Handling</h4>
+        </a>
+        <a href="agent-voice-cross-agent-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>Claude vs GPT vs Gemini: The Same SaaS, Completely Different Experiences</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        The production data referenced in this report is available via the KanseiLink MCP server.
+        Use <code>get_insights(service_id="freee")</code> for freee's success rate and error details,
+        and <code>get_insights(service_id="slack")</code> for Slack's data.
+        <code>search_services(agent_ready="verified")</code> returns all services with confirmed production track records.
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. Making service quality visible in the agent economy.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="../../insights/what-is-aeo.html">What is AEO?</a>
+          <a href="../../insights/what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Connect</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+<script src="/js/paywall.js"></script>
+</body>
+</html>
