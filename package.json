@@ -7,7 +7,8 @@
   "main": "dist/index.js",
   "bin": {
     "kansei-link-mcp": "dist/index.js",
-    "kansei-link-mcp-http": "dist/http-server.js"
+    "kansei-link-mcp-http": "dist/http-server.js",
+    "kansei-link-install-skill": "dist/bin/install-skill.js"
   },
   "files": [
     "dist",
@@ -15,7 +16,7 @@
     ".well-known"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').mkdirSync('dist/skill',{recursive:true}); require('fs').copyFileSync('src/skill/SKILL.md','dist/skill/SKILL.md')\"",
     "start": "node dist/index.js",
     "start:http": "node dist/http-server.js",
     "seed": "node dist/db/seed.js",

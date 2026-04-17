@@ -23,6 +23,18 @@ Or add to your MCP client config:
 }
 ```
 
+### Recommended: install the skill (auto-invocation)
+
+Installing the MCP alone doesn't teach Claude Code *when* to call `search_services` / `get_service_tips`. The bundled skill fixes that:
+
+```bash
+npx -y @kansei-link/mcp-server kansei-link-install-skill
+```
+
+This copies a `SKILL.md` to `~/.claude/skills/kansei-link/`. Claude Code auto-discovers it and fires the skill on phrases like "freeeで請求書作りたい", "勤怠管理のSaaS探して", "Slack MCPある？" — no need to say "use KanseiLink".
+
+Flags: `--dry-run`, `--force`, `--help`.
+
 ## What's Inside
 
 - **156 SaaS/API services** across 23 categories (global + Japanese)
