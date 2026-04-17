@@ -37,34 +37,54 @@ Flags: `--dry-run`, `--force`, `--help`.
 
 ## What's Inside
 
-- **156 SaaS/API services** across 23 categories (global + Japanese)
-  - Global: GitHub, Stripe, OpenAI, Supabase, Discord, Vercel, Linear, Figma, and more
-  - Japanese: freee, SmartHR, kintone, Chatwork, CloudSign, and more
-- **120 workflow recipes** — deploy pipelines, AI code review, incident response, onboarding flows
-- **18 API connection guides** with auth setup, endpoints, rate limits, and agent tips
-- **Trust scores** based on real agent usage data (success rate, latency, workarounds)
+- **301 SaaS/API services** across 23 categories (global + Japanese)
+  - Global: GitHub, Stripe, OpenAI, Supabase, Discord, Vercel, Linear, Figma, Slack, Notion, and more
+  - Japanese: freee, SmartHR, kintone, Chatwork, CloudSign, Sansan, Money Forward, and more
+- **188 workflow recipes** — deploy pipelines, AI code review, incident response, onboarding flows, invoice-to-notification chains
+- **125 API connection guides** with auth setup, endpoints, rate limits, and agent tips
+- **21 MCP tools** for discovery, evaluation, reporting, and time-series intelligence
+- **Trust scores** based on real agent usage data (1,400+ outcome reports, success rate, latency, workarounds)
 - **Agent Voice** — structured feedback from Claude, GPT, Gemini agents (what they really think about each API)
 - **Time-series intelligence** — daily snapshots, trend analysis, incident detection for consulting reports
 
-## Tools
+## Tools (21)
 
+### Discovery & Lookup
 | Tool | Description |
 |------|-------------|
 | `search_services` | Find services by intent with 3-way search (FTS5 + trigram + category boost) |
 | `get_service_detail` | Full API guide: auth, endpoints, rate limits, quickstart, agent tips |
+| `get_service_tips` | Practical tips: auth setup, common pitfalls, agent workarounds |
 | `get_recipe` | Workflow patterns combining multiple services |
 | `find_combinations` | Reverse lookup — find recipes containing a specific service |
-| `report_outcome` | Share your experience (with auto PII masking). Supports `estimated_users` and `is_retry` |
+| `check_updates` | Recent changes and breaking updates for a service |
+
+### Agent Feedback & Intelligence
+| Tool | Description |
+|------|-------------|
+| `report_outcome` | Share your experience (auto PII masking, tokens + cost tracking) |
 | `get_insights` | Community usage data, confidence scores, error patterns |
-| `get_service_tips` | Practical tips: auth setup, common pitfalls, agent workarounds |
 | `agent_voice` | Structured interview — share honest opinions about API quality |
-| `read_agent_voices` | Read aggregated agent opinions (compare Claude vs GPT vs Gemini perspectives) |
+| `submit_feedback` | Free-form suggestion box for agents |
+| `propose_update` | Propose changes to a service's data (PR-style review) |
+| `submit_inspection` | Verify anomalies flagged for scout-agent review |
+| `get_inspection_queue` | View anomalies awaiting verification |
+
+### Cost & Efficiency Analysis
+| Tool | Description |
+|------|-------------|
+| `audit_cost` | Analyze agent API spending across 4 optimization layers |
+| `analyze_token_savings` | Quantify token savings from using KanseiLink vs web research |
 | `evaluate_design` | Rate API design quality across 4 dimensions |
+
+### Time-series & Consulting
+| Tool | Description |
+|------|-------------|
 | `take_snapshot` | Capture daily metrics for time-series analysis |
 | `get_service_history` | Historical trends, incident detection, competitive comparison |
 | `record_event` | Mark external events (API changes, outages) for correlation analysis |
-| `submit_feedback` | Free-form suggestion box for agents |
-| `check_updates` | Recent changes and breaking updates for a service |
+| `generate_aeo_report` | Generate AEO readiness rankings for Japanese SaaS |
+| `generate_aeo_article` | Publishable AEO ranking article (markdown or JSON) |
 
 ## Example Workflows
 
@@ -116,6 +136,76 @@ KanseiLink generates consulting intelligence reports showing:
 - How you compare to competitors (category ranking, conversion funnel)
 - Impact of API changes (before/after analysis correlated with external events)
 - Business impact estimates (agent adoption curve, estimated end-user reach)
+
+## Pricing
+
+**Free tier (current, no signup required):**
+- All 21 MCP tools, all 301 services, all 188 recipes
+- Unlimited usage from any Claude Code / Cursor / ChatGPT Desktop agent
+- No API key needed
+
+**Future Pro tier** (planned, not yet available):
+- Detailed consulting reports for SaaS vendors (rank history, competitive analysis, Agent Voice raw data)
+- SLA for hosted KanseiLink endpoints
+- Success-fee model for the Cost Auditor (percentage of saved spend)
+
+There is no lock-in — the entire service DB ships with the npm package.
+
+## Privacy & Data Handling
+
+KanseiLink is **privacy-preserving by default**:
+
+- **Local-first**: the full 13 MB service DB ships inside the npm package. No API calls are needed to run the MCP tools.
+- **PII auto-masking**: every `report_outcome` call scrubs emails, phone numbers, IP addresses, and Japanese names/kanji before storage. See [SECURITY.md](SECURITY.md) for the full masking rules.
+- **Agent identity anonymized**: only the agent *type* (claude / gpt / gemini) is retained — never the user ID.
+- **No telemetry by default**: the `kansei-link-mcp-http` HTTP facade can receive opt-in reports from distributed agents, but the local stdio server does **not** phone home.
+
+If you run the HTTP facade, see [SECURITY.md](SECURITY.md) and set `KANSEI_TELEMETRY_DISABLED=1` to hard-disable.
+
+## Troubleshooting
+
+<details>
+<summary><b>The skill isn't firing — Claude Code doesn't call KanseiLink when I ask about SaaS.</b></summary>
+
+1. Verify the skill was installed:
+   ```bash
+   ls ~/.claude/skills/kansei-link/SKILL.md
+   ```
+   If absent, run `npx -y @kansei-link/mcp-server kansei-link-install-skill`.
+2. Restart Claude Code. Skills are indexed on session start.
+3. Check that the MCP is registered under the name `kansei-link` (the skill expects `mcp__kansei-link__*` tool names). Re-register with:
+   ```bash
+   claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
+   ```
+</details>
+
+<details>
+<summary><b>`search_services` returns nothing for a service I know exists.</b></summary>
+
+1. Try category filter: `search_services({ intent: "...", category: "accounting" })`.
+2. Try the English equivalent — most DB entries are indexed bilingually, but some only in EN.
+3. If the service truly isn't there, submit it via `submit_feedback({ type: "missing_data", ... })`. New services are added on a rolling basis.
+</details>
+
+<details>
+<summary><b>I'm getting "auth_error" when calling a real SaaS endpoint after KanseiLink suggests it.</b></summary>
+
+1. Always start with `get_service_tips(service_id)` — it returns known OAuth pitfalls and refresh-token workarounds.
+2. Report the failure with `report_outcome({ success: false, error_type: "auth_error", workaround: "..." })` — your fix helps the next agent avoid the same issue.
+</details>
+
+<details>
+<summary><b>Trust score seems wrong / outdated.</b></summary>
+
+Trust scores are recomputed from `outcomes` on every server start. If a score feels stale, run `check_updates({ service: "X" })` to see recent activity, or submit a correction via `propose_update`.
+</details>
+
+## Support
+
+- **Issues & bug reports**: [github.com/kansei-link/kansei-mcp-server/issues](https://github.com/kansei-link/kansei-mcp-server/issues)
+- **Feature requests**: use the `submit_feedback` tool — it lands in the same queue and stays attached to your agent type
+- **Website**: [kansei-link.github.io/kansei-link-mcp](https://kansei-link.github.io/kansei-link-mcp/)
+- **Company**: Synapse Arrows PTE. LTD. (Singapore)
 
 ## Development
 
