@@ -425,6 +425,37 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_crawl_runs_started ON crawl_runs(started_at DESC);
   `);
 
+  // Linksee-memory opt-in telemetry (privacy-preserving)
+  //   - anonymous UUID from user (generated on first opt-in)
+  //   - only aggregated / hashed signals, NEVER conversation content
+  //   - protected by the Level 1 payload contract documented in linksee-memory README
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS linksee_telemetry (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      anon_id TEXT NOT NULL,                  -- anonymous UUID generated on user's machine
+      linksee_version TEXT,                   -- e.g. "0.0.3"
+      session_turn_count INTEGER,             -- scalar only
+      session_duration_sec INTEGER,
+      file_ops_edit INTEGER DEFAULT 0,
+      file_ops_write INTEGER DEFAULT 0,
+      file_ops_read INTEGER DEFAULT 0,
+      errors_count INTEGER DEFAULT 0,
+      -- Aggregated / distributional data (all JSON, all anonymized)
+      mcp_servers TEXT,                       -- JSON: ["kansei-link","freee","slack"] — names only
+      file_extensions TEXT,                   -- JSON: {".ts":45,".py":20,".md":15} — percent distribution
+      read_smart_savings_pct REAL,            -- avg token savings when read_smart was used
+      read_smart_calls INTEGER DEFAULT 0,
+      recall_calls INTEGER DEFAULT 0,
+      recall_file_calls INTEGER DEFAULT 0,
+      -- Receipt metadata
+      received_at TEXT DEFAULT (datetime('now')),
+      ip_hash TEXT,                           -- hashed IP for abuse detection only, NEVER raw
+      UNIQUE(anon_id, session_turn_count, received_at)  -- dedupe exact same submission
+    );
+    CREATE INDEX IF NOT EXISTS idx_linksee_tel_anon ON linksee_telemetry(anon_id);
+    CREATE INDEX IF NOT EXISTS idx_linksee_tel_received ON linksee_telemetry(received_at DESC);
+  `);
+
   // FTS5 virtual table for full-text search on services
   // Check if it already exists first (CREATE VIRTUAL TABLE IF NOT EXISTS not supported in all SQLite builds)
   const ftsExists = db

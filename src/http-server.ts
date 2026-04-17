@@ -17,6 +17,7 @@ import type { Request, Response } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createHash } from "node:crypto";
 import { createServer } from "./server.js";
 import { getDb, closeDb } from "./db/connection.js";
 import { initializeDb } from "./db/schema.js";
@@ -316,6 +317,91 @@ app.get("/health", (_req: Request, res: Response) => {
     transport: "streamable-http",
   });
 });
+
+// ─── Linksee-memory telemetry (opt-in, anonymous) ─────────────────
+// Receives Level 1 telemetry from linksee-memory clients (only if user
+// has set LINKSEE_TELEMETRY=basic). Payload contract is documented in
+// the linksee-memory README. We never accept conversation content,
+// only aggregated/hashed signals.
+const linkseeTelemetryLimiter = rateLimit({
+  windowMs: 60 * 1000,        // 1 minute
+  max: 30,                    // up to 30 submissions per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "rate_limited" },
+});
+
+app.post(
+  "/api/telemetry/linksee",
+  linkseeTelemetryLimiter,
+  express.json({ limit: "16kb" }),
+  (req: Request, res: Response) => {
+    try {
+      const body = (req.body || {}) as Record<string, unknown>;
+      const anon_id = typeof body.anon_id === "string" ? body.anon_id.slice(0, 64) : null;
+      if (!anon_id || !/^[A-Za-z0-9_-]{8,64}$/.test(anon_id)) {
+        return res.status(400).json({ error: "invalid_anon_id" });
+      }
+
+      // Strict allow-list — anything outside this is silently dropped
+      const safe = {
+        anon_id,
+        linksee_version: typeof body.linksee_version === "string" ? body.linksee_version.slice(0, 32) : null,
+        session_turn_count: Number.isFinite(body.session_turn_count) ? Math.min(Math.max(0, body.session_turn_count as number), 100000) : null,
+        session_duration_sec: Number.isFinite(body.session_duration_sec) ? Math.min(Math.max(0, body.session_duration_sec as number), 86400 * 7) : null,
+        file_ops_edit: Number.isFinite(body.file_ops_edit) ? Math.max(0, body.file_ops_edit as number) : 0,
+        file_ops_write: Number.isFinite(body.file_ops_write) ? Math.max(0, body.file_ops_write as number) : 0,
+        file_ops_read: Number.isFinite(body.file_ops_read) ? Math.max(0, body.file_ops_read as number) : 0,
+        errors_count: Number.isFinite(body.errors_count) ? Math.max(0, body.errors_count as number) : 0,
+        mcp_servers: Array.isArray(body.mcp_servers)
+          ? JSON.stringify(
+              (body.mcp_servers as unknown[])
+                .filter((s) => typeof s === "string")
+                .map((s) => (s as string).slice(0, 64))
+                .slice(0, 50)
+            )
+          : null,
+        file_extensions: typeof body.file_extensions === "object" && body.file_extensions !== null
+          ? JSON.stringify(body.file_extensions).slice(0, 2000)
+          : null,
+        read_smart_savings_pct: Number.isFinite(body.read_smart_savings_pct) ? Math.min(Math.max(0, body.read_smart_savings_pct as number), 100) : null,
+        read_smart_calls: Number.isFinite(body.read_smart_calls) ? Math.max(0, body.read_smart_calls as number) : 0,
+        recall_calls: Number.isFinite(body.recall_calls) ? Math.max(0, body.recall_calls as number) : 0,
+        recall_file_calls: Number.isFinite(body.recall_file_calls) ? Math.max(0, body.recall_file_calls as number) : 0,
+      };
+
+      // Hash IP for abuse detection only (one-way, never raw)
+      const ip = (req.header("x-forwarded-for") || req.ip || "").split(",")[0].trim();
+      const ipHash = ip
+        ? createHash("sha256").update(ip + "|linksee-tel-salt").digest("hex").slice(0, 16)
+        : null;
+
+      const db = getDb();
+      try {
+        db.prepare(
+          `INSERT INTO linksee_telemetry
+           (anon_id, linksee_version, session_turn_count, session_duration_sec,
+            file_ops_edit, file_ops_write, file_ops_read, errors_count,
+            mcp_servers, file_extensions, read_smart_savings_pct,
+            read_smart_calls, recall_calls, recall_file_calls, ip_hash)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(
+          safe.anon_id, safe.linksee_version, safe.session_turn_count, safe.session_duration_sec,
+          safe.file_ops_edit, safe.file_ops_write, safe.file_ops_read, safe.errors_count,
+          safe.mcp_servers, safe.file_extensions, safe.read_smart_savings_pct,
+          safe.read_smart_calls, safe.recall_calls, safe.recall_file_calls, ipHash
+        );
+      } catch (dbErr: any) {
+        // UNIQUE constraint on (anon_id, session_turn_count, received_at) → idempotent
+        if (!String(dbErr.message).includes("UNIQUE")) throw dbErr;
+      }
+
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(400).json({ error: "bad_payload", detail: String(e?.message || e).slice(0, 200) });
+    }
+  }
+);
 
 // ─── Admin endpoints (secret-token-protected) ─────────────────────
 // Tracks whether a crawler run is currently in flight so repeated cron
