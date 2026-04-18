@@ -21,6 +21,7 @@ import { scoreAll } from "./pipeline/score.js";
 import { ingestCandidates } from "./pipeline/ingest.js";
 import { refreshExistingServices } from "./refresh.js";
 import { snapshotAllServices } from "./snapshot.js";
+import { recomputeAxrGrades } from "./recompute-axr.js";
 import { detectRecipeDrift } from "./drift.js";
 
 export interface CrawlerOptions {
@@ -73,7 +74,14 @@ export async function runCrawler(
     VALUES ('running', ?)
   `);
   const runInfo = runInsert.run(
-    JSON.stringify(["github-topics", "awesome-lists", "refresh", "snapshot", "drift"])
+    JSON.stringify([
+      "github-topics",
+      "awesome-lists",
+      "refresh",
+      "snapshot",
+      "drift",
+      "axr",
+    ])
   );
   const runId = runInfo.lastInsertRowid as number;
 
@@ -97,7 +105,7 @@ export async function runCrawler(
 
   try {
     // 1. Discovery
-    console.log("[crawler] step 1/9: discovering from GitHub topics + awesome lists");
+    console.log("[crawler] step 1/10: discovering from GitHub topics + awesome lists");
     const [githubResults, awesomeResults] = await Promise.all([
       crawlGitHubTopics({ sinceDays, maxResults }).catch((e) => {
         errors.push(`github-topics: ${e.message}`);
@@ -115,7 +123,7 @@ export async function runCrawler(
     );
 
     // 2. Dedupe
-    console.log("[crawler] step 2/9: deduping against existing services + queue");
+    console.log("[crawler] step 2/10: deduping against existing services + queue");
     const dedupe = dedupeAgainstDb(db, allCandidates);
     summaryOut.fresh = dedupe.fresh.length;
     summaryOut.duplicates = dedupe.duplicates.length;
@@ -125,7 +133,7 @@ export async function runCrawler(
     );
 
     // 3. Enrich (fetch README, star counts for awesome-list entries)
-    console.log("[crawler] step 3/9: enriching via GitHub API");
+    console.log("[crawler] step 3/10: enriching via GitHub API");
     const enriched = await enrichCandidates(dedupe.fresh);
     console.log(`[crawler]   enriched: ${enriched.length}`);
 
@@ -147,12 +155,12 @@ export async function runCrawler(
     );
 
     // 4. Classify
-    console.log("[crawler] step 4/9: LLM classification");
+    console.log("[crawler] step 4/10: LLM classification");
     const classified = await classifyCandidates(mainstream);
     console.log(`[crawler]   classified: ${classified.length}`);
 
     // 5. Score + triage
-    console.log("[crawler] step 5/9: scoring + tier triage");
+    console.log("[crawler] step 5/10: scoring + tier triage");
     const scored = scoreAll(classified);
     const byTier = scored.reduce(
       (acc, c) => {
@@ -165,19 +173,19 @@ export async function runCrawler(
 
     // 6. Ingest
     if (!dryRun) {
-      console.log("[crawler] step 6/9: ingesting into DB");
+      console.log("[crawler] step 6/10: ingesting into DB");
       const ingest = ingestCandidates(db, scored);
       summaryOut.auto_accepted = ingest.autoAccepted;
       summaryOut.queued_for_review = ingest.queuedForReview;
       summaryOut.rejected = ingest.rejected;
       summaryOut.ingested_service_ids = ingest.ingestedServiceIds;
     } else {
-      console.log("[crawler] step 6/9: dry-run — skipping DB writes");
+      console.log("[crawler] step 6/10: dry-run — skipping DB writes");
     }
 
     // 7. Refresh
     if (!dryRun) {
-      console.log("[crawler] step 7/9: refreshing existing service metadata");
+      console.log("[crawler] step 7/10: refreshing existing service metadata");
       try {
         const r = await refreshExistingServices(db);
         summaryOut.refresh = {
@@ -195,12 +203,12 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 7/9: dry-run — skipping refresh");
+      console.log("[crawler] step 7/10: dry-run — skipping refresh");
     }
 
     // 8. Daily snapshots
     if (!dryRun) {
-      console.log("[crawler] step 8/9: writing daily snapshots");
+      console.log("[crawler] step 8/10: writing daily snapshots");
       try {
         const snap = snapshotAllServices(db);
         summaryOut.snapshot = {
@@ -217,12 +225,12 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 8/9: dry-run — skipping snapshot");
+      console.log("[crawler] step 8/10: dry-run — skipping snapshot");
     }
 
     // 9. Recipe drift detection
     if (!dryRun) {
-      console.log("[crawler] step 9/9: recipe drift detection");
+      console.log("[crawler] step 9/10: recipe drift detection");
       try {
         const d = detectRecipeDrift(db);
         summaryOut.drift = d;
@@ -235,7 +243,37 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 9/9: dry-run — skipping drift detection");
+      console.log("[crawler] step 9/10: dry-run — skipping drift detection");
+    }
+
+    // 10. AXR (Agent Experience Rating) dynamic recompute
+    //
+    // Keeps axr_score/axr_grade honest: hardcoded seed values drift away from
+    // reality as total_calls / success_rate / trust_score evolve. Without this
+    // step, services retain "AAA" from seed even after agents find them
+    // unreliable. Safe & cheap: no external calls, pure SQL.
+    if (!dryRun) {
+      console.log("[crawler] step 10/10: recomputing AXR grades");
+      try {
+        const axr = recomputeAxrGrades(db);
+        const dist = Object.entries(axr.grade_distribution)
+          .sort(([a], [b]) => {
+            const order = ["AAA", "AA", "A", "BBB", "BB", "B", "C", "D"];
+            return order.indexOf(a) - order.indexOf(b);
+          })
+          .map(([g, n]) => `${g}:${n}`)
+          .join(" ");
+        console.log(
+          `[crawler]   evaluated: ${axr.services_evaluated}, changed: ${axr.changed}, AAA: [${axr.aaa_services.join(", ")}]`
+        );
+        console.log(`[crawler]   distribution: ${dist}`);
+      } catch (e) {
+        const msg = `axr: ${(e as Error).message}`;
+        errors.push(msg);
+        console.error(`[crawler]   ${msg}`);
+      }
+    } else {
+      console.log("[crawler] step 10/10: dry-run — skipping AXR recompute");
     }
 
     summaryOut.status = errors.length > 0 ? "success_with_errors" : "success";
