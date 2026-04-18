@@ -158,23 +158,29 @@ function submitFeedback(
   const maskedSubject = maskPii(input.subject);
   const maskedBody = maskPii(input.body);
   const safeSubject = typeof maskedSubject === "string" ? maskedSubject : maskedSubject.masked;
-  const safeBody = typeof maskedBody === "string" ? maskedBody : maskedBody.masked;
+  let safeBody = typeof maskedBody === "string" ? maskedBody : maskedBody.masked;
 
-  // Validate service_id if provided
-  if (input.service_id) {
-    const exists = db
-      .prepare("SELECT id FROM services WHERE id = ?")
-      .get(input.service_id);
-    if (!exists) {
-      // Don't reject — still accept feedback, just note the service is unknown
-      // This is the Moltbook spirit: accept everything
-    }
-  }
-
+  // The agent_feedback table has a FK on service_id → services(id). Agents sometimes
+  // pass a tool name, an unregistered service, or a typo. Rather than raising
+  // "FOREIGN KEY constraint failed" (the Moltbook spirit is to accept everything),
+  // we gracefully degrade:
+  //   - if the service_id resolves, keep it linked
+  //   - if not, prepend a "[re: <original>]" breadcrumb to the body so the
+  //     reference is preserved as free text, and set the FK column to null.
   const agentId: string | null = input.agent_id ?? null;
-  const serviceId: string | null = input.service_id ?? null;
+  let serviceId: string | null = input.service_id ?? null;
   const feedbackType: string = input.type;
   const prio: string = input.priority;
+
+  if (serviceId) {
+    const exists = db
+      .prepare("SELECT id FROM services WHERE id = ?")
+      .get(serviceId);
+    if (!exists) {
+      safeBody = `[re: ${serviceId}]\n${safeBody}`;
+      serviceId = null;
+    }
+  }
 
   const insertStmt = db.prepare(
     "INSERT INTO agent_feedback (agent_id, feedback_type, service_id, subject, body, priority) VALUES (?, ?, ?, ?, ?, ?)"

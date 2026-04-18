@@ -312,8 +312,28 @@ function auditCost(
   const totalSavings = recommendations.reduce((sum, r: any) => {
     return sum + (r.monthly_savings_usd ?? 0);
   }, 0);
-  const savingsPercentage =
-    totalSpend > 0 ? Math.round((totalSavings / totalSpend) * 100) : 0;
+  // Compute a sensible savings ratio.
+  //
+  // Pitfall: totalSavings can include *hypothetical* savings for services the
+  // user hasn't adopted yet, so it can exceed actual totalSpend. The naive
+  // (savings / spend) * 100 then produces absurd values like 226,667% when
+  // spend is tiny (e.g. $0.03). We therefore:
+  //   1. require a minimum absolute spend before computing a ratio
+  //   2. cap the ratio at 100% when savings exceed spend
+  //   3. surface a human-readable note so the consumer knows which regime
+  //      applies
+  const MIN_SPEND_USD_FOR_RATIO = 1;
+  let savingsPercentage: number | null;
+  let savingsRatioNote: string | null = null;
+  if (totalSpend < MIN_SPEND_USD_FOR_RATIO) {
+    savingsPercentage = null;
+    savingsRatioNote = `Total spend ($${totalSpend.toFixed(2)}) is below the $${MIN_SPEND_USD_FOR_RATIO} threshold for a meaningful ratio. Use the absolute potential_savings_usd figure instead.`;
+  } else if (totalSavings >= totalSpend) {
+    savingsPercentage = 100;
+    savingsRatioNote = `Potential savings ($${Math.round(totalSavings).toLocaleString()}) include hypothetical alternatives not currently adopted; ratio capped at 100%.`;
+  } else {
+    savingsPercentage = Math.round((totalSavings / totalSpend) * 100);
+  }
 
   // Data coverage stats
   const servicesWithData = db
@@ -336,6 +356,7 @@ function auditCost(
     total_estimated_spend_usd: totalSpend,
     potential_savings_usd: Math.round(totalSavings * 100) / 100,
     savings_percentage: savingsPercentage,
+    savings_ratio_note: savingsRatioNote,
     recommendations,
     data_coverage: {
       services_with_model_data: servicesWithData.cnt,

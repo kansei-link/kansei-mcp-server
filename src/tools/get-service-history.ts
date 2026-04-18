@@ -171,16 +171,39 @@ export function register(server: McpServer, db: Database.Database): void {
   );
 }
 
+// A snapshot is a "data gap" if it recorded zero activity. These days happen
+// when the intelligence pipeline is down, not when the service itself is down —
+// so trend analysis and incident detection must exclude them, otherwise a
+// healthy service appears to "crash to 0 success rate" on the gap day.
+function isDataGap(snap: any): boolean {
+  if (!snap) return true;
+  const reports = snap.total_reports ?? 0;
+  const agents = snap.unique_agents ?? 0;
+  return reports === 0 && agents === 0;
+}
+
 function analyzeTrends(snapshots: any[]): any {
-  if (snapshots.length < 2) {
-    return { status: "insufficient_data", message: "Need at least 2 snapshots for trend analysis" };
+  // Strip out data-gap days so we don't interpret them as real activity drops.
+  const active = snapshots.filter((s) => !isDataGap(s));
+  const gapCount = snapshots.length - active.length;
+
+  if (active.length < 2) {
+    return {
+      status: "insufficient_data",
+      message:
+        active.length === 0
+          ? "No activity recorded in this period — all snapshots are data-pipeline gaps."
+          : "Need at least 2 non-gap snapshots for trend analysis",
+      data_gap_days: gapCount,
+      total_snapshot_days: snapshots.length,
+    };
   }
 
-  const first = snapshots[0];
-  const last = snapshots[snapshots.length - 1];
-  const mid = snapshots[Math.floor(snapshots.length / 2)];
+  const first = active[0];
+  const last = active[active.length - 1];
+  const mid = active[Math.floor(active.length / 2)];
 
-  return {
+  const result: any = {
     success_rate: {
       start: first.success_rate,
       mid: mid.success_rate,
@@ -197,7 +220,7 @@ function analyzeTrends(snapshots: any[]): any {
     agent_adoption: {
       start_unique: first.unique_agents,
       end_unique: last.unique_agents,
-      total_new_agents: snapshots.reduce((sum: number, s: any) => sum + (s.new_agents_count || 0), 0),
+      total_new_agents: active.reduce((sum: number, s: any) => sum + (s.new_agents_count || 0), 0),
       direction: last.unique_agents > first.unique_agents ? "growing" : "flat",
     },
     category_rank: {
@@ -206,13 +229,18 @@ function analyzeTrends(snapshots: any[]): any {
       improved: last.category_rank < first.category_rank,
     },
     workaround_rate: {
-      total: snapshots.reduce((sum: number, s: any) => sum + s.workaround_count, 0),
+      total: active.reduce((sum: number, s: any) => sum + s.workaround_count, 0),
       avg_per_day: Math.round(
-        snapshots.reduce((sum: number, s: any) => sum + s.workaround_count, 0) / snapshots.length * 100
+        active.reduce((sum: number, s: any) => sum + s.workaround_count, 0) / active.length * 100
       ) / 100,
       trend: "Workarounds indicate API friction — agents are finding their own fixes instead of the API working correctly.",
     },
   };
+
+  if (gapCount > 0) {
+    result._data_gap_note = `${gapCount} of ${snapshots.length} snapshot days had zero recorded activity (pipeline gap) and were excluded from trend calculations.`;
+  }
+  return result;
 }
 
 function detectIncidents(snapshots: any[], events: any[]): any[] {
@@ -221,6 +249,10 @@ function detectIncidents(snapshots: any[], events: any[]): any[] {
   for (let i = 1; i < snapshots.length; i++) {
     const prev = snapshots[i - 1];
     const curr = snapshots[i];
+
+    // Skip any comparison that involves a data-pipeline gap. A 0-activity
+    // snapshot is noise, not a true success-rate crash.
+    if (isDataGap(prev) || isDataGap(curr)) continue;
 
     // Success rate dropped by more than 10%
     if (prev.success_rate - curr.success_rate > 0.1) {
