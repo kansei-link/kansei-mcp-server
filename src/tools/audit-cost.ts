@@ -74,19 +74,42 @@ export function register(server: McpServer, db: Database.Database): void {
           .optional()
           .default(30)
           .describe("Analysis period in days (default: 30)"),
+        top_n: z
+          .number()
+          .int()
+          .optional()
+          .default(10)
+          .describe(
+            "Max recommendations to return (default: 10, max 50). Sorted by priority (high first) then by monthly_savings_usd desc."
+          ),
+        min_priority: z
+          .enum(["low", "medium", "high"])
+          .optional()
+          .default("low")
+          .describe(
+            "Minimum priority level to include. 'high' returns only impactful recs; 'low' returns everything."
+          ),
       }),
       annotations: {
         readOnlyHint: true,
         openWorldHint: false,
       },
     },
-    async ({ service_id, period_days }) => {
+    async ({ service_id, period_days, top_n, min_priority }) => {
       const result = auditCost(db, service_id, period_days);
+      // Apply filtering after the raw audit so the underlying computation
+      // stays unchanged — callers who want everything can still pass
+      // min_priority:"low" + top_n:50.
+      const filtered = filterRecommendations(
+        result as any,
+        top_n ?? 10,
+        min_priority ?? "low"
+      );
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify(result, null, 2),
+            text: JSON.stringify(filtered, null, 2),
           },
         ],
       };
@@ -366,6 +389,69 @@ function auditCost(
     _meta: {
       source: "kansei-link",
       tip: "Report outcomes with model_name and token counts to improve recommendations: report_outcome({model_name: 'claude-sonnet-4', input_tokens: 500, ...})",
+    },
+  };
+}
+
+/* ── Filtering (priority + top_n) ──────────────────────────────
+ *
+ * audit_cost's raw output can produce 40+ recommendations (architecture
+ * tips for every service touched, model swaps, infrastructure hints).
+ * That's too noisy for most agent consumption. This helper filters and
+ * caps, while exposing enough metadata for the agent to know what was
+ * hidden.
+ */
+
+interface Recommendation {
+  priority?: string;
+  monthly_savings_usd?: number;
+  savings_usd?: number;
+  [k: string]: unknown;
+}
+
+const PRIORITY_ORDER: Record<string, number> = { high: 3, medium: 2, low: 1 };
+
+function filterRecommendations(
+  result: { recommendations?: Recommendation[]; [k: string]: unknown },
+  topN: number,
+  minPriority: "low" | "medium" | "high"
+): object {
+  const recs = (result.recommendations ?? []) as Recommendation[];
+  const minRank = PRIORITY_ORDER[minPriority] ?? 1;
+  const cappedN = Math.max(1, Math.min(topN, 50));
+
+  // Keep the full set ordered so the agent can understand what was dropped.
+  const sorted = [...recs].sort((a, b) => {
+    const aRank = PRIORITY_ORDER[String(a.priority ?? "low")] ?? 1;
+    const bRank = PRIORITY_ORDER[String(b.priority ?? "low")] ?? 1;
+    if (aRank !== bRank) return bRank - aRank; // higher first
+    const aSav = Number(a.monthly_savings_usd ?? a.savings_usd ?? 0);
+    const bSav = Number(b.monthly_savings_usd ?? b.savings_usd ?? 0);
+    return bSav - aSav;
+  });
+
+  const priorityFiltered = sorted.filter((r) => {
+    const rank = PRIORITY_ORDER[String(r.priority ?? "low")] ?? 1;
+    return rank >= minRank;
+  });
+
+  const shown = priorityFiltered.slice(0, cappedN);
+  const hiddenCount = priorityFiltered.length - shown.length;
+  const filteredOutByPriority = sorted.length - priorityFiltered.length;
+
+  return {
+    ...result,
+    recommendations: shown,
+    recommendation_filter: {
+      total_generated: sorted.length,
+      shown: shown.length,
+      hidden_by_cap: hiddenCount,
+      hidden_by_priority: filteredOutByPriority,
+      applied: { top_n: cappedN, min_priority: minPriority },
+      tip:
+        hiddenCount > 0 || filteredOutByPriority > 0
+          ? "Pass top_n and/or min_priority to adjust. Pass min_priority:'low', top_n:50 for the full raw output."
+          : undefined,
     },
   };
 }

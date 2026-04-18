@@ -73,14 +73,23 @@ export function register(server: McpServer, db: Database.Database): void {
             ready: r.agent_ready,
           }))
         : results;
+
+      // Guide agents to the next step of the standard KanseiLink flow.
+      // Without this, first-time agents often stop after search_services and
+      // never drill into pitfalls or report outcomes — which is where the
+      // real token savings + community learning live.
+      const topHit = (results as ScoredResult[])[0];
+      const nextTool = buildNextToolSuggestion(topHit, results.length);
+
       return {
         content: [
           {
             type: "text" as const,
             text: JSON.stringify(isCompact
-              ? { r: outputResults, _src: "kansei-link" }
+              ? { r: outputResults, next: nextTool, _src: "kansei-link" }
               : {
                   results: outputResults,
+                  suggested_next_tool: nextTool,
                   _meta: {
                     source: "kansei-link",
                     registry: "https://registry.modelcontextprotocol.io/servers/kansei-link",
@@ -634,18 +643,27 @@ export function searchServices(
   limit: number = 5,
   agentReadyFilter?: "verified" | "connectable" | "info_only"
 ): object[] {
-  const signal = detectIntentCategories(intent);
+  // Expand JP synonyms into the query BEFORE any search runs.
+  // Inspections #13, #14, #15, #18, #20, #21 all confirmed today that
+  // Japanese queries like "データ連携" / "採用管理" / "問い合わせ管理"
+  // missed their correct services. Tags on the service side were fixed
+  // (enrich-jp-tags.mjs), but agents also query with alternate phrasings
+  // we can't enumerate in tags — so expand both sides.
+  const expandedIntent = expandJpSynonyms(intent);
+  const signal = detectIntentCategories(expandedIntent);
   const intentCategories = signal.categories;
-  const intentLower = intent.toLowerCase();
-  const containsCJK = hasCJK(intent);
+  const intentLower = expandedIntent.toLowerCase();
+  const containsCJK = hasCJK(expandedIntent);
 
-  // Run FTS search — use trigram table for CJK, unicode61 for Latin
+  // Run FTS search — use trigram table for CJK, unicode61 for Latin.
+  // `expandedIntent` is the original intent plus JP synonyms so FTS has
+  // more ways to match real DB content.
   const ftsResults = containsCJK
-    ? trigramSearch(db, intent, category, limit, signal, intentLower)
-    : ftsSearch(db, intent, category, limit, signal, intentLower);
+    ? trigramSearch(db, expandedIntent, category, limit, signal, intentLower)
+    : ftsSearch(db, expandedIntent, category, limit, signal, intentLower);
 
   // Run LIKE search (catches partial matches both tables miss)
-  const likeResults = likeSearch(db, intent, category, limit, signal, intentLower);
+  const likeResults = likeSearch(db, expandedIntent, category, limit, signal, intentLower);
 
   // When intent categories are detected, also fetch top services from those
   // categories directly — ensures category-relevant services appear even when
@@ -1109,4 +1127,125 @@ function likeSearch(
   scored.sort((a, b) => b.relevance_score - a.relevance_score);
 
   return scored.slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
+// JP synonym expansion
+// ---------------------------------------------------------------------------
+// Japanese agent queries vary wildly in phrasing ("問い合わせ管理" vs
+// "サポートチケット" vs "ヘルプデスク" all mean the same thing). Rather
+// than enumerate every synonym in every service's tags field, we expand
+// the query with common alternates so FTS/LIKE have more hooks. If a
+// synonym already appears in the query we don't duplicate it.
+
+const JP_SYNONYMS: Array<{ triggers: string[]; expansions: string[] }> = [
+  {
+    triggers: ["問い合わせ管理", "問い合わせ", "サポート", "カスタマーサポート"],
+    expansions: ["サポートチケット", "ヘルプデスク", "FAQ", "ケース管理"],
+  },
+  {
+    triggers: ["採用管理", "応募者管理", "採用"],
+    expansions: ["ATS", "採用システム", "候補者管理", "スカウト"],
+  },
+  {
+    triggers: ["CRM", "顧客管理", "営業支援"],
+    expansions: ["顧客データ", "リード管理", "パイプライン", "SFA"],
+  },
+  {
+    triggers: ["データ連携", "API統合", "連携", "統合ツール"],
+    expansions: ["iPaaS", "自動化", "ワークフロー", "API連携"],
+  },
+  {
+    triggers: ["電子契約", "電子署名", "契約書管理"],
+    expansions: ["契約管理", "ハンコ", "押印", "署名"],
+  },
+  {
+    triggers: ["勤怠管理", "勤怠"],
+    expansions: ["タイムカード", "打刻", "労務管理", "出退勤"],
+  },
+  {
+    triggers: ["経費精算", "経費"],
+    expansions: ["立替精算", "交通費精算", "領収書"],
+  },
+  {
+    triggers: ["請求書", "請求管理"],
+    expansions: ["インボイス", "請求", "請求書発行"],
+  },
+  {
+    triggers: ["タスク管理", "プロジェクト管理"],
+    expansions: ["Todo", "チーム管理", "課題管理", "業務管理"],
+  },
+  {
+    triggers: ["チャット", "ビジネスチャット"],
+    expansions: ["コミュニケーション", "チーム連携", "メッセージング"],
+  },
+  {
+    triggers: ["ストレージ", "ファイル管理"],
+    expansions: ["クラウドストレージ", "ファイル共有", "ドキュメント管理"],
+  },
+  {
+    triggers: ["名刺管理"],
+    expansions: ["名刺", "人脈管理", "コンタクト管理"],
+  },
+  {
+    triggers: ["決済", "支払い"],
+    expansions: ["サブスク", "課金", "クレジットカード", "決済処理"],
+  },
+];
+
+function expandJpSynonyms(intent: string): string {
+  if (!intent) return intent;
+  const lower = intent.toLowerCase();
+  const additions = new Set<string>();
+  for (const group of JP_SYNONYMS) {
+    const matched = group.triggers.some((t) => lower.includes(t.toLowerCase()));
+    if (!matched) continue;
+    for (const exp of group.expansions) {
+      if (!lower.includes(exp.toLowerCase())) additions.add(exp);
+    }
+  }
+  if (additions.size === 0) return intent;
+  return `${intent} ${[...additions].join(" ")}`;
+}
+
+// ---------------------------------------------------------------------------
+// Next-tool suggestion
+// ---------------------------------------------------------------------------
+// Most first-time agents call search_services and stop there. They don't
+// know the idiomatic KanseiLink flow: search → tips → (execute) → report.
+// Returning a concrete suggested_next_tool with the top hit pre-filled saves
+// the agent a reasoning step and nudges the full feedback loop.
+
+interface NextToolSuggestion {
+  tool: string;
+  args: Record<string, unknown>;
+  reason: string;
+  flow_position: string; // e.g. "2 of 4 in the standard KanseiLink flow"
+}
+
+function buildNextToolSuggestion(
+  top: ScoredResult | undefined,
+  resultCount: number
+): NextToolSuggestion {
+  if (!top || resultCount === 0) {
+    return {
+      tool: "submit_feedback",
+      args: {
+        type: "missing_data",
+        subject: "service not found for this intent",
+        body: "<paste the user's intent here>",
+      },
+      reason:
+        "No results — file a missing_data report so the service gets added to the DB.",
+      flow_position: "fallback (no results)",
+    };
+  }
+
+  return {
+    tool: "get_service_tips",
+    args: { service_id: top.service_id },
+    reason: `Next step: pull ${top.name}'s agent_tips, pitfalls, auth setup, and recent reliability data before calling its API. This saves 91-96% tokens vs web_fetching the docs.`,
+    flow_position:
+      "2 of 4 in the standard flow: search_services → get_service_tips → (execute the API) → report_outcome",
+  };
 }

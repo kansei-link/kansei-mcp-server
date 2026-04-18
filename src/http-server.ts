@@ -403,6 +403,83 @@ app.post(
   }
 );
 
+// ─── Auto-captured outcome reports from PostToolUse hook ──────────
+// Receives the minimal outcome payload the `kansei-link-report-hook` CLI
+// sends after every MCP tool call. This is the auto-invocation path for
+// report_outcome — agents wire the hook once and every external SaaS call
+// they make flows into KanseiLink's trust-score feedback loop without
+// any per-call boilerplate.
+const reportHookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120, // agents can burst — more generous than telemetry
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "rate_limited" },
+});
+
+app.post(
+  "/api/report-outcome",
+  reportHookLimiter,
+  express.json({ limit: "8kb" }),
+  (req: Request, res: Response) => {
+    try {
+      const body = (req.body || {}) as Record<string, unknown>;
+      const serviceId = typeof body.service_id === "string" ? body.service_id.slice(0, 64) : null;
+      if (!serviceId) return res.status(400).json({ error: "missing_service_id" });
+
+      const success = Boolean(body.success);
+      const taskType =
+        typeof body.task_type === "string" ? body.task_type.slice(0, 64) : null;
+      const errorType =
+        typeof body.error_type === "string" ? body.error_type.slice(0, 32) : null;
+      const agentType =
+        typeof body.agent_type === "string" ? body.agent_type.slice(0, 16) : "unknown";
+      const isRetry = Boolean(body.is_retry);
+      const context =
+        typeof body.context === "string" ? body.context.slice(0, 500) : null;
+
+      // Only accept known services — silently skip unknowns to avoid
+      // FK-style errors, and to match the "agents can report freely but
+      // we still gate at the edge" pattern from submit_feedback.
+      const db = getDb();
+      const svc = db
+        .prepare("SELECT id FROM services WHERE id = ?")
+        .get(serviceId) as { id: string } | undefined;
+      if (!svc) {
+        return res.json({ ok: true, skipped: "unknown_service", service_id: serviceId });
+      }
+
+      try {
+        // context_masked is the canonical column (outcomes already applies
+        // PII masking elsewhere; hook-captured context is already low-signal
+        // noise like "auto-captured via kansei-link-report-hook" so we pass
+        // it through unchanged).
+        db.prepare(
+          `INSERT INTO outcomes
+             (service_id, success, task_type, error_type, agent_type, is_retry, context_masked)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).run(
+          serviceId,
+          success ? 1 : 0,
+          taskType,
+          errorType,
+          agentType,
+          isRetry ? 1 : 0,
+          context
+        );
+      } catch (dbErr: any) {
+        return res
+          .status(500)
+          .json({ error: "db_insert_failed", detail: String(dbErr?.message).slice(0, 200) });
+      }
+
+      res.json({ ok: true, service_id: serviceId, success });
+    } catch (e: any) {
+      res.status(400).json({ error: "bad_payload", detail: String(e?.message || e).slice(0, 200) });
+    }
+  }
+);
+
 // ─── Admin endpoints (secret-token-protected) ─────────────────────
 // Tracks whether a crawler run is currently in flight so repeated cron
 // pings don't launch overlapping runs.

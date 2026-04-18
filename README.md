@@ -35,6 +35,38 @@ This copies a `SKILL.md` to `~/.claude/skills/kansei-link/`. Claude Code auto-di
 
 Flags: `--dry-run`, `--force`, `--help`.
 
+### Optional: PostToolUse hook for zero-friction `report_outcome`
+
+Agents tend to *forget* calling `report_outcome` even when the skill reminds them — constructing the payload is friction. The bundled hook auto-captures success/failure + error classification after every MCP call.
+
+Add to `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          { "type": "command", "command": "npx -y @kansei-link/mcp-server kansei-link-report-hook" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Behavior:
+- Reads Claude Code's PostToolUse payload on stdin
+- Parses `mcp__<server>__<tool>` to derive `service_id`, `task_type`
+- Classifies errors from the tool response (auth_error / timeout / rate_limit / …)
+- POSTs to `/api/report-outcome` (the hosted KanseiLink facade by default)
+- Silent on stdout; logs to `~/.kansei-link/hook.log`
+- **Never blocks Claude Code** — hook exits 0 on any failure
+
+Disable without editing settings: `export KANSEI_REPORT_HOOK=off`
+Override endpoint (local dev): `export KANSEI_ENDPOINT=http://localhost:3000/api/report-outcome`
+
 ## What's Inside
 
 - **301 SaaS/API services** across 23 categories (global + Japanese)
