@@ -164,6 +164,22 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     { service_id: "freee-hr", change_date: "2026-03-20", change_type: "feature", summary: "Year-end adjustment (年末調整) workflow support", details: "28 API files covering the full year-end adjustment process for Japanese employers." },
   ];
 
+  // NOTE on columns NOT overwritten in ON CONFLICT:
+  //
+  // axr_score / axr_grade: recomputed dynamically by recomputeAxrGrades()
+  //   from live data (trust_score × success_rate × total_calls). Seed values
+  //   used only on INSERT for fresh rows. Before v0.20.6 every server restart
+  //   overwrote the dynamic AAA floor with the hardcoded seed — services
+  //   like mongodb-atlas kept snapping back to AAA despite 0 real calls.
+  //
+  // api_auth_method / trust_score / tags: enriched post-seed via scripts
+  //   (enrich-auth-methods.mjs, enrich-jp-tags.mjs, etc.) based on real
+  //   agent feedback. Overwriting these on restart would discard community
+  //   data quality improvements. Seed values are the FLOOR, not the ceiling.
+  //
+  // axr_dims / axr_facade, name, description, category, mcp_endpoint,
+  //   mcp_status, api_url ARE still overwritten — those are authoritative
+  //   from the seed source of truth.
   const insertService = db.prepare(`
     INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, axr_score, axr_grade, axr_dims, axr_facade)
     VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score, @axr_score, @axr_grade, @axr_dims, @axr_facade)
@@ -172,14 +188,9 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
       namespace = excluded.namespace,
       description = excluded.description,
       category = excluded.category,
-      tags = excluded.tags,
       mcp_endpoint = excluded.mcp_endpoint,
       mcp_status = excluded.mcp_status,
       api_url = excluded.api_url,
-      api_auth_method = excluded.api_auth_method,
-      trust_score = excluded.trust_score,
-      axr_score = excluded.axr_score,
-      axr_grade = excluded.axr_grade,
       axr_dims = excluded.axr_dims,
       axr_facade = excluded.axr_facade
   `);

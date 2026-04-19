@@ -27,6 +27,7 @@ import { register as registerAnalyzeTokenSavings } from "./tools/analyze-token-s
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
 import { recalculateTrustScores } from "./utils/trust-recalc.js";
+import { recomputeAxrGrades } from "./crawler/recompute-axr.js";
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -40,6 +41,18 @@ export function createServer(): McpServer {
   seedDatabase(db);
   seedInfrastructureTips(db);
   recalculateTrustScores(db);
+
+  // v0.20.6: AXR grades must be recomputed at startup because seed.ts no
+  // longer overwrites axr_score/axr_grade on ON CONFLICT. Without this,
+  // NEW services inserted through the seed path would keep their hardcoded
+  // seed grade even after trust_score / total_calls drift away from that
+  // baseline. Running recompute here keeps grades honest without waiting
+  // for the daily crawler (which was also intermittent on Railway).
+  try {
+    recomputeAxrGrades(db);
+  } catch (e) {
+    console.error("[server] AXR recompute failed (non-fatal):", e);
+  }
 
   // Register all tools
   registerSearchServices(server, db);
