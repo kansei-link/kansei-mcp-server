@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notion MCP Complete Guide — 6 Pitfalls of the Official Server & 2026 New API Features | KanseiLink</title>
+  <meta name="description" content="Deep-dive into Notion's official MCP server (18 tools). Covers the 6 critical pitfalls — 'sharing forget', no block-level ops, headless incompatibility — plus 2026's Webhooks and Bulk Operations APIs with code examples.">
+  <meta name="keywords" content="Notion MCP, Notion API, Notion agent integration, Notion MCP server, Notion OAuth, Notion rate limit, AEO, KanseiLink, Notion 2026">
+  <meta name="author" content="KanseiLink / Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/notion-mcp-deep-dive-2026.html">
+
+  <!-- hreflang -->
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/notion-mcp-deep-dive-2026.html">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/notion-mcp-deep-dive-2026.html">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/notion-mcp-deep-dive-2026.html">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Notion MCP Complete Guide — 6 Pitfalls of the Official Server & 2026 New API Features">
+  <meta property="og:description" content="Deep-dive into Notion's official MCP server. 6 critical pitfalls, 2 auth methods, and 2026 Webhooks + Bulk Operations with implementation code.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/notion-mcp-deep-dive-2026.html">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-20">
+  <meta property="article:section" content="Service Deep-Dive">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Notion MCP Complete Guide — 6 Pitfalls & 2026 New Features">
+  <meta name="twitter:description" content="Notion's official MCP server deep-dive: 6 pitfalls, auth methods, 2026 Webhooks & Bulk Ops. Implementation code included.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Notion MCP Complete Guide — 6 Pitfalls of the Official Server & 2026 New API Features",
+    "description": "Comprehensive guide to Notion's official MCP server: 18 tools, 2 auth methods, 6 pitfalls, and 2026 Webhooks & Bulk Operations APIs.",
+    "author": { "@type": "Organization", "name": "KanseiLink" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-20",
+    "dateModified": "2026-04-20",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/notion-mcp-deep-dive-2026.html",
+    "keywords": ["Notion", "MCP", "Notion API", "Notion agent", "AEO", "KanseiLink"],
+    "articleSection": "Service Deep-Dive",
+    "inLanguage": "en"
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do you authenticate with the Notion MCP server?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Two options: 1) Internal Integration Token (simplest for agents): Create an integration at notion.so/my-integrations, copy the token starting with 'ntn_' or 'secret_', and set Authorization and Notion-Version headers. Supports headless automation. 2) OAuth 2.0: Required for the hosted MCP server and multi-user public integrations. Requires user interaction for authorization, so it is not suitable for fully automated headless workflows."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can the Notion MCP server perform block-level operations?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The hosted Notion MCP server does NOT expose block-level operations (get, update, delete, or append individual blocks). It operates at the page level only — fetching and replacing full page content. For block-level manipulation, use the local npx server (@notionhq/notion-mcp-server) or call the Notion REST API directly. Note: block tools in the local server are soft-deprecated by Notion."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is Notion's API rate limit?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Notion's API rate limit is an average of 3 requests per second (180 requests per minute) per integration. Rate-limited requests return HTTP 429 with a Retry-After header. The 2026 Bulk Operations endpoint (POST /v1/bulk/pages) lets you process up to 100 pages per request, dramatically reducing rate limit pressure for write-heavy workflows."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do you retrieve page content from Notion?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Page content is returned as blocks via GET /v1/blocks/{page_id}/children. Each paragraph, heading, and list item is a separate block object — not raw text. Agents must parse block types to extract content. For large pages, use cursor-based pagination with has_more and next_cursor parameters. page_size maximum is 100."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "KanseiLink", "item": "https://kansei-link.com"},
+      {"@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/"},
+      {"@type": "ListItem", "position": 3, "name": "Notion MCP Complete Guide", "item": "https://kansei-link.com/en/insights/notion-mcp-deep-dive-2026.html"}
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3;
+      --black: #000000; --white: #FFFFFF; --lavender: #F4F5FD;
+      --gray-light: #F5F5F5; --gray-mid: #E5E7EB; --gray-text: #6B7280; --gray-dark: #374151;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: var(--black); background: var(--white); line-height: 1.7; font-size: 16px; -webkit-font-smoothing: antialiased; }
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a { color: var(--black); text-decoration: none; font-size: 16px; font-weight: 400; padding: 20px 0; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; }
+    .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 4px; margin-left: auto; }
+    .hamburger span { display: block; width: 24px; height: 2px; background: var(--black); border-radius: 2px; }
+    .breadcrumb { max-width: 800px; margin: 24px auto 0; padding: 0 24px; font-size: 14px; color: var(--gray-text); }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 8px; color: var(--gray-mid); }
+    .article { max-width: 800px; margin: 0 auto; padding: 0 24px 80px; }
+    .article-meta { margin: 32px 0 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .article-meta .tag { background: var(--lavender); color: var(--blue); font-size: 13px; font-weight: 600; padding: 4px 14px; border-radius: 9999px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .article-meta .date, .article-meta .reading-time { font-size: 14px; color: var(--gray-text); }
+    .article h1 { font-size: 40px; font-weight: 800; line-height: 1.2; margin: 16px 0 24px; letter-spacing: -1px; }
+    .article .lead { font-size: 20px; line-height: 1.7; color: var(--gray-dark); margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid var(--gray-mid); }
+    .article h2 { font-size: 28px; font-weight: 700; margin: 56px 0 20px; letter-spacing: -0.5px; }
+    .article h3 { font-size: 22px; font-weight: 600; margin: 40px 0 16px; }
+    .article h4 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
+    .article p { margin-bottom: 20px; line-height: 1.7; }
+    .article ul, .article ol { margin: 0 0 20px 24px; }
+    .article li { margin-bottom: 8px; line-height: 1.7; }
+    .grade-badge { display: inline-flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #1A3FD6 0%, #00C4B3 100%); color: var(--white); border-radius: 12px; padding: 20px 28px; margin: 24px 0; font-weight: 700; }
+    .grade-badge .grade-letter { font-size: 48px; line-height: 1; letter-spacing: -2px; }
+    .grade-badge .grade-detail { font-size: 15px; line-height: 1.5; }
+    .grade-badge .grade-detail strong { font-size: 18px; display: block; margin-bottom: 4px; }
+    .code-block { background: #1E293B; color: #E2E8F0; border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; font-family: 'Fira Code', 'SF Mono', 'Consolas', monospace; font-size: 14px; line-height: 1.6; }
+    .code-block .code-label { display: block; color: var(--teal); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .code-block code { font-family: inherit; white-space: pre; }
+    .code-block .comment { color: #64748B; } .code-block .keyword { color: #C084FC; } .code-block .string { color: #34D399; }
+    .code-block .func { color: #60A5FA; } .code-block .number { color: #FB923C; } .code-block .prop { color: #FCD34D; }
+    .auth-card { border: 1px solid var(--gray-mid); border-radius: 12px; padding: 24px; margin: 20px 0; }
+    .auth-card.recommended { border-color: var(--teal); border-width: 2px; }
+    .auth-card .auth-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .auth-card .auth-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 3px 10px; border-radius: 9999px; }
+    .auth-label-recommended { background: #D1FAE5; color: #065F46; }
+    .auth-label-advanced { background: #EDE9FE; color: #5B21B6; }
+    .auth-card h4 { font-size: 18px; font-weight: 700; margin: 0; }
+    .auth-card p { font-size: 15px; color: var(--gray-dark); margin-bottom: 12px; line-height: 1.6; }
+    .auth-card .auth-steps { list-style: none; padding: 0; margin: 12px 0 0; }
+    .auth-card .auth-steps li { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-top: 1px solid var(--gray-mid); font-size: 14px; color: var(--gray-dark); margin: 0; }
+    .auth-steps .step-num { background: var(--blue); color: var(--white); width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .pitfall-card { background: #FFF7ED; border: 1px solid #FED7AA; border-left: 4px solid #EA580C; border-radius: 8px; padding: 20px 24px; margin: 20px 0; }
+    .pitfall-card .pitfall-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .pitfall-card .pitfall-icon { font-size: 18px; }
+    .pitfall-card .pitfall-title { font-size: 16px; font-weight: 700; color: #9A3412; }
+    .pitfall-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+    .tip-card { background: #F0FDF4; border: 1px solid #BBF7D0; border-left: 4px solid #16A34A; border-radius: 8px; padding: 20px 24px; margin: 20px 0; }
+    .tip-card .tip-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .tip-card .tip-icon { font-size: 18px; }
+    .tip-card .tip-title { font-size: 16px; font-weight: 700; color: #14532D; }
+    .tip-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+    .new-feature-card { background: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 8px; padding: 20px 24px; margin: 20px 0; }
+    .new-feature-card .feature-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .new-feature-card .feature-badge { background: #DBEAFE; color: #1D4ED8; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; }
+    .new-feature-card .feature-title { font-size: 16px; font-weight: 700; color: #1E3A8A; }
+    .new-feature-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+    .data-table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; }
+    .data-table th { background: var(--lavender); color: var(--blue); font-weight: 700; padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--blue-light); }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); vertical-align: top; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .cta-section { background: linear-gradient(135deg, var(--blue) 0%, #0F2899 100%); color: var(--white); border-radius: 16px; padding: 48px; margin: 64px 0 40px; text-align: center; }
+    .cta-section h2 { color: var(--white); margin: 0 0 12px; font-size: 28px; }
+    .cta-section p { color: rgba(255,255,255,0.85); margin-bottom: 28px; font-size: 16px; }
+    .btn-cta { background: var(--teal); color: var(--black); font-weight: 700; padding: 14px 36px; border-radius: 9999px; text-decoration: none; font-size: 16px; display: inline-block; transition: opacity 0.2s; }
+    .btn-cta:hover { opacity: 0.9; }
+    .related-section { margin-top: 64px; }
+    .related-section h3 { font-size: 22px; font-weight: 700; margin-bottom: 24px; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .related-card { border: 1px solid var(--gray-mid); border-radius: 12px; padding: 20px; text-decoration: none; color: inherit; transition: border-color 0.2s, box-shadow 0.2s; }
+    .related-card:hover { border-color: var(--blue); box-shadow: 0 4px 12px rgba(26,63,214,0.1); }
+    .rc-tag { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .rc-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+    .rc-desc { font-size: 13px; color: var(--gray-text); line-height: 1.5; }
+    .footer { background: var(--black); color: var(--white); padding: 40px 0; text-align: center; }
+    .footer .inner { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .footer-brand { font-size: 24px; font-weight: 800; color: var(--blue-light); margin-bottom: 8px; }
+    .footer-desc { color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 16px; }
+    .footer-copy { font-size: 13px; color: rgba(255,255,255,0.4); }
+    @media (max-width: 768px) {
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); flex-direction: column; padding: 16px 24px; border-bottom: 1px solid var(--gray-mid); gap: 0; z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 0; border-bottom: 1px solid var(--gray-mid); }
+      .nav-right { display: none; }
+      .mobile-only { display: block; }
+      .main-nav .inner { justify-content: space-between; padding: 0 16px; }
+      .utility-bar .inner { flex-wrap: wrap; justify-content: center; gap: 12px; padding: 0 16px; }
+      .article h1 { font-size: 28px; }
+      .article .lead { font-size: 17px; }
+      .related-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 32px 16px; }
+      table { display: block; overflow-x: auto; font-size: 13px; }
+      .grade-badge { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/notion-mcp-deep-dive-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb">
+    <a href="../../index.html">KanseiLink</a>
+    <span class="sep">/</span>
+    <a href="index.html">Insights</a>
+    <span class="sep">/</span>
+    Notion MCP Complete Guide
+  </div>
+
+  <article class="article">
+
+    <div class="article-meta">
+      <span class="tag">Service Deep-Dive</span>
+      <span class="date">2026-04-20</span>
+      <span class="reading-time">14 min read</span>
+    </div>
+
+    <h1>Notion MCP Complete Guide &#8212; 6 Pitfalls of the Official Server &amp; 2026 New API Features</h1>
+
+    <p class="lead">
+      Notion earns an AAA grade in KanseiLink's AEO ratings, making it one of the top-ranked groupware-category services for agent readiness. Its official MCP server (<code>npx @notionhq/notion-mcp-server</code>) ships 18 tools with native support for Claude Code, Cursor, and VS Code. Yet Notion's API has six distinct pitfalls that trip up agent developers. This guide covers the rationale behind the AAA grade, the two auth methods, all six pitfalls, and the two 2026 API additions — Webhooks and Bulk Operations — that change how agents should interact with Notion.
+    </p>
+
+    <h2>1. Why Notion Earns an AAA AEO Grade</h2>
+
+    <div class="grade-badge">
+      <div class="grade-letter">AAA</div>
+      <div class="grade-detail">
+        <strong>Notion MCP &#8212; AEO Rating</strong>
+        Official MCP: ✅ (Hosted + Local npx)<br>
+        Auth: Integration Token / OAuth 2.0<br>
+        Last updated: 2026-04-19 (KanseiLink DB)
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr><th>Dimension</th><th>Notion's Profile</th><th>Rating</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Official MCP Server</strong></td><td>Notion-official (github.com/makenotion/notion-mcp-server); hosted + local npx formats</td><td>✅ Top tier</td></tr>
+        <tr><td><strong>Auth Methods</strong></td><td>Integration Token (internal/simple) + OAuth 2.0 (public integrations)</td><td>✅ Strong</td></tr>
+        <tr><td><strong>API Maturity</strong></td><td>REST API v1 (stable 2022-06-28), cursor pagination, bulk ops, webhooks</td><td>✅ Strong</td></tr>
+        <tr><td><strong>2026 Investment</strong></td><td>Bulk Ops API (2026-02-01), Webhooks (2026-03-01), API version 2025-09-03</td><td>✅ Active</td></tr>
+      </tbody>
+    </table>
+
+    <p>
+      The trust score of 0.7 (moderate) reflects not API quality itself, but the high incidence of configuration errors — specifically the "connection sharing" pitfall described below. Developers who understand all six pitfalls in advance see dramatically better outcomes.
+    </p>
+
+    <h2>2. Authentication: Choosing Between Two Methods</h2>
+
+    <div class="auth-card recommended">
+      <div class="auth-header">
+        <span class="auth-label auth-label-recommended">Recommended / Agent & Automation</span>
+        <h4>① Internal Integration Token</h4>
+      </div>
+      <p>The simplest auth method. Tokens start with <code>ntn_</code> or <code>secret_</code>. Supports fully headless automation (cron jobs, background agents, CI/CD). First choice for agent development.</p>
+      <ul class="auth-steps">
+        <li><span class="step-num">1</span> Go to <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a> and create a new integration</li>
+        <li><span class="step-num">2</span> Copy the "Internal Integration Secret" (starts with <code>ntn_</code> or <code>secret_</code>)</li>
+        <li><span class="step-num">3</span> Set <code>Authorization: Bearer {token}</code> and <code>Notion-Version: 2022-06-28</code> headers on every request</li>
+        <li><span class="step-num">4</span> <strong>Critical:</strong> For each target page/database, open Notion UI → "…" → "Connections" → add your integration (without this step, the API returns 404)</li>
+      </ul>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-header">
+        <span class="auth-label auth-label-advanced">Advanced / Public Integrations</span>
+        <h4>② OAuth 2.0</h4>
+      </div>
+      <p>Required for public integrations used by multiple users. The hosted MCP server only supports OAuth 2.0, meaning users must go through a browser-based authorization flow. This makes it unsuitable for fully automated headless pipelines.</p>
+      <ul class="auth-steps">
+        <li><span class="step-num">1</span> Create a "Public integration" at notion.so/my-integrations</li>
+        <li><span class="step-num">2</span> Token URL: <code>https://api.notion.com/v1/oauth/token</code></li>
+        <li><span class="step-num">3</span> Users must complete a browser authorization flow — human interaction required</li>
+        <li><span class="step-num">4</span> Use this path if deploying the hosted MCP server (Notion's remote server)</li>
+      </ul>
+    </div>
+
+    <h2>3. Hosted vs. Local MCP Server</h2>
+
+    <table class="data-table">
+      <thead>
+        <tr><th>Dimension</th><th>Hosted (Notion's server)</th><th>Local (npx)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Launch</strong></td><td>URL in Claude Desktop config</td><td><code>npx @notionhq/notion-mcp-server</code></td></tr>
+        <tr><td><strong>Auth</strong></td><td>OAuth 2.0 only (user interaction required)</td><td>Integration Token or OAuth 2.0</td></tr>
+        <tr><td><strong>Tools</strong></td><td>18 tools (page-level only)</td><td>Some block-level tools included</td></tr>
+        <tr><td><strong>Block Operations</strong></td><td>❌ Not available</td><td>⚠️ Partially available (soft-deprecated)</td></tr>
+        <tr><td><strong>Headless</strong></td><td>❌ Not supported</td><td>✅ Supported</td></tr>
+        <tr><td><strong>Best for</strong></td><td>Interactive Claude Desktop use</td><td>Automation, CI/CD, background agents</td></tr>
+      </tbody>
+    </table>
+
+    <h2>4. Six Pitfalls That Trip Up Agent Developers</h2>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 1: "Connection Sharing" — 404 Errors Even With a Valid Token</span>
+      </div>
+      <p>The #1 Notion API trap. A valid Integration Token will return 404 on any page or database that has not been explicitly shared with the integration in Notion's UI. Notion's architecture means integrations have zero visibility into pages they haven't been granted access to. Every page, database, and nested database the agent needs to access must be shared via Notion's "…" menu → "Connections." Pre-sharing all target resources before deployment is non-negotiable.</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 2: The Hosted MCP Has No Block-Level Operations</span>
+      </div>
+      <p>The hosted Notion MCP is restricted to page-level operations. Individual block manipulation — GET, UPDATE, DELETE, or APPEND individual blocks (paragraphs, headings, list items, checkboxes) — is not exposed. AI Meeting Notes transcript access is also blocked. If your workflow requires fine-grained content editing, use the local npx server or call Notion's REST API directly (note: block tools in the local server are soft-deprecated by Notion).</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 3: The Hosted Server Does Not Support Headless Automation</span>
+      </div>
+      <p>The hosted MCP server requires OAuth 2.0, which means a user must authorize access via a browser. Cron jobs, GitHub Actions, background agents — any workflow without a human present cannot use the hosted server. For true headless automation, the local npx server with an Integration Token is the only viable path.</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 4: Property Values Are Deeply Nested</span>
+      </div>
+      <p>All Notion database properties use a deeply nested structure. Accessing a title field requires <code>properties.Name.title[0].text.content</code> — not a simple <code>record.Name</code>. The path varies by property type (title, rich_text, number, select, date). Always fetch and cache the database schema first so your agent knows the exact access path for each property type before querying records.</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">Notion Property Access Patterns</span>
+<code><span class="comment">// Notion DB query response example</span>
+{
+  <span class="prop">"results"</span>: [{
+    <span class="prop">"id"</span>: <span class="string">"page_abc123"</span>,
+    <span class="prop">"properties"</span>: {
+      <span class="prop">"Name"</span>: { <span class="prop">"type"</span>: <span class="string">"title"</span>, <span class="prop">"title"</span>: [{ <span class="prop">"text"</span>: { <span class="prop">"content"</span>: <span class="string">"Project Alpha"</span> } }] },
+      <span class="prop">"Status"</span>: { <span class="prop">"type"</span>: <span class="string">"select"</span>, <span class="prop">"select"</span>: { <span class="prop">"name"</span>: <span class="string">"In Progress"</span> } },
+      <span class="prop">"Due"</span>: { <span class="prop">"type"</span>: <span class="string">"date"</span>, <span class="prop">"date"</span>: { <span class="prop">"start"</span>: <span class="string">"2026-05-01"</span> } }
+    }
+  }]
+}
+
+<span class="comment">// ✅ Correct access patterns</span>
+<span class="keyword">const</span> name   = page.properties.Name.title[<span class="number">0</span>]?.text.content;
+<span class="keyword">const</span> status = page.properties.Status.select?.name;
+<span class="keyword">const</span> due    = page.properties.Due.date?.start;
+
+<span class="comment">// ❌ Wrong: page.properties.Name returns the entire property object</span></code>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 5: Database Queries Use POST, Not GET</span>
+      </div>
+      <p>An unusual API design: querying a database for records uses <strong>POST /v1/databases/{id}/query</strong> with filter conditions in the request body — not GET with query parameters. Agents that attempt GET-based filtering will get errors. Also note: the newer API version (2025-09-03) renames this tool to <code>query-data-source</code>, so check the MCP version you're running and use the correct tool name.</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">Pitfall 6: File Attachments and Specific Comment Retrieval Are Unsupported</span>
+      </div>
+      <p>Neither the hosted nor the local MCP server exposes file upload or attachment access. Comment listing (retrieving all comments) is supported, but retrieving a specific comment by ID is not. Workflows requiring file handling need an alternative approach (S3, Google Drive integration, or Notion's UI-based file management).</p>
+    </div>
+
+    <h2>5. Two 2026 Game-Changers</h2>
+
+    <div class="new-feature-card">
+      <div class="feature-header">
+        <span class="feature-badge">New 2026-03-01</span>
+        <span class="feature-title">Webhooks — Real-Time Change Detection Without Rate Limit Cost</span>
+      </div>
+      <p>Webhooks (POST /v1/webhooks) eliminate polling. Notion pushes events — page updates, database changes, comment additions — to your endpoint. <strong>Webhooks do not count against the 3 req/s rate limit</strong> since Notion is pushing to you rather than you pulling from Notion. For any change-monitoring use case, migrate from polling to Webhooks immediately.</p>
+    </div>
+
+    <div class="new-feature-card">
+      <div class="feature-header">
+        <span class="feature-badge">New 2026-02-01</span>
+        <span class="feature-title">Bulk Operations API — Up to 100 Pages Per Request</span>
+      </div>
+      <p>The bulk operations endpoint (POST /v1/bulk/pages) processes up to 100 pages in a single request — up to 100x fewer requests than individual PATCH calls. Against a 180 req/min rate limit, this is the most impactful optimization available for write-heavy workflows. Use it for batch inserts, data migrations, and any scenario involving multiple page writes.</p>
+    </div>
+
+    <h2>6. Implementation Checklist</h2>
+
+    <div class="tip-card">
+      <div class="tip-header">
+        <span class="tip-icon">✅</span>
+        <span class="tip-title">Notion MCP Pre-Flight Checklist</span>
+      </div>
+      <p>
+        ① <strong>Connection sharing</strong>: All target pages and databases shared with your integration in Notion UI<br>
+        ② <strong>Notion-Version header</strong>: Set to <code>2022-06-28</code> (stable) or <code>2025-09-03</code> (new Data Sources model)<br>
+        ③ <strong>DB schema cache</strong>: Fetch and cache property names + types before querying records<br>
+        ④ <strong>Cursor pagination</strong>: Handle <code>has_more</code> + <code>next_cursor</code> for full result sets (page_size max 100)<br>
+        ⑤ <strong>Rate limit handling</strong>: Respect Retry-After on HTTP 429; prefer Bulk Ops for writes<br>
+        ⑥ <strong>Change detection via Webhooks</strong>: Replace polling with Webhooks to save rate limit budget
+      </p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">DB Query with Cursor Pagination</span>
+<code><span class="comment">// POST /v1/databases/{id}/query — with filter + cursor pagination</span>
+<span class="keyword">async function</span> <span class="func">queryAllPages</span>(dbId, token) {
+  <span class="keyword">const</span> pages = [];
+  <span class="keyword">let</span> cursor = <span class="keyword">null</span>;
+  <span class="keyword">do</span> {
+    <span class="keyword">const</span> body = {
+      <span class="prop">filter</span>: { <span class="prop">property</span>: <span class="string">"Status"</span>, <span class="prop">select</span>: { <span class="prop">equals</span>: <span class="string">"Done"</span> } },
+      <span class="prop">page_size</span>: <span class="number">100</span>,
+      ...(cursor && { <span class="prop">start_cursor</span>: cursor })
+    };
+    <span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(<span class="string">`https://api.notion.com/v1/databases/${dbId}/query`</span>, {
+      method: <span class="string">"POST"</span>,
+      headers: {
+        <span class="string">"Authorization"</span>: <span class="string">`Bearer ${token}`</span>,
+        <span class="string">"Notion-Version"</span>: <span class="string">"2022-06-28"</span>,
+        <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span>
+      },
+      body: <span class="func">JSON.stringify</span>(body)
+    });
+    <span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>();
+    pages.<span class="func">push</span>(...data.results);
+    cursor = data.has_more ? data.next_cursor : <span class="keyword">null</span>;
+  } <span class="keyword">while</span> (cursor);
+  <span class="keyword">return</span> pages;
+}</code>
+    </div>
+
+    <h2>Summary: AAA Grade — But Configuration Is Everything</h2>
+
+    <p>
+      Notion's AAA grade is well-earned. An official MCP server, flexible auth, a mature REST API, and two major 2026 additions (Webhooks + Bulk Ops) make it a powerful platform for agent developers.
+    </p>
+
+    <p>
+      The critical caveat: Notion has an unusually high configuration-error rate compared to other top-rated services. The "connection sharing" pitfall alone accounts for the majority of agent integration failures. Know all six pitfalls before you start building, and you will avoid the debugging tax that catches most developers off guard.
+    </p>
+
+    <p>
+      The 2026 features deserve particular attention. Webhooks eliminate the rate limit cost of change detection entirely. Bulk Operations reduce write-heavy workflows to a fraction of their previous request count. Together, they make Notion one of the most agent-friendly knowledge management platforms available in 2026.
+    </p>
+
+    <div class="cta-section">
+      <h2>Check Notion's Live AEO Score</h2>
+      <p>Real-time success rate, latency, and Agent Voice data available in our consulting plan.</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-cta">Request Data Access</a>
+    </div>
+
+    <div class="related-section">
+      <h3>Related Articles</h3>
+      <div class="related-grid">
+        <a href="groupware-saas-aeo-2026.html" class="related-card">
+          <div class="rc-tag">Industry Report</div>
+          <div class="rc-title">Groupware SaaS AEO Rankings 2026 — Garoon, Notion, Confluence &amp; rakumo</div>
+          <div class="rc-desc">Notion's AAA position in context across the groupware category.</div>
+        </a>
+        <a href="kintone-mcp-deep-dive-2026.html" class="related-card">
+          <div class="rc-tag">Service Deep-Dive</div>
+          <div class="rc-title">kintone MCP Complete Guide — AAA Grade Deep-Dive</div>
+          <div class="rc-desc">Compare with another AAA-rated Japanese SaaS MCP implementation.</div>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="rc-tag">How-To Guide</div>
+          <div class="rc-title">MCP Server Implementation Guide 2026 — Auth, Rate Limits &amp; Error Handling</div>
+          <div class="rc-desc">Best practices for Notion's rate limit handling and OAuth 2.1 compliance.</div>
+        </a>
+        <a href="agent-voice-cross-agent-2026.html" class="related-card">
+          <div class="rc-tag">Agent Voice</div>
+          <div class="rc-title">Claude vs GPT vs Gemini on the Same SaaS — Spring 2026</div>
+          <div class="rc-desc">Real data on how different agent types experience Notion's API.</div>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-brand">KanseiLink</div>
+      <div class="footer-desc">AEO Rating Agency for Japanese SaaS. Measuring service quality for the AI agent era.</div>
+      <div class="footer-copy">&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+</body>
+</html>

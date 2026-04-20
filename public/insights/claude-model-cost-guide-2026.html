@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Haiku・Sonnet・Opus: 日本SaaS連携タスク別コスト最適化ガイド 2026 | KanseiLink</title>
+  <meta name="description" content="Claude Haiku 4.5（$1/$5）・Sonnet 4.6（$3/$15）・Opus（$5/$25）を日本SaaSタスク別に使い分ける実践ガイド。Batch API 50%割引、freee/kintone/Slackでのコスト試算付き。月次コスト削減ロードマップを提示。">
+  <meta name="keywords" content="Claude コスト, Claude Haiku, Claude Sonnet, Claude Opus, API コスト最適化, Batch API, 日本SaaS エージェント, MCP コスト, KanseiLink, AEO">
+  <meta name="author" content="KanseiLink / Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/claude-model-cost-guide-2026.html">
+
+  <!-- hreflang -->
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/claude-model-cost-guide-2026.html">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/claude-model-cost-guide-2026.html">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/claude-model-cost-guide-2026.html">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Claude Haiku・Sonnet・Opus: 日本SaaS連携タスク別コスト最適化ガイド 2026">
+  <meta property="og:description" content="Claudeモデルをタスク別に使い分けてエージェント運用コストを最適化。Batch API 50%割引の活用法とfreee/kintone/Slackの月次コスト試算。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/claude-model-cost-guide-2026.html">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-20">
+  <meta property="article:section" content="Cost Optimization">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Claude Haiku・Sonnet・Opus: 日本SaaS連携タスク別コスト最適化ガイド 2026">
+  <meta name="twitter:description" content="Claudeモデルをタスク別に使い分け。Batch API 50%割引でエージェント運用コストを半減させる実践ガイド。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Claude Haiku・Sonnet・Opus: 日本SaaS連携タスク別コスト最適化ガイド 2026",
+    "description": "Claude APIモデルをタスク別に使い分けるコスト最適化ガイド。Batch API割引、freee/kintone/Slackのコスト試算、月次ロードマップ付き。",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-20",
+    "dateModified": "2026-04-20",
+    "mainEntityOfPage": "https://kansei-link.com/insights/claude-model-cost-guide-2026.html",
+    "keywords": ["Claude API", "Claude コスト", "Haiku", "Sonnet", "Opus", "Batch API", "日本SaaS", "エージェント", "KanseiLink"],
+    "articleSection": "Cost Optimization",
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Claude Haiku・Sonnet・Opusの料金はいくらですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "2026年4月時点の標準料金（100万トークンあたり）は以下の通りです：Claude Haiku 4.5は入力$1/出力$5、Claude Sonnet 4.6は入力$3/出力$15（200Kコンテキストまで）、Claude Opusは入力$5/出力$25。Batch APIを使うとすべて50%割引になります。出典：Anthropic公式料金ページ（platform.claude.com/docs/en/about-claude/pricing）"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Claude Batch APIとは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Batch APIはリクエストを非同期でまとめて処理する仕組みです。24時間以内に結果が返ります。入力・出力トークンともに標準料金から50%割引になります。リアルタイム応答が不要なバッチ処理（定期レポート生成、夜間データ同期など）に最適です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "日本SaaS連携エージェントにはどのClaudeモデルを使うべきですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "タスクの複雑さによります。freeeの請求書一覧取得・kintone単純検索などの定型データ取得にはHaiku 4.5（最安）、kintone複雑なフィルタリング・Slack要約+返信などの中程度のタスクにはSonnet 4.6、法務文書分析・複雑な意思決定・長文コンテキストを要するタスクにはOpusを推奨します。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "KanseiLink", "item": "https://kansei-link.com"},
+      {"@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/"},
+      {"@type": "ListItem", "position": 3, "name": "Claudeモデル別コストガイド", "item": "https://kansei-link.com/insights/claude-model-cost-guide-2026.html"}
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a { color: var(--black); text-decoration: none; font-weight: 400; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-left: auto;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--black);
+      border-radius: 2px;
+    }
+
+    .breadcrumb {
+      max-width: 800px;
+      margin: 24px auto 0;
+      padding: 0 24px;
+      font-size: 14px;
+      color: var(--gray-text);
+    }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .article-meta {
+      margin: 32px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .article-meta .tag {
+      background: #D1FAE5;
+      color: #065F46;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .article-meta .date { font-size: 14px; color: var(--gray-text); }
+    .article-meta .reading-time { font-size: 14px; color: var(--gray-text); }
+
+    .article h1 {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 16px 0 24px;
+      letter-spacing: -1px;
+    }
+    .article .lead {
+      font-size: 20px;
+      line-height: 1.7;
+      color: var(--gray-dark);
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--gray-mid);
+    }
+    .article h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 56px 0 20px;
+      letter-spacing: -0.5px;
+    }
+    .article h3 { font-size: 22px; font-weight: 600; margin: 40px 0 16px; }
+    .article h4 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
+    .article p { margin-bottom: 20px; line-height: 1.7; }
+    .article ul, .article ol { margin: 0 0 20px 24px; }
+    .article li { margin-bottom: 8px; line-height: 1.7; }
+
+    /* Data table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 14px;
+    }
+    .data-table th {
+      background: var(--lavender);
+      color: var(--blue);
+      font-weight: 700;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 2px solid var(--blue-light);
+    }
+    .data-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+
+    /* Model card */
+    .model-card {
+      border: 2px solid var(--gray-mid);
+      border-radius: 16px;
+      padding: 28px;
+      margin: 20px 0;
+      position: relative;
+    }
+    .model-card.fastest { border-color: #22C55E; }
+    .model-card.balanced { border-color: var(--blue); }
+    .model-card.powerful { border-color: #9333EA; }
+    .model-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .model-name { font-size: 22px; font-weight: 800; }
+    .model-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
+    }
+    .badge-fastest { background: #DCFCE7; color: #14532D; }
+    .badge-balanced { background: var(--lavender); color: var(--blue); }
+    .badge-powerful { background: #F3E8FF; color: #6B21A8; }
+    .model-price {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .model-price-sub { font-size: 13px; color: var(--gray-text); margin-bottom: 16px; }
+    .model-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .model-tag {
+      background: var(--gray-light);
+      color: var(--gray-dark);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+    }
+
+    /* Cost scenario */
+    .cost-scenario {
+      background: var(--lavender);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+    }
+    .cost-scenario h4 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--blue); }
+    .cost-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(26,63,214,0.15);
+      font-size: 14px;
+    }
+    .cost-row:last-child { border-bottom: none; }
+    .cost-label { color: var(--gray-dark); }
+    .cost-value { font-weight: 700; }
+    .cost-value.cheapest { color: #16A34A; }
+    .cost-value.mid { color: var(--blue); }
+    .cost-value.expensive { color: #9333EA; }
+    .cost-value.discount { color: #EA580C; }
+
+    /* Tip/Insight card */
+    .insight-card {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-left: 4px solid #D97706;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .insight-card .insight-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .insight-card .insight-icon { font-size: 18px; }
+    .insight-card .insight-title { font-size: 16px; font-weight: 700; color: #92400E; }
+    .insight-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+
+    /* Task recommendation table */
+    .task-rec {
+      background: var(--white);
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 24px 0;
+    }
+    .task-rec-header {
+      background: var(--black);
+      color: var(--white);
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 16px;
+    }
+    .task-rec-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 16px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--gray-mid);
+      align-items: center;
+      font-size: 14px;
+    }
+    .task-rec-row:last-child { border-bottom: none; }
+    .task-rec-row:nth-child(even) { background: var(--gray-light); }
+    .rec-haiku { color: #16A34A; font-weight: 700; }
+    .rec-sonnet { color: var(--blue); font-weight: 700; }
+    .rec-opus { color: #7C3AED; font-weight: 700; }
+
+    /* Roadmap steps */
+    .roadmap {
+      position: relative;
+      padding-left: 32px;
+      margin: 24px 0;
+    }
+    .roadmap::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--gray-mid);
+    }
+    .roadmap-step {
+      position: relative;
+      margin-bottom: 32px;
+    }
+    .roadmap-step::before {
+      content: '';
+      position: absolute;
+      left: -26px;
+      top: 4px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--blue);
+      border: 2px solid var(--white);
+      box-shadow: 0 0 0 2px var(--blue);
+    }
+    .roadmap-step h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--blue); }
+    .roadmap-step p { font-size: 14px; color: var(--gray-dark); margin: 0; line-height: 1.6; }
+
+    /* Disclosure */
+    .disclosure {
+      background: var(--gray-light);
+      border: 1px solid var(--gray-mid);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 40px 0 20px;
+      font-size: 13px;
+      color: var(--gray-text);
+    }
+    .disclosure strong { color: var(--gray-dark); }
+
+    /* CTA section */
+    .cta-section {
+      background: linear-gradient(135deg, var(--blue) 0%, #0F2899 100%);
+      color: var(--white);
+      border-radius: 16px;
+      padding: 48px;
+      margin: 64px 0 40px;
+      text-align: center;
+    }
+    .cta-section h2 { color: var(--white); margin: 0 0 12px; font-size: 28px; }
+    .cta-section p { color: rgba(255,255,255,0.85); margin-bottom: 28px; font-size: 16px; }
+    .btn-cta {
+      background: var(--teal);
+      color: var(--black);
+      font-weight: 700;
+      padding: 14px 36px;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-size: 16px;
+      display: inline-block;
+      transition: opacity 0.2s;
+    }
+    .btn-cta:hover { opacity: 0.9; }
+
+    /* Related articles */
+    .related-section { margin-top: 64px; }
+    .related-section h3 { font-size: 22px; font-weight: 700; margin-bottom: 24px; }
+    .related-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .related-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .related-card:hover { border-color: var(--blue); box-shadow: 0 4px 12px rgba(26,63,214,0.1); }
+    .rc-tag { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .rc-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+    .rc-desc { font-size: 13px; color: var(--gray-text); line-height: 1.5; }
+
+    /* Footer */
+    .footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 40px 0;
+      text-align: center;
+    }
+    .footer .inner { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .footer-brand { font-size: 24px; font-weight: 800; color: var(--blue-light); margin-bottom: 8px; }
+    .footer-desc { color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 16px; }
+    .footer-copy { font-size: 13px; color: rgba(255,255,255,0.4); }
+
+    @media (max-width: 768px) {
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        flex-direction: column;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--gray-mid);
+        gap: 0;
+        z-index: 99;
+      }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 0; border-bottom: 1px solid var(--gray-mid); }
+      .nav-links a:last-child { border-bottom: none; }
+      .nav-right { display: none; }
+      .mobile-only { display: block; }
+      .main-nav .inner { justify-content: space-between; padding: 0 16px; }
+      .utility-bar .inner { flex-wrap: wrap; justify-content: center; gap: 12px; padding: 0 16px; }
+      .article h1 { font-size: 26px; }
+      .article h2 { font-size: 22px; }
+      .article .lead { font-size: 17px; }
+      .related-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 32px 16px; }
+      .cta-section h2 { font-size: 24px; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
+      .task-rec-header, .task-rec-row { grid-template-columns: 2fr 1fr 1fr; font-size: 12px; padding: 10px 12px; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/claude-model-cost-guide-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Nav -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="../index.html">KanseiLink</a>
+    <span class="sep">/</span>
+    <a href="index.html">Insights</a>
+    <span class="sep">/</span>
+    Claudeモデル別コストガイド
+  </div>
+
+  <!-- Article -->
+  <article class="article">
+
+    <div class="article-meta">
+      <span class="tag">Cost Optimization</span>
+      <span class="date">2026-04-20</span>
+      <span class="reading-time">12 min read</span>
+    </div>
+
+    <h1>Claude Haiku・Sonnet・Opus: 日本SaaS連携タスク別コスト最適化ガイド 2026</h1>
+
+    <p class="lead">
+      Claude APIは3つのモデルティアを提供している。Haiku 4.5（$1/$5）・Sonnet 4.6（$3/$15）・Opus（$5/$25）——すべてのタスクにSonnetを使えば、適切にタスク別に使い分けた場合と比べて3〜5倍のコストがかかる。さらにBatch APIを活用すれば、追加で50%削減できる。本記事ではKanseiLinkが分析した日本SaaSエージェントワークフロー（freee・kintone・Slack・Notion連携）のタスク別モデル推奨マップ、実際のコスト試算、そして月次コスト最適化ロードマップを提示する。
+    </p>
+
+    <p style="font-size:13px;color:var(--gray-text);margin-top:-16px;">
+      ⚠️ 本記事の料金数値はAnthropicの公式料金ページ（platform.claude.com/docs/en/about-claude/pricing）に基づく。料金は変更される場合があるため、最新情報を必ずご確認ください。
+    </p>
+
+    <h2>1. 2026年4月時点のClaude API料金一覧</h2>
+
+    <p>
+      まず基準となる料金を確認する。単位は100万トークン（MTok）あたりのUSDドル。
+    </p>
+
+    <div class="model-card fastest">
+      <div class="model-header">
+        <span class="model-name">Claude Haiku 4.5</span>
+        <span class="model-badge badge-fastest">最速・最安</span>
+      </div>
+      <div class="model-price">$1 <span style="font-size:18px;font-weight:400;color:var(--gray-text)">/ MTok (入力)</span></div>
+      <div class="model-price-sub">出力: $5 / MTok ｜ Batch API: $0.50/$2.50</div>
+      <p style="font-size:14px;color:var(--gray-dark);margin-bottom:12px;">定型タスク・高頻度ルーティン・シンプルなデータ取得に最適。コスト重視のバックグラウンド処理の第一選択肢。</p>
+      <div class="model-tags">
+        <span class="model-tag">定型データ取得</span>
+        <span class="model-tag">フォーム入力自動化</span>
+        <span class="model-tag">単純検索</span>
+        <span class="model-tag">バッチ処理</span>
+      </div>
+    </div>
+
+    <div class="model-card balanced">
+      <div class="model-header">
+        <span class="model-name">Claude Sonnet 4.6</span>
+        <span class="model-badge badge-balanced">バランス型</span>
+      </div>
+      <div class="model-price">$3 <span style="font-size:18px;font-weight:400;color:var(--gray-text)">/ MTok (入力)</span></div>
+      <div class="model-price-sub">出力: $15 / MTok ｜ Batch API: $1.50/$7.50 ｜ 200K超: $6/$22.50</div>
+      <p style="font-size:14px;color:var(--gray-dark);margin-bottom:12px;">中程度の複雑さのタスク・複数ステップのワークフロー・日本語自然言語処理に最適。エージェント開発のメインモデルとして広く使われる。</p>
+      <div class="model-tags">
+        <span class="model-tag">複数ステップワークフロー</span>
+        <span class="model-tag">日本語NLP</span>
+        <span class="model-tag">コンテキスト統合</span>
+        <span class="model-tag">中程度の推論</span>
+      </div>
+    </div>
+
+    <div class="model-card powerful">
+      <div class="model-header">
+        <span class="model-name">Claude Opus (4.6/4.7)</span>
+        <span class="model-badge badge-powerful">最高性能</span>
+      </div>
+      <div class="model-price">$5 <span style="font-size:18px;font-weight:400;color:var(--gray-text)">/ MTok (入力)</span></div>
+      <div class="model-price-sub">出力: $25 / MTok ｜ Batch API: $2.50/$12.50 ｜ 最大1Mコンテキスト</div>
+      <p style="font-size:14px;color:var(--gray-dark);margin-bottom:12px;">複雑な推論・法務文書分析・長大なコンテキスト処理・高精度が求められるタスクに最適。コストは高いが、精度が重要な場面では投資効果が高い。</p>
+      <div class="model-tags">
+        <span class="model-tag">法務文書分析</span>
+        <span class="model-tag">複雑な意思決定</span>
+        <span class="model-tag">長文コンテキスト</span>
+        <span class="model-tag">高精度推論</span>
+      </div>
+    </div>
+
+    <h2>2. 日本SaaSタスク別モデル推奨マップ</h2>
+
+    <p>
+      KanseiLinkが分析した日本SaaSエージェントワークフローの典型的タスクに対して、コスト・精度のバランスから推奨モデルを整理した。
+    </p>
+
+    <div class="task-rec">
+      <div class="task-rec-header">
+        <div>タスク（日本SaaS連携）</div>
+        <div>推奨モデル</div>
+        <div>理由</div>
+      </div>
+      <div class="task-rec-row">
+        <div>freee: 請求書一覧取得・ステータス確認</div>
+        <div class="rec-haiku">Haiku 4.5</div>
+        <div>定型クエリ、JSON解析のみ</div>
+      </div>
+      <div class="task-rec-row">
+        <div>kintone: 単一アプリのレコード検索</div>
+        <div class="rec-haiku">Haiku 4.5</div>
+        <div>シンプルなフィルタリング</div>
+      </div>
+      <div class="task-rec-row">
+        <div>Slack: チャンネル最新N件の取得・要約</div>
+        <div class="rec-sonnet">Sonnet 4.6</div>
+        <div>日本語NLP・コンテキスト統合</div>
+      </div>
+      <div class="task-rec-row">
+        <div>Notion: DBクエリ＋ページ内容の分析</div>
+        <div class="rec-sonnet">Sonnet 4.6</div>
+        <div>ブロック構造の解析が必要</div>
+      </div>
+      <div class="task-rec-row">
+        <div>kintone: 複数アプリのJOINクエリ</div>
+        <div class="rec-sonnet">Sonnet 4.6</div>
+        <div>中程度の推論・複数ステップ</div>
+      </div>
+      <div class="task-rec-row">
+        <div>freee: 経費精算の自動分類・仕訳提案</div>
+        <div class="rec-sonnet">Sonnet 4.6</div>
+        <div>勘定科目判断に推論が必要</div>
+      </div>
+      <div class="task-rec-row">
+        <div>法務SaaS: 契約書レビュー・リスク抽出</div>
+        <div class="rec-opus">Opus</div>
+        <div>高精度推論・長文対応</div>
+      </div>
+      <div class="task-rec-row">
+        <div>複数SaaS横断: 経営ダッシュボード生成</div>
+        <div class="rec-opus">Opus</div>
+        <div>大量コンテキスト・複雑な統合</div>
+      </div>
+      <div class="task-rec-row">
+        <div>定期バッチ: 夜間データ同期・レポート生成</div>
+        <div class="rec-haiku">Haiku + Batch</div>
+        <div>50%割引で最安、非同期OK</div>
+      </div>
+    </div>
+
+    <h2>3. 実際のコスト試算：中規模SaaSエージェントの1ヶ月</h2>
+
+    <p>
+      具体的なシナリオで月次コストを試算する。「日本中規模企業のSaaS統合エージェント」を想定し、1ヶ月の典型的な利用量を設定した。
+    </p>
+
+    <div class="cost-scenario">
+      <h4>シナリオ：freee + kintone + Slack 統合エージェント（月次）</h4>
+      <div class="cost-row">
+        <span class="cost-label">定型タスク（請求書取得・ステータス確認等）: 入力8MTok + 出力2MTok</span>
+        <span></span>
+      </div>
+      <div class="cost-row">
+        <span class="cost-label">→ すべてSonnetで処理した場合</span>
+        <span class="cost-value expensive">$8×$3 + $2×$15 = <strong>$54</strong></span>
+      </div>
+      <div class="cost-row">
+        <span class="cost-label">→ Haikuに最適化した場合</span>
+        <span class="cost-value cheapest">$8×$1 + $2×$5 = <strong>$18</strong></span>
+      </div>
+      <div class="cost-row">
+        <span class="cost-label">→ Haiku + Batch APIで処理した場合</span>
+        <span class="cost-value cheapest"><strong>$9</strong>（50%割引）</span>
+      </div>
+      <div class="cost-row" style="background:rgba(26,63,214,0.05);border-radius:8px;padding:10px 12px;">
+        <span class="cost-label" style="font-weight:700;">コスト削減効果（Sonnet → Haiku+Batch）</span>
+        <span class="cost-value discount"><strong>$54 → $9（83%削減）</strong></span>
+      </div>
+    </div>
+
+    <div class="cost-scenario">
+      <h4>シナリオ：複合ワークフロー（タスク別最適化後）の月次総コスト例</h4>
+      <div class="cost-row">
+        <span class="cost-label">Haiku 4.5（定型タスク）: 8MTok入力 + 2MTok出力</span>
+        <span class="cost-value cheapest">$18</span>
+      </div>
+      <div class="cost-row">
+        <span class="cost-label">Sonnet 4.6（中程度タスク）: 3MTok入力 + 1MTok出力</span>
+        <span class="cost-value mid">$24</span>
+      </div>
+      <div class="cost-row">
+        <span class="cost-label">Opus（高精度タスク・週1回）: 0.5MTok入力 + 0.2MTok出力</span>
+        <span class="cost-value expensive">$7.50</span>
+      </div>
+      <div class="cost-row">
+        <span class="cost-label">Batch API割引（Haiku定型タスクの50%を夜間バッチに移行）</span>
+        <span class="cost-value discount">-$4.50</span>
+      </div>
+      <div class="cost-row" style="background:rgba(26,63,214,0.05);border-radius:8px;padding:10px 12px;">
+        <span class="cost-label" style="font-weight:700;">月次合計（最適化後）</span>
+        <span class="cost-value mid"><strong>約 $45 / 月</strong></span>
+      </div>
+    </div>
+
+    <div class="insight-card">
+      <div class="insight-header">
+        <span class="insight-icon">💡</span>
+        <span class="insight-title">コスト最適化の3原則</span>
+      </div>
+      <p>
+        <strong>① タスク分解</strong>：ワークフローを「定型（Haiku）」「中程度（Sonnet）」「高精度（Opus）」に分類し、適切なモデルにルーティングする。すべてを1モデルに統一するのは非効率。<br>
+        <strong>② Batch API優先</strong>：リアルタイム応答が不要なタスク（夜間レポート、定期同期、大量データ変換）はBatch APIに移行するだけで50%削減。<br>
+        <strong>③ プロンプトキャッシュ</strong>：システムプロンプトや参照ドキュメントなど繰り返し送信するコンテキストにはキャッシュを活用し、重複トークンコストを削減する。
+      </p>
+    </div>
+
+    <h2>4. Batch APIの使い方：50%割引の実装パターン</h2>
+
+    <p>
+      Batch APIは非同期処理で最大24時間以内に結果が返る仕組みだ。入力・出力ともに標準料金の50%で利用できる。
+    </p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>シナリオ</th>
+          <th>Batch API向き</th>
+          <th>リアルタイムAPI向き</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>定期レポート生成</td>
+          <td>✅ 夜間バッチ実行</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>大量レコードの一括分類</td>
+          <td>✅ 並列処理</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>ユーザーからのリアルタイム質問</td>
+          <td>—</td>
+          <td>✅ 即時応答必須</td>
+        </tr>
+        <tr>
+          <td>SaaS間の夜間データ同期</td>
+          <td>✅ 翌朝完了でOK</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>Slackメッセージへの即座の返信</td>
+          <td>—</td>
+          <td>✅ 数秒以内の応答</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. 月次コスト最適化ロードマップ</h2>
+
+    <p>
+      エージェント運用コストを段階的に削減するための4ステップロードマップを示す。
+    </p>
+
+    <div class="roadmap">
+      <div class="roadmap-step">
+        <h4>Month 1: タスク分類とベースライン計測</h4>
+        <p>現状の全APIコールをタスクタイプ別にログ記録。「定型」「中程度」「高精度」の比率を把握する。多くの場合、定型タスクが全コールの60〜70%を占めており、ここがHaikuへの移行ターゲットになる。</p>
+      </div>
+      <div class="roadmap-step">
+        <h4>Month 2: 定型タスクをHaikuに移行</h4>
+        <p>freeeの定型データ取得・kintone単純クエリ・ステータス確認などをHaiku 4.5に切り替える。品質要件を確認しながら段階的に移行することで、精度を維持しつつコストを大幅削減できる。</p>
+      </div>
+      <div class="roadmap-step">
+        <h4>Month 3: リアルタイム不要なタスクをBatch APIに移行</h4>
+        <p>夜間レポート生成、大量データの分類・変換、定期的なSaaS間同期をBatch APIに移行。スケジュール管理（cron）との組み合わせでさらなる50%削減を実現する。</p>
+      </div>
+      <div class="roadmap-step">
+        <h4>Month 4: プロンプトキャッシュとOrchestratorパターン</h4>
+        <p>システムプロンプトや繰り返し参照するドキュメントにキャッシュを設定。さらにOrchestratorエージェント（Sonnet）がタスクを分解してHaiku/Sonnet/Opusに適切にルーティングするアーキテクチャを実装する。</p>
+      </div>
+    </div>
+
+    <h2>6. 日本語対応における注意点</h2>
+
+    <p>
+      日本語テキストは英語に比べてトークン効率が異なる点を考慮する必要がある。日本語は1文字が複数トークンになることが多く、同じ意味の内容でも英語より多くのトークンを消費するケースがある。
+    </p>
+
+    <ul>
+      <li>日本語の場合、Haiku 4.5でも基本的な日本語理解・生成は問題なく行える（精度は十分）</li>
+      <li>複雑な敬語や業界固有の表現が含まれる場合はSonnet 4.6を推奨</li>
+      <li>freeeの勘定科目名やkintoneのフィールドコードなど固有名詞が多い場合はシステムプロンプトにキャッシュを設定して重複コストを削減</li>
+      <li>長い日本語文書（契約書・報告書）の全文分析にはOpusの1Mコンテキストが特に有効</li>
+    </ul>
+
+    <h2>まとめ：「全部Sonnet」から卒業する</h2>
+
+    <p>
+      Claude APIコスト最適化の本質は、「全タスクを同一モデルで処理する」という思考から卒業することだ。定型データ取得はHaiku、中程度のワークフローはSonnet、高精度が必要な分析はOpus——この3層のルーティングだけで、多くの場合コストを50〜80%削減できる。
+    </p>
+
+    <p>
+      さらにBatch APIとプロンプトキャッシュを組み合わせれば、日本SaaS連携エージェントの月次コストを劇的に圧縮できる。KanseiLinkが分析した中規模企業シナリオでは、全Sonnetの$54から最適化後$9（Haiku+Batch）への83%削減が現実的に達成可能だ。
+    </p>
+
+    <div class="disclosure">
+      <strong>開示事項：</strong>本記事に含まれる料金数値はAnthropicの公式料金ページ（platform.claude.com/docs/en/about-claude/pricing）に基づき、2026年4月時点の情報を元に執筆しています。料金は予告なく変更される場合があります。コスト試算はKanseiLinkによる典型的ワークフローの推定値であり、実際のコストはユースケースにより異なります。Batch APIの処理時間は最大24時間です。
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <h2>KanseiLinkのコスト最適化コンサルティング</h2>
+      <p>貴社のSaaSエージェントワークフローに合わせたモデル選択・コスト最適化設計を提供します。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-cta">コンサルティングを申し込む</a>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="related-section">
+      <h3>関連記事</h3>
+      <div class="related-grid">
+        <a href="agent-cost-optimization-2026.html" class="related-card">
+          <div class="rc-tag">Cost Optimization</div>
+          <div class="rc-title">AIエージェント時代のコスト削減 — Xバズ投稿を検証してみた</div>
+          <div class="rc-desc">「Claude cacheで10x安い」などXで話題のコスト削減クレームをデータで検証。</div>
+        </a>
+        <a href="mcp-success-patterns-data-2026.html" class="related-card">
+          <div class="rc-tag">データストーリー</div>
+          <div class="rc-title">225+サービス分析が示すMCP成功の法則</div>
+          <div class="rc-desc">コスト最適化と成功率の関係性をデータで解説。</div>
+        </a>
+        <a href="kintone-mcp-deep-dive-2026.html" class="related-card">
+          <div class="rc-tag">Service Deep-Dive</div>
+          <div class="rc-title">kintone MCP完全攻略 — AAAグレードの真相</div>
+          <div class="rc-desc">kintone連携でのHaiku/Sonnet使い分けの実例。</div>
+        </a>
+        <a href="notion-mcp-deep-dive-2026.html" class="related-card">
+          <div class="rc-tag">Service Deep-Dive</div>
+          <div class="rc-title">Notion MCP完全攻略 — 6つの落とし穴と2026年新機能</div>
+          <div class="rc-desc">Notion連携でのSonnet/Haiku使い分けと新Batch API連携。</div>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-brand">KanseiLink</div>
+      <div class="footer-desc">AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</div>
+      <div class="footer-copy">&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+</body>
+</html>
