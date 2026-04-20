@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEOスコア改善ロードマップ2026：90日でグレードを上げるSaaSベンダー向け戦略ガイド | KanseiLink</title>
+  <meta name="description" content="KanseiLinkのAEOグレード（CCC〜AAA）を90日で改善する実践ロードマップ。Month1=基盤整備、Month2=MCPセットアップ、Month3=計測・最適化。プロダクトマネージャー向け、コード不要の戦略ガイド。">
+  <meta name="keywords" content="AEO, AEOスコア改善, MCP, エージェント対応, KanseiLink, AEOグレード, SaaS, OpenAPI, robots.txt, MCPサーバー, OAuth 2.1, isitagentready">
+  <meta name="author" content="KanseiLink / Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/aeo-score-improvement-roadmap-2026.html">
+
+  <!-- hreflang -->
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/aeo-score-improvement-roadmap-2026.html">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/aeo-score-improvement-roadmap-2026.html">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/aeo-score-improvement-roadmap-2026.html">
+
+  <!-- OGP -->
+  <meta property="og:title" content="AEOスコア改善ロードマップ2026：90日でグレードを上げるSaaSベンダー向け戦略ガイド">
+  <meta property="og:description" content="KanseiLinkのAEOグレードをMonth1基盤整備→Month2 MCPセットアップ→Month3計測・最適化の90日で改善する実践ガイド。プロダクトマネージャー向け。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/aeo-score-improvement-roadmap-2026.html">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-20">
+  <meta property="article:section" content="How-to Guide">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AEOスコア改善ロードマップ2026 — 90日でグレードアップ">
+  <meta name="twitter:description" content="KanseiLinkのAEOグレードをPMが主導して90日で改善する戦略ガイド。コード不要の実践ロードマップ。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "AEOスコア改善ロードマップ2026：90日でグレードを上げるSaaSベンダー向け戦略ガイド",
+    "description": "KanseiLinkのAEOグレード（CCC〜AAA）を90日で改善する実践ロードマップ。Month1基盤整備、Month2 MCPセットアップ、Month3計測・最適化。",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-20",
+    "dateModified": "2026-04-20",
+    "mainEntityOfPage": "https://kansei-link.com/insights/aeo-score-improvement-roadmap-2026.html",
+    "keywords": ["AEO", "AEOスコア", "MCPサーバー", "エージェント対応", "SaaSベンダー", "KanseiLink", "OpenAPI", "OAuth 2.1", "isitagentready"],
+    "articleSection": "How-to Guide",
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "AEOグレードを上げるには何から始めればよいですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "まず現状のグレードを把握することから始めます。CCC/CC/Cグレードの場合はREST API公開とOpenAPI仕様書の整備が最優先です。BBB/BB/Bグレードの場合はMCPサーバーの実装とOAuth 2.1認証の整備が次のステップです。KanseiLinkの審査を受けることで詳細なギャップ分析が得られます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Cloudflareの「Agent Readiness Score」とKanseiLinkのAEOグレードはどう違いますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cloudflareのisitagentready.com（2026年4月17日公開）はDiscoverability・Content・Bot Access Control・API/Auth/MCP Discovery・Commerceの5カテゴリを技術的にスキャンするセルフチェックツールです。一方KanseiLinkのAEOグレードは225+の日本SaaSサービスを対象に、技術要件に加えて実際のエージェント連携品質・ドキュメント品質・実運用実績を総合評価したレーティングです。両者は補完関係にあります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPサーバーを実装しないとAグレード以上は取れませんか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "はい、KanseiLinkのグレード体系ではA/AA/AAAはMCP対応が必須要件です。BBB/BB/BグレードはAPI-onlyでも到達可能ですが、エージェントエコノミーでの競争力という観点では2026年以降はMCP対応が事実上の標準になりつつあります。まずAPIを整備してBBBを目指し、並行してMCPサーバーの開発計画を立てることを推奨します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "robots.txtのエージェント向け設定とは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "従来のrobots.txtはGooglebotなどのウェブクローラー向けでしたが、エージェント時代にはAIエージェントやMCPクライアントに対するアクセス制御も必要です。具体的には「User-agent: claude-web」「User-agent: gpt-bot」などのエージェント固有のディレクティブを設定し、アクセス可能なエンドポイントと制限エリアを明示します。また/.well-known/mcp/server-card.jsonへの参照を追加することで、エージェントがサービスを発見しやすくなります。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "KanseiLink", "item": "https://kansei-link.com"},
+      {"@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/"},
+      {"@type": "ListItem", "position": 3, "name": "AEOスコア改善ロードマップ2026", "item": "https://kansei-link.com/insights/aeo-score-improvement-roadmap-2026.html"}
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a { color: var(--black); text-decoration: none; font-weight: 400; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-left: auto;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: var(--black);
+      border-radius: 2px;
+    }
+
+    .breadcrumb {
+      max-width: 800px;
+      margin: 24px auto 0;
+      padding: 0 24px;
+      font-size: 14px;
+      color: var(--gray-text);
+    }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .article-meta {
+      margin: 32px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .article-meta .tag {
+      background: #D1FAE5;
+      color: #065F46;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .article-meta .date { font-size: 14px; color: var(--gray-text); }
+    .article-meta .reading-time { font-size: 14px; color: var(--gray-text); }
+
+    .article h1 {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 16px 0 24px;
+      letter-spacing: -1px;
+    }
+    .article .lead {
+      font-size: 20px;
+      line-height: 1.7;
+      color: var(--gray-dark);
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--gray-mid);
+    }
+    .article h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 56px 0 20px;
+      letter-spacing: -0.5px;
+    }
+    .article h3 { font-size: 22px; font-weight: 600; margin: 40px 0 16px; }
+    .article h4 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
+    .article p { margin-bottom: 20px; line-height: 1.7; }
+    .article ul, .article ol { margin: 0 0 20px 24px; }
+    .article li { margin-bottom: 8px; line-height: 1.7; }
+
+    /* Data table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 14px;
+    }
+    .data-table th {
+      background: var(--lavender);
+      color: var(--blue);
+      font-weight: 700;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 2px solid var(--blue-light);
+    }
+    .data-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+
+    /* Roadmap table */
+    .roadmap-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 14px;
+    }
+    .roadmap-table th {
+      background: var(--black);
+      color: var(--white);
+      font-weight: 700;
+      padding: 14px 16px;
+      text-align: left;
+    }
+    .roadmap-table th:first-child { border-radius: 8px 0 0 0; }
+    .roadmap-table th:last-child { border-radius: 0 8px 0 0; }
+    .roadmap-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      vertical-align: top;
+    }
+    .roadmap-table tr:last-child td { border-bottom: none; }
+    .roadmap-table tr:nth-child(even) td { background: var(--gray-light); }
+    .roadmap-table tr:hover td { background: var(--lavender); }
+
+    /* Phase badge */
+    .phase-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+    .phase-1 { background: #DBEAFE; color: #1E40AF; }
+    .phase-2 { background: #EDE9FE; color: #5B21B6; }
+    .phase-3 { background: #D1FAE5; color: #065F46; }
+
+    /* Grade card */
+    .grade-card {
+      border: 2px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 12px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+    .grade-card.grade-ccc { border-color: #9CA3AF; }
+    .grade-card.grade-bb { border-color: #60A5FA; }
+    .grade-card.grade-b { border-color: var(--blue); }
+    .grade-card.grade-a { border-color: #10B981; }
+    .grade-card.grade-aa { border-color: #F59E0B; }
+    .grade-badge {
+      font-size: 24px;
+      font-weight: 800;
+      min-width: 72px;
+      text-align: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      line-height: 1.2;
+    }
+    .badge-ccc { background: #F3F4F6; color: #6B7280; }
+    .badge-bb { background: #DBEAFE; color: #1D4ED8; }
+    .badge-b { background: var(--lavender); color: var(--blue); }
+    .badge-a { background: #D1FAE5; color: #065F46; }
+    .badge-aa { background: #FEF3C7; color: #92400E; }
+    .grade-content { flex: 1; }
+    .grade-content strong { display: block; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .grade-content p { font-size: 13px; color: var(--gray-dark); margin: 0; line-height: 1.5; }
+
+    /* Insight card */
+    .insight-card {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-left: 4px solid #D97706;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .insight-card .insight-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .insight-card .insight-icon { font-size: 18px; }
+    .insight-card .insight-title { font-size: 16px; font-weight: 700; color: #92400E; }
+    .insight-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+
+    /* Info box */
+    .info-box {
+      background: var(--lavender);
+      border: 1px solid var(--blue-light);
+      border-left: 4px solid var(--blue);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .info-box .info-title { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 8px; }
+    .info-box p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+
+    /* Disclosure */
+    .disclosure {
+      background: var(--gray-light);
+      border: 1px solid var(--gray-mid);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 40px 0 20px;
+      font-size: 13px;
+      color: var(--gray-text);
+    }
+    .disclosure strong { color: var(--gray-dark); }
+
+    /* CTA section */
+    .cta-section {
+      background: linear-gradient(135deg, var(--blue) 0%, #0F2899 100%);
+      color: var(--white);
+      border-radius: 16px;
+      padding: 48px;
+      margin: 64px 0 40px;
+      text-align: center;
+    }
+    .cta-section h2 { color: var(--white); margin: 0 0 12px; font-size: 28px; }
+    .cta-section p { color: rgba(255,255,255,0.85); margin-bottom: 28px; font-size: 16px; }
+    .btn-cta {
+      background: var(--teal);
+      color: var(--black);
+      font-weight: 700;
+      padding: 14px 36px;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-size: 16px;
+      display: inline-block;
+      transition: opacity 0.2s;
+    }
+    .btn-cta:hover { opacity: 0.9; }
+
+    /* Related articles */
+    .related-section { margin-top: 64px; }
+    .related-section h3 { font-size: 22px; font-weight: 700; margin-bottom: 24px; }
+    .related-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .related-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .related-card:hover { border-color: var(--blue); box-shadow: 0 4px 12px rgba(26,63,214,0.1); }
+    .rc-tag { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .rc-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+    .rc-desc { font-size: 13px; color: var(--gray-text); line-height: 1.5; }
+
+    /* Footer */
+    .footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 40px 0;
+      text-align: center;
+    }
+    .footer .inner { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .footer-brand { font-size: 24px; font-weight: 800; color: var(--blue-light); margin-bottom: 8px; }
+    .footer-desc { color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 16px; }
+    .footer-copy { font-size: 13px; color: rgba(255,255,255,0.4); }
+
+    @media (max-width: 768px) {
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        flex-direction: column;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--gray-mid);
+        gap: 0;
+        z-index: 99;
+      }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 0; border-bottom: 1px solid var(--gray-mid); }
+      .nav-links a:last-child { border-bottom: none; }
+      .nav-right { display: none; }
+      .mobile-only { display: block; }
+      .main-nav .inner { justify-content: space-between; padding: 0 16px; }
+      .utility-bar .inner { flex-wrap: wrap; justify-content: center; gap: 12px; padding: 0 16px; }
+      .article h1 { font-size: 26px; }
+      .article h2 { font-size: 22px; }
+      .article .lead { font-size: 17px; }
+      .related-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 32px 16px; }
+      .cta-section h2 { font-size: 24px; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
+      .grade-card { flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/aeo-score-improvement-roadmap-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Nav -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="../index.html">KanseiLink</a>
+    <span class="sep">/</span>
+    <a href="index.html">Insights</a>
+    <span class="sep">/</span>
+    AEOスコア改善ロードマップ2026
+  </div>
+
+  <!-- Article -->
+  <article class="article">
+
+    <div class="article-meta">
+      <span class="tag">How-to Guide</span>
+      <span class="date">2026-04-20</span>
+      <span class="reading-time">10 min read</span>
+    </div>
+
+    <h1>AEOスコア改善ロードマップ2026：90日でグレードを上げるSaaSベンダー向け戦略ガイド</h1>
+
+    <p class="lead">
+      KanseiLinkのAEOグレードはCCCからAAAまで9段階。「どこから手をつければいいかわからない」というプロダクトマネージャーやSaaSベンダー向けに、90日間で具体的にグレードを改善するための戦略ロードマップを提示する。本記事はコードの書き方ではなく、<strong>何を・どの順番で・誰が担当すべきか</strong>という意思決定ガイドだ。
+    </p>
+
+    <h2>1. AEOグレード体系を理解する：今いる場所を特定する</h2>
+
+    <p>
+      改善を始める前に、自社サービスが現在どのグレードレンジにいるかを把握する必要がある。KanseiLinkのグレード体系は技術的な成熟度を3つの大きなゾーンに分けている。
+    </p>
+
+    <div class="grade-card grade-ccc">
+      <div class="grade-badge badge-ccc">CCC<br>〜C</div>
+      <div class="grade-content">
+        <strong>APIなし・最小限ゾーン</strong>
+        <p>REST APIが公開されていないか、あっても文書化が不十分。エージェントはWebスクレイピングに頼るしかなく、自動化の信頼性が低い。日本のSMB向けSaaSに多いパターン。まず公開APIとOpenAPI仕様書の整備が急務。</p>
+      </div>
+    </div>
+
+    <div class="grade-card grade-bb">
+      <div class="grade-badge badge-bb">BBB<br>〜B</div>
+      <div class="grade-content">
+        <strong>API対応ゾーン（MCP未対応）</strong>
+        <p>REST APIは存在し、主要機能がエンドポイントとして公開されている。しかしMCPサーバーがなく、エージェントは標準化されたツール呼び出しができない。エンタープライズSaaSの大多数がこのゾーン。MCPサーバー実装がネクストステップ。</p>
+      </div>
+    </div>
+
+    <div class="grade-card grade-a">
+      <div class="grade-badge badge-a">A<br>〜AAA</div>
+      <div class="grade-content">
+        <strong>MCP対応ゾーン</strong>
+        <p>MCPサーバーを実装済みで、エージェントがツール呼び出しで直接操作できる。AとAAAAの差はMCPの品質・ツールの網羅性・エラー処理の丁寧さ・ドキュメントの充実度・Server Cardの整備など。継続的な品質改善が評価を上げる。</p>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-title">Cloudflareも2026年4月17日に「Agent Readiness Score」を公開</div>
+      <p>Cloudflareはisitagentready.com（<a href="https://blog.cloudflare.com/agent-readiness/" target="_blank" style="color:var(--blue);">blog.cloudflare.com/agent-readiness/</a>）を2026年4月17日に公開した。Discoverability・Content・Bot Access Control・API/Auth/MCP Discovery・Commerceの5カテゴリをスキャンするセルフチェックツールで、KanseiLinkの審査前のセルフ診断に活用できる。両者を組み合わせることで、技術的スキャンと第三者評価の両面から自社の準備状況を把握できる。</p>
+    </div>
+
+    <h2>2. グレード別：各ゾーンで必要な条件一覧</h2>
+
+    <p>
+      KanseiLinkが225+サービスの審査データから導き出した、各グレードゾーンの必須要件を整理した。
+    </p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>グレード</th>
+          <th>必須要件</th>
+          <th>重点ポイント</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>C → BBB</strong></td>
+          <td>REST API公開、OpenAPI 3.0仕様書、APIキー認証、主要エンドポイントのドキュメント</td>
+          <td>まずエージェントが「読める」状態を作る</td>
+        </tr>
+        <tr>
+          <td><strong>BBB → B</strong></td>
+          <td>エラーコードの標準化（RFC 7807）、robots.txtのエージェント設定、Markdownページ、レート制限の明示</td>
+          <td>信頼性と発見可能性を高める</td>
+        </tr>
+        <tr>
+          <td><strong>B → A</strong></td>
+          <td>MCPサーバー実装、OAuth 2.1対応、MCP Server Card（/.well-known/mcp/server-card.json）、Agent Skills Index</td>
+          <td>エージェントが「使える」状態を作る</td>
+        </tr>
+        <tr>
+          <td><strong>A → AA</strong></td>
+          <td>主要ユースケースのMCPツール完備、エラーメッセージの日英対応、監視・SLA公開、Webhookサポート</td>
+          <td>エージェントが「安定して使える」状態</td>
+        </tr>
+        <tr>
+          <td><strong>AA → AAA</strong></td>
+          <td>全機能のMCPカバレッジ、サンドボックス環境、詳細なAgent Voiceデータ提供、EU AI Act対応（2026年8月〜）</td>
+          <td>エージェントエコノミーでの最高品質基準</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. 90日ロードマップ：Month 1〜3の具体的アクション</h2>
+
+    <p>
+      現在のグレードゾーンに関わらず、段階的に改善を積み上げるための90日間のロードマップを示す。各フェーズは前のフェーズの完了を前提とする。
+    </p>
+
+    <table class="roadmap-table">
+      <thead>
+        <tr>
+          <th style="width:120px;">フェーズ</th>
+          <th>主要アクション</th>
+          <th style="width:160px;">期待されるAEO改善</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="phase-badge phase-1">Month 1<br>基盤整備</span></td>
+          <td>
+            <strong>APIドキュメント整備</strong>：REST APIの全エンドポイントをOpenAPI 3.0仕様書として公開。Swagger UIまたはRedoc形式でブラウザから参照可能にする。<br><br>
+            <strong>エラーコード標準化</strong>：HTTPステータスコードの適切な使用（200/400/401/403/404/429/500）とRFC 7807形式のエラーボディを統一する。<br><br>
+            <strong>robots.txtのエージェント対応</strong>：claude-web・gpt-bot・anthropic-aiなどのエージェント向けUser-agentディレクティブを設定し、APIエンドポイントへのアクセスを明示的に許可する。<br><br>
+            <strong>Markdownページ整備</strong>：主要機能・ユースケース・制限事項をMarkdown形式でも提供。エージェントがHTMLパースなしにコンテンツを取得できるようにする。
+          </td>
+          <td>CCC/CC/C → BBB/BB<br><br>既存BBBの場合はスコア内の改善（BB → B）</td>
+        </tr>
+        <tr>
+          <td><span class="phase-badge phase-2">Month 2<br>MCPセットアップ</span></td>
+          <td>
+            <strong>MCPサーバー実装</strong>：主要CRUD操作をMCPツールとして公開。まず5〜10個の最重要ツールに絞ってリリースし、品質を担保する。開発チームへの要件定義書の作成がPMの役割。<br><br>
+            <strong>OAuth 2.1認証</strong>：MCPクライアントが安全に認証できるOAuth 2.1フローを実装。PKCE必須、スコープの粒度を細かく設定して最小権限の原則を守る。<br><br>
+            <strong>MCP Server Card</strong>：<code>/.well-known/mcp/server-card.json</code>にサービス概要・対応ツール・認証方式・利用規約URLを記述したJSONファイルを配置する（現時点でCloudflareが提案するドラフト仕様）。<br><br>
+            <strong>Agent Skills Index</strong>：<code>/.well-known/agent-skills/index.json</code>にエージェントが実行できるスキル一覧を記述する。
+          </td>
+          <td>BB/B → A<br><br>MCPサーバーの品質・ツール数によってはAAも視野に</td>
+        </tr>
+        <tr>
+          <td><span class="phase-badge phase-3">Month 3<br>計測・最適化</span></td>
+          <td>
+            <strong>KanseiLink審査申請</strong>：90日の改善を経て、KanseiLinkの公式審査を申請。審査結果のギャップ分析をもとに次の改善サイクルを計画する。<br><br>
+            <strong>Cloudflareセルフチェック</strong>：isitagentready.comで5カテゴリのスコアを定期確認。技術的な回帰が発生していないかを監視する。<br><br>
+            <strong>MCPエラーログ分析</strong>：エージェントからのツール呼び出しエラーを集計し、頻度の高いエラーから優先的に修正する。エラー率5%未満を目標にする。<br><br>
+            <strong>EU AI Act対応開始</strong>：2026年8月の主要条項適用に向けて、AIエージェントが自社サービスを利用する際のデータ処理の透明性ドキュメントの準備を開始する。
+          </td>
+          <td>Aグレードの安定維持<br><br>AA/AAAへの道筋を確立</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>4. 誰が何をするか：PM主導の社内タスク分解</h2>
+
+    <p>
+      AEO改善はエンジニアリングチームだけでは完結しない。プロダクトマネージャーが主導して、各ステークホルダーに適切なタスクを割り当てることが成功の鍵だ。
+    </p>
+
+    <ul>
+      <li><strong>プロダクトマネージャー（PM）</strong>：グレード目標の設定・タイムライン管理・開発チームへの要件定義書作成・KanseiLink審査の申請窓口</li>
+      <li><strong>バックエンドエンジニア</strong>：OpenAPI仕様書の整備・エラーコード標準化・MCPサーバー実装・OAuth 2.1フロー構築</li>
+      <li><strong>インフラ/DevOps</strong>：robots.txtの更新・/.well-knownディレクトリの設定・Cloudflare経由のアクセス制御・監視アラートの設定</li>
+      <li><strong>テクニカルライター/ドキュメント担当</strong>：Markdownページの作成・OpenAPI仕様書のdescriptionフィールド充実・MCP Server Cardの文章作成</li>
+      <li><strong>法務/コンプライアンス</strong>：APIの利用規約更新（エージェント利用を明示）・EU AI Act対応のデータ処理ドキュメント準備</li>
+    </ul>
+
+    <div class="insight-card">
+      <div class="insight-header">
+        <span class="insight-icon">&#128161;</span>
+        <span class="insight-title">PMへのアドバイス：「完璧」より「公開」を優先する</span>
+      </div>
+      <p>
+        Month 1でOpenAPI仕様書を完璧に仕上げようとしてリリースが遅れるケースが多い。まず主要20エンドポイントを80%の品質で公開し、残りの20%を後から追加するアプローチを推奨する。KanseiLinkの審査は公開済みの内容を評価するため、未公開の「完璧な仕様書」より公開済みの「不完全な仕様書」の方がグレードに貢献する。同様にMCPサーバーも最初は5ツールで十分。スコープを絞って高品質で実装する方が、30ツールを低品質で実装するより高く評価される。
+      </p>
+    </div>
+
+    <h2>5. よくある失敗パターンと回避策</h2>
+
+    <p>
+      KanseiLinkが225+サービスの審査過程で観察した、AEOスコア改善でつまずきやすいポイントをまとめる。
+    </p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>失敗パターン</th>
+          <th>なぜ起きるか</th>
+          <th>回避策</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>OpenAPI仕様書が実装と乖離している</td>
+          <td>仕様書を手動更新していて、コード変更時に同期が取れない</td>
+          <td>コードからOpenAPIを自動生成するツールを導入（FastAPI, Swagger annotations等）</td>
+        </tr>
+        <tr>
+          <td>MCPツールのエラーメッセージが不明瞭</td>
+          <td>エンジニアが内部デバッグ用メッセージをそのまま返している</td>
+          <td>PM主導でエラーメッセージ仕様書を作成。エージェントが次のアクションを判断できる情報量を確保する</td>
+        </tr>
+        <tr>
+          <td>robots.txtを更新したがキャッシュが残る</td>
+          <td>CDNのキャッシュ設定を更新し忘れる</td>
+          <td>robots.txtのCache-Controlヘッダーを短く設定（max-age=3600程度）</td>
+        </tr>
+        <tr>
+          <td>Server Cardのコンテンツが古い</td>
+          <td>実装時に作成したまま更新されていない</td>
+          <td>MCPサーバーのリリース時にServer Cardの更新をリリースチェックリストに追加する</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>6. 2026年後半の重要イベント：今から準備すべきこと</h2>
+
+    <p>
+      AEOスコア改善は短期の取り組みではなく、継続的な対応が求められる。2026年後半に予定されている重要な変更点を把握しておくことが、AA/AAAグレードを維持するために不可欠だ。
+    </p>
+
+    <ul>
+      <li><strong>EU AI Act 主要条項の適用（2026年8月〜）</strong>：AIエージェントが高リスクカテゴリのタスク（人事・金融・法務など）に関わるサービスは、透明性要件と監査証跡の整備が義務化される。日本のSaaSでもEU顧客を持つ場合は対応が必要。</li>
+      <li><strong>MCP Server Card仕様の正式化</strong>：現在Cloudflareが提案しているドラフト段階の<code>/.well-known/mcp/server-card.json</code>仕様が標準化される見込み。今から準備することでスムーズな移行が可能。</li>
+      <li><strong>KanseiLink Q3審査サイクル</strong>：2026年7月に予定されているQ3の一斉審査に向けて、遅くとも6月末までにMCPサーバーの品質改善を完了させることを推奨する。</li>
+    </ul>
+
+    <div class="disclosure">
+      <strong>開示事項：</strong>本記事に含まれるAEOグレード改善の推定期間（90日）はKanseiLinkが分析した典型的なSaaSサービスの実績に基づく推定値であり、すべてのサービスに当てはまるものではありません。実際の改善速度は開発リソース・技術的負債・既存インフラによって大きく異なります。MCP Server Card（<code>/.well-known/mcp/server-card.json</code>）はCloudflareが提案するドラフト仕様であり、正式な標準化は完了していません。EU AI Act（2026年8月）の適用範囲・要件については各社の法務担当者にご確認ください。
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <h2>AEOグレード審査・改善コンサルティング</h2>
+      <p>自社サービスのAEOグレードを知り、90日ロードマップを一緒に設計します。KanseiLinkのAEOアナリストが現状診断から改善計画まで伴走します。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-cta">AEO審査を申し込む</a>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="related-section">
+      <h3>関連記事</h3>
+      <div class="related-grid">
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="rc-tag">Technical Guide</div>
+          <div class="rc-title">MCPサーバー実装ガイド2026：OAuth 2.1・レート制限・エラー処理の実装パターン</div>
+          <div class="rc-desc">開発者向けのコードレベル実装ガイド。本記事の戦略ロードマップと合わせて読むことを推奨。</div>
+        </a>
+        <a href="mcp-success-patterns-data-2026.html" class="related-card">
+          <div class="rc-tag">データストーリー</div>
+          <div class="rc-title">225+サービス分析が示すMCP成功の法則</div>
+          <div class="rc-desc">どのアクションがAEOグレード改善に最も貢献するか、データで解説。</div>
+        </a>
+        <a href="mcp-common-issues.html" class="related-card">
+          <div class="rc-tag">トラブルシュート</div>
+          <div class="rc-title">MCP実装でよくある10のミス——AEOスコアを下げる落とし穴</div>
+          <div class="rc-desc">KanseiLink審査で頻繁に指摘される実装上のよくある問題とその解決策。</div>
+        </a>
+        <a href="accounting-saas-aeo-2026.html" class="related-card">
+          <div class="rc-tag">カテゴリ別AEO</div>
+          <div class="rc-title">会計SaaS AEOレポート2026：freee・マネーフォワード・弥生の比較</div>
+          <div class="rc-desc">会計SaaSカテゴリのAEOグレード分布と改善事例。ロードマップの実例として参照できる。</div>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-brand">KanseiLink</div>
+      <div class="footer-desc">AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</div>
+      <div class="footer-copy">&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+</body>
+</html>
