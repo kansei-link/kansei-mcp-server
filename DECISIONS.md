@@ -20,6 +20,13 @@ OPEN: unresolved follow-ups
 
 ---
 
+## 2026-04-21 — Drop Reddit from 4/28 Launch Plan
+CONTEXT: Reddit account u/Worth_Growth5807 accumulated 5 spam removals + 1 Reddit content-policy violation on r/ClaudeAI between 2026-04-07 and 2026-04-21 across 6 product-post attempts. Account is functionally blocked at platform level for product content. New Reddit account would require 3-month karma warm-up before another attempt.
+DECISION: Remove Reddit entirely from the 4/28 launch plan. Replace with Zenn JP + Dev.to EN same-day publication to backfill. 5-channel launch: Hacker News (Show HN) + Product Hunt + Zenn + Dev.to + X.
+REASON: Further Reddit attempts would escalate the shadow-ban risk without upside. Reddit was 1 of 6 launch channels — losing it reduces surface area but PH + HN remain the primary traffic drivers.
+REVERSIBILITY: Low for this account; Medium via fresh account in 3 months.
+OPEN: If KanseiLink goes viral on HN, consider fresh Reddit account in 5-6月 for community seeding. Stronger signal from launch success would survive Reddit filters.
+
 ## 2026-04-21 — Adopt 4-File Structure (GOALS / DECISIONS / STATE / HEALTH)
 CONTEXT: Single-agent (Claude) was becoming the bottleneck. Context drift across sessions caused hours of rework weekly — e.g. today's Railway 0.20.1 misdiagnosis (I trusted a hardcoded version string), missing SaaS derivative dedupe (freee/freee-mcp registered as separate from freee). Michie raised the "scaling law of development overhead" framing from an X post: linear-overhead designs hit a quadratic wall, log-overhead designs stay tractable.
 DECISION: Adopt four mandatory-read files at repo root:
