@@ -130,6 +130,10 @@
       --grade-bb: #EA580C;
       --grade-b: #DC2626;
       --grade-ccc: #991B1B;
+      /* C/D/F: neutral grey for unused / awaiting-evidence entries */
+      --grade-c: #6B7280;
+      --grade-d: #4B5563;
+      --grade-f: #374151;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -545,6 +549,9 @@
     .seg-bb { background: var(--grade-bb); }
     .seg-b { background: var(--grade-b); }
     .seg-ccc { background: var(--grade-ccc); }
+    .seg-c   { background: var(--grade-c); }
+    .seg-d   { background: var(--grade-d); }
+    .seg-f   { background: var(--grade-f); }
     .grade-labels {
       display: flex;
       justify-content: space-between;
@@ -682,6 +689,9 @@
     .pill-bb { background: var(--grade-bb); }
     .pill-b { background: var(--grade-b); }
     .pill-ccc { background: var(--grade-ccc); }
+    .pill-c   { background: var(--grade-c); }
+    .pill-d   { background: var(--grade-d); }
+    .pill-f   { background: var(--grade-f); }
     .score-bar-wrap { display: flex; align-items: center; gap: 8px; }
     .score-bar-bg { width: 60px; height: 5px; background: var(--gray-mid); border-radius: 3px; overflow: hidden; }
     .score-bar-fill { height: 100%; border-radius: 3px; }
@@ -689,6 +699,12 @@
     .fill-aa { background: var(--grade-aa); }
     .fill-a { background: var(--grade-a); }
     .fill-bbb { background: var(--grade-bbb); }
+    .fill-bb  { background: var(--grade-bb); }
+    .fill-b   { background: var(--grade-b); }
+    .fill-ccc { background: var(--grade-ccc); }
+    .fill-c   { background: var(--grade-c); }
+    .fill-d   { background: var(--grade-d); }
+    .fill-f   { background: var(--grade-f); }
 
     /* ===== RESOURCES CARDS ===== */
     .resources-grid {
@@ -1453,8 +1469,8 @@ const services = [
   { name:"Pixelle (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Media & Content", agentReady:"connectable", mcpEndpoint:"https://github.com/aidc-ai/pixelle-mcp" },
   { name:"Lunchmoney (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/akutishevsky/lunchmoney-mcp" },
   { name:"Node Code Sandbox (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/alfonsograziano/node-code-sandbox-mcp" },
-  { name:"Alibaba Cloud Ops (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/aliyun/alibaba-cloud-ops-mcp-server" },
-  { name:"Alibabacloud Dms (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/aliyun/alibabacloud-dms-mcp-server" },
+  { name:"Alibaba Cloud Ops (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/aliyun/alibaba-cloud-ops-mcp-server" },
+  { name:"Alibabacloud Dms (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/aliyun/alibabacloud-dms-mcp-server" },
   { name:"Ctxo (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/alperhankendi/Ctxo" },
   { name:"HappyHorse 1.0 API (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Media & Content", agentReady:"connectable", mcpEndpoint:"https://github.com/Anil-matcha/HappyHorse-1.0-API" },
   { name:"Chart (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/antvis/mcp-server-chart" },
@@ -1463,10 +1479,10 @@ const services = [
   { name:"Archestra (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/archestra-ai/archestra" },
   { name:"Kaggle (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/arrismo/kaggle-mcp" },
   { name:"Aks (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/Azure/aks-mcp" },
-  { name:"Data Api Builder (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/Azure/data-api-builder" },
-  { name:"Kubernetes (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/Azure/mcp-kubernetes" },
-  { name:"Blockrun (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"DeFi & Web3", agentReady:"connectable", mcpEndpoint:"https://github.com/BlockRunAI/blockrun-mcp" },
-  { name:"Buildkite (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/buildkite/buildkite-mcp-server" },
+  { name:"Data Api Builder (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/Azure/data-api-builder" },
+  { name:"Kubernetes (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/Azure/mcp-kubernetes" },
+  { name:"Blockrun (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Media & Content", agentReady:"connectable", mcpEndpoint:"https://github.com/BlockRunAI/blockrun-mcp" },
+  { name:"Buildkite (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/buildkite/buildkite-mcp-server" },
   { name:"Bernstein (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/chernistry/bernstein" },
   { name:"Wax (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/christopherkarani/Wax" },
   { name:"Codelogic (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Data & Analytics", agentReady:"connectable", mcpEndpoint:"https://github.com/codelogicincengineering/codelogic-mcp-server" },
@@ -1474,7 +1490,7 @@ const services = [
   { name:"Clinicaltrialsgov (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/cyanheads/clinicaltrialsgov-mcp-server" },
   { name:"Pubmed (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Search & Discovery", agentReady:"connectable", mcpEndpoint:"https://github.com/cyanheads/pubmed-mcp-server" },
   { name:"N8n (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/czlonkowski/n8n-mcp" },
-  { name:"Dbt (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/dbt-labs/dbt-mcp" },
+  { name:"Dbt (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Data & Analytics", agentReady:"connectable", mcpEndpoint:"https://github.com/dbt-labs/dbt-mcp" },
   { name:"Prism (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/dcostenco/prism-mcp" },
   { name:"Debridge (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"DeFi & Web3", agentReady:"connectable", mcpEndpoint:"https://github.com/debridge-finance/debridge-mcp" },
   { name:"Studio (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"DeFi & Web3", agentReady:"connectable", mcpEndpoint:"https://github.com/decocms/studio" },
@@ -1488,13 +1504,13 @@ const services = [
   { name:"Flyto Core (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/flytohub/flyto-core" },
   { name:"LeanKG (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"DeFi & Web3", agentReady:"connectable", mcpEndpoint:"https://github.com/FreePeak/LeanKG" },
   { name:"Biomcp (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/genomoncology/biomcp" },
-  { name:"Sentry (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/getsentry/sentry-mcp" },
+  { name:"Sentry (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/getsentry/sentry-mcp" },
   { name:"Github (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/github/github-mcp-server" },
   { name:"Gopher (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/GopherSecurity/gopher-mcp" },
   { name:"Imagen3 (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Media & Content", agentReady:"connectable", mcpEndpoint:"https://github.com/hamflx/imagen3-mcp" },
   { name:"Gopls (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/hloiseaufcms/mcp-gopls" },
   { name:"Esp (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/horw/esp-mcp" },
-  { name:"Houtini Lm (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"DeFi & Web3", agentReady:"connectable", mcpEndpoint:"https://github.com/houtini-ai/houtini-lm" },
+  { name:"Houtini Lm (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/houtini-ai/houtini-lm" },
   { name:"Tda (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/irockel/tda" },
   { name:"Naver Search (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Search & Discovery", agentReady:"connectable", mcpEndpoint:"https://github.com/isnow890/naver-search-mcp" },
   { name:"Producthunt (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/jaipandya/producthunt-mcp-server" },
@@ -1503,13 +1519,13 @@ const services = [
   { name:"Entroly (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"DeFi & Web3", agentReady:"connectable", mcpEndpoint:"https://github.com/juyterman1000/entroly" },
   { name:"Kaimon.jl (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/kahliburke/Kaimon.jl" },
   { name:"Zaturn (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Data & Analytics", agentReady:"connectable", mcpEndpoint:"https://github.com/kdqed/zaturn" },
-  { name:"Apache Spark History Server (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/kubeflow/mcp-apache-spark-history-server" },
+  { name:"Apache Spark History Server (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Data & Analytics", agentReady:"connectable", mcpEndpoint:"https://github.com/kubeflow/mcp-apache-spark-history-server" },
   { name:"EDDI (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/labsai/EDDI" },
-  { name:"Lemonade (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/lemonade-sdk/lemonade" },
+  { name:"Lemonade (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Communication", agentReady:"connectable", mcpEndpoint:"https://github.com/lemonade-sdk/lemonade" },
   { name:"Dsers Mcp Product (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Commerce", agentReady:"connectable", mcpEndpoint:"https://github.com/lofder/dsers-mcp-product" },
-  { name:"Twitter (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Communication", agentReady:"connectable", mcpEndpoint:"https://github.com/luniakunal/mcp-twitter" },
+  { name:"Twitter (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Media & Content", agentReady:"connectable", mcpEndpoint:"https://github.com/luniakunal/mcp-twitter" },
   { name:"Knowledge Rag (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/lyonzin/knowledge-rag" },
-  { name:"Design Extract (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/Manavarya09/design-extract" },
+  { name:"Design Extract (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Design", agentReady:"connectable", mcpEndpoint:"https://github.com/Manavarya09/design-extract" },
   { name:"Scrumboy (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/markrai/scrumboy" },
   { name:"Marmot (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Communication", agentReady:"connectable", mcpEndpoint:"https://github.com/marmotdata/marmot" },
   { name:"Bifrost (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"DeFi & Web3", agentReady:"connectable", mcpEndpoint:"https://github.com/maximhq/bifrost" },
@@ -1522,11 +1538,11 @@ const services = [
   { name:"Npcpy (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/NPC-Worldwide/npcpy" },
   { name:"Isaac Sim (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/omni-mcp/isaac-sim-mcp" },
   { name:"OpenMetadata (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Data & Analytics", agentReady:"connectable", mcpEndpoint:"https://github.com/open-metadata/OpenMetadata" },
-  { name:"Airbnb (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Search & Discovery", agentReady:"connectable", mcpEndpoint:"https://github.com/openbnb-org/mcp-server-airbnb" },
+  { name:"Airbnb (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Location & Travel", agentReady:"connectable", mcpEndpoint:"https://github.com/openbnb-org/mcp-server-airbnb" },
   { name:"Opentabs (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/opentabs-dev/opentabs" },
   { name:"Ops Codegraph Tool (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/optave/ops-codegraph-tool" },
-  { name:"Coda (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/orellazri/coda-mcp" },
-  { name:"NornicDB (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/orneryd/NornicDB" },
+  { name:"Coda (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Knowledge & Docs", agentReady:"connectable", mcpEndpoint:"https://github.com/orellazri/coda-mcp" },
+  { name:"NornicDB (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Data & Analytics", agentReady:"connectable", mcpEndpoint:"https://github.com/orneryd/NornicDB" },
   { name:"Osaurus (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/osaurus-ai/osaurus" },
   { name:"Paiml Mcp Agent Toolkit (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/paiml/paiml-mcp-agent-toolkit" },
   { name:"Google Drive (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/piotr-agier/google-drive-mcp" },
@@ -1543,7 +1559,7 @@ const services = [
   { name:"Gram (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/speakeasy-api/gram" },
   { name:"Brainstorm (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/spranab/brainstorm-mcp" },
   { name:"Arxiv Latex (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/takashiishida/arxiv-latex-mcp" },
-  { name:"Google Workspace Mcp (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/taylorwilsdon/google_workspace_mcp" },
+  { name:"Google Workspace Mcp (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Communication", agentReady:"connectable", mcpEndpoint:"https://github.com/taylorwilsdon/google_workspace_mcp" },
   { name:"Lunar (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/TheLunarCompany/lunar" },
   { name:"ThinkWatch (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/ThinkWatchProject/ThinkWatch" },
   { name:"Node Sdk (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"File Storage", agentReady:"connectable", mcpEndpoint:"https://github.com/transloadit/node-sdk" },
@@ -1552,7 +1568,7 @@ const services = [
   { name:"Vurb.ts (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/vinkius-labs/vurb.ts" },
   { name:"Auto Claude Code Research In Sleep (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"AI & LLM", agentReady:"connectable", mcpEndpoint:"https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep" },
   { name:"Xiaozhi Esp32 Server (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"IoT & Hardware", agentReady:"connectable", mcpEndpoint:"https://github.com/xinnan-tech/xiaozhi-esp32-server" },
-  { name:"Awesome X402 (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/xpaysh/awesome-x402" },
+  { name:"Awesome X402 (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Developer Tools", agentReady:"connectable", mcpEndpoint:"https://github.com/xpaysh/awesome-x402" },
   { name:"Xiaohongshu (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/xpzouying/xiaohongshu-mcp" },
   { name:"finData (Community)", grade:"D", score:0.1, status:"Connectable", mcp:"Community", recipes:0, success:"N/A", category:"Other", agentReady:"connectable", mcpEndpoint:"https://github.com/zlinzzzz/findata-mcp-server" },
 ];
