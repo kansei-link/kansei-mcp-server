@@ -77,7 +77,21 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   const recipes = loadJson<RecipeSeed[]>("recipes-seed.json");
   const apiGuides = loadJson<ApiGuideSeed[]>("api-guides-seed.json");
 
+  // Auto-detected changelog entries from refreshExistingServices (regen-seed.mjs
+  // exports them into changelog-seed.json). Falls back to empty when file is
+  // absent (older deploys without Phase 2). These merge with the hand-curated
+  // entries below via INSERT OR IGNORE in seed logic.
+  let autoChangelog: ChangelogSeed[] = [];
+  try {
+    autoChangelog = loadJson<ChangelogSeed[]>("changelog-seed.json");
+  } catch {
+    /* file optional */
+  }
+
   const changelogEntries: ChangelogSeed[] = [
+    // ---- auto-detected (from refresh.ts runs) ----
+    ...autoChangelog,
+    // ---- hand-curated (overrides autodetect via INSERT OR IGNORE on same key) ----
     // freee
     { service_id: "freee", change_date: "2026-03-27", change_type: "feature", summary: "Remote MCP server version added", details: "freee now offers a hosted MCP endpoint in addition to the local npx runner, reducing setup friction for cloud-native agents." },
     { service_id: "freee", change_date: "2026-03-15", change_type: "feature", summary: "Invoice API v2 endpoint supported", details: "Added support for the new freee Invoice API v2 with line-item tax rounding options and PDF attachment." },

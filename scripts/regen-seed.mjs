@@ -19,6 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, "..", "kansei-link.db");
 const servicesOut = path.join(__dirname, "..", "src", "data", "services-seed.json");
 const recipesOut = path.join(__dirname, "..", "src", "data", "recipes-seed.json");
+const changelogOut = path.join(__dirname, "..", "src", "data", "changelog-seed.json");
 
 if (!existsSync(dbPath)) {
   console.error(`[regen-seed] DB not found at ${dbPath}`);
@@ -94,6 +95,30 @@ const recipes = recipeRows.map((r) => {
   };
 });
 
+// ---------- changelog ----------
+// Only sync entries from the last 180 days to keep the seed file bounded.
+// Older history stays in the live DB but doesn't get re-seeded into Railway
+// on every deploy (Railway's DB keeps its own long-tail via persistence).
+const changelogRows = db
+  .prepare(
+    `SELECT service_id, change_date, change_type, summary, details
+     FROM service_changelog
+     WHERE change_date >= date('now', '-180 days')
+     ORDER BY change_date DESC, service_id ASC`
+  )
+  .all();
+
+const changelog = changelogRows.map((r) => {
+  const out = {
+    service_id: r.service_id,
+    change_date: r.change_date,
+    change_type: r.change_type,
+    summary: r.summary,
+  };
+  if (r.details) out.details = r.details;
+  return out;
+});
+
 // ---------- write ----------
 // Preserve pre-change counts for a human-readable diff summary.
 const prevServicesCount = existsSync(servicesOut)
@@ -102,15 +127,21 @@ const prevServicesCount = existsSync(servicesOut)
 const prevRecipesCount = existsSync(recipesOut)
   ? JSON.parse(readFileSync(recipesOut, "utf-8")).length
   : 0;
+const prevChangelogCount = existsSync(changelogOut)
+  ? JSON.parse(readFileSync(changelogOut, "utf-8")).length
+  : 0;
 
 writeFileSync(servicesOut, JSON.stringify(services, null, 2) + "\n", "utf-8");
 writeFileSync(recipesOut, JSON.stringify(recipes, null, 2) + "\n", "utf-8");
+writeFileSync(changelogOut, JSON.stringify(changelog, null, 2) + "\n", "utf-8");
 
 console.log("=== regen-seed ===");
-console.log(`services: ${prevServicesCount} -> ${services.length}  (${services.length - prevServicesCount >= 0 ? "+" : ""}${services.length - prevServicesCount})`);
-console.log(`recipes:  ${prevRecipesCount} -> ${recipes.length}  (${recipes.length - prevRecipesCount >= 0 ? "+" : ""}${recipes.length - prevRecipesCount})`);
+console.log(`services:  ${prevServicesCount} -> ${services.length}  (${services.length - prevServicesCount >= 0 ? "+" : ""}${services.length - prevServicesCount})`);
+console.log(`recipes:   ${prevRecipesCount} -> ${recipes.length}  (${recipes.length - prevRecipesCount >= 0 ? "+" : ""}${recipes.length - prevRecipesCount})`);
+console.log(`changelog: ${prevChangelogCount} -> ${changelog.length}  (${changelog.length - prevChangelogCount >= 0 ? "+" : ""}${changelog.length - prevChangelogCount})  [last 180 days]`);
 console.log();
 console.log(`wrote: ${servicesOut}`);
 console.log(`wrote: ${recipesOut}`);
+console.log(`wrote: ${changelogOut}`);
 
 db.close();
