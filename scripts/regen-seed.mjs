@@ -20,6 +20,7 @@ const dbPath = path.join(__dirname, "..", "kansei-link.db");
 const servicesOut = path.join(__dirname, "..", "src", "data", "services-seed.json");
 const recipesOut = path.join(__dirname, "..", "src", "data", "recipes-seed.json");
 const changelogOut = path.join(__dirname, "..", "src", "data", "changelog-seed.json");
+const voicesOut = path.join(__dirname, "..", "src", "data", "voices-seed.json");
 
 if (!existsSync(dbPath)) {
   console.error(`[regen-seed] DB not found at ${dbPath}`);
@@ -119,6 +120,30 @@ const changelog = changelogRows.map((r) => {
   return out;
 });
 
+// ---------- agent voices (synthesized from outcomes) ----------
+// Only export aggregated / synthesized rows — we don't want to re-sync the
+// 138 existing hand-collected voices from earlier surveys; those live on
+// Railway already via older seed paths.
+const voiceRows = db
+  .prepare(
+    `SELECT service_id, agent_type, agent_id, question_id, response_choice,
+            response_text, confidence
+     FROM agent_voice_responses
+     WHERE agent_type = 'aggregated'
+     ORDER BY service_id ASC`
+  )
+  .all();
+
+const voices = voiceRows.map((r) => ({
+  service_id: r.service_id,
+  agent_type: r.agent_type,
+  agent_id: r.agent_id,
+  question_id: r.question_id,
+  response_choice: r.response_choice,
+  response_text: r.response_text,
+  confidence: r.confidence,
+}));
+
 // ---------- write ----------
 // Preserve pre-change counts for a human-readable diff summary.
 const prevServicesCount = existsSync(servicesOut)
@@ -130,18 +155,24 @@ const prevRecipesCount = existsSync(recipesOut)
 const prevChangelogCount = existsSync(changelogOut)
   ? JSON.parse(readFileSync(changelogOut, "utf-8")).length
   : 0;
+const prevVoicesCount = existsSync(voicesOut)
+  ? JSON.parse(readFileSync(voicesOut, "utf-8")).length
+  : 0;
 
 writeFileSync(servicesOut, JSON.stringify(services, null, 2) + "\n", "utf-8");
 writeFileSync(recipesOut, JSON.stringify(recipes, null, 2) + "\n", "utf-8");
 writeFileSync(changelogOut, JSON.stringify(changelog, null, 2) + "\n", "utf-8");
+writeFileSync(voicesOut, JSON.stringify(voices, null, 2) + "\n", "utf-8");
 
 console.log("=== regen-seed ===");
 console.log(`services:  ${prevServicesCount} -> ${services.length}  (${services.length - prevServicesCount >= 0 ? "+" : ""}${services.length - prevServicesCount})`);
 console.log(`recipes:   ${prevRecipesCount} -> ${recipes.length}  (${recipes.length - prevRecipesCount >= 0 ? "+" : ""}${recipes.length - prevRecipesCount})`);
 console.log(`changelog: ${prevChangelogCount} -> ${changelog.length}  (${changelog.length - prevChangelogCount >= 0 ? "+" : ""}${changelog.length - prevChangelogCount})  [last 180 days]`);
+console.log(`voices:    ${prevVoicesCount} -> ${voices.length}  (${voices.length - prevVoicesCount >= 0 ? "+" : ""}${voices.length - prevVoicesCount})  [aggregated only]`);
 console.log();
 console.log(`wrote: ${servicesOut}`);
 console.log(`wrote: ${recipesOut}`);
 console.log(`wrote: ${changelogOut}`);
+console.log(`wrote: ${voicesOut}`);
 
 db.close();

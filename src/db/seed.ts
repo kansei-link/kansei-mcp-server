@@ -88,6 +88,23 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     /* file optional */
   }
 
+  // Synthesized agent voices from aggregate-voices.mjs. Empty on older deploys.
+  interface VoiceSeed {
+    service_id: string;
+    agent_type: string;
+    agent_id: string;
+    question_id: string;
+    response_choice: string;
+    response_text: string;
+    confidence: string;
+  }
+  let autoVoices: VoiceSeed[] = [];
+  try {
+    autoVoices = loadJson<VoiceSeed[]>("voices-seed.json");
+  } catch {
+    /* file optional */
+  }
+
   const changelogEntries: ChangelogSeed[] = [
     // ---- auto-detected (from refresh.ts runs) ----
     ...autoChangelog,
@@ -229,6 +246,22 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     VALUES (@service_id, @change_date, @change_type, @summary, @details)
   `);
 
+  // Upsert synthesized agent voice — 1 row per service for aggregated type.
+  // Using delete-then-insert pattern since there's no UNIQUE constraint on
+  // (service_id, agent_type, question_id); and the content is entirely
+  // derived so overwriting is correct.
+  const deleteAggregatedVoice = db.prepare(`
+    DELETE FROM agent_voice_responses
+    WHERE service_id = @service_id
+      AND agent_type = 'aggregated'
+      AND question_id = @question_id
+  `);
+  const insertAggregatedVoice = db.prepare(`
+    INSERT INTO agent_voice_responses
+      (service_id, agent_type, agent_id, question_id, response_choice, response_text, confidence)
+    VALUES (@service_id, @agent_type, @agent_id, @question_id, @response_choice, @response_text, @confidence)
+  `);
+
   const insertApiGuide = db.prepare(`
     INSERT OR IGNORE INTO service_api_guides (service_id, base_url, api_version, auth_overview, auth_token_url, auth_scopes, auth_setup_hint, sandbox_url, key_endpoints, request_content_type, pagination_style, rate_limit, error_format, quickstart_example, agent_tips, docs_url)
     VALUES (@service_id, @base_url, @api_version, @auth_overview, @auth_token_url, @auth_scopes, @auth_setup_hint, @sandbox_url, @key_endpoints, @request_content_type, @pagination_style, @rate_limit, @error_format, @quickstart_example, @agent_tips, @docs_url)
@@ -265,6 +298,14 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         summary: entry.summary,
         details: entry.details ?? null,
       });
+    }
+
+    for (const voice of autoVoices) {
+      deleteAggregatedVoice.run({
+        service_id: voice.service_id,
+        question_id: voice.question_id,
+      });
+      insertAggregatedVoice.run(voice);
     }
 
     for (const guide of apiGuides) {
