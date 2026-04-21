@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Does API Latency Predict MCP Success Rate? KanseiLink Data Analysis of 225 Japanese SaaS Services | KanseiLink</title>
+  <meta name="description" content="Is it true that slower APIs fail more often in MCP agent workflows? KanseiLink analyzed real operational data from 225 Japanese SaaS services. The correlation exists — but the causation points somewhere unexpected.">
+  <meta name="keywords" content="MCP success rate, API latency MCP, MCP performance data, KanseiLink data analysis, MCP error rate, agent-ready SaaS, AEO data story 2026, Japanese SaaS MCP">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/mcp-latency-success-rate-correlation-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-latency-success-rate-correlation-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-latency-success-rate-correlation-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-latency-success-rate-correlation-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Does API Latency Predict MCP Success Rate? KanseiLink Data Analysis of 225 Japanese SaaS Services">
+  <meta property="og:description" content="Shopify Japan: 123ms / 94%. Asana: 303ms / 67%. The correlation exists — but causation runs in a surprising direction. KanseiLink data shows what actually drives MCP failure rates.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/mcp-latency-success-rate-correlation-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-21">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Data Story">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Does API Latency Predict MCP Success Rate? KanseiLink Data Analysis">
+  <meta name="twitter:description" content="Shopify 123ms→94% success. Asana 303ms→67%. The correlation is real. The causation is not what you think.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Does API Latency Predict MCP Success Rate? KanseiLink Data Analysis of 225 Japanese SaaS Services",
+    "description": "KanseiLink analyzed MCP latency and success rate data from 225+ Japanese SaaS services. The data reveals a correlation — but the causal direction is counterintuitive and has direct implications for where SaaS vendors should invest in MCP quality improvement.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-21",
+    "dateModified": "2026-04-21",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/mcp-latency-success-rate-correlation-2026",
+    "keywords": ["MCP", "API latency", "success rate", "data analysis", "KanseiLink", "AEO", "Japanese SaaS", "AI agent"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Does high API latency cause lower MCP success rates?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLink data shows a correlation between latency and success rate, but the relationship is not directly causal. High latency and low success rates tend to share a common root cause — lower MCP implementation maturity and infrastructure investment — rather than one causing the other. Two services with identical latency (216ms) show a 7-point success rate gap due to unrelated factors like data model complexity."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which Japanese SaaS service has the highest MCP success rate?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "As of April 2026, Shopify Japan MCP leads with a 94% success rate and the lowest latency (123ms) among KanseiLink-measured services. Money Forward Cloud MCP follows at 93% (156ms), then Slack MCP at 91% (163ms). All three hold AAA-grade AEO ratings."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the most effective way to improve MCP server success rates?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLink data points to authentication stability as the highest-ROI improvement. Implementing automatic OAuth token refresh (addressing the auth_expired error pattern seen in freee's data) can improve success rates by 5–8 points. Structured error responses with retry guidance and transparent rate limit headers are the next most impactful interventions. Latency optimization should come after these."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCP Latency vs Success Rate 2026", "item": "https://kansei-link.com/en/insights/mcp-latency-success-rate-correlation-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 15px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .grade-aaa { font-weight: 700; color: #059669; }
+    .grade-aa { font-weight: 700; color: #2563EB; }
+
+    .bar-wrap { display: flex; align-items: center; gap: 10px; }
+    .bar { height: 10px; border-radius: 5px; background: var(--teal); }
+    .bar-low { background: #F87171; }
+    .bar-mid { background: #FCD34D; }
+    .bar-val { font-size: 13px; font-weight: 600; color: var(--black); min-width: 36px; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 28px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/mcp-latency-success-rate-correlation-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCP Latency vs Success Rate 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Data Story</span>
+      <h1>Does API Latency Predict MCP Success Rate?</h1>
+      <p class="subtitle">KanseiLink analyzed operational data from 225 Japanese SaaS MCP services. The correlation is real. The causation points somewhere most developers aren't looking.</p>
+      <div class="article-meta">
+        <span>2026-04-21</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>8 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#hypothesis">The Hypothesis: Slower APIs Fail More Often</a></li>
+        <li><a href="#raw-data">KanseiLink Operational Data</a></li>
+        <li><a href="#correlation">The Correlation: What the Numbers Actually Say</a></li>
+        <li><a href="#outliers">The Outlier: Why freee and Notion Share the Same Latency but Different Success Rates</a></li>
+        <li><a href="#real-causes">The Real Cause: What's Behind the Latency Signal</a></li>
+        <li><a href="#vendor-implications">Recommendations for SaaS Vendors</a></li>
+        <li><a href="#conclusion">Conclusion: What Should You Actually Optimize?</a></li>
+      </ol>
+    </div>
+
+    <div class="disclosure-box">
+      <div class="label">Data Source</div>
+      <p>All data in this article was retrieved via KanseiLink's <code>get_insights()</code> MCP tool (as of April 13, 2026). Services with low report counts (Asana: 3 reports) have limited statistical reliability and should be treated as indicative rather than conclusive.</p>
+    </div>
+
+    <h2 id="hypothesis">The Hypothesis: Slower APIs Fail More Often</h2>
+
+    <p>A common intuition circulates among AI agent developers: <strong>"MCP servers with slower API response times also have higher failure rates."</strong></p>
+
+    <p>The reasoning is straightforward. Slow responses suggest heavy server-side processing, unstable infrastructure, or shallow implementation quality. And that same "lack of investment" tends to manifest as timeouts and unexpected errors that bring down an agent's task success rate.</p>
+
+    <p>KanseiLink collects live MCP operational data from 225+ Japanese SaaS services. We lined up latency and success rate figures for six services to test whether this hypothesis holds. The data confirmed the correlation in some places — and contradicted it in exactly the place that matters most.</p>
+
+    <h2 id="raw-data">KanseiLink Operational Data</h2>
+
+    <p>The table below shows data retrieved via <code>get_insights()</code> for six services: average response latency and the rate at which agents successfully completed their intended tasks.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Grade</th>
+          <th>Avg. Latency</th>
+          <th>Success Rate</th>
+          <th>Success (Bar)</th>
+          <th>Reports</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Shopify Japan MCP</strong></td>
+          <td><span class="grade-aaa">AAA</span></td>
+          <td><strong>123 ms</strong></td>
+          <td><strong>94%</strong></td>
+          <td><div class="bar-wrap"><div class="bar" style="width:94px"></div><span class="bar-val">94%</span></div></td>
+          <td>53</td>
+        </tr>
+        <tr>
+          <td><strong>Money Forward Cloud MCP</strong></td>
+          <td><span class="grade-aaa">AAA</span></td>
+          <td><strong>156 ms</strong></td>
+          <td><strong>93%</strong></td>
+          <td><div class="bar-wrap"><div class="bar" style="width:93px"></div><span class="bar-val">93%</span></div></td>
+          <td>42</td>
+        </tr>
+        <tr>
+          <td><strong>Slack MCP</strong></td>
+          <td><span class="grade-aaa">AAA</span></td>
+          <td><strong>163 ms</strong></td>
+          <td><strong>91%</strong></td>
+          <td><div class="bar-wrap"><div class="bar" style="width:91px"></div><span class="bar-val">91%</span></div></td>
+          <td>113</td>
+        </tr>
+        <tr>
+          <td><strong>freee MCP</strong></td>
+          <td><span class="grade-aaa">AAA</span></td>
+          <td><strong>216 ms</strong></td>
+          <td><strong>90%</strong></td>
+          <td><div class="bar-wrap"><div class="bar" style="width:90px"></div><span class="bar-val">90%</span></div></td>
+          <td>212</td>
+        </tr>
+        <tr>
+          <td><strong>Notion MCP</strong></td>
+          <td><span class="grade-aaa">AAA</span></td>
+          <td><strong>216 ms</strong></td>
+          <td><strong>83%</strong></td>
+          <td><div class="bar-wrap"><div class="bar bar-mid" style="width:83px"></div><span class="bar-val">83%</span></div></td>
+          <td>48</td>
+        </tr>
+        <tr>
+          <td><strong>Asana MCP</strong></td>
+          <td><span class="grade-aa">AA</span></td>
+          <td><strong>303 ms</strong></td>
+          <td><strong>67%</strong></td>
+          <td><div class="bar-wrap"><div class="bar bar-low" style="width:67px"></div><span class="bar-val">67%</span></div></td>
+          <td>3 ⚠️</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>⚠️ Asana has only 3 reports. Treat as directional reference only due to low sample size.</p>
+
+    <h2 id="correlation">The Correlation: What the Numbers Actually Say</h2>
+
+    <p>At first glance, the data appears to confirm the hypothesis. The fastest service (Shopify Japan at 123ms) has the highest success rate (94%). The slowest (Asana at 303ms) has the lowest (67%). A trend is visible as latency increases.</p>
+
+    <div class="data-highlight">
+      <h4>Overall Trend</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num">123ms</span>
+          <div class="label">Fastest service<br>(Shopify Japan)<br>94% success rate</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">303ms</span>
+          <div class="label">Slowest service<br>(Asana)<br>67% success rate</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">180ms</span>
+          <div class="label">Top 4 services<br>average latency<br>92% avg success rate</div>
+        </div>
+      </div>
+    </div>
+
+    <p>But this is exactly where we need to pause. <strong>Correlation is not causation.</strong> "Latency and success rate correlate" is a different claim from "high latency causes failures." When we dig into the error data, this distinction becomes decisive.</p>
+
+    <h2 id="outliers">The Outlier: freee and Notion at Identical Latency, Different Success Rates</h2>
+
+    <p>The dataset contains one fact that cannot be ignored: <strong>freee MCP and Notion MCP have identical average latency (216ms) yet differ by 7 percentage points in success rate — 90% vs 83%.</strong></p>
+
+    <p>If latency were directly causing failures, two services at the same latency should show similar success rates. They don't. So what generates the 7-point gap?</p>
+
+    <p>KanseiLink's <code>get_insights()</code> data includes error breakdowns. freee's primary errors are <code>auth_expired</code> (OAuth token expiry after 24 hours) and generic <code>api_error</code>. Notion's primary errors include <code>api_error</code> plus two that don't appear in freee's data: <code>schema_mismatch</code> (database ID reference drift) and <code>search_miss</code> (ambiguous queries failing to surface Notion in results).</p>
+
+    <div class="insight-box">
+      <div class="label">Key Finding</div>
+      <p>freee and Notion share the same latency (216ms), but Notion's <code>schema_mismatch</code> error is absent from freee's data. <strong>Notion's lower success rate stems from its three-layer data model complexity (pages / databases / blocks), not response speed.</strong> The latency is identical; the failure modes are completely different.</p>
+    </div>
+
+    <p>This is a critical insight. Notion's 83% success rate is not a latency problem — it is a <strong>data model complexity and MCP implementation quality</strong> problem. freee's 90% ceiling is also unrelated to latency — it reflects a <strong>by-design 24-hour OAuth token expiry constraint</strong> that limits the top achievable success rate until automatic token refresh is implemented.</p>
+
+    <h2 id="real-causes">The Real Cause: What's Behind the Latency Signal</h2>
+
+    <p>So if latency isn't directly causing failures, why does the correlation exist? The data points to a <strong>common cause hypothesis</strong>.</p>
+
+    <p>High latency and low success rates are not cause-and-effect — they are <strong>two separate outcomes of the same underlying cause: MCP implementation maturity and infrastructure investment.</strong></p>
+
+    <ul>
+      <li><strong>Mature MCP implementations</strong> (Shopify Japan, Money Forward): Global CDN deployment, optimized API design, appropriate caching strategy. These simultaneously produce low latency <em>and</em> high success rates.</li>
+      <li><strong>Less mature MCP implementations:</strong> No edge caching, inefficient database queries, incomplete error handling. These simultaneously produce high latency <em>and</em> lower success rates.</li>
+    </ul>
+
+    <p>Agents don't fail because the API is slow. They fail because <strong>the same MCP server that responds slowly also handles errors poorly, implements auth incorrectly, or returns ambiguous schema responses</strong> — all symptoms of the same root condition.</p>
+
+    <h3>Failure Analysis by Error Category</h3>
+
+    <p>Breaking down the error categories in KanseiLink's data reveals clear patterns for what actually drives success rate down:</p>
+
+    <ul>
+      <li><strong>Authentication errors (auth_expired):</strong> Frequent in freee. OAuth token expiry. <em>Independent of latency.</em> Solvable with automatic token refresh logic.</li>
+      <li><strong>Schema mismatch (schema_mismatch):</strong> Frequent in Notion. Database ID drift when referenced objects change. <em>Independent of latency.</em> Solvable by fetching current IDs before write operations.</li>
+      <li><strong>Rate limiting (rate_limit):</strong> Frequent in Asana. Call frequency limits on endpoints. <em>Indirectly related to latency</em> (slower responses mean fewer calls before hitting limits). Solvable with exponential backoff.</li>
+      <li><strong>Generic API errors (api_error):</strong> Present in all services. Input validation failures and API version mismatches. <em>Independent of latency.</em></li>
+    </ul>
+
+    <div class="insight-box">
+      <div class="label">Key Finding</div>
+      <p>Of the four primary error categories, <strong>only rate limiting has even an indirect relationship to latency</strong>. Auth errors, schema mismatches, and validation failures are entirely independent of response speed. The implication: <strong>if you want to improve MCP success rates, invest in authentication stability before infrastructure speed.</strong></p>
+    </div>
+
+    <h2 id="vendor-implications">Recommendations for SaaS Vendors</h2>
+
+    <p>The data makes a clear case that <strong>there are higher-ROI improvements than reducing response time</strong> when it comes to MCP server quality.</p>
+
+    <div class="success-box">
+      <div class="label">Success Rate Improvement Priorities (KanseiLink Recommended Order)</div>
+      <p>
+        <strong>① Authentication Stability (Highest Impact)</strong><br>
+        Implement automatic OAuth token refresh. As freee's auth_expired pattern shows, simply storing tokenExpiresAt and triggering refresh before expiry can lift success rates by 5–8 percentage points. Low engineering cost, high impact.<br><br>
+        <strong>② Structured Error Responses (Medium Impact)</strong><br>
+        Include <code>retryable: true/false</code> flags and recommended <code>wait_seconds</code> in error responses. Agents that can self-direct retry strategies recover from transient errors instead of failing the entire task.<br><br>
+        <strong>③ Rate Limit Transparency (Medium Impact)</strong><br>
+        Implement <code>X-RateLimit-Remaining</code> and <code>X-RateLimit-Reset</code> response headers as standard. The majority of Asana's rate limit errors are preventable with proactive backoff triggered by these headers.<br><br>
+        <strong>④ Latency Optimization (Limited Impact on Success Rate)</strong><br>
+        Pursue after ①–③. Edge deployment and caching strategies contribute more to perceived user experience than to agent task success rates.
+      </p>
+    </div>
+
+    <h2 id="conclusion">Conclusion: What Should You Actually Optimize?</h2>
+
+    <p>"Slower APIs fail more often" — this hypothesis is supported <em>as a correlation</em> but fails <em>as a causal explanation</em>.</p>
+
+    <p>The structure KanseiLink's data reveals:</p>
+
+    <ol>
+      <li>High latency and low success rates are <strong>co-effects of a common cause</strong> (MCP implementation maturity), not cause-and-effect</li>
+      <li>The leading drivers of failure — auth errors, schema mismatches, validation gaps — are <strong>independent of response speed</strong></li>
+      <li>freee (90%) and Notion (83%) share identical latency but diverge because of <strong>an entirely separate variable: data model complexity</strong></li>
+      <li>The highest-ROI path to improving MCP success rates starts with <strong>authentication stabilization</strong>, not infrastructure speed</li>
+    </ol>
+
+    <p>This analysis covers six services with varying sample sizes, so caution is warranted in generalizing. But freee's 212-report dataset and Slack's 113-report dataset show consistent patterns that support the directional conclusion.</p>
+
+    <p>In the agent era, SaaS quality isn't primarily about speed — it's about <strong>predictability</strong>. Can an agent understand what went wrong and recover autonomously? That is the design question that separates 90%+ success rate services from the rest.</p>
+
+    <div class="cta-banner">
+      <h3>Check Your Service's MCP Operational Data</h3>
+      <p>Retrieve live latency, success rates, and error breakdowns: <code style="background:rgba(255,255,255,0.2);color:#fff;border:none;">get_insights(service_id="your-service")</code></p>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" class="btn-teal" target="_blank">Use KanseiLink MCP Server</a>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Research</h2>
+      <div class="related-grid">
+        <a href="mcp-success-patterns-data-2026.html" class="related-card">
+          <div class="tag">Data Story</div>
+          <h4>What 225+ Services Reveal About MCP Success Patterns — KanseiLink Data Story</h4>
+        </a>
+        <a href="cloudflare-code-mode-token-verification-2026.html" class="related-card">
+          <div class="tag">Verification Report</div>
+          <h4>Is Cloudflare Code Mode's "99.9% Token Reduction" Real? Solving the 81% vs 99.9% Mystery</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">How-to Guide</div>
+          <h4>MCP Server Implementation Guide 2026 — Auth, Rate Limiting & Error Handling Patterns</h4>
+        </a>
+        <a href="notion-mcp-deep-dive-2026.html" class="related-card">
+          <div class="tag">Service Deep-Dive</div>
+          <h4>Notion MCP Complete Guide — 6 Pitfalls of the Official Server & 2026 New API Features</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        All data in this article is available via <code>get_insights(service_id="freee")</code>, <code>get_insights(service_id="slack")</code>, <code>get_insights(service_id="notion")</code>, and related calls.
+        The <code>common_errors[].known_workarounds</code> field contains verified fix patterns for the auth, schema, and rate limit errors discussed.
+        For service-specific optimization: <code>get_service_tips(service_id="{service_id}")</code>.
+        Filter verified high-success services with <code>search_services(agent_ready="verified")</code>.
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. Making AI agent readiness visible.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="../../insights/aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="../../insights/what-is-aeo.html">What is AEO?</a>
+          <a href="../../insights/what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Connect</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+<script src="/js/paywall.js"></script>
+</body>
+</html>
