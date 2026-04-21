@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloudflare Code Modeの「トークン99.9%削減」は本当か？ — 81%と99.9%、2つの数字の謎を解明する | KanseiLink</title>
+  <meta name="description" content="Cloudflare Code ModeのMCPサーバーが「99.9%トークン削減」を主張する一方、WorkOSは同技術で「81%削減」と報告。なぜ数字が異なるのか？一次ソースを検証し、日本SaaS開発者が知るべき真実を解説。">
+  <meta name="keywords" content="Cloudflare Code Mode, MCP トークン削減, MCPサーバー トークン最適化, Cloudflare MCP 99%, WorkOS 81%, AIエージェント コスト, KanseiLink, AEO">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/cloudflare-code-mode-token-verification-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/cloudflare-code-mode-token-verification-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/cloudflare-code-mode-token-verification-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/cloudflare-code-mode-token-verification-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Cloudflare Code Modeの「トークン99.9%削減」は本当か？ — 81%と99.9%、2つの数字の謎を解明する">
+  <meta property="og:description" content="99.9%と81%——同じ技術で異なる数字。KanseiLinkが一次ソースを検証し、測定コンテキストの違いを解明。日本SaaS開発者への実際の影響も考察。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/cloudflare-code-mode-token-verification-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-21">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Verification Report">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Cloudflare Code Mode「99.9%トークン削減」vs「81%削減」— どちらが正しいのか？">
+  <meta name="twitter:description" content="KanseiLinkが一次ソースを検証。2つの数字は「どちらも正しい」が、測定している対象がまったく異なる。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Cloudflare Code Modeの「トークン99.9%削減」は本当か？ — 81%と99.9%、2つの数字の謎を解明する",
+    "description": "Cloudflare Code ModeのMCPサーバーが主張する「99.9%トークン削減」とWorkOSが報告する「81%削減」。なぜ同じ技術で異なる数字が生まれるのか。一次ソースを検証し、日本SaaS開発者への示唆を解説。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-21",
+    "dateModified": "2026-04-21",
+    "mainEntityOfPage": "https://kansei-link.com/insights/cloudflare-code-mode-token-verification-2026",
+    "keywords": ["Cloudflare", "Code Mode", "MCP", "トークン削減", "AIエージェント", "コスト最適化", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Cloudflare Code Modeの99.9%トークン削減は本当ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "✅ 条件付きで真です。Cloudflare自身のAPI（2,500以上のエンドポイント）に対してCode Modeを使用した場合、従来の全ツール定義方式（117万トークン）から約1,000トークンへの削減が実現します。ただしこれはCloudflare APIという極端に大規模なAPIとの比較であり、一般的なSaaS APIへの適用では削減率は異なります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "WorkOSが報告した81%削減との違いは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "WorkOSの81%は31件のカレンダーイベント作成タスクという特定ユースケースでの実行時測定です。Code Modeによる実際の業務タスクでのトークン消費削減を測定したものです。99.9%はAPIスキーマのセットアップコスト（初期定義に要するトークン）の削減率であり、81%はランタイムの作業コストの削減率です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "日本SaaSのMCPサーバーにCode Modeは適用できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cloudflare Code Modeはまずはれっきとした自社APIへの適用技術です。日本SaaSがCode Modeアプローチを採用するには、OpenAPI仕様を公開し、Cloudflare Workers上にMCPゲートウェイを構築する必要があります。現時点でCode ModeをネイティブサポートしているのはCloudflare API自体のみです。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Cloudflare Code Mode 検証", "item": "https://kansei-link.com/insights/cloudflare-code-mode-token-verification-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a { color: var(--black); text-decoration: none; font-weight: 400; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 4px;
+      flex: 1;
+    }
+    .nav-links li { position: relative; }
+    .nav-links a {
+      display: block;
+      padding: 8px 16px;
+      color: var(--gray-dark);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal {
+      background: var(--teal);
+      color: var(--white);
+      padding: 12px 28px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 600;
+      display: inline-block;
+      transition: background 0.2s;
+    }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+    }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar {
+      background: var(--gray-light);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 10px 0;
+      font-size: 13px;
+    }
+    .breadcrumb-bar .inner {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--gray-text);
+    }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero {
+      background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%);
+      padding: 64px 0 56px;
+      color: var(--white);
+    }
+    .article-hero .inner {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    .article-hero .tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      color: var(--white);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .article-hero h1 {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      color: var(--white);
+    }
+    .article-hero .subtitle {
+      font-size: 18px;
+      opacity: 0.85;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .article-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      opacity: 0.7;
+      flex-wrap: wrap;
+    }
+    .article-meta .divider {
+      width: 4px;
+      height: 4px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 50%;
+    }
+
+    .article-body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 56px 40px 80px;
+    }
+
+    .article-body h2 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--black);
+      margin: 48px 0 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--gray-mid);
+      letter-spacing: -0.5px;
+    }
+    .article-body h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--black);
+      margin: 32px 0 12px;
+    }
+    .article-body p {
+      margin-bottom: 20px;
+      color: var(--gray-dark);
+      line-height: 1.8;
+    }
+    .article-body ul, .article-body ol {
+      margin: 0 0 20px 24px;
+      color: var(--gray-dark);
+    }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code {
+      background: var(--gray-light);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      border: 1px solid var(--gray-mid);
+      font-family: 'Fira Code', 'Courier New', monospace;
+    }
+
+    .toc-box {
+      background: var(--lavender);
+      border: 1px solid var(--blue-light);
+      border-radius: 8px;
+      padding: 24px 28px;
+      margin-bottom: 40px;
+    }
+    .toc-box h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .verdict-card {
+      border-radius: 8px;
+      padding: 24px 28px;
+      margin: 24px 0;
+    }
+    .verdict-true { background: #D1FAE5; border-left: 4px solid #059669; }
+    .verdict-conditional { background: #FEF3C7; border-left: 4px solid #D97706; }
+    .verdict-false { background: #FEE2E2; border-left: 4px solid #DC2626; }
+    .verdict-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .verdict-badge { font-size: 24px; }
+    .verdict-title { font-size: 18px; font-weight: 700; color: var(--black); }
+    .verdict-source { font-size: 12px; color: var(--gray-text); background: rgba(0,0,0,0.05); padding: 3px 10px; border-radius: 12px; }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 15px;
+    }
+    .summary-table th {
+      background: var(--black);
+      color: var(--white);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .summary-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      color: var(--gray-dark);
+      vertical-align: middle;
+    }
+    .summary-table tr:last-child td { border-bottom: none; }
+    .summary-table tr:hover td { background: var(--gray-light); }
+    .badge-verdict { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 9999px; }
+    .badge-true { background: #D1FAE5; color: #065F46; }
+    .badge-conditional { background: #FEF3C7; color: #92400E; }
+    .badge-false { background: #FEE2E2; color: #991B1B; }
+
+    .data-highlight {
+      background: var(--lavender);
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin: 28px 0;
+      border: 1px solid var(--gray-mid);
+    }
+    .data-highlight h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+    .metric-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .metric-item {
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+    }
+    .metric-item .num {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--blue);
+      display: block;
+      letter-spacing: -2px;
+    }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .success-box {
+      background: #D1FAE5;
+      border-left: 4px solid #059669;
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+    .disclosure-box {
+      background: #FEF3C7;
+      border-left: 4px solid #D97706;
+      padding: 20px 24px;
+      margin: 28px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .cta-banner {
+      background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%);
+      border-radius: 12px;
+      padding: 48px 40px;
+      margin: 56px 0;
+      text-align: center;
+      color: var(--white);
+    }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .verdict-header { flex-direction: column; gap: 8px; }
+      .summary-table { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/cloudflare-code-mode-token-verification-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      Cloudflare Code Mode 検証 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">検証記事 / Myth-Busting</span>
+      <h1>Cloudflare Code Modeの「トークン99.9%削減」は本当か？</h1>
+      <p class="subtitle">81%と99.9%——同じ技術なのになぜ2つの数字が存在するのか。一次ソースを検証し、日本SaaS開発者が知るべき真実を解明する</p>
+      <div class="article-meta">
+        <span>2026-04-21</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約7分</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#background">なぜ今、この検証が必要なのか</a></li>
+        <li><a href="#what-is-code-mode">Cloudflare Code Modeとは何か</a></li>
+        <li><a href="#claim-999">Claim 1: 「99.9%削減」— Cloudflare公式ブログ</a></li>
+        <li><a href="#claim-81">Claim 2: 「81%削減」— WorkOSテスト</a></li>
+        <li><a href="#why-different">なぜ同じ技術で異なる数字が出るのか</a></li>
+        <li><a href="#japan-saas">日本SaaS開発者への実際の影響</a></li>
+        <li><a href="#conclusion">まとめ：どの数字を使うべきか</a></li>
+      </ol>
+    </div>
+
+    <div class="disclosure-box">
+      <div class="label">検証方針</div>
+      <p>本記事ではすべての数値クレームについて一次ソース（Cloudflare公式ブログ・WorkOS公式ブログ・InfoQ記事）を確認し、✅（検証済み）、⚠️（条件付き／部分的に真）、❌（誤りまたは著しく誇大）で判定します。KanseiLinkはCloudflareと有償契約を結んでいません。</p>
+    </div>
+
+    <h2 id="background">なぜ今、この検証が必要なのか</h2>
+
+    <p>2026年3月、Cloudflareが<strong>「Code Mode」</strong>というMCPサーバーの新設計を発表した。そのマーケティングコピーは鮮烈だった——「<strong>2,500以上のAPIエンドポイントを1,000トークンで提供</strong>」。同社の公式ブログには「従来方式の117万トークンから99.9%削減」という数字が踊った。</p>
+
+    <p>ところが同月、WorkOSが独立した実証テストを公開した。そこには「<strong>Code ModeによるトークンコストはXX%カット」として81%という数字</strong>が記されていた。</p>
+
+    <p>99.9%と81%——同じ技術なのになぜこれほど異なるのか？ SNSでは「どちらが本当か」という議論が起きた。いずれかが誇大広告なのか、それともどちらも正しいのか。KanseiLinkは両社の一次ソースを精査し、この謎を解明する。</p>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>クレーム</th>
+          <th>出典</th>
+          <th>測定対象</th>
+          <th>判定</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>99.9%トークン削減</td>
+          <td>Cloudflare公式ブログ (2026-03-09)</td>
+          <td>APIスキーマ定義コスト</td>
+          <td><span class="badge-verdict badge-conditional">⚠️ 条件付き真</span></td>
+        </tr>
+        <tr>
+          <td>81%トークン削減</td>
+          <td>WorkOS公式ブログ (2026-03)</td>
+          <td>タスク実行ランタイムコスト</td>
+          <td><span class="badge-verdict badge-true">✅ 検証済み</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="what-is-code-mode">Cloudflare Code Modeとは何か</h2>
+
+    <p>従来のMCPサーバーは、接続時にすべてのToolの定義（名前・説明・パラメータスキーマ）をLLMのコンテキストウィンドウに読み込む。APIエンドポイントが多いサービスほど、この「セットアップコスト」は爆発的に増大する。</p>
+
+    <p>Cloudflareが提案したCode Modeは根本的に異なるアプローチだ。すべてのツール定義を展開する代わりに、たった<strong>2つのツール</strong>だけをエクスポートする：</p>
+
+    <ul>
+      <li><code>search(query)</code>: OpenAPI仕様をベクター検索し、関連エンドポイントを特定する</li>
+      <li><code>execute(code)</code>: LLMが生成したJavaScriptをCloudflare Dynamic Worker内の隔離サンドボックスで実行する</li>
+    </ul>
+
+    <p>LLMは「ツールを呼び出す」のではなく「<strong>TypedクライアントとOpenAPI型定義に対してコードを書く</strong>」という形で動作する。Cloudflare APIクライアントの型情報は事前にコンパクトな表現に変換されており、全エンドポイントへのアクセスを維持しつつコンテキスト消費を極小化する。</p>
+
+    <h2 id="claim-999">Claim 1: 「99.9%削減」— Cloudflare公式ブログ ⚠️ 条件付き真</h2>
+
+    <div class="verdict-card verdict-conditional">
+      <div class="verdict-header">
+        <span class="verdict-badge">⚠️</span>
+        <span class="verdict-title">条件付き真 — 特定コンテキスト下では正確な数字</span>
+        <span class="verdict-source">Cloudflare Engineering Blog, 2026-03-09</span>
+      </div>
+      <p><strong>一次ソース確認:</strong> Cloudflare公式ブログ「Code Mode: give agents an entire API in 1,000 tokens」より直接引用。「従来のMCPサーバー方式では Cloudflare API（2,500以上のエンドポイント）のすべてのTool定義をコンテキストに展開すると<strong>117万トークン超</strong>が必要。Code Modeではこれを<strong>約1,000トークン</strong>に圧縮する」。117万÷1,000 = 99.91%削減、よって99.9%は✅ 数学的に正確。</p>
+    </div>
+
+    <div class="data-highlight">
+      <h4>検証データ</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num">117万</span>
+          <div class="label">従来方式での<br>Cloudflare APIトークン数</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">1,000</span>
+          <div class="label">Code Mode使用時の<br>トークン数（概算）</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">2,500+</span>
+          <div class="label">対象APIエンドポイント数</div>
+        </div>
+      </div>
+    </div>
+
+    <p><strong>しかし「条件付き真」としたのはなぜか？</strong> この数字には2つの重大な前提がある。</p>
+
+    <p>第一に、比較対象が<strong>「Cloudflare APIの全エンドポイントをすべてMCPツールとして定義した場合」</strong>という、実際にはほぼ誰も採用しない極端なシナリオだ。通常の実装では必要な一部エンドポイントだけをツール化するため、従来方式でも117万トークンにはならない。</p>
+
+    <p>第二に、117万トークンという数字は「最先端の基盤モデルの<strong>コンテキストウィンドウを超える</strong>」とCloudflare自身が認めている数字だ。つまり従来方式では<em>そもそも動作すら不可能</em>なシナリオとの比較であり、実用上の比較ベースラインとしては適切とは言えない。</p>
+
+    <p>99.9%という数字は技術的な証明としては正確だが、「一般的なMCPサーバー実装でCode Modeを使えば99.9%安くなる」と解釈するのは誤りだ。</p>
+
+    <h2 id="claim-81">Claim 2: 「81%削減」— WorkOSテスト ✅ 検証済み</h2>
+
+    <div class="verdict-card verdict-true">
+      <div class="verdict-header">
+        <span class="verdict-badge">✅</span>
+        <span class="verdict-title">検証済み — 実業務タスクでの実測値</span>
+        <span class="verdict-source">WorkOS公式ブログ「Cloudflare: Code Mode Cuts Token Usage by 81%」</span>
+      </div>
+      <p><strong>一次ソース確認:</strong> WorkOSは独立したテスト環境で「<strong>31件のカレンダーイベントを作成する</strong>」という具体的な業務タスクを実行し、従来方式とCode Modeを比較した。その結果、トークン消費が81%削減されたことを実測している。これは単純タスクでは32%削減、今回の複雑な一括操作では81%削減という、<strong>タスク複雑性に応じた削減効果の実測レポート</strong>だ。</p>
+    </div>
+
+    <p>WorkOSの81%は「APIスキーマの初期ロードコスト」ではなく、「<strong>エージェントが実際に31件のイベントを作成する作業全体を通じて消費したトークンの合計</strong>」の削減率だ。これはプロダクション環境での実コストに直結する数字であり、エンジニアリングの意思決定に際してより参考にすべき指標と言える。</p>
+
+    <h2 id="why-different">なぜ同じ技術で異なる数字が出るのか</h2>
+
+    <p>結論から言えば、<strong>両方の数字は正確だが、測定している対象が根本的に異なる</strong>。</p>
+
+    <ul>
+      <li><strong>99.9%（Cloudflare）</strong>: 「APIスキーマをコンテキストにロードするコスト」——すなわち<em>会話開始時の固定オーバーヘッド</em>の削減率。Cloudflare APIという極端に大規模なAPIとの比較で意味を持つ。</li>
+      <li><strong>81%（WorkOS）</strong>: 「実タスクを実行する際のランタイムコスト」——すなわち<em>エージェントが実際に動いている間の消費</em>の削減率。実業務シナリオでの実測値として信頼性が高い。</li>
+    </ul>
+
+    <p>イメージとしては、99.9%は「レストランのメニューを読む時間が99.9%短縮された」という主張であり、81%は「食事全体の所要時間が81%短縮された」という主張だ。どちらも真実だが、あなたが気にすべきは「食事時間」の方だろう。</p>
+
+    <div class="data-highlight">
+      <h4>2つの測定フレームの比較</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num" style="color:#D97706;">99.9%</span>
+          <div class="label"><strong>セットアップコスト削減</strong><br>Cloudflare API (2,500+ ep)<br>117万→1,000 tokens</div>
+        </div>
+        <div class="metric-item">
+          <span class="num" style="color:#059669;">81%</span>
+          <div class="label"><strong>ランタイムコスト削減</strong><br>31件カレンダー作成タスク<br>WorkOS実測値</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>なぜこの混乱が生まれるのか</h3>
+
+    <p>MCPのトークンコスト議論には根本的な複雑さがある。トークン消費は大きく分けて3つの場面で発生する：</p>
+
+    <ol>
+      <li><strong>初期化コスト（Tool定義ロード）</strong>: 会話開始時にすべてのTool定義をコンテキストに展開するコスト。サーバーのエンドポイント数に比例。</li>
+      <li><strong>ターン内コスト（Tool呼び出し）</strong>: 各ツール呼び出しの引数と結果のコスト。タスクの複雑さと呼び出し回数に依存。</li>
+      <li><strong>履歴蓄積コスト（会話継続）</strong>: 会話履歴がコンテキストに蓄積されていくコスト。会話の長さに比例。</li>
+    </ol>
+
+    <p>Cloudflareの99.9%は主に①を、WorkOSの81%は①②③を含む合計コストの削減率を示している。「どのフレームで語っているか」を確認せずに数字だけを比較すると混乱する。</p>
+
+    <h2 id="japan-saas">日本SaaS開発者への実際の影響</h2>
+
+    <p>Cloudflare Code Modeが革新的なのは否定しないが、日本SaaS開発者にとっての現実的な適用範囲を整理しておく必要がある。</p>
+
+    <p><strong>Code Modeが劇的効果を発揮する条件：</strong></p>
+    <ul>
+      <li>エンドポイント数が<strong>100以上</strong>ある大規模APIを持つSaaS</li>
+      <li>OpenAPI仕様（Swagger）が整備されている</li>
+      <li>Cloudflare Workers上にMCPゲートウェイを構築できる</li>
+      <li>エージェントが多種多様なエンドポイントを横断的に使うユースケース</li>
+    </ul>
+
+    <p>KanseiLinkが評価する日本主要SaaSのエンドポイント規模から考えると、<strong>freee・マネーフォワード・kintoneといった大規模SaaSではCode Mode型設計が有効</strong>だ。一方、エンドポイントが数十程度の専門特化SaaSでは、従来のMCPサーバーとの差は限定的になる可能性が高い。</p>
+
+    <p>より現実的な目標は<strong>「スマートなツール定義の絞り込み」</strong>だ。全エンドポイントをMCPツールとして公開せず、エージェントが実際に使う頻度の高い20〜30エンドポイントに絞ることで、Code Modeに頼らずとも70〜80%の効率化は実現できる。</p>
+
+    <div class="success-box">
+      <div class="label">KanseiLinkの推奨</div>
+      <p>
+        <strong>大規模API（100ep以上）を持つSaaSベンダー:</strong> Cloudflare Workers上でCode Mode型アーキテクチャを採用することで、エージェントのコンテキスト効率が大幅に改善する。OpenAPI仕様の整備を最初の投資として位置づけよ。<br><br>
+        <strong>中規模API（20〜100ep）を持つSaaSベンダー:</strong> まずはAEOスコアの「Tool Design」項目を改善する。必要最小限のツール定義、明確なdescription、一貫したエラー構造の3点が優先事項。<br><br>
+        <strong>ベンチマーク数字の読み方:</strong> 「何%削減」という数字を見たら、まず「何のコストの削減か？」「比較ベースラインは何か？」を確認する習慣を持つこと。
+      </p>
+    </div>
+
+    <h2 id="conclusion">まとめ：どの数字を使うべきか</h2>
+
+    <p>99.9%と81%——どちらも正確な数字だが、<strong>使うべき場面が異なる</strong>。</p>
+
+    <p>社内稟議や投資判断の根拠として使うなら<strong>81%（ランタイム削減）</strong>に近い実測値の方が保守的で誠実だ。技術的な可能性として、「超大規模APIではセットアップコスト上の理論的最大値は99.9%に達する」という事実は正確だが、それは多くの日本SaaSの現実ではない。</p>
+
+    <p>MCPコスト最適化の議論が成熟するにつれ、「何%削減できるか」よりも「<strong>どのエンドポイントセットで、どのタスクパターンに最適化するか</strong>」という問いの方が本質的になっていく。Cloudflare Code Modeはその方向への重要な一歩だが、銀の弾丸ではない。</p>
+
+    <div class="cta-banner">
+      <h3>日本SaaSのMCPサーバー実態をデータで確認する</h3>
+      <p>KanseiLink MCPサーバーでは<code style="background:rgba(255,255,255,0.2);color:#fff;border:none;">get_insights(service_id="freee")</code>等でレイテンシ・成功率・エラーパターンを取得できます。</p>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" class="btn-teal" target="_blank">KanseiLink MCPサーバーを見る</a>
+    </div>
+
+    <div class="related-section">
+      <h2>関連リサーチ</h2>
+      <div class="related-grid">
+        <a href="mcp-integration-claims-verification-2026.html" class="related-card">
+          <div class="tag">Verification Report</div>
+          <h4>「MCP導入で統合コスト$15万節約」「トークン92%削減」は本当か？ 2026年の主要クレームを検証</h4>
+        </a>
+        <a href="agent-cost-optimization-2026.html" class="related-card">
+          <div class="tag">Cost Optimization</div>
+          <h4>AIエージェント時代のコスト削減 — Xバズ投稿を検証してみた</h4>
+        </a>
+        <a href="claude-model-cost-guide-2026.html" class="related-card">
+          <div class="tag">Cost Guide</div>
+          <h4>Claude Haiku・Sonnet・Opus: 日本SaaS連携タスク別コスト最適化ガイド 2026</h4>
+        </a>
+        <a href="mcp-latency-success-rate-correlation-2026.html" class="related-card">
+          <div class="tag">Data Story</div>
+          <h4>APIレイテンシとMCP成功率の相関 — KanseiLink 225サービス実測データ分析</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        本記事で参照したKanseiLink実測データは<code>get_insights(service_id="freee")</code>等で取得できます。
+        Cloudflare Code Modeの技術詳細はCloudflare公式ドキュメント(<a href="https://blog.cloudflare.com/code-mode-mcp/" target="_blank">blog.cloudflare.com/code-mode-mcp</a>)を参照してください。
+        WorkOSの独立テスト結果は<a href="https://workos.com/blog/cloudflare-code-mode-cuts-token-usage-by-81" target="_blank">workos.com/blog</a>で確認できます。
+        MCPトークンコストの最適化アドバイスは<code>get_service_tips(service_id="{service_id}")</code>でサービス別に取得できます。
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Connect</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+<script src="/js/paywall.js"></script>
+</body>
+</html>
