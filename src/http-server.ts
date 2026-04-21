@@ -21,6 +21,7 @@ import { createHash } from "node:crypto";
 import { createServer } from "./server.js";
 import { getDb, closeDb } from "./db/connection.js";
 import { initializeDb } from "./db/schema.js";
+import { seedDatabase } from "./db/seed.js";
 import {
   handleStripeWebhook,
   handleAccessCheck,
@@ -37,6 +38,19 @@ const app = express();
 // ─── Database Initialization ─────────────────────────────────────
 // Ensure all tables (including subscriptions) exist before handling requests
 initializeDb(getDb());
+
+// Seed on startup (idempotent via UPSERT).
+// Without this the Railway volume keeps the snapshot from the FIRST
+// deploy; new services added to services-seed.json never reach the
+// serving DB. The seed semantics in seed.ts (ON CONFLICT DO UPDATE SET)
+// safely preserve dynamic fields (axr_score, trust_score, tags) while
+// updating static fields (name, description, category) + inserting new rows.
+try {
+  seedDatabase(getDb());
+  console.log("[http-server] seed applied on startup");
+} catch (err) {
+  console.error("[http-server] seed failed on startup (continuing anyway)", err);
+}
 
 // ─── Security Hardening ───────────────────────────────────────────
 // Helmet: sets secure HTTP headers (CSP, HSTS, X-Frame-Options, etc.)
