@@ -328,6 +328,62 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
 
   seedAll();
 
+  // Post-seed cleanup: hide MCP infrastructure entries from rankings.
+  // KanseiLink is a SaaS-integration registry — language SDKs, inspector,
+  // MCPJungle, IDE devtools, and local-only tools all make it into the
+  // crawler's awesome-lists output but don't belong in the ranking surface.
+  // Pattern list mirrors score.ts's INFRASTRUCTURE_NAME_PATTERNS so every
+  // redeploy re-applies the filter even if Railway's persistent volume
+  // kept a stale axr_score on these rows.
+  const infraNamePatterns = [
+    /\bMCP\s*SDK$/i,
+    /^[a-z-]+-?mcp-?sdk$/i,
+    /^mcp$/i,
+    /^mcp-server$/i,
+    /^mcp-ts-core$/i,
+    /^mcp-use$/i,
+    /^mcp-workspace$/i,
+    /^mcp-client-for-[\w-]+$/i,
+    /^MCPJungle$/i,
+    /^inspector$/i,
+    /^awesome-mcp-servers$/i,
+    /^chrome-devtools-mcp$/i,
+    /^nvim-mcp$/i,
+    /^XcodeBuildMCP$/i,
+    /^UnrealMotionGraphicsMCP$/i,
+    /^VibeUE$/i,
+    /^ue-mcp$/i,
+    /^gemini-cli$/i,
+    /^agents$/i,
+    /^agency-orchestrator$/i,
+    /^task-orchestrator$/i,
+    /^context-engineering$/i,
+    /^bear-notes-mcp$/i,
+    /^apple-books-mcp$/i,
+    /^AgentRecall$/i,
+    /^memex$/i,
+    /^nocturne_memory$/i,
+    /^chunkhound$/i,
+  ];
+
+  const hideInfra = db.prepare(
+    `UPDATE services
+     SET axr_score = NULL, axr_grade = NULL, trust_score = 0.0
+     WHERE id = @id`
+  );
+  const allServices = db.prepare(`SELECT id, name FROM services`).all() as Array<{ id: string; name: string }>;
+  let hidden = 0;
+  for (const svc of allServices) {
+    for (const p of infraNamePatterns) {
+      if (p.test(svc.name)) {
+        hideInfra.run({ id: svc.id });
+        hidden++;
+        break;
+      }
+    }
+  }
+  if (hidden > 0) console.log(`[seed] hid ${hidden} MCP-infrastructure services from rankings`);
+
   // Rebuild FTS indexes
   db.exec("INSERT INTO services_fts(services_fts) VALUES ('rebuild')");
   db.exec("INSERT INTO services_fts_trigram(services_fts_trigram) VALUES ('rebuild')");
