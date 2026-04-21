@@ -1,0 +1,116 @@
+{
+  "$schema_version": 1,
+  "last_reviewed": "2026-04-21",
+  "reviewed_by": "Claude + Michie",
+  "description": "Machine-readable health baselines for KanseiLINK. The 構造チェック agent (when built) reads this file, pings each surface, and flags anomalies to the 朝ダイジェスト agent. Update baselines when steady-state numbers shift — log the change in DECISIONS.md.",
+
+  "baselines": {
+    "railway_services_total": {
+      "min": 330,
+      "max": 500,
+      "unit": "rows",
+      "note": "Rankings-visible services (axr_score IS NOT NULL). Count drops below min → investigate infra-filter over-matching or seed failure. Above max → investigate runaway ingestion."
+    },
+    "railway_services_raw_total": {
+      "min": 350,
+      "max": 600,
+      "unit": "rows",
+      "note": "Raw services count including infra-hidden. Delta from railway_services_total should be ~35-50 (infra rows)."
+    },
+    "railway_recipes_total": {
+      "min": 180,
+      "max": 300,
+      "unit": "rows"
+    },
+    "railway_voices_aggregated": {
+      "min": 30,
+      "max": 500,
+      "unit": "rows",
+      "note": "Aggregated voices from outcomes table. Below 30 = aggregation failing silently."
+    },
+    "railway_changelog_total": {
+      "min": 150,
+      "max": 2000,
+      "unit": "rows"
+    },
+    "crawler_last_success_hours_ago": {
+      "max": 30,
+      "unit": "hours",
+      "note": "Daily scheduled crawl should succeed within rolling 30h window. Over → scheduled-task failure or rate-limit."
+    },
+    "crawler_daily_discovered": {
+      "min": 1,
+      "max": 200,
+      "unit": "candidates",
+      "note": "Below 1 = all sources offline or filter too aggressive. Above 200 = source bug (e.g. Zenn returning every article with 'mcp' mention)."
+    },
+    "stripe_webhook_failures_7d": {
+      "max": 2,
+      "unit": "events",
+      "note": "Over 2 failures in a rolling 7-day window indicates webhook misconfiguration."
+    },
+    "deploy_sha_drift_minutes": {
+      "max": 10,
+      "unit": "minutes",
+      "note": "Time between `git push origin main` and Railway deployed SHA matching local HEAD. Over 10 min post-push = Railway auto-deploy broken."
+    },
+    "local_seed_vs_railway_service_diff_pct": {
+      "max": 5,
+      "unit": "percent",
+      "note": "Absolute delta between local services-seed.json row count and Railway /api/dashboard/freshness services_total. Over 5% = seed.json out of sync with DB."
+    }
+  },
+
+  "urls_must_200": [
+    "https://kansei-link.com",
+    "https://kansei-link.com/dashboard/",
+    "https://kansei-link.com/changelog.html",
+    "https://kansei-link-mcp-production.up.railway.app/health",
+    "https://kansei-link-mcp-production.up.railway.app/api/dashboard/freshness",
+    "https://kansei-link-mcp-production.up.railway.app/api/dashboard/rankings?limit=10",
+    "https://kansei-link-mcp-production.up.railway.app/api/dashboard/recipes",
+    "https://kansei-link-mcp-production.up.railway.app/api/dashboard/changelog?limit=10",
+    "https://linksee-site.vercel.app",
+    "https://linksee-site.vercel.app/api/waitlist"
+  ],
+
+  "urls_optional_200": [
+    "https://www.npmjs.com/package/linksee-memory",
+    "https://github.com/kansei-link/kansei-mcp-server"
+  ],
+
+  "version_strings_are_not_freshness_signals": {
+    "known_hardcoded": [
+      "src/http-server.ts line 436 — version string '0.20.1' is hardcoded, do not use for deploy verification"
+    ],
+    "use_instead": "Compare local git HEAD SHA against Railway deployed SHA via the Railway API or by checking whether a newly-added endpoint/field responds."
+  },
+
+  "anomaly_routing": {
+    "destination": "morning_digest",
+    "urgency": {
+      "critical": [
+        "urls_must_200 failure",
+        "deploy_sha_drift_minutes exceeded",
+        "railway_services_total == 0",
+        "crawler_last_success_hours_ago > 72"
+      ],
+      "warning": [
+        "railway_services_total below min or above max",
+        "crawler_last_success_hours_ago > 30",
+        "stripe_webhook_failures_7d exceeded",
+        "local_seed_vs_railway_service_diff_pct > 5"
+      ],
+      "info": [
+        "crawler_daily_discovered below min",
+        "railway_voices_aggregated below min"
+      ]
+    }
+  },
+
+  "not_yet_implemented": [
+    "Health-check agent itself (construction this week)",
+    "Automated reporting to Michie (requires 朝ダイジェスト agent, May W2-3)",
+    "Slack/Discord webhook destination (pending decision — see STATE.md Open Questions)"
+  ]
+}
