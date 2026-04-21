@@ -149,7 +149,7 @@ app.get("/api/dashboard/stats", apiLimiter, (_req: Request, res: Response) => {
 app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 225);
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 1000);
     const offset = parseInt(req.query.offset as string) || 0;
 
     const services = db.prepare(`
@@ -302,6 +302,112 @@ app.get("/api/dashboard/costs", apiLimiter, (_req: Request, res: Response) => {
       optimization_opportunities: modelPairs,
       infrastructure_tips: tips,
     });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Freshness signal ─────────────────────────────────────────────
+// Shows how recently KanseiLink's dataset was refreshed. Consumed by
+// the website hero / dashboard so visitors see "updated X days ago"
+// instead of a static stat.
+app.get("/api/dashboard/freshness", apiLimiter, (_req: Request, res: Response) => {
+  try {
+    const db = getDb();
+
+    // Total live counts
+    const totals = db.prepare(`
+      SELECT
+        (SELECT COUNT(*) FROM services) as services_total,
+        (SELECT COUNT(*) FROM recipes) as recipes_total
+    `).get() as any;
+
+    // Last successful crawl
+    let lastCrawl: { finished_at?: string; discovered_count?: number } | null = null;
+    try {
+      lastCrawl = db.prepare(`
+        SELECT finished_at, discovered_count
+        FROM crawl_runs
+        WHERE status = 'success'
+        ORDER BY finished_at DESC
+        LIMIT 1
+      `).get() as any;
+    } catch { /* table may not exist in older deploys */ }
+
+    // New services in the last 7 / 30 days (requires services.created_at)
+    let addedWindow = { services_added_7d: 0, services_added_30d: 0 };
+    try {
+      addedWindow = db.prepare(`
+        SELECT
+          SUM(CASE WHEN created_at >= datetime('now','-7 days') THEN 1 ELSE 0 END) as services_added_7d,
+          SUM(CASE WHEN created_at >= datetime('now','-30 days') THEN 1 ELSE 0 END) as services_added_30d
+        FROM services
+      `).get() as any;
+    } catch { /* older schema: no created_at column */ }
+
+    // API changes detected in last 7 days (service_changelog)
+    let changes7d = 0;
+    try {
+      const r = db.prepare(`
+        SELECT COUNT(*) as c FROM service_changelog
+        WHERE change_date >= datetime('now','-7 days')
+      `).get() as any;
+      changes7d = r?.c ?? 0;
+    } catch { /* table may not exist */ }
+
+    res.json({
+      services_total: totals.services_total ?? 0,
+      recipes_total: totals.recipes_total ?? 0,
+      services_added_7d: addedWindow.services_added_7d ?? 0,
+      services_added_30d: addedWindow.services_added_30d ?? 0,
+      api_changes_7d: changes7d,
+      last_crawl_at: lastCrawl?.finished_at ?? null,
+      last_crawl_discovered: lastCrawl?.discovered_count ?? null,
+      generated_at: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Changelog feed ───────────────────────────────────────────────
+// Public-facing "what changed recently" stream. Used by /changelog page
+// and potentially by weekly digests. Limited to entries auto-generated
+// by the crawler + manually-curated highlights.
+app.get("/api/dashboard/changelog", apiLimiter, (req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    const limit = Math.min(parseInt((req.query.limit as string) || "30"), 200);
+    const offset = parseInt((req.query.offset as string) || "0") || 0;
+    const category = typeof req.query.category === "string" ? req.query.category : null;
+
+    // Graceful fallback if service_changelog table doesn't exist yet in
+    // this deployment (older schema).
+    let entries: any[] = [];
+    let total = 0;
+    try {
+      const where = category
+        ? `WHERE c.change_type = @category`
+        : "";
+      entries = db.prepare(`
+        SELECT c.service_id, c.change_date, c.change_type, c.summary, c.details,
+               s.name as service_name, s.category as service_category, s.axr_grade
+        FROM service_changelog c
+        LEFT JOIN services s ON s.id = c.service_id
+        ${where}
+        ORDER BY c.change_date DESC
+        LIMIT @limit OFFSET @offset
+      `).all({ category, limit, offset });
+      total = (db.prepare(`
+        SELECT COUNT(*) as c FROM service_changelog
+        ${category ? "WHERE change_type = @category" : ""}
+      `).get({ category }) as any).c;
+    } catch {
+      entries = [];
+      total = 0;
+    }
+
+    res.json({ entries, total, limit, offset });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }

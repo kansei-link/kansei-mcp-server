@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KanseiLink changelog — weekly feed of new MCP services, API changes, and recipe updates tracked across 376+ SaaS/API services for the agent economy.">
+  <title>Changelog — KanseiLink</title>
+  <style>
+    :root {
+      --black: #0f172a;
+      --blue: #1A3FD6;
+      --green: #10B981;
+      --orange: #F59E0B;
+      --slate: #64748B;
+      --slate-light: #94A3B8;
+      --border: #E2E8F0;
+      --bg: #F8FAFC;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+      background: #fff;
+      color: var(--black);
+      line-height: 1.55;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      background: #fff;
+    }
+    header .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { font-weight: 700; font-size: 18px; color: var(--black); text-decoration: none; }
+    .logo .dot { color: var(--blue); }
+    nav a { color: var(--slate); text-decoration: none; margin-left: 24px; font-size: 14px; }
+    nav a:hover { color: var(--black); }
+
+    .hero { padding: 48px 0 28px; background: linear-gradient(180deg, #eff6ff 0%, #ecfeff 50%, #f0f9ff 100%); border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: 34px; font-weight: 700; line-height: 1.2; color: var(--black); }
+    .hero p { margin-top: 12px; color: var(--slate); font-size: 15px; max-width: 640px; }
+    .hero .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px;
+      background: #ecfdf5; color: #059669;
+      border: 1px solid #a7f3d0;
+      font-size: 12px; font-weight: 500; margin-bottom: 12px;
+    }
+    .hero .pill .pulse { width: 6px; height: 6px; background: #10b981; border-radius: 50%; animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1;} 50% {opacity: 0.4;} }
+
+    .feed { padding: 32px 0 80px; }
+    .filter-bar {
+      display: flex; gap: 8px; margin-bottom: 24px;
+      flex-wrap: wrap; font-size: 13px;
+    }
+    .filter-bar button {
+      background: #fff; border: 1px solid var(--border);
+      padding: 6px 14px; border-radius: 999px; cursor: pointer;
+      color: var(--slate); font-weight: 500;
+    }
+    .filter-bar button.active { background: var(--black); color: #fff; border-color: var(--black); }
+    .filter-bar button:hover { color: var(--black); }
+
+    .entry {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px 20px; margin-bottom: 12px; background: #fff;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .entry:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(15,23,42,0.05); }
+    .entry-head {
+      display: flex; align-items: baseline; gap: 12px;
+      flex-wrap: wrap; margin-bottom: 6px;
+    }
+    .entry-service { font-weight: 600; color: var(--black); font-size: 15px; }
+    .entry-category { color: var(--slate-light); font-size: 13px; }
+    .entry-date { color: var(--slate-light); font-size: 12px; margin-left: auto; }
+    .entry-type {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 6px; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .entry-type.feature, .entry-type.added, .entry-type.mcp_released { background: #ecfdf5; color: #047857; }
+    .entry-type.change, .entry-type.api_change { background: #fef3c7; color: #b45309; }
+    .entry-type.fix, .entry-type.deprecated { background: #fee2e2; color: #b91c1c; }
+    .entry-type.update, .entry-type.other { background: #eff6ff; color: #1e40af; }
+    .entry-summary { color: var(--black); font-size: 14px; line-height: 1.55; margin-top: 4px; }
+    .entry-details { color: var(--slate); font-size: 13px; line-height: 1.6; margin-top: 6px; }
+
+    .empty {
+      padding: 60px 20px; text-align: center;
+      background: var(--bg); border-radius: 12px;
+      color: var(--slate); font-size: 14px;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      color: var(--slate-light); font-size: 13px;
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 26px; }
+      .entry-date { order: 99; width: 100%; margin-left: 0; margin-top: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="/" class="logo">kansei<span class="dot">-link</span></a>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/about.html">About</a>
+        <a href="/dashboard/">Dashboard</a>
+        <a href="/insights/">Insights</a>
+        <a href="/pricing.html">Pricing</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <span class="pill"><span class="pulse"></span> Auto-updated</span>
+      <h1>Changelog</h1>
+      <p>
+        Track what's changing across the agent economy. New MCP servers detected by our crawler,
+        API specification updates for existing services, and recipe additions — all in one feed.
+        Updated daily from <strong id="hero-count">300+</strong> tracked services.
+      </p>
+    </div>
+  </section>
+
+  <section class="feed">
+    <div class="container">
+      <div class="filter-bar">
+        <button class="active" data-filter="">All changes</button>
+        <button data-filter="mcp_released">New MCPs</button>
+        <button data-filter="api_change">API changes</button>
+        <button data-filter="feature">New features</button>
+        <button data-filter="deprecated">Deprecated</button>
+      </div>
+
+      <div id="feed-list">
+        <div class="empty" id="empty-state">Loading changelog…</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>
+        KanseiLink · Part of the <a href="https://synapsearrows.com" style="color:var(--blue);text-decoration:none;">Synapse Arrows</a> agent-economy stack.
+        · Changelog feed is live-generated from crawler detections and manual curation.
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:8080'
+      : 'https://kansei-link-mcp-production-b054.up.railway.app';
+
+    let currentFilter = '';
+    let allEntries = [];
+
+    function formatRelative(iso) {
+      if (!iso) return '';
+      const now = Date.now();
+      const then = new Date(iso).getTime();
+      const diff = now - then;
+      if (diff < 0) return 'just now';
+      const mins = Math.floor(diff / 60000);
+      if (mins < 60) return mins + 'min ago';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h ago';
+      const days = Math.floor(hrs / 24);
+      if (days < 30) return days + 'd ago';
+      return new Date(iso).toISOString().slice(0, 10);
+    }
+
+    function render(entries) {
+      const list = document.getElementById('feed-list');
+      if (!entries.length) {
+        list.innerHTML = '<div class="empty">No entries yet in this category. New detections appear after each daily crawl.</div>';
+        return;
+      }
+      list.innerHTML = entries.map(function(e) {
+        const typeClass = (e.change_type || 'other').toLowerCase();
+        return [
+          '<div class="entry">',
+          '<div class="entry-head">',
+          '<span class="entry-service">' + (e.service_name || e.service_id || 'Unknown service') + '</span>',
+          e.service_category ? '<span class="entry-category">' + e.service_category + '</span>' : '',
+          '<span class="entry-type ' + typeClass + '">' + (e.change_type || 'other') + '</span>',
+          '<span class="entry-date">' + formatRelative(e.change_date) + '</span>',
+          '</div>',
+          e.summary ? '<div class="entry-summary">' + e.summary + '</div>' : '',
+          e.details ? '<div class="entry-details">' + e.details + '</div>' : '',
+          '</div>'
+        ].join('');
+      }).join('');
+    }
+
+    function applyFilter() {
+      if (!currentFilter) return render(allEntries);
+      render(allEntries.filter(function(e) {
+        return (e.change_type || '').toLowerCase() === currentFilter;
+      }));
+    }
+
+    async function load() {
+      try {
+        const [changeRes, freshRes] = await Promise.all([
+          fetch(API_BASE + '/api/dashboard/changelog?limit=100', { mode: 'cors' }),
+          fetch(API_BASE + '/api/dashboard/freshness', { mode: 'cors' }).catch(function() { return null; })
+        ]);
+        if (freshRes && freshRes.ok) {
+          const f = await freshRes.json();
+          const heroCount = document.getElementById('hero-count');
+          if (heroCount && f.services_total) heroCount.textContent = f.services_total + '+';
+        }
+        if (!changeRes || !changeRes.ok) throw new Error('fetch failed');
+        const data = await changeRes.json();
+        allEntries = data.entries || [];
+        applyFilter();
+      } catch (e) {
+        document.getElementById('feed-list').innerHTML =
+          '<div class="empty">Changelog feed is live-loading. If this persists, the backend may be warming up after a deploy — retry in a minute.</div>';
+      }
+    }
+
+    document.querySelectorAll('.filter-bar button').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-bar button').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter || '';
+        applyFilter();
+      });
+    });
+
+    load();
+  </script>
+</body>
+</html>

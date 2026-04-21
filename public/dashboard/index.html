@@ -312,6 +312,17 @@
       </div>
     </div>
 
+    <!-- Freshness banner — populated from /api/dashboard/freshness -->
+    <div id="freshnessBanner" style="margin:16px 0 0; padding:10px 16px; border-radius:10px; background:linear-gradient(90deg,#eff6ff 0%,#ecfeff 100%); border:1px solid #bfdbfe; font-size:13px; color:#1e3a5f; display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+      <span style="display:inline-flex; align-items:center; gap:6px;">
+        <span id="freshnessPulse" style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 0 rgba(16,185,129,0.5); display:inline-block;"></span>
+        <strong id="freshnessStatus">Live registry</strong>
+      </span>
+      <span id="freshnessLastUpdate" style="color:#64748b;">Loading freshness data…</span>
+      <span id="freshnessAdded" style="color:#64748b;"></span>
+      <span id="freshnessChanges" style="color:#64748b;"></span>
+    </div>
+
     <div class="content">
 
       <!-- ===== PAGE: Overview ===== -->
@@ -1169,7 +1180,7 @@ function downloadFile(content, filename, mime) {
 
 async function fetchExportData() {
   const [rankRes, statsRes, voicesRes] = await Promise.all([
-    fetch(API_BASE + '/api/dashboard/rankings?limit=225', { mode: 'cors' }).catch(() => null),
+    fetch(API_BASE + '/api/dashboard/rankings?limit=500', { mode: 'cors' }).catch(() => null),
     fetch(API_BASE + '/api/dashboard/stats', { mode: 'cors' }).catch(() => null),
     fetch(API_BASE + '/api/dashboard/voices', { mode: 'cors' }).catch(() => null),
   ]);
@@ -1223,12 +1234,55 @@ function exportPDF() {
   showExportStatus('PDF レポートは現在準備中です。CSV / JSON をご利用ください。');
 }
 
+function formatRelativeTime(isoString) {
+  if (!isoString) return null;
+  const now = Date.now();
+  const then = new Date(isoString).getTime();
+  const diffMs = now - then;
+  if (diffMs < 0) return 'just now';
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + ' min ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return days + 'd ago';
+  return new Date(isoString).toISOString().slice(0, 10);
+}
+
+async function loadFreshness() {
+  try {
+    const r = await fetch(API_BASE + '/api/dashboard/freshness', { mode: 'cors' });
+    if (!r || !r.ok) throw new Error('no freshness');
+    const f = await r.json();
+    const lastUpdate = document.getElementById('freshnessLastUpdate');
+    const addedEl = document.getElementById('freshnessAdded');
+    const changesEl = document.getElementById('freshnessChanges');
+    const rel = formatRelativeTime(f.last_crawl_at);
+    if (lastUpdate) {
+      lastUpdate.textContent = rel
+        ? ('· Last crawl ' + rel + ' (' + f.services_total + ' services · ' + f.recipes_total + ' recipes)')
+        : ('· ' + f.services_total + ' services · ' + f.recipes_total + ' recipes');
+    }
+    if (addedEl && f.services_added_7d > 0) {
+      addedEl.textContent = '· +' + f.services_added_7d + ' this week';
+    }
+    if (changesEl && f.api_changes_7d > 0) {
+      changesEl.textContent = '· ' + f.api_changes_7d + ' API change' + (f.api_changes_7d === 1 ? '' : 's') + ' tracked';
+    }
+  } catch (e) {
+    const lastUpdate = document.getElementById('freshnessLastUpdate');
+    if (lastUpdate) lastUpdate.textContent = '· Live data unavailable (fetching failed)';
+  }
+}
+loadFreshness();
+
 async function loadDashboardData() {
   try {
     // Load stats + rankings in parallel
     const [statsRes, rankingsRes, voicesRes, recipesRes] = await Promise.all([
       fetch(API_BASE + '/api/dashboard/stats', { mode: 'cors' }).catch(() => null),
-      fetch(API_BASE + '/api/dashboard/rankings?limit=225', { mode: 'cors' }).catch(() => null),
+      fetch(API_BASE + '/api/dashboard/rankings?limit=500', { mode: 'cors' }).catch(() => null),
       fetch(API_BASE + '/api/dashboard/voices', { mode: 'cors' }).catch(() => null),
       fetch(API_BASE + '/api/dashboard/recipes', { mode: 'cors' }).catch(() => null),
     ]);
