@@ -22,6 +22,22 @@
 > 3. `recall("KanseiLINK")` from Linksee Memory (narrative, 30s)
 > 4. If touching a past decision, read that DECISIONS.md entry
 > 5. Begin work with 2-3 min of context overhead, not 15-30 min
+>
+> **In-session updates** (agent proposes, human approves):
+> - Each insight / failure / "why" → `remember` to Linksee Memory
+> - Each commit → append an entry to DECISIONS.md
+>
+> **Session-end ritual** (before ending a significant session):
+> - Update STATE.md "Next 3 Actions" + "Open Questions"
+> - Update Production Health Snapshot if anything changed
+> - Add emotional / strategic insights to Linksee Memory
+>
+> **Cadence summary**:
+> - Linksee Memory: 随時 (per insight)
+> - DECISIONS.md: per commit
+> - STATE.md: session-end + daily morning (via 朝ダイジェスト agent when built)
+> - GOALS.md: weekly Friday review + monthly OKR review
+> - HEALTH.json: when baselines shift
 
 Last reviewed: 2026-04-21
 Owned by: 企画部隊 (Michie + Claude co-founder agent)
