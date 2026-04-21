@@ -45,6 +45,8 @@ export interface CrawlerSummary {
     refreshed: number;
     archived_detected: number;
     errors: number;
+    changelog_entries: number;
+    by_type: Record<string, number>;
   };
   snapshot: {
     services_snapshotted: number;
@@ -96,7 +98,7 @@ export async function runCrawler(
     auto_accepted: 0,
     queued_for_review: 0,
     rejected: 0,
-    refresh: { eligible: 0, refreshed: 0, archived_detected: 0, errors: 0 },
+    refresh: { eligible: 0, refreshed: 0, archived_detected: 0, errors: 0, changelog_entries: 0, by_type: {} },
     snapshot: { services_snapshotted: 0, active_services: 0, total_reports: 0 },
     drift: { recipes_scanned: 0, gotchas_appended: 0, services_flagged: 0 },
     errors,
@@ -193,9 +195,11 @@ export async function runCrawler(
           refreshed: r.refreshed,
           archived_detected: r.archived_detected,
           errors: r.errors,
+          changelog_entries: r.changelog_entries,
+          by_type: r.by_type,
         };
         console.log(
-          `[crawler]   eligible: ${r.eligible}, refreshed: ${r.refreshed}, archived-flagged: ${r.archived_detected}, errors: ${r.errors}`
+          `[crawler]   eligible: ${r.eligible}, refreshed: ${r.refreshed}, archived-flagged: ${r.archived_detected}, errors: ${r.errors}, changelog: ${r.changelog_entries} (${Object.entries(r.by_type).map(([k, v]) => `${k}:${v}`).join(", ")})`
         );
       } catch (e) {
         const msg = `refresh: ${(e as Error).message}`;

@@ -318,6 +318,20 @@ export function initializeDb(db: Database.Database): void {
     db.exec("ALTER TABLE services ADD COLUMN avg_tool_def_tokens INTEGER DEFAULT 500");
   }
 
+  // Migration: upstream tracking columns for Phase 2 change detection.
+  // Stores "last observed" values so refreshExistingServices() can diff
+  // against them and generate changelog entries when upstream shifts.
+  const hasUpstreamTracking = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = 'archived'")
+    .get() as { cnt: number };
+  if (hasUpstreamTracking.cnt === 0) {
+    db.exec("ALTER TABLE services ADD COLUMN archived INTEGER DEFAULT 0");
+    db.exec("ALTER TABLE services ADD COLUMN github_stars INTEGER");
+    db.exec("ALTER TABLE services ADD COLUMN github_pushed_at TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN npm_version TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN last_refreshed_at TEXT");
+  }
+
   // Model-level performance stats per service (for audit_cost routing)
   db.exec(`
     CREATE TABLE IF NOT EXISTS model_service_stats (
