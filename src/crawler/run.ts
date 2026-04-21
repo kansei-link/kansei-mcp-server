@@ -14,6 +14,9 @@ import Database from "better-sqlite3";
 import { initializeDb } from "../db/schema.js";
 import { crawlGitHubTopics } from "./sources/github-topics.js";
 import { crawlAwesomeLists } from "./sources/awesome-lists.js";
+import { crawlJpWatchlist } from "./sources/jp-watchlist.js";
+import { crawlZennJp } from "./sources/zenn-jp.js";
+import { crawlGitHubJpOrgs } from "./sources/github-jp-orgs.js";
 import { dedupeAgainstDb } from "./pipeline/dedupe.js";
 import { enrichCandidates } from "./pipeline/enrich.js";
 import { classifyCandidates } from "./pipeline/classify.js";
@@ -79,6 +82,9 @@ export async function runCrawler(
     JSON.stringify([
       "github-topics",
       "awesome-lists",
+      "jp-watchlist",
+      "zenn-jp",
+      "github-jp-orgs",
       "refresh",
       "snapshot",
       "drift",
@@ -107,21 +113,47 @@ export async function runCrawler(
 
   try {
     // 1. Discovery
-    console.log("[crawler] step 1/10: discovering from GitHub topics + awesome lists");
-    const [githubResults, awesomeResults] = await Promise.all([
-      crawlGitHubTopics({ sinceDays, maxResults }).catch((e) => {
-        errors.push(`github-topics: ${e.message}`);
-        return [];
-      }),
-      crawlAwesomeLists().catch((e) => {
-        errors.push(`awesome-lists: ${e.message}`);
-        return [];
-      }),
-    ]);
-    const allCandidates = [...githubResults, ...awesomeResults];
+    // Global sources (GitHub topics + awesome lists) + JP-specific sources
+    // (hand-curated watchlist, Zenn article feed, JP vendor GitHub orgs).
+    // JP sources exist because the global MCP Registry and English awesome
+    // lists systematically under-represent Japanese SaaS vendors — those
+    // tend to announce on X / PR TIMES / Zenn instead of tagging GitHub
+    // repos with `mcp-server`. See src/data/jp-watchlist.txt for the
+    // Michie-curated entry point.
+    console.log("[crawler] step 1/10: discovering from 5 sources (global + JP)");
+    const [githubResults, awesomeResults, watchlistResults, zennResults, jpOrgResults] =
+      await Promise.all([
+        crawlGitHubTopics({ sinceDays, maxResults }).catch((e) => {
+          errors.push(`github-topics: ${e.message}`);
+          return [];
+        }),
+        crawlAwesomeLists().catch((e) => {
+          errors.push(`awesome-lists: ${e.message}`);
+          return [];
+        }),
+        crawlJpWatchlist().catch((e) => {
+          errors.push(`jp-watchlist: ${e.message}`);
+          return [];
+        }),
+        crawlZennJp().catch((e) => {
+          errors.push(`zenn-jp: ${e.message}`);
+          return [];
+        }),
+        crawlGitHubJpOrgs().catch((e) => {
+          errors.push(`github-jp-orgs: ${e.message}`);
+          return [];
+        }),
+      ]);
+    const allCandidates = [
+      ...githubResults,
+      ...awesomeResults,
+      ...watchlistResults,
+      ...zennResults,
+      ...jpOrgResults,
+    ];
     summaryOut.discovered = allCandidates.length;
     console.log(
-      `[crawler]   github-topics: ${githubResults.length}, awesome-lists: ${awesomeResults.length}, total: ${allCandidates.length}`
+      `[crawler]   github-topics: ${githubResults.length}, awesome-lists: ${awesomeResults.length}, jp-watchlist: ${watchlistResults.length}, zenn-jp: ${zennResults.length}, github-jp-orgs: ${jpOrgResults.length}, total: ${allCandidates.length}`
     );
 
     // 2. Dedupe
