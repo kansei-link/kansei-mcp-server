@@ -35,6 +35,15 @@ const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
 
 const app = express();
 
+// Trust Railway's edge proxy so express-rate-limit reads the real client IP
+// from X-Forwarded-For instead of the proxy's own address. Without this,
+// express-rate-limit logs ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on every request
+// and rate-limits by the proxy IP (meaning all clients share one bucket).
+// Value `1` = trust exactly one hop (Railway's edge), which is the safe
+// setting — `true` would trust arbitrarily many proxies and let clients
+// forge their IP.
+app.set("trust proxy", 1);
+
 // ─── Database Initialization ─────────────────────────────────────
 // Ensure all tables (including subscriptions) exist before handling requests
 initializeDb(getDb());

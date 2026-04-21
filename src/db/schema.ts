@@ -70,6 +70,27 @@ export function initializeDb(db: Database.Database): void {
       created_at TEXT DEFAULT (datetime('now'))
     );
 
+    -- Agent voice responses: structured feedback from agents about services.
+    -- Historically created lazily inside tools/agent-voice.ts on first tool
+    -- call — but seed.ts references this table on every startup, so on a
+    -- fresh Railway volume the whole seed transaction would roll back with
+    -- "no such table: agent_voice_responses" and the DB stayed empty.
+    -- Defining it here guarantees the table exists before seed runs.
+    CREATE TABLE IF NOT EXISTS agent_voice_responses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service_id TEXT NOT NULL REFERENCES services(id),
+      agent_type TEXT NOT NULL DEFAULT 'unknown',
+      agent_id TEXT,
+      question_id TEXT NOT NULL,
+      response_choice TEXT,
+      response_text TEXT,
+      confidence TEXT DEFAULT 'medium',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_voice_service ON agent_voice_responses(service_id);
+    CREATE INDEX IF NOT EXISTS idx_voice_question ON agent_voice_responses(question_id);
+    CREATE INDEX IF NOT EXISTS idx_voice_agent_type ON agent_voice_responses(agent_type);
+
     CREATE INDEX IF NOT EXISTS idx_outcomes_service ON outcomes(service_id);
     CREATE INDEX IF NOT EXISTS idx_outcomes_created ON outcomes(created_at);
     CREATE INDEX IF NOT EXISTS idx_services_category ON services(category);
