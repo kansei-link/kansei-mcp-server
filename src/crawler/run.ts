@@ -166,6 +166,24 @@ export async function runCrawler(
       `[crawler]   fresh: ${dedupe.fresh.length}, duplicates: ${dedupe.duplicates.length}, already-queued: ${dedupe.alreadyQueued.length}`
     );
 
+    // Surface fuzzy same-SaaS matches so the summary makes it clear WHY
+    // a derivative repo (e.g. freee/freee-mcp) was not registered as a
+    // new row — it collapsed into an existing service.
+    if (dedupe.duplicateReasons.size > 0) {
+      const fuzzyHits = Array.from(dedupe.duplicateReasons.entries()).filter(
+        ([, reason]) => reason !== "exact match against existing service"
+      );
+      if (fuzzyHits.length > 0) {
+        console.log(`[crawler]   same-SaaS collapses (${fuzzyHits.length}):`);
+        for (const [repo, reason] of fuzzyHits.slice(0, 10)) {
+          console.log(`[crawler]     - ${repo}: ${reason}`);
+        }
+        if (fuzzyHits.length > 10) {
+          console.log(`[crawler]     ... + ${fuzzyHits.length - 10} more`);
+        }
+      }
+    }
+
     // 3. Enrich (fetch README, star counts for awesome-list entries)
     console.log("[crawler] step 3/10: enriching via GitHub API");
     const enriched = await enrichCandidates(dedupe.fresh);
