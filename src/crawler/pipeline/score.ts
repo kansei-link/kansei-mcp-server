@@ -15,6 +15,71 @@
  */
 import type { ClassifiedCandidate, ScoredCandidate } from "../types.js";
 
+// KanseiLink is a SaaS-integration registry — not a catalog of MCP
+// infrastructure. These patterns short-circuit the trust-score pipeline
+// and force `tier = "reject"` for candidates that are:
+//   - Language SDKs for building MCP servers
+//   - Meta-tools (inspector, mcpjungle, awesome lists)
+//   - Pure CLI / IDE devtools without an external SaaS counterpart
+// Matches applied against candidate_name (the GitHub repo's surface name).
+const INFRASTRUCTURE_NAME_PATTERNS: RegExp[] = [
+  // Language SDKs
+  /^(C#|C\+\+|Python|Java|Kotlin|Swift|Go|Rust|Ruby|PHP|Dart|TypeScript|JavaScript|Node)\s*(MCP\s*SDK|SDK\s*for\s*MCP)$/i,
+  /\bMCP\s*SDK$/i,
+  /^[a-z-]+-?mcp-?sdk$/i,
+
+  // Meta / tool / aggregator
+  /^mcp$/i,
+  /^mcp-server$/i,
+  /^mcp-ts-core$/i,
+  /^mcp-use$/i,
+  /^mcp-workspace$/i,
+  /^mcp-client-for-[\w-]+$/i,
+  /^MCPJungle$/i,
+  /^inspector$/i,
+  /^awesome-mcp-servers$/i,
+
+  // IDE / editor MCPs
+  /^chrome-devtools-mcp$/i,
+  /^nvim-mcp$/i,
+  /^XcodeBuildMCP$/i,
+  /^UnrealMotionGraphicsMCP$/i,
+  /^VibeUE$/i,
+
+  // CLI-only devtools
+  /^gemini-cli$/i,
+
+  // Dev experiments with unclear SaaS counterpart
+  /^agents$/i,
+  /^agency-orchestrator$/i,
+  /^task-orchestrator$/i,
+  /^context-engineering$/i,
+  /^Auto-claude-code-research-in-sleep$/i,
+
+  // Local-only tools (similar positioning to linksee-memory — valid OSS,
+  // but not a SaaS integration target)
+  /^bear-notes-mcp$/i,
+  /^apple-books-mcp$/i,
+  /^AgentRecall$/i,
+  /^memex$/i,
+  /^nocturne_memory$/i,
+  /^chunkhound$/i,
+];
+
+const INFRASTRUCTURE_DESC_PATTERNS: RegExp[] = [
+  /\bSDK for building MCP servers\b/i,
+  /\bMCP protocol SDK\b/i,
+  /^\s*(official\s+)?(Python|TypeScript|Java|Go|Rust|C#|Ruby|PHP|Kotlin|Swift|Dart)\s+(SDK|library|client)\b.*\bMCP\b/i,
+];
+
+function isInfrastructure(c: ClassifiedCandidate): boolean {
+  const name = c.candidate_name || "";
+  const desc = c.description || "";
+  for (const p of INFRASTRUCTURE_NAME_PATTERNS) if (p.test(name)) return true;
+  for (const p of INFRASTRUCTURE_DESC_PATTERNS) if (p.test(desc)) return true;
+  return false;
+}
+
 function starsSignal(stars: number): number {
   // log(1+stars) normalized so that 1000 stars ≈ 1.0
   return Math.min(1, Math.log10(1 + stars) / 3);
@@ -76,7 +141,12 @@ export function scoreCandidate(c: ClassifiedCandidate): ScoredCandidate {
     ? (Date.now() - new Date(c.last_commit_at).getTime()) / 86400_000
     : Infinity;
 
-  if (c.stars < 2 && daysOld > 365) {
+  if (isInfrastructure(c)) {
+    // Short-circuit: KanseiLink is a SaaS registry, not an MCP SDK catalog.
+    // Matches SDKs, meta-tools, CLIs, local-only tools.
+    tier = "reject";
+    reject_reason = "mcp_infrastructure_not_saas";
+  } else if (c.stars < 2 && daysOld > 365) {
     tier = "reject";
     reject_reason = "abandoned: low stars + no commits in a year";
   } else if (!c.has_readme) {
