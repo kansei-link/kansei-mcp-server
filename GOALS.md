@@ -5,6 +5,23 @@
 > Other projects (Linksee Memory, CardWize, ScaNavi) have their own
 > GOALS.md at their respective repo roots — do not mix goals across
 > projects.
+>
+> ## Two memory layers — division of labor
+> **This 4-file structure** (GOALS / STATE / DECISIONS / HEALTH)
+>   = *"what's the project doing right now, what changed, what normal looks like"*.
+>   Project-specific. Path-addressable. Mandatory reads at session start.
+>
+> **Linksee Memory** (`recall("KanseiLINK")`)
+>   = *"why things matter, what past pain taught us, the story"*.
+>   Narrative. Cross-session. Covers emotion, context, caveat, learning.
+>   Can span projects (e.g. Michie's founder history).
+>
+> **Session-start ritual**:
+> 1. Read STATE.md (current state, 30s)
+> 2. Read GOALS.md (this file, 30s)
+> 3. `recall("KanseiLINK")` from Linksee Memory (narrative, 30s)
+> 4. If touching a past decision, read that DECISIONS.md entry
+> 5. Begin work with 2-3 min of context overhead, not 15-30 min
 
 Last reviewed: 2026-04-21
 Owned by: 企画部隊 (Michie + Claude co-founder agent)

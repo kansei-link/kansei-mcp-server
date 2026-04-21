@@ -5,6 +5,12 @@
 >
 > Updated daily by the 朝ダイジェスト agent once it exists (May W2-3).
 > Until then, manually updated at the end of each significant session.
+>
+> **Remember the two-layer split**:
+> - This 4-file structure = *"what & what changed"* (project-specific, structured)
+> - Linksee Memory = *"why & the story"* (narrative, cross-session, cross-project)
+> Read this file for the "結局何やるの？" answer;
+> `recall("KanseiLINK")` from Linksee Memory for the "なぜ？" answer.
 
 Last updated: **2026-04-21 13:20 JST**  (manual — Claude + Michie)
 Next expected update: 2026-04-21 evening after Reddit launch
