@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>freee MCPサーバー完全攻略 — OAuth PKCE認証・5ドメイン統合・エージェント開発の落とし穴2026 | KanseiLink</title>
+  <meta name="description" content="freee MCPサーバーを徹底解剖。OAuth 2.0 PKCE認証のステップ別ガイド、会計・HR・給与・経費・請求書5ドメインの使い分け、company_id必須の理由、auth_expired急増中の対処法、MoneyForwardとのAEO比較まで実装者向けに完全網羅。">
+  <meta name="keywords" content="freee MCP, freee API, freee エージェント, OAuth PKCE, 会計 API, freee 認証, AEO, KanseiLink, freee 開発者">
+  <meta name="author" content="KanseiLink / Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/freee-mcp-deep-dive-2026.html">
+
+  <!-- hreflang -->
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/freee-mcp-deep-dive-2026.html">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/freee-mcp-deep-dive-2026.html">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/freee-mcp-deep-dive-2026.html">
+
+  <!-- OGP -->
+  <meta property="og:title" content="freee MCPサーバー完全攻略 — OAuth PKCE認証・5ドメイン統合・エージェント開発の落とし穴2026">
+  <meta property="og:description" content="freee MCPサーバーを徹底解剖。OAuth PKCE認証のステップ別ガイド、5ドメインの使い分け、auth_expired急増中の対処法、MoneyForwardとのAEO比較。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/freee-mcp-deep-dive-2026.html">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-23">
+  <meta property="article:section" content="Service Deep-Dive">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="freee MCPサーバー完全攻略 — OAuth PKCE・5ドメイン統合・落とし穴">
+  <meta name="twitter:description" content="freee MCPサーバーの認証・5ドメイン統合・落とし穴をKanseiLinkが徹底解剖。auth_expired急増の対処法も。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "freee MCPサーバー完全攻略 — OAuth PKCE認証・5ドメイン統合・エージェント開発の落とし穴2026",
+    "description": "freee MCPサーバーのOAuth 2.0 PKCE認証・5ドメイン統合・落とし穴・MoneyForward比較をKanseiLinkが徹底解剖。",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-23",
+    "dateModified": "2026-04-23",
+    "mainEntityOfPage": "https://kansei-link.com/insights/freee-mcp-deep-dive-2026.html",
+    "keywords": ["freee", "freee MCP", "freee API", "OAuth PKCE", "会計API", "AEO", "KanseiLink"],
+    "articleSection": "Service Deep-Dive",
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "freee MCPサーバーの認証方法は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "OAuth 2.0 Authorization Code + PKCE方式を採用しています。freee Developer Portalでアプリを登録し、access_token（有効期限24時間）とrefresh_token（有効期限90日）を取得します。npx @freee/mcp-serverを使用するとOAuth認証フロー全体が自動化されるため、最も簡単な実装方法です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "freee APIでcompany_idが必要な理由は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "freeeは1つのアカウントで複数の会社・事業所を管理できます。そのため、ほぼ全てのAPIエンドポイントでどの会社のデータを操作するかを指定するcompany_idが必須です。最初に必ずGET /api/1/companiesを呼び出してcompany_idを取得してから、他のAPIを呼び出す必要があります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "freee APIのレート制限は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "アクセストークンごとに1時間あたり3,600リクエストが上限です。ウォレット・取引エンドポイントは5分あたり300リクエストの追加制限があります。制限超過時はHTTP 429が返り、レート制限ヘッダーで残余リクエスト数を確認できます。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "KanseiLink", "item": "https://kansei-link.com"},
+      {"@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/"},
+      {"@type": "ListItem", "position": 3, "name": "freee MCPサーバー完全攻略", "item": "https://kansei-link.com/insights/freee-mcp-deep-dive-2026.html"}
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a { color: var(--black); text-decoration: none; font-weight: 400; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .breadcrumb {
+      max-width: 800px;
+      margin: 24px auto 0;
+      padding: 0 24px;
+      font-size: 14px;
+      color: var(--gray-text);
+    }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .article-meta {
+      margin: 32px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .article-meta .tag {
+      background: var(--lavender);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .article-meta .date { font-size: 14px; color: var(--gray-text); }
+    .article-meta .reading-time { font-size: 14px; color: var(--gray-text); }
+
+    .article h1 {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 16px 0 24px;
+      letter-spacing: -1px;
+    }
+    .article .lead {
+      font-size: 20px;
+      line-height: 1.7;
+      color: var(--gray-dark);
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--gray-mid);
+    }
+    .article h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 56px 0 20px;
+      letter-spacing: -0.5px;
+    }
+    .article h3 { font-size: 22px; font-weight: 600; margin: 40px 0 16px; }
+    .article h4 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
+    .article p { margin-bottom: 20px; line-height: 1.7; }
+    .article ul, .article ol { margin: 0 0 20px 24px; }
+    .article li { margin-bottom: 8px; line-height: 1.7; }
+
+    /* Grade badge */
+    .grade-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #1A3FD6 0%, #00C4B3 100%);
+      color: var(--white);
+      border-radius: 12px;
+      padding: 20px 28px;
+      margin: 24px 0;
+      font-weight: 700;
+      width: 100%;
+    }
+    .grade-badge .grade-letter {
+      font-size: 48px;
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+    .grade-badge .grade-detail { font-size: 15px; line-height: 1.5; }
+    .grade-badge .grade-detail strong { font-size: 18px; display: block; margin-bottom: 4px; }
+
+    /* Code blocks */
+    .code-block {
+      background: #1E293B;
+      color: #E2E8F0;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+      overflow-x: auto;
+      font-family: 'Fira Code', 'SF Mono', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .code-block .code-label {
+      display: block;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .code-block code { font-family: inherit; white-space: pre; }
+    .code-block .comment { color: #64748B; }
+    .code-block .keyword { color: #C084FC; }
+    .code-block .string { color: #34D399; }
+    .code-block .func { color: #60A5FA; }
+    .code-block .number { color: #FB923C; }
+    .code-block .prop { color: #FCD34D; }
+
+    /* Pitfall card */
+    .pitfall-card {
+      background: #FFF7ED;
+      border: 1px solid #FED7AA;
+      border-left: 4px solid #EA580C;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .pitfall-card .pitfall-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .pitfall-card .pitfall-icon { font-size: 18px; }
+    .pitfall-card .pitfall-title { font-size: 16px; font-weight: 700; color: #9A3412; }
+    .pitfall-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+
+    /* Alert card */
+    .alert-card {
+      background: #FFF1F2;
+      border: 2px solid #FDA4AF;
+      border-left: 4px solid #E11D48;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .alert-card .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .alert-card .alert-icon { font-size: 18px; }
+    .alert-card .alert-title { font-size: 16px; font-weight: 700; color: #BE123C; }
+    .alert-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+
+    /* Tip card */
+    .tip-card {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-left: 4px solid #16A34A;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .tip-card .tip-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tip-card .tip-icon { font-size: 18px; }
+    .tip-card .tip-title { font-size: 16px; font-weight: 700; color: #166534; }
+    .tip-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+
+    /* Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 15px;
+    }
+    .data-table th {
+      background: var(--blue);
+      color: var(--white);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--lavender); }
+
+    /* Domain cards */
+    .domain-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .domain-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .domain-card .domain-icon { font-size: 24px; margin-bottom: 8px; }
+    .domain-card .domain-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .domain-card .domain-desc { font-size: 13px; color: var(--gray-text); line-height: 1.5; }
+    .domain-card .domain-endpoints { font-size: 12px; color: var(--blue); font-weight: 600; margin-top: 8px; }
+
+    /* Step list */
+    .step-list {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+    }
+    .step-list li {
+      display: flex;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--gray-mid);
+      align-items: flex-start;
+      margin: 0;
+    }
+    .step-list li:last-child { border-bottom: none; }
+    .step-num {
+      background: var(--blue);
+      color: var(--white);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-content .step-title { font-weight: 600; margin-bottom: 4px; }
+    .step-content .step-detail { font-size: 14px; color: var(--gray-dark); }
+
+    /* CTA */
+    .cta-section {
+      background: linear-gradient(135deg, var(--blue) 0%, #2A1FA0 100%);
+      color: var(--white);
+      border-radius: 16px;
+      padding: 48px;
+      margin: 56px 0 40px;
+      text-align: center;
+    }
+    .cta-section h2 { color: var(--white); font-size: 28px; margin: 0 0 12px; }
+    .cta-section p { font-size: 16px; opacity: 0.9; margin-bottom: 28px; }
+    .cta-section .btn-cta {
+      display: inline-block;
+      background: var(--teal);
+      color: var(--black);
+      font-size: 16px;
+      font-weight: 600;
+      padding: 14px 40px;
+      border-radius: 9999px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .cta-section .btn-cta:hover { opacity: 0.9; }
+
+    /* Related articles */
+    .related-section {
+      margin: 40px 0 0;
+      padding-top: 40px;
+      border-top: 1px solid var(--gray-mid);
+    }
+    .related-section h3 { font-size: 20px; font-weight: 700; margin-bottom: 24px; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 24px;
+      text-decoration: none;
+      color: var(--black);
+      transition: box-shadow 0.2s;
+    }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .related-card .rc-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .related-card .rc-title { font-size: 16px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+    .related-card .rc-desc { font-size: 14px; color: var(--gray-text); line-height: 1.5; }
+
+    /* Footer */
+    .footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 48px 0 32px;
+      margin-top: 80px;
+    }
+    .footer .inner { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .footer .footer-brand { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: var(--teal); }
+    .footer .footer-desc { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 24px; }
+    .footer .footer-copy {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2.5px;
+      background: var(--black);
+      border-radius: 2px;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    @media (max-width: 900px) {
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0; right: 0;
+        background: var(--white);
+        border-bottom: 1px solid var(--gray-mid);
+        flex-direction: column;
+        padding: 16px;
+        gap: 0;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        z-index: 99;
+      }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; padding: 0 16px; }
+      .utility-bar .inner { flex-wrap: wrap; justify-content: center; gap: 12px; padding: 0 16px; }
+      .article h1 { font-size: 28px; letter-spacing: -1px; }
+      .article h2 { font-size: 22px; }
+      .article .lead { font-size: 17px; }
+      .related-grid { grid-template-columns: 1fr; }
+      .domain-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 32px 16px; }
+      .cta-section h2 { font-size: 24px; }
+      .code-block { font-size: 12px; padding: 16px; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
+      th, td { padding: 8px 10px; white-space: nowrap; }
+      .grade-badge { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/freee-mcp-deep-dive-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Nav -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="../index.html">KanseiLink</a>
+    <span class="sep">/</span>
+    <a href="index.html">Insights</a>
+    <span class="sep">/</span>
+    freee MCPサーバー完全攻略
+  </div>
+
+  <!-- Article -->
+  <article class="article">
+
+    <div class="article-meta">
+      <span class="tag">Service Deep-Dive</span>
+      <span class="date">2026-04-23</span>
+      <span class="reading-time">12 min read</span>
+    </div>
+
+    <h1>freee MCPサーバー完全攻略 &#8212; OAuth PKCE認証・5ドメイン統合・エージェント開発の落とし穴2026</h1>
+
+    <p class="lead">
+      freeeは日本の中小企業向けクラウド会計・HR・給与の圧倒的シェアを持つSaaSだ。KanseiLink AEO評価ではAAAグレード・成功率90%・平均レイテンシ216msを記録している。公式MCPサーバー（<code>npx @freee/mcp-server</code>）は会計・HR・給与・経費・請求書の5ドメインを1本で統合する強力な実装だが、OAuth 2.0 PKCEとcompany_id必須という2つの設計がエージェント開発者の最初の壁になる。本記事では2026年4月時点のKanseiLink実測データをもとに、freeeのAEO評価根拠・5ドメイン統合の設計・認証完全ガイド・落とし穴・MoneyForward Cloudとの比較まで徹底解剖する。
+    </p>
+
+    <div class="alert-card">
+      <div class="alert-header">
+        <span class="alert-icon">🚨</span>
+        <span class="alert-title">アクティブ警告（2026-04-23時点）</span>
+      </div>
+      <p>KanseiLink監視データによると、freee MCPサーバーのauth_expired（OAuth 2.0トークン失効）エラーが過去24時間でベースラインの4倍に急増しています。freeeを使用中のエージェントは、トークンリフレッシュロジックの実装状況を今すぐ確認してください。詳細は「落とし穴①」のセクションを参照。</p>
+    </div>
+
+    <h2>1. freee AEO評価 &#8212; AAAグレードの根拠</h2>
+
+    <div class="grade-badge">
+      <div class="grade-letter">AAA</div>
+      <div class="grade-detail">
+        <strong>freee MCP &#8212; KanseiLink AEO格付け</strong>
+        成功率: 90% (212件のレポート) &nbsp;|&nbsp; 平均レイテンシ: 216ms &nbsp;|&nbsp; 公式MCP: ✅<br>
+        最終更新: 2026-04-13 &nbsp;|&nbsp; 最新変更: v2 /invoices/bulk (2026-04-05)
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>評価軸</th>
+          <th>freeeの実績</th>
+          <th>評価</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>公式MCPサーバー</strong></td>
+          <td>freee株式会社公式（@freee/mcp-server）、npxで即起動可能。Remote MCP（2026-03-27追加）でクラウド接続にも対応</td>
+          <td>✅ 最高水準</td>
+        </tr>
+        <tr>
+          <td><strong>ドメインカバレッジ</strong></td>
+          <td>会計・HR・給与・経費精算・請求書の5ドメインを1つのMCPサーバーで統合</td>
+          <td>✅ 業界最広</td>
+        </tr>
+        <tr>
+          <td><strong>API成熟度</strong></td>
+          <td>REST API v1/v2、ページネーション・バルク操作・Webhook完備。2026年4月にBulk Invoices API(v2)追加</td>
+          <td>✅ 高成熟</td>
+        </tr>
+        <tr>
+          <td><strong>成功率</strong></td>
+          <td>90%（212件のエージェントレポートより）。平均レイテンシ216ms（直近5件は250〜2,500ms）</td>
+          <td>✅ 良好</td>
+        </tr>
+        <tr>
+          <td><strong>ドキュメント品質</strong></td>
+          <td>developer.freee.co.jp に詳細な日本語APIリファレンスを整備。エンドポイント別のサンプルコード付き</td>
+          <td>✅ 良好</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      ただし、trust_scoreは0.9（満点1.0）で、同カテゴリのMoneyForward Cloud（0.93）をわずかに下回る。この差は主にOAuth 2.0 PKCEの24時間トークン失効問題と、一部エンドポイントでの散発的なapi_error（15件）に起因している。
+    </p>
+
+    <h2>2. 5ドメイン統合の全体像</h2>
+
+    <p>freee MCPサーバーの最大の特徴は、1つのサーバーで企業の基幹業務5領域をカバーする点だ。エージェントは単一のMCP接続で、会計・人事・給与・経費・請求書をまたいで業務を自動化できる。</p>
+
+    <div class="domain-grid">
+      <div class="domain-card">
+        <div class="domain-icon">📊</div>
+        <div class="domain-name">会計（Accounting）</div>
+        <div class="domain-desc">仕訳・取引・勘定科目・試算表・決算書。確定申告・帳簿管理の自動化に対応。</div>
+        <div class="domain-endpoints">主要: /deals, /journals, /account_items</div>
+      </div>
+      <div class="domain-card">
+        <div class="domain-icon">👥</div>
+        <div class="domain-name">HR（人事）</div>
+        <div class="domain-desc">従業員管理・入退社・勤怠データ連携。SmartHRとの違いはfreeeエコシステム内での完結性。</div>
+        <div class="domain-endpoints">主要: /hr/employees, /hr/work_records</div>
+      </div>
+      <div class="domain-card">
+        <div class="domain-icon">💴</div>
+        <div class="domain-name">給与（Payroll）</div>
+        <div class="domain-desc">給与計算・給与明細・賞与処理。会計ドメインと連動して給与仕訳を自動生成。</div>
+        <div class="domain-endpoints">主要: /salaries/work_records, /payroll_periods</div>
+      </div>
+      <div class="domain-card">
+        <div class="domain-icon">🧾</div>
+        <div class="domain-name">経費精算（Expenses）</div>
+        <div class="domain-desc">経費申請・承認フロー・領収書管理。OCR連携でレシートから自動仕訳が可能。</div>
+        <div class="domain-endpoints">主要: /expense_applications</div>
+      </div>
+      <div class="domain-card" style="grid-column: 1 / -1;">
+        <div class="domain-icon">📄</div>
+        <div class="domain-name">請求書（Invoicing）</div>
+        <div class="domain-desc">請求書作成・送付・入金管理。2026年4月にBulk Invoices API (v2)が追加され、一括発行が大幅に高速化した。インボイス制度対応（適格請求書番号の自動付与）済み。</div>
+        <div class="domain-endpoints">主要: /invoices, /invoices/bulk (v2 NEW), /partners</div>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-header">
+        <span class="tip-icon">💡</span>
+        <span class="tip-title">設計のポイント：ドメインをまたぐ業務自動化</span>
+      </div>
+      <p>freeeの強みは5ドメインが同一のcompany_idと認証トークンで操作できること。例えば「経費申請承認→仕訳自動生成→給与計算連動」を単一のエージェントフローで実現できる。kintoneのようにアプリごとにAPIトークンを発行する必要がなく、OAuth 2.0で一括認証できる点は大規模自動化に有利。</p>
+    </div>
+
+    <h2>3. OAuth 2.0 PKCE認証 &#8212; ステップバイステップガイド</h2>
+
+    <p>freeeはAPIキー認証を採用していない。すべてのAPIアクセスはOAuth 2.0 Authorization Code + PKCE（Proof Key for Code Exchange）フローを通じて行う必要がある。これがfreeeをkintoneやSlackと比べて「最初の壁が高い」と感じさせる主因だ。</p>
+
+    <ul class="step-list">
+      <li>
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Developer Portalでアプリを登録</div>
+          <div class="step-detail"><a href="https://app.secure.freee.co.jp/developers" target="_blank">app.secure.freee.co.jp/developers</a> にアクセスし、新規アプリを作成。redirect_uri（ローカル開発なら <code>http://localhost:3000/callback</code> でも可）を設定し、client_idを取得する。</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">PKCE用のcode_verifierとcode_challengeを生成</div>
+          <div class="step-detail">セキュリティ上、PKCEには128文字のランダム文字列（code_verifier）とそのSHA-256ハッシュ（code_challenge）が必要。npx @freee/mcp-serverを使えばこの手順を自動化できる。</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">認証URLにリダイレクト</div>
+          <div class="step-detail">ユーザーを <code>https://accounts.secure.freee.co.jp/public_api/authorize?client_id=...&redirect_uri=...&response_type=code&code_challenge=...&code_challenge_method=S256&scope=read+write</code> にリダイレクトし、freeeアカウントでの認証を求める。</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">authorization_codeをaccess_tokenと交換</div>
+          <div class="step-detail">freeeから返ってきたcodeを使い、<code>POST https://accounts.secure.freee.co.jp/public_api/token</code> でaccess_token（有効期限24時間）とrefresh_token（有効期限90日）を取得する。</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <div class="step-title">GET /api/1/companiesでcompany_idを取得</div>
+          <div class="step-detail">access_tokenを取得したら、<strong>最初に必ず</strong>この呼び出しを行い、company_idを取得する。これを省略するとほぼ全てのAPIで「company_idが必要」エラーになる。</div>
+        </div>
+      </li>
+    </ul>
+
+    <div class="code-block">
+      <span class="code-label">最小実装例 — company_id取得からDeal一覧まで</span>
+<code><span class="comment">// Step 5: company_id取得（必須・最初の呼び出し）</span>
+<span class="keyword">const</span> companiesRes = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://api.freee.co.jp/api/1/companies'</span>,
+  { headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${accessToken}`</span> } }
+);
+<span class="keyword">const</span> { companies } = <span class="keyword">await</span> companiesRes.<span class="func">json</span>();
+<span class="keyword">const</span> companyId = companies[<span class="number">0</span>].id; <span class="comment">// 例: 123</span>
+
+<span class="comment">// Step 6: 取引一覧を取得（company_idが必須）</span>
+<span class="keyword">const</span> dealsRes = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">`https://api.freee.co.jp/api/1/deals?company_id=${companyId}&type=income&limit=100`</span>,
+  { headers: { <span class="string">'Authorization'</span>: <span class="string">`Bearer ${accessToken}`</span> } }
+);
+<span class="keyword">const</span> { deals, meta } = <span class="keyword">await</span> dealsRes.<span class="func">json</span>();
+<span class="comment">// deals: 取引の配列, meta.total_count: 総件数</span>
+
+<span class="comment">// Step 7: 一括請求書発行（2026-04-05追加のBulk API v2）</span>
+<span class="keyword">const</span> bulkRes = <span class="keyword">await</span> <span class="func">fetch</span>(
+  <span class="string">'https://api.freee.co.jp/api/2/invoices/bulk'</span>,
+  {
+    method: <span class="string">'POST'</span>,
+    headers: {
+      <span class="string">'Authorization'</span>: <span class="string">`Bearer ${accessToken}`</span>,
+      <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>
+    },
+    body: JSON.<span class="func">stringify</span>({ company_id: companyId, invoices: [...] })
+  }
+);</code>
+    </div>
+
+    <h2>4. エージェント開発者が必ずハマる4つの落とし穴</h2>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">落とし穴①：access_token は24時間で失効する（現在急増中）</span>
+      </div>
+      <p>freeeのaccess_tokenは24時間で失効する。2026-04-23時点でauth_expiredエラーがKanseiLink監視上でベースラインの4倍に急増している。原因調査中だが、トークンリフレッシュのタイミングずれが疑われる。<strong>対策：</strong>refresh_token（有効期限90日）を使って自動リフレッシュするロジックを必ず実装すること。<code>POST /public_api/token?grant_type=refresh_token&refresh_token={token}&client_id={id}</code> でトークンを更新できる。</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">トークン自動リフレッシュ — 必須実装パターン</span>
+<code><span class="keyword">async function</span> <span class="func">getValidToken</span>(stored) {
+  <span class="keyword">const</span> expiresAt = stored.issuedAt + <span class="number">23</span> * <span class="number">60</span> * <span class="number">60</span> * <span class="number">1000</span>; <span class="comment">// 23時間（余裕を持つ）</span>
+  <span class="keyword">if</span> (Date.<span class="func">now</span>() &lt; expiresAt) <span class="keyword">return</span> stored.accessToken;
+
+  <span class="comment">// リフレッシュが必要</span>
+  <span class="keyword">const</span> res = <span class="keyword">await</span> <span class="func">fetch</span>(
+    <span class="string">'https://accounts.secure.freee.co.jp/public_api/token'</span>,
+    {
+      method: <span class="string">'POST'</span>,
+      headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/x-www-form-urlencoded'</span> },
+      body: <span class="keyword">new</span> <span class="func">URLSearchParams</span>({
+        grant_type: <span class="string">'refresh_token'</span>,
+        refresh_token: stored.refreshToken,
+        client_id: process.env.FREEE_CLIENT_ID,
+      })
+    }
+  );
+  <span class="keyword">const</span> data = <span class="keyword">await</span> res.<span class="func">json</span>();
+  <span class="keyword">return</span> data.access_token; <span class="comment">// 新しいaccess_tokenを保存すること</span>
+}</code>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">落とし穴②：company_idなしで全てのAPIが失敗する</span>
+      </div>
+      <p>freeeは1アカウントで複数会社を管理できるため、ほぼ全てのエンドポイントでcompany_idパラメータが必須だ。エージェントが最初に<code>GET /api/1/companies</code>を呼び出さずに他のAPIを実行すると、400エラーが返る。company_idはセッション内でキャッシュし、以降のAPIコールに自動付与する設計を推奨する。</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">落とし穴③：金額フィールドはJPY整数（小数点なし）</span>
+      </div>
+      <p>freee APIの全ての金額フィールドは日本円の整数で表される。<code>1000</code> = ¥1,000。外貨取引の場合も最終的にJPY換算の整数で格納される。LLMが小数（例: 1000.50）を生成した場合は必ず整数に変換してから送信すること。また、消費税額も整数として別フィールドに格納されている。</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">落とし穴④：大量データ取得でタイムアウトする</span>
+      </div>
+      <p>日付範囲を指定せずに<code>GET /deals</code>を実行すると、数千件の取引を返そうとして800ms超のレイテンシ（実測）が発生しタイムアウトする場合がある。<strong>対策：</strong>クエリパラメータ<code>start_date</code>と<code>end_date</code>で取得期間を3ヶ月以内に絞ること。KanseiLink内でのWorkaroundレポートでも「3ヶ月フィルターで800msが解消した」ことが確認されている。</p>
+    </div>
+
+    <h2>5. レート制限と対処法</h2>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>エンドポイント種別</th>
+          <th>レート制限</th>
+          <th>推奨対策</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>一般APIエンドポイント</strong></td>
+          <td>3,600リクエスト/時間（アクセストークンごと）</td>
+          <td>エージェントタスクを時間分散。大量処理はBatch APIを活用</td>
+        </tr>
+        <tr>
+          <td><strong>ウォレット・取引系</strong></td>
+          <td>300リクエスト/5分</td>
+          <td>5分あたり300件以内に収まるようキューイング実装</td>
+        </tr>
+        <tr>
+          <td><strong>請求書一括（v2 Bulk）</strong></td>
+          <td>一般制限に準拠（1リクエストで複数件処理可能）</td>
+          <td>1リクエストで最大件数を一括発行し、リクエスト数を最小化</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>HTTP 429が返った場合は、レスポンスヘッダーの <code>X-RateLimit-Reset</code> を確認し、リセット時刻まで待機するExponential Backoffを実装すること。</p>
+
+    <h2>6. 2026年最新アップデート</h2>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>変更内容</th>
+          <th>エージェントへの影響</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2026-04-05</td>
+          <td>freee API v2 に /invoices/bulk（一括請求書）エンドポイントを追加。公式MCPサーバーパッケージ名も更新</td>
+          <td>月次一括請求書発行が1リクエストで完結。処理速度が大幅向上</td>
+        </tr>
+        <tr>
+          <td>2026-03-27</td>
+          <td>Remote MCPサーバーバージョンを追加</td>
+          <td>ローカルnpxインストールなしでクラウド型MCPとして接続可能に</td>
+        </tr>
+        <tr>
+          <td>2026-03-15</td>
+          <td>Invoice API v2エンドポイントをサポート</td>
+          <td>インボイス制度対応の適格請求書番号付与がAPIで自動化</td>
+        </tr>
+        <tr>
+          <td>2026-02-28</td>
+          <td>銀行同期のリトライロジック改善</td>
+          <td>銀行連携エラー後の自動リトライが強化。エージェントの再試行実装が不要に</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>7. MoneyForward Cloudとの比較</h2>
+
+    <p>
+      freeeと直接競合するMoneyForward Cloud（MFクラウド会計）もKanseiLink AEO評価でAAAグレードを獲得しており、成功率93%でfreeeをわずかに上回る。ただし、カバーするドメイン数と日本中小企業でのシェアにはそれぞれ特性がある。
+    </p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>評価軸</th>
+          <th>freee</th>
+          <th>MoneyForward Cloud</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>AEOグレード</strong></td>
+          <td>AAA</td>
+          <td>AAA</td>
+        </tr>
+        <tr>
+          <td><strong>成功率</strong></td>
+          <td>90%</td>
+          <td>93% ✅ 優位</td>
+        </tr>
+        <tr>
+          <td><strong>ドメインカバレッジ</strong></td>
+          <td>5ドメイン（会計・HR・給与・経費・請求書）✅ 優位</td>
+          <td>会計・経費・請求書中心</td>
+        </tr>
+        <tr>
+          <td><strong>認証方式</strong></td>
+          <td>OAuth 2.0 PKCE（初期設定は複雑）</td>
+          <td>OAuth 2.0（同等の複雑さ）</td>
+        </tr>
+        <tr>
+          <td><strong>ターゲット</strong></td>
+          <td>小規模〜中規模事業者、個人事業主</td>
+          <td>中規模〜大規模法人</td>
+        </tr>
+        <tr>
+          <td><strong>MCP起動コマンド</strong></td>
+          <td><code>npx @freee/mcp-server</code></td>
+          <td><code>npx @moneyforward/mcp-server</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      クライアントが freee を使っているなら freee MCPを選ぶ以外の選択肢はない。MoneyForwardは大企業・経理部門寄りで、freeeは起業家・フリーランス・小規模法人に圧倒的シェアを持つ。エージェント開発では「クライアントのツール」に合わせるのが最優先だ。
+    </p>
+
+    <h2>まとめ &#8212; freeeはAAA、ただしOAuth設定に30分は確保せよ</h2>
+
+    <p>
+      freee MCPサーバーは日本の会計・HR・給与・経費・請求書を5ドメイン統合した唯一のAAAグレード公式MCPサーバーだ。2026年4月のBulk Invoices API追加とRemote MCP対応により、大規模な会計自動化エージェントの構築が現実的になっている。
+    </p>
+
+    <p>
+      ただし、OAuth 2.0 PKCE認証の初期設定とcompany_id取得フローは、APIキー1行で動くサービスと比べると確実に壁が高い。本記事の5ステップ認証ガイドと4つの落とし穴を事前に理解してから実装に入れば、立ち上げ時間を大幅に短縮できる。
+    </p>
+
+    <p>
+      また、現在進行中のauth_expired急増（ベースライン比4倍）には注意が必要だ。トークンリフレッシュロジックを実装済みの場合でも、リフレッシュ成功ログを確認することを推奨する。
+    </p>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <h2>freeeの最新AEOスコアとAgent Voiceデータ</h2>
+      <p>リアルタイムの成功率・レイテンシ・エラートレンド・エージェントの生の声は有料コンサルティングプランで提供中。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-cta">データアクセスを申し込む</a>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="related-section">
+      <h3>関連記事</h3>
+      <div class="related-grid">
+        <a href="accounting-saas-aeo-2026.html" class="related-card">
+          <div class="rc-tag">Industry Report</div>
+          <div class="rc-title">会計SaaS AEO対応比較 2026 — freee・弥生・MoneyForward格付けレポート</div>
+          <div class="rc-desc">freeeがカテゴリ内でどう位置づけられるかを競合比較で確認。</div>
+        </a>
+        <a href="kintone-mcp-deep-dive-2026.html" class="related-card">
+          <div class="rc-tag">Service Deep-Dive</div>
+          <div class="rc-title">kintone MCP完全攻略 — AAAグレードの真相と3認証方式</div>
+          <div class="rc-desc">freeeと同じAAAグレードのkintoneとの認証方式の違いを比較。</div>
+        </a>
+        <a href="agent-voice-api-antipatterns-2026.html" class="related-card">
+          <div class="rc-tag">Agent Voice</div>
+          <div class="rc-title">エージェントが本当に困るAPI設計の3大アンチパターン</div>
+          <div class="rc-desc">freeeのauth_expired問題がエージェント視点でどう見えるかを解説。</div>
+        </a>
+        <a href="mcp-common-issues.html" class="related-card">
+          <div class="rc-tag">Technical Guide</div>
+          <div class="rc-title">MCP導入でよくある問題と解決策</div>
+          <div class="rc-desc">freee含む14サービスのMCP運用で蓄積した認証・Rate Limit対策。</div>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-brand">KanseiLink</div>
+      <div class="footer-desc">AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</div>
+      <div class="footer-copy">&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+</body>
+</html>
