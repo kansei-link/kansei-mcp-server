@@ -751,6 +751,28 @@ interface ScoredResult {
 /** Bonus when the user's intent mentions a service by name */
 const NAME_MATCH_BOOST = 2.0;
 
+/**
+ * Bonus for services tagged `jp-native` when the query contains CJK
+ * characters. Audit 2026-04-24 surfaced that EN-default services were
+ * beating JP-native ones for pure JP queries:
+ *   "ECサイト 運営"  → Slack (wrong; Shopify JP should win)
+ *   "データ分析"     → SendGrid (wrong; BigQuery/Treasure Data should win)
+ * The fix is a position bonus on jp-native services when query is CJK.
+ * Chosen deliberately smaller than NAME_MATCH_BOOST so that explicit
+ * name mentions still dominate.
+ */
+const JP_NATIVE_BOOST = 1.2;
+
+function jpNativeBonus(service: ServiceRow, queryIsCJK: boolean): number {
+  if (!queryIsCJK) return 0;
+  if (!service.tags) return 0;
+  const tags = service.tags.toLowerCase();
+  if (tags.includes("jp-native") || tags.includes("jp_native")) return JP_NATIVE_BOOST;
+  // Namespace containing katakana/hiragana/kanji is a secondary signal
+  if (service.namespace && CJK_REGEX.test(service.namespace)) return JP_NATIVE_BOOST * 0.5;
+  return 0;
+}
+
 function nameMatchBonus(service: ServiceRow, intentLower: string): number {
   const name = service.name.toLowerCase();
   const id = service.id.toLowerCase();
@@ -844,6 +866,11 @@ function formatResult(
   const nameBonus = intentLower ? nameMatchBonus(s, intentLower) : 0;
   const tagBonus = intentLower ? tagMatchBonus(s, intentLower) : 0;
   const catAdj = signal ? categoryScoreAdjustment(s, signal) : 0;
+  // JP-native boost — fires only when the query itself is in CJK so EN
+  // queries aren't skewed.
+  const jpBonus = intentLower
+    ? jpNativeBonus(s, CJK_REGEX.test(intentLower))
+    : 0;
   return {
     service_id: s.id,
     name: s.name,
@@ -859,7 +886,8 @@ function formatResult(
     usage_count: s.total_calls ?? 0,
     success_rate: s.success_rate ?? null,
     axr_grade: s.axr_grade ?? null,
-    relevance_score: Math.round((score + nameBonus + tagBonus + catAdj) * 100) / 100,
+    relevance_score:
+      Math.round((score + nameBonus + tagBonus + catAdj + jpBonus) * 100) / 100,
   };
 }
 

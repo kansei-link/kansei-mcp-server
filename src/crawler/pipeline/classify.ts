@@ -44,7 +44,40 @@ interface LLMBatchResult {
     category: string;
     tags: string[];
     notes?: string;
+    confidence?: "high" | "medium" | "low";
   };
+}
+
+/**
+ * Categories historically over-assigned when the LLM is uncertain.
+ * If LLM reports low confidence AND places the service in one of these,
+ * we downgrade to "Other" — a correct "Other" is better than a wrong
+ * specific label (audit 2026-04-24 recommendation #5).
+ */
+const OVER_ASSIGNED_CATEGORIES = new Set(["AI & LLM", "DeFi & Web3"]);
+
+/**
+ * Decide whether to downgrade a low-confidence LLM pick to "Other".
+ * Criteria: description < 30 chars (signal too sparse to justify any
+ * specific category) OR (confidence=low AND category is historically
+ * over-assigned AND refineCategory did not corroborate).
+ */
+function shouldDowngrade(
+  description: string,
+  llmCategory: string,
+  refinedCategory: string,
+  confidence?: "high" | "medium" | "low"
+): boolean {
+  const desc = (description || "").trim();
+  if (desc.length < 30) return true;
+  if (
+    confidence === "low" &&
+    OVER_ASSIGNED_CATEGORIES.has(llmCategory) &&
+    refinedCategory === llmCategory // refine didn't override — nothing else to lean on
+  ) {
+    return true;
+  }
+  return false;
 }
 
 // --- Deterministic refinement layer (runs AFTER LLM classification) -------
@@ -222,6 +255,7 @@ ${categoriesText}
 
 CRITICAL DISAMBIGUATION RULES — read carefully:
 - "AI & LLM" is ONLY for dedicated AI/ML platforms: OpenAI, Anthropic, Hugging Face, Replicate, vector DBs (Pinecone/Weaviate), LLM routers, embedding services. DO NOT use "AI & LLM" just because something is an MCP server — MCP is merely the protocol.
+- "DeFi & Web3" is ONLY for blockchain/crypto services: Ethereum, Solana, wallets, smart contracts, NFTs, token swaps. DO NOT use it for any repo with "network" or "protocol" in the name.
 - Cloud providers (AWS, GCP, Azure, Alibaba Cloud, Aliyun, Tencent Cloud, Oracle Cloud, Cloudflare, Vercel) → "Developer Tools"
 - Databases (MySQL, PostgreSQL, MongoDB, Redis, ClickHouse, DMS, data warehouses) → "Data & Analytics"
 - Travel / booking / ride-share (Airbnb, Booking.com, Expedia, Uber, Google Maps) → "Location & Travel"
@@ -229,11 +263,20 @@ CRITICAL DISAMBIGUATION RULES — read carefully:
 - Payment processors (Stripe, PayPal, Square) → "Finance & Accounting"
 - Messaging (Slack, Discord, Telegram, LINE, Teams) → "Communication"
 - Social / content platforms (Twitter/X, Reddit, YouTube, Instagram) → "Media & Content"
+- Wiki / docs / knowledge bases (Confluence, Notion, Coda, Obsidian, Bookstack) → "Knowledge & Docs"
 
-For each candidate below, return a JSON object mapping its index to { category, tags, notes? }.
+INSUFFICIENT-SIGNAL RULE (important):
+If the description is shorter than 30 characters OR gives no clear domain hint,
+PREFER "Other" over guessing. A correct "Other" is better than a wrong specific
+category. Especially do NOT default to "AI & LLM" or "DeFi & Web3" when the
+signal is weak — those two categories have been over-assigned historically
+(audit 2026-04-24) and pollute category filters.
+
+For each candidate below, return a JSON object mapping its index to { category, tags, notes?, confidence }.
 - category: one of the above (default "Other" if genuinely ambiguous)
 - tags: 3-5 short lowercase tags describing specific capabilities (e.g. ["github", "issues", "pr-management"])
 - notes: optional one-sentence justification if the classification is non-obvious
+- confidence: "high" | "medium" | "low" — be honest; we downgrade low-confidence to Other post-hoc
 
 Candidates:
 ${inputSummary}
@@ -293,9 +336,20 @@ export async function classifyCandidates(
             c.description || "",
             llmPick.category
           );
+          // Insufficient-signal downgrade — prefer "Other" over a wrong
+          // specific category when confidence is low or description is
+          // too sparse to justify any assignment (audit 2026-04-24).
+          const final = shouldDowngrade(
+            c.description || "",
+            llmPick.category,
+            refined,
+            llmPick.confidence
+          )
+            ? "Other"
+            : refined;
           results.push({
             ...c,
-            proposed_category: refined,
+            proposed_category: final,
             proposed_tags: llmPick.tags || [],
             llm_notes: llmPick.notes,
           });

@@ -20,6 +20,20 @@ OPEN: unresolved follow-ups
 
 ---
 
+## 2026-04-24 — 250-Test Audit + 6-Action Remediation
+CONTEXT: Ran a 250-test quality/health audit of the service registry (150 endpoint health checks, 60 search-quality queries, 40 classification spot-checks). Audit found: endpoint health 98.7% live (strong), search quality 73% good (acceptable), classification 30% verifiably correct (weak). Surfaced 1 dead endpoint, 4 clearly-wrong classifications, 2 coverage gaps (翻訳/動画配信), JP-query ranking bias (Slack winning "ECサイト"), and 2 high-usage/low-success services (Chatwork, SmartHR).
+DECISION: Execute all 6 audit recommendations as a cohesive remediation:
+  (1) archive lofder-dsers-mcp-product (404), mark Zapier auth_required;
+  (2) reclassify 4 community repos: Confluence → Knowledge & Docs, Bifrost/Trace → AI & LLM, LeanKG → Developer Tools;
+  (3) harden classifier with confidence field + insufficient-signal → "Other" downgrade for AI & LLM / DeFi & Web3 (historical over-assignment);
+  (4) add 5 coverage-gap services: DeepL, Google Translate, Vimeo, EDI-ACE, AWS Backup;
+  (5) add JP-native boost (+1.2 to relevance_score) when query is CJK — backfill jp-native tag on 27 known JP SaaS;
+  (6) deep-dive Chatwork/SmartHR outcomes: append 3 new SmartHR tips from real agent workarounds (v2 endpoint preference, OAuth expiry, department-scoped pagination).
+REASON: Audit surfaced the evidence base. Each action tied 1-to-1 to a specific finding in the report, keeping remediation scope focused (no drive-by changes).
+REVERSIBILITY: High on all six — all DB updates are reversible via single UPDATE statements; code changes toggle-able.
+COMMITS: (this commit)
+OPEN: Action 2 could go further — 11 "no-signal" entries from section D deserve a human pass. Action 5 needs monitoring — the +1.2 JP boost might need tuning if it over-promotes weak JP entries. Chatwork "search miss" failures (10/24) suggest KanseiLink's own search needs further tuning beyond the JP boost — follow-up investigation needed.
+
 ## 2026-04-21 — Drop Reddit from 4/28 Launch Plan
 CONTEXT: Reddit account u/Worth_Growth5807 accumulated 5 spam removals + 1 Reddit content-policy violation on r/ClaudeAI between 2026-04-07 and 2026-04-21 across 6 product-post attempts. Account is functionally blocked at platform level for product content. New Reddit account would require 3-month karma warm-up before another attempt.
 DECISION: Remove Reddit entirely from the 4/28 launch plan. Replace with Zenn JP + Dev.to EN same-day publication to backfill. 5-channel launch: Hacker News (Show HN) + Product Hunt + Zenn + Dev.to + X.
