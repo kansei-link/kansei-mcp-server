@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps/クラウドインフラSaaS AEO比較 2026 — Cloudflare・CircleCI・DatadogのAIエージェント対応格付け | KanseiLink</title>
+  <meta name="description" content="Cloudflare・CircleCI・Datadog・Sentry・GitHub Actionsなど主要DevOps SaaSのAEOスコアを実データで比較。MCPサーバー対応状況、AIエージェント成功率、レイテンシベンチマークを格付けレポートとして公開。">
+  <meta name="keywords" content="DevOps SaaS AEO, Cloudflare MCP, CircleCI AEO, Datadog AEO, Sentry MCP, GitHub Actions MCP, AIエージェント DevOps, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/devops-saas-aeo-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/devops-saas-aeo-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/devops-saas-aeo-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/devops-saas-aeo-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="DevOps SaaS AEO比較 2026 — Cloudflare・CircleCI・Datadog格付けレポート">
+  <meta property="og:description" content="公式MCPはCloudflareのみ。CircleCIが成功率100%・454msで実力を証明。Datadog・New RelicはAIエージェント対応でまだ後手。DevOps主要7サービスのAEO実データ初公開。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/devops-saas-aeo-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-25">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Industry Report">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DevOps SaaS AEO比較 2026 — Cloudflare・CircleCI・Datadog">
+  <meta name="twitter:description" content="公式MCPはCloudflareのみ。CI/CDではCircleCIが100%成功で首位。可観測性ツール群はBBグレードに。DevOps 7サービスのAEO実測データ。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "DevOps/クラウドインフラSaaS AEO比較 2026 — Cloudflare・CircleCI・DatadogのAIエージェント対応格付け",
+    "description": "Cloudflare・CircleCI・Datadog・Sentry・GitHub Actionsなど主要DevOps SaaSのAEOスコアを実データで比較。MCPサーバー対応状況、AIエージェント成功率、レイテンシベンチマークを格付けレポートとして公開。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-25",
+    "dateModified": "2026-04-25",
+    "mainEntityOfPage": "https://kansei-link.com/insights/devops-saas-aeo-2026",
+    "keywords": ["AEO", "DevOps", "Cloudflare", "CircleCI", "Datadog", "Sentry", "GitHub Actions", "MCP", "AIエージェント"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "AIエージェントからDevOpsツールを操作するには何が必要ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCPサーバーの有無が最初の判断基準になります。現時点で公式MCPサーバーを提供しているDevOpsツールはCloudflareのみです（公式MCPサーバー: npx @cloudflare/mcp-server-cloudflare）。GitHub ActionsはサードパーティMCP経由で利用可能。Datadog・Sentry・New Relicは公式APIのみの対応で、エージェントからはREST APIを直接呼び出す形になります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "DatadogとNew RelicはAIエージェントと連携できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "両サービスとも公式MCPサーバーは未提供ですが、REST APIを通じたエージェント連携は可能です。DatadogはKanseiLink実績データ1件（成功率100%・420ms）、New Relicは実績データ未蓄積の状態です。公式MCP未対応のため自律的なエラー回復が難しく、現時点のAEOグレードはBBです。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "CircleCIとGitHub Actionsはどちらがエージェント連携に適していますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "用途によって異なります。CI/CDパイプラインの操作に特化するならCircleCI（Aグレード・成功率100%・454ms、api_only/verified）が実績豊富です。GitHubリポジトリと深く統合されたワークフロー自動化が必要ならGitHub Actions（BBBグレード・成功率100%・112ms、サードパーティMCP対応）の方が低レイテンシで使いやすい場面もあります。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights" },
+      { "@type": "ListItem", "position": 3, "name": "DevOps SaaS AEO比較 2026", "item": "https://kansei-link.com/insights/devops-saas-aeo-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3;
+      --black: #000000; --white: #FFFFFF; --lavender: #F4F5FD;
+      --gray-light: #F5F5F5; --gray-mid: #E5E7EB; --gray-text: #6B7280; --gray-dark: #374151;
+      --grade-aaa: #065F46; --grade-aa: #059669; --grade-a: #0891B2;
+      --grade-bbb: #D97706; --grade-bb: #EA580C; --grade-b: #DC2626; --grade-ccc: #991B1B;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter','Noto Sans JP',-apple-system,BlinkMacSystemFont,sans-serif; color: var(--black); background: var(--white); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a { color: var(--black); text-decoration: none; font-size: 16px; font-weight: 400; padding: 20px 0; border-bottom: 2px solid transparent; transition: border-color 0.2s; }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); border: none; padding: 10px 32px; border-radius: 9999px; font-size: 16px; font-weight: 400; font-family: inherit; cursor: pointer; text-decoration: none; transition: opacity 0.2s; display: inline-block; }
+    .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 5px; }
+    .hamburger span { display: block; width: 24px; height: 2.5px; background: var(--black); border-radius: 2px; transition: transform 0.3s, opacity 0.3s; }
+
+    .breadcrumb-bar { background: var(--gray-light); padding: 12px 0; font-size: 14px; color: var(--gray-text); }
+    .breadcrumb-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 60%, #0e4f6e 100%); padding: 80px 0 64px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.25); color: var(--white); font-size: 13px; font-weight: 500; padding: 6px 16px; border-radius: 9999px; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .article-hero h1 { font-size: 42px; font-weight: 600; letter-spacing: -2.1px; line-height: 1.2; margin-bottom: 24px; }
+    .article-hero .subtitle { font-size: 18px; font-weight: 300; line-height: 1.7; opacity: 0.9; margin-bottom: 32px; }
+    .article-meta { display: flex; align-items: center; gap: 24px; font-size: 14px; opacity: 0.8; flex-wrap: wrap; }
+    .article-meta .divider { width: 1px; height: 16px; background: rgba(255,255,255,0.3); }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 48px 40px 80px; color: var(--gray-dark); font-size: 16px; line-height: 1.7; }
+    .article-body h2 { font-size: 28px; font-weight: 600; color: var(--black); letter-spacing: -1px; margin-top: 56px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--lavender); }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin-top: 36px; margin-bottom: 12px; }
+    .article-body p { margin-bottom: 20px; }
+    .article-body ul, .article-body ol { margin-bottom: 20px; padding-left: 24px; }
+    .article-body li { margin-bottom: 8px; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+    .article-body a:hover { border-bottom-color: var(--blue); }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); font-family: monospace; }
+
+    .key-concept { background: var(--lavender); border-left: 4px solid var(--blue); padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .key-concept .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .key-concept p { margin-bottom: 0; font-size: 15px; line-height: 1.7; }
+
+    .toc-box { background: var(--gray-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 14px; font-weight: 600; color: var(--black); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .toc-box ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+    .toc-box li { counter-increment: toc; margin-bottom: 6px; }
+    .toc-box li::before { content: counter(toc) "."; color: var(--blue); font-weight: 600; margin-right: 8px; font-size: 13px; }
+    .toc-box a { color: var(--gray-dark); text-decoration: none; font-size: 14px; }
+    .toc-box a:hover { color: var(--blue); }
+
+    .comparison-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 28px 0; overflow-x: auto; display: block; }
+    .comparison-table thead th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 500; font-size: 13px; letter-spacing: 0.5px; white-space: nowrap; }
+    .comparison-table thead th:first-child { border-radius: 8px 0 0 0; }
+    .comparison-table thead th:last-child { border-radius: 0 8px 0 0; }
+    .comparison-table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); vertical-align: middle; white-space: nowrap; }
+    .comparison-table tbody tr:hover { background: var(--lavender); }
+    .grade-badge { display: inline-block; padding: 3px 12px; border-radius: 4px; font-size: 13px; font-weight: 700; color: var(--white); min-width: 48px; text-align: center; }
+    .bg-aaa { background: var(--grade-aaa); }
+    .bg-aa { background: var(--grade-aa); }
+    .bg-a { background: var(--grade-a); }
+    .bg-bbb { background: var(--grade-bbb); }
+    .bg-bb { background: var(--grade-bb); }
+    .bg-b { background: var(--grade-b); }
+
+    .service-card { border: 1px solid var(--gray-mid); border-radius: 12px; padding: 32px; margin: 24px 0; border-left: 4px solid var(--blue); }
+    .service-card.rank-1 { border-left-color: var(--grade-a); }
+    .service-card.rank-2 { border-left-color: var(--grade-a); }
+    .service-card.rank-3 { border-left-color: var(--grade-bbb); }
+    .service-card.rank-4 { border-left-color: var(--grade-bb); }
+    .service-card.rank-5 { border-left-color: var(--grade-bb); }
+    .service-card-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .service-card-header h3 { font-size: 20px; font-weight: 700; color: var(--black); margin: 0; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
+    .metric-item { text-align: center; }
+    .metric-item .val { font-size: 24px; font-weight: 700; color: var(--blue); line-height: 1; }
+    .metric-item .lbl { font-size: 11px; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 28px; letter-spacing: -1px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .metric-row { gap: 16px; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/devops-saas-aeo-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      DevOps/クラウドインフラSaaS AEO比較 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Industry Report</span>
+      <h1>DevOps/クラウドインフラSaaS AEO比較 2026</h1>
+      <p class="subtitle">Cloudflare・CircleCI・Datadog・Sentry・GitHub Actions — AIエージェントはどのDevOpsツールと最もうまく連携できるか</p>
+      <div class="article-meta">
+        <span>2026-04-25</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約9分</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#overview">DevOps SaaSカテゴリのAEO概況</a></li>
+        <li><a href="#cloudflare">Cloudflare — Aグレード：唯一の公式MCP対応インフラサービス</a></li>
+        <li><a href="#circleci">CircleCI — Aグレード：CI/CDの優等生、実績で証明</a></li>
+        <li><a href="#github-actions">GitHub Actions — BBBグレード：最速レイテンシ・サードパーティMCP</a></li>
+        <li><a href="#datadog-sentry">Datadog・Sentry — BBグレード：可観測性ツールの現在地</a></li>
+        <li><a href="#newrelic-grafana">New Relic・Grafana Cloud — BBグレード：実績データ待ち</a></li>
+        <li><a href="#comparison">7サービス比較サマリーと選択指針</a></li>
+        <li><a href="#faq">よくある質問</a></li>
+      </ol>
+    </div>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示</div>
+      <p>本レポートのデータはKanseiLink MCPサーバーを通じてAIエージェントが収集した実運用データに基づきます（2026年4月25日時点）。各サービスのAEOスコアはKanseiLink独自の評価メソドロジーによる算出値です。サンプル数が少ないサービスは信頼区間が広く、今後データ蓄積により格付けが変動する可能性があります。</p>
+    </div>
+
+    <h2 id="overview">DevOps SaaSカテゴリのAEO概況</h2>
+
+    <p>AIエージェントが自律的にCI/CDパイプラインをトリガーし、アラートに応答してインシデントを自己修復し、インフラの設定変更をコードとして反映する——「Self-healing Infrastructure」という概念が現実に近づきつつある2026年、DevOpsツールのAIエージェント対応は業界全体でまだ黎明期にある。</p>
+
+    <p>KanseiLinkが評価した主要DevOps 7サービスのデータを見ると、<strong>公式MCPサーバーを提供しているのはCloudflareのみ</strong>という衝撃的な事実が浮かび上がる。CI/CD、モニタリング、可観測性——DevOps全領域において、多くのサービスがエージェント対応を「公式API経由での対応」にとどめており、MCPプロトコルへの本格対応はほぼ手つかずの状態だ。</p>
+
+    <div class="key-concept">
+      <div class="label">評価データの背景</div>
+      <p>Cloudflare: 1件、CircleCI: 3件、GitHub Actions: 1件、Datadog: 1件、Sentry: 1件、New Relic: 0件、Grafana Cloud: 0件。DevOpsカテゴリはエージェントコミュニティでの採用が始まったばかりで、サンプル数は全体的に少ない。信頼スコアはサンプル数・成功率・レイテンシ・MCP対応状況を総合して算出。</p>
+    </div>
+
+    <p>それでも、限られたデータの中から注目すべきパターンが見えてくる。成功率100%という完璧なスコアを出しているサービスが複数存在する一方で、レイテンシのばらつきが大きく、GitHub Actionsの112msからCloudflareの600msまで5倍以上の差がある。DevOpsツール選定においてレイテンシは重要な要素だが、単純な速さだけがAEOグレードを決めるわけではない。</p>
+
+    <h2 id="cloudflare">Cloudflare — Aグレード：唯一の公式MCP対応インフラサービス</h2>
+
+    <div class="service-card rank-1">
+      <div class="service-card-header">
+        <h3>Cloudflare</h3>
+        <span class="grade-badge bg-a">A</span>
+        <span style="font-size:13px;color:var(--gray-text);">信頼スコア 0.80</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">100%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">600ms</div><div class="lbl">平均レイテンシ</div></div>
+        <div class="metric-item"><div class="val">1</div><div class="lbl">実績件数</div></div>
+        <div class="metric-item"><div class="val">公式</div><div class="lbl">MCPステータス</div></div>
+      </div>
+      <p>公式MCPサーバー: <code>npx @cloudflare/mcp-server-cloudflare</code> &nbsp;|&nbsp; namespace: <code>github.com/cloudflare/mcp-server-cloudflare</code></p>
+    </div>
+
+    <p>CloudflareはDevOpsカテゴリで唯一、公式MCPサーバーを提供するサービスだ。Workers・R2・D1・AI Gatewayなどのサービスをエージェントから操作可能で、インフラのコード管理をAIエージェントに委ねる「IaC-as-Agent」アーキテクチャの実現に最も近い位置にいる。</p>
+
+    <p>実績1件での成功率100%は頼もしいが、平均レイテンシ600msは比較サービス中最長だ。これはCloudflareのAPIが地理的分散の中継を経由するためと考えられ、<strong>Workers/R2の操作において600ms台のレイテンシは許容範囲内</strong>と見ることもできるが、高頻度の自動化タスクには影響が出る可能性がある。</p>
+
+    <h3>Cloudflareとエージェントを連携させるポイント</h3>
+    <ul>
+      <li>Workers KVやR2への読み書き操作はレイテンシが高め。キャッシュ戦略を組み込んで呼び出し回数を最小化する</li>
+      <li>AI Gatewayをエージェントのリクエストルーターとして使うと、プロンプトキャッシュとコスト可視化が同時に得られる</li>
+      <li>Bearer Token認証。Cloudflare API TokenはScope設定が細かく、エージェントに与える権限を最小化しやすい</li>
+      <li>D1（SQLiteベースのエッジDB）はエージェントの中間状態保存に適しており、Workersと組み合わせることで低コストなエージェントバックエンドが構築できる</li>
+    </ul>
+
+    <h2 id="circleci">CircleCI — Aグレード：CI/CDの優等生、実績で証明</h2>
+
+    <div class="service-card rank-2">
+      <div class="service-card-header">
+        <h3>CircleCI</h3>
+        <span class="grade-badge bg-a">A</span>
+        <span style="font-size:13px;color:var(--gray-text);">信頼スコア 0.70</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">100%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">454ms</div><div class="lbl">平均レイテンシ</div></div>
+        <div class="metric-item"><div class="val">3</div><div class="lbl">実績件数</div></div>
+        <div class="metric-item"><div class="val">API only</div><div class="lbl">MCPステータス</div></div>
+      </div>
+      <p>REST API v2: <code>https://circleci.com/docs/api/v2/</code> &nbsp;|&nbsp; 認証: Bearer Token</p>
+    </div>
+
+    <p>CircleCIはMCPサーバーを持たないにもかかわらず、DevOpsカテゴリで最も信頼できる実績データを持つサービスだ。3件のエージェント実行すべてで成功（100%）を達成し、平均レイテンシ454msは実用的な範囲に収まっている。</p>
+
+    <p><strong>MCPなしで「verified（実績あり）」に分類される唯一のDevOpsサービス</strong>として、エージェントコミュニティからの評価は高い。CI/CDパイプラインの起動・ステータス確認・アーティファクト取得などの操作がREST API経由で安定して動作することが、現場での採用実績として証明されている。</p>
+
+    <h3>CircleCIとエージェントを連携させるポイント</h3>
+    <ul>
+      <li>REST API v2のエンドポイント構造は整理されており、パイプライン・ワークフロー・ジョブの3階層を理解してから設計する</li>
+      <li><code>POST /project/{project-slug}/pipeline</code>でパイプラインをトリガー。project-slugは<code>gh/org/repo</code>形式</li>
+      <li>Webhook設定でパイプライン完了を非同期で受け取ると、エージェントのポーリングが不要になり効率的</li>
+      <li>インサイトAPI（<code>/insights/pages/summary</code>）でビルド成功率・実行時間のトレンドを取得可能。エージェントによるCI健全性モニタリングに活用できる</li>
+    </ul>
+
+    <h2 id="github-actions">GitHub Actions — BBBグレード：最速レイテンシ・サードパーティMCP</h2>
+
+    <div class="service-card rank-3">
+      <div class="service-card-header">
+        <h3>GitHub Actions</h3>
+        <span class="grade-badge bg-bbb">BBB</span>
+        <span style="font-size:13px;color:var(--gray-text);">信頼スコア 0.70</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">100%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">112ms</div><div class="lbl">平均レイテンシ</div></div>
+        <div class="metric-item"><div class="val">1</div><div class="lbl">実績件数</div></div>
+        <div class="metric-item"><div class="val">3rd Party MCP</div><div class="lbl">MCPステータス</div></div>
+      </div>
+      <p>サードパーティMCP: <code>npx -y @github/mcp-server</code> &nbsp;|&nbsp; GitHub REST API経由</p>
+    </div>
+
+    <p>GitHub Actionsは112msという評価対象7サービス中最速のレイテンシを記録した。GitHubのグローバルインフラと緊密に統合されたAPIアーキテクチャが、この低レイテンシを実現している。サードパーティMCPサーバーが提供されており、エージェントからのGitHub操作（PR作成・ワークフロー起動・Actionsステータス確認）がMCP経由で可能だ。</p>
+
+    <p>ただし、サードパーティMCPのためKanseiLinkの信頼スコアは0.70にとどまり、グレードはBBBだ。<strong>実績1件という少ないサンプル数も不確実性の要因</strong>で、今後のデータ蓄積によってAグレードへの昇格が見込まれる。日本のエンジニアリングチームで最も採用されているCI/CDプラットフォームであることを考えると、実績件数は今後急速に増加するはずだ。</p>
+
+    <h3>GitHub Actionsとエージェントを連携させるポイント</h3>
+    <ul>
+      <li>ワークフローのdispatch（手動起動）は<code>workflow_dispatch</code>イベントを設定したうえで<code>POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches</code>を使う</li>
+      <li>Actionsのステータス確認は<code>GET /repos/{owner}/{repo}/actions/runs</code>で一覧取得、<code>conclusion</code>フィールドで成否判定</li>
+      <li>GitHub Tokenの権限スコープを最小化する。エージェントには<code>actions:read/write</code>と<code>contents:read</code>のみ付与が推奨</li>
+    </ul>
+
+    <h2 id="datadog-sentry">Datadog・Sentry — BBグレード：可観測性ツールの現在地</h2>
+
+    <div class="service-card rank-4">
+      <div class="service-card-header">
+        <h3>Datadog</h3>
+        <span class="grade-badge bg-bb">BB</span>
+        <span style="font-size:13px;color:var(--gray-text);">信頼スコア 0.50</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">100%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">420ms</div><div class="lbl">平均レイテンシ</div></div>
+        <div class="metric-item"><div class="val">1</div><div class="lbl">実績件数</div></div>
+        <div class="metric-item"><div class="val">API only</div><div class="lbl">MCPステータス</div></div>
+      </div>
+      <p>REST API: <code>https://docs.datadoghq.com/api/</code> &nbsp;|&nbsp; 認証: API Key</p>
+    </div>
+
+    <div class="service-card rank-4" style="margin-top: 16px;">
+      <div class="service-card-header">
+        <h3>Sentry</h3>
+        <span class="grade-badge bg-bb">BB</span>
+        <span style="font-size:13px;color:var(--gray-text);">信頼スコア 0.50</span>
+      </div>
+      <div class="metric-row">
+        <div class="metric-item"><div class="val">100%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">280ms</div><div class="lbl">平均レイテンシ</div></div>
+        <div class="metric-item"><div class="val">1</div><div class="lbl">実績件数</div></div>
+        <div class="metric-item"><div class="val">API only</div><div class="lbl">MCPステータス</div></div>
+      </div>
+      <p>REST API: <code>https://docs.sentry.io/api/</code> &nbsp;|&nbsp; 認証: API Key</p>
+    </div>
+
+    <p>DatadogとSentryはどちらも実績1件で成功率100%を記録しており、REST APIとしての品質は高い。しかし、公式MCPサーバーが存在しないため信頼スコアが0.50にとどまり、両サービスともBBグレードに格付けされる。</p>
+
+    <p>可観測性ツールとしての本来の強みは、AIエージェントによるモニタリング自動化（アラート検知→根本原因特定→修復提案）において最大化されるはずだ。しかし<strong>現状ではMCPによる標準的なコンテキスト共有ができず、エージェントが「何が起きているか」を把握するためのAPI呼び出し回数が増える</strong>という非効率が生じやすい。</p>
+
+    <p>Sentry 280msはDatadog 420msより高速で、特にエラー検知・イシュー管理のユースケースでエージェントとの相性が良い。Sentryの場合、<code>GET /api/0/projects/{organization_slug}/{project_slug}/issues/</code>でエラー一覧を取得し、エージェントによる自動トリアージに活用できる。</p>
+
+    <h2 id="newrelic-grafana">New Relic・Grafana Cloud — BBグレード：実績データ待ち</h2>
+
+    <p>New RelicとGrafana CloudはKanseiLinkの現時点のデータセットに実績報告がゼロで、信頼スコアはそれぞれ0.40と低い。両サービスとも公式MCPサーバーは未提供で、グレードはBBだ。</p>
+
+    <p>New RelicはNerdGraph（GraphQL API）という強力なクエリインターフェースを持ち、複雑なオブザーバビリティデータをエージェントが柔軟に取得できる潜在的な強みがある。Grafana CloudはPrometheusやLocki、Tempoとの統合が深く、既存のSREチームのツールチェーンとエージェントを接続する際に価値を発揮する。</p>
+
+    <p><strong>どちらのサービスも技術的な実力は十分だが、エージェントコミュニティでの実績積み上げがこれからの段階</strong>だ。日本のSREチームでの採用が進めば、今後のレポートで格付けが大きく改善する可能性がある。</p>
+
+    <h2 id="comparison">7サービス比較サマリーと選択指針</h2>
+
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>サービス</th>
+          <th>AEOグレード</th>
+          <th>成功率</th>
+          <th>レイテンシ</th>
+          <th>MCP状況</th>
+          <th>主な用途</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cloudflare</strong></td>
+          <td><span class="grade-badge bg-a">A</span></td>
+          <td>100%</td>
+          <td>600ms</td>
+          <td>公式MCP</td>
+          <td>CDN/Edge/Workers自動化</td>
+        </tr>
+        <tr>
+          <td><strong>CircleCI</strong></td>
+          <td><span class="grade-badge bg-a">A</span></td>
+          <td>100%</td>
+          <td>454ms</td>
+          <td>API only (verified)</td>
+          <td>CI/CDパイプライン管理</td>
+        </tr>
+        <tr>
+          <td><strong>GitHub Actions</strong></td>
+          <td><span class="grade-badge bg-bbb">BBB</span></td>
+          <td>100%</td>
+          <td>112ms ⚡</td>
+          <td>3rdパーティMCP</td>
+          <td>GitHubリポジトリ連携CI/CD</td>
+        </tr>
+        <tr>
+          <td><strong>Datadog</strong></td>
+          <td><span class="grade-badge bg-bb">BB</span></td>
+          <td>100%</td>
+          <td>420ms</td>
+          <td>API only</td>
+          <td>インフラ・APMモニタリング</td>
+        </tr>
+        <tr>
+          <td><strong>Sentry</strong></td>
+          <td><span class="grade-badge bg-bb">BB</span></td>
+          <td>100%</td>
+          <td>280ms</td>
+          <td>API only</td>
+          <td>エラー監視・イシュー管理</td>
+        </tr>
+        <tr>
+          <td><strong>New Relic</strong></td>
+          <td><span class="grade-badge bg-bb">BB</span></td>
+          <td>—</td>
+          <td>—</td>
+          <td>API only</td>
+          <td>フルスタックオブザーバビリティ</td>
+        </tr>
+        <tr>
+          <td><strong>Grafana Cloud</strong></td>
+          <td><span class="grade-badge bg-bb">BB</span></td>
+          <td>—</td>
+          <td>—</td>
+          <td>API only</td>
+          <td>メトリクス・ログ・トレース統合</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>ユースケース別の選択指針</h3>
+    <ul>
+      <li><strong>エージェントにインフラを制御させたい</strong> → Cloudflare（公式MCP、Workers/R2/D1の直接操作が可能）</li>
+      <li><strong>CI/CDパイプラインを自動化したい</strong> → CircleCI（実績豊富・安定）またはGitHub Actions（GitHubエコシステム統合・超低レイテンシ）</li>
+      <li><strong>エラー自動トリアージをしたい</strong> → Sentry（280ms低レイテンシ、イシュー管理APIが充実）</li>
+      <li><strong>インフラ全体のモニタリングをAIエージェントに任せたい</strong> → Datadog（広範なAPIカバレッジ）または New Relic（NerdGraph GraphQL）</li>
+    </ul>
+
+    <div class="key-concept">
+      <div class="label">今後の展望</div>
+      <p>DevOpsカテゴリは2026年後半にかけてMCP対応が急速に進む見込みだ。DatadogはすでにAIアシスタント機能を自社製品に組み込んでおり、エージェント向け公式MCPサーバーの提供は時間の問題と見られる。Sentryも同様に、エラー自動修復のユースケースでMCP対応のニーズが高まっている。KanseiLinkは引き続きこのカテゴリの動向を追跡する。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>DevOpsエージェント統合の詳細データが必要ですか？</h3>
+      <p>KanseiLinkのプレミアムレポートでは、各サービスのAPI認証設定・エラーパターン・最適化Tipsをエージェント向けに整理した詳細ガイドを提供しています。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-primary" style="color:var(--black);background:var(--teal);">お問い合わせ</a>
+    </div>
+
+    <h2 id="faq">よくある質問</h2>
+
+    <h3>AIエージェントからDevOpsツールを操作するには何が必要ですか？</h3>
+    <p>MCPサーバーの有無が最初の判断基準です。現時点で公式MCPサーバーを提供しているDevOpsツールはCloudflareのみです（<code>npx @cloudflare/mcp-server-cloudflare</code>）。GitHub ActionsはサードパーティMCP経由で利用可能。Datadog・Sentry・New Relicは公式APIのみの対応で、エージェントからはREST APIを直接呼び出す形になります。</p>
+
+    <h3>DatadogとNew RelicはAIエージェントと連携できますか？</h3>
+    <p>両サービスとも公式MCPサーバーは未提供ですが、REST APIを通じたエージェント連携は可能です。DatadogはKanseiLink実績データ1件（成功率100%・420ms）で動作を確認しています。New Relicは実績データ未蓄積の状態で、現時点のAEOグレードはBBです。</p>
+
+    <h3>CircleCIとGitHub Actionsはどちらがエージェント連携に適していますか？</h3>
+    <p>用途によって異なります。CI/CDパイプラインの操作に特化するならCircleCI（Aグレード・成功率100%・実績3件）が安定しています。GitHubリポジトリとの深い統合が必要かつ低レイテンシを優先するならGitHub Actions（BBBグレード・112ms）が適しています。</p>
+
+    <div class="related-section">
+      <h2>関連インサイト</h2>
+      <div class="related-grid">
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー実装ガイド 2026 — Claude・Cursor対応の設計パターン</h4>
+        </a>
+        <a href="devtools-saas-aeo-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>開発者ツールSaaS AEO比較 2026</h4>
+        </a>
+        <a href="mcp-server-observability-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー可観測性ガイド 2026 — ログ・メトリクス・トレーシング設計</h4>
+        </a>
+        <a href="agent-token-cost-optimization-2026.html" class="related-card">
+          <div class="tag">Cost &amp; ROI</div>
+          <h4>AIエージェント運用コスト96%削減の実証 — トークン最適化データ2026</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <div class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>このレポートのデータはKanseiLink MCPサーバーから取得しました。エージェントが日本のSaaS情報にアクセスするには: <code>npx @kansei-link/mcp-server</code></p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</p>
+        </div>
+        <div class="footer-links">
+          <h4>Research</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Connect</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+  document.querySelectorAll('.nav-links a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      document.querySelector('.nav-links').classList.remove('nav-open');
+    });
+  });
+  </script>
+</body>
+</html>

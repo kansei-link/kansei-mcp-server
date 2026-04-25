@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A2A v1.0・Google Colab MCP・Microsoft二連打——2026年4月第4週AIエージェント速報 | KanseiLink</title>
+  <meta name="description" content="A2A Protocol v1.0正式リリース（150+組織・Signed Agent Cards）、Google Colab MCP Server公開、MicrosoftのSQL MCP＋Power Apps MCP二連打、MCP公式2026年ロードマップ——4月第4週の4大ニュースと日本SaaSへの影響を解説。">
+  <meta name="keywords" content="A2A Protocol, Google Colab MCP, Microsoft SQL MCP, Power Apps MCP, MCP Roadmap 2026, AIエージェント, KanseiLink, AEO">
+  <meta name="author" content="KanseiLink / Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-ai-agent-news-april-w4-2026.html">
+
+  <!-- hreflang -->
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-ai-agent-news-april-w4-2026.html">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-ai-agent-news-april-w4-2026.html">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-ai-agent-news-april-w4-2026.html">
+
+  <!-- OGP -->
+  <meta property="og:title" content="A2A v1.0・Google Colab MCP・Microsoft二連打——2026年4月第4週AIエージェント速報">
+  <meta property="og:description" content="A2A v1.0（150+組織・Signed Agent Cards）、Google Colab MCP、SQL MCP＋Power Apps MCP、MCP 2026公式ロードマップ——4月第4週の重大ニュースをKanseiLink視点で解説。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-ai-agent-news-april-w4-2026.html">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-24">
+  <meta property="article:section" content="MCP Trend">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="A2A v1.0・Google Colab MCP・Microsoft二連打——2026年4月第4週AIエージェント速報">
+  <meta name="twitter:description" content="150+組織が参加するA2A v1.0、Google/Microsoftの相次ぐMCP参戦——AIエージェントインフラが本番フェーズへ移行中。KanseiLink解説。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "A2A v1.0・Google Colab MCP・Microsoft二連打——2026年4月第4週AIエージェント速報",
+    "description": "A2A Protocol v1.0正式リリース、Google Colab MCP Server、Microsoft SQL MCP＋Power Apps MCP、MCP 2026公式ロードマップを解説。",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-24",
+    "dateModified": "2026-04-24",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-ai-agent-news-april-w4-2026.html",
+    "keywords": ["A2A Protocol", "Google Colab MCP", "Microsoft SQL MCP", "Power Apps MCP", "MCP Roadmap 2026", "AIエージェント", "KanseiLink"],
+    "articleSection": "MCP Trend",
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "A2A ProtocolとMCPはどう違うか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCPは「AIエージェントがツール・データソースに接続するプロトコル」。A2Aは「AIエージェント同士が通信・協調するプロトコル」。両者は補完関係にあり、MCP（ツール接続）＋A2A（エージェント間通信）の二層構造が2026年のデファクトスタンダードになりつつある。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Google Colab MCPを使うには何が必要か？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Googleが公開したオープンソースのColab MCP Serverをインストールし、Googleアカウントで認証を設定するだけで、Claude・GPT・Gemini等のAIエージェントがGoogle Colabでコードを実行できる。GPUやTPUを含むColabのマネージド環境にエージェントがアクセス可能になる。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCP 2026ロードマップで最も重要な改善は何か？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "最重要は2点：①Streamable HTTPのステートレス化（ロードバランサー対応・水平スケール対応）と②Enterprise Readiness（SSO統合認証・監査証跡・ゲートウェイパターン）。どちらも本番デプロイの主要ボトルネックに対応するものだ。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "KanseiLink", "item": "https://kansei-link.com"},
+      {"@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/"},
+      {"@type": "ListItem", "position": 3, "name": "MCP/AIトレンド速報 2026年4月第4週", "item": "https://kansei-link.com/insights/mcp-ai-agent-news-april-w4-2026.html"}
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a { color: var(--black); text-decoration: none; font-weight: 400; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .breadcrumb {
+      max-width: 800px;
+      margin: 24px auto 0;
+      padding: 0 24px;
+      font-size: 14px;
+      color: var(--gray-text);
+    }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .article-meta {
+      margin: 32px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .article-meta .tag {
+      background: var(--lavender);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .article-meta .date { font-size: 14px; color: var(--gray-text); }
+    .article-meta .reading-time { font-size: 14px; color: var(--gray-text); }
+
+    .article h1 {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 16px 0 24px;
+      letter-spacing: -1px;
+    }
+    .article .lead {
+      font-size: 20px;
+      line-height: 1.7;
+      color: var(--gray-dark);
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--gray-mid);
+    }
+    .article h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 56px 0 20px;
+      letter-spacing: -0.5px;
+    }
+    .article h3 { font-size: 22px; font-weight: 600; margin: 40px 0 16px; }
+    .article h4 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
+    .article p { margin-bottom: 20px; line-height: 1.7; }
+    .article ul, .article ol { margin: 0 0 20px 24px; }
+    .article li { margin-bottom: 8px; line-height: 1.7; }
+
+    .news-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 16px;
+      padding: 28px;
+      margin: 32px 0;
+      position: relative;
+    }
+    .news-card .news-num {
+      position: absolute;
+      top: -16px;
+      left: 24px;
+      background: var(--blue);
+      color: var(--white);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 16px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+    }
+    .news-card .news-date {
+      font-size: 13px;
+      color: var(--gray-text);
+      margin-bottom: 8px;
+    }
+    .news-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 12px;
+      color: var(--blue);
+    }
+    .news-card p { font-size: 15px; color: var(--gray-dark); margin-bottom: 12px; line-height: 1.6; }
+    .news-card .news-impact {
+      background: var(--lavender);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--gray-dark);
+    }
+    .news-card .news-impact strong { color: var(--blue); }
+
+    .highlight-box {
+      background: linear-gradient(135deg, #EEF2FF 0%, #F0FDFA 100%);
+      border: 1px solid var(--blue-light);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin: 32px 0;
+    }
+    .highlight-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--blue); }
+    .highlight-box p { font-size: 15px; color: var(--gray-dark); margin-bottom: 0; }
+    .highlight-box ul { margin: 8px 0 0 20px; }
+    .highlight-box li { font-size: 15px; color: var(--gray-dark); margin-bottom: 6px; }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin: 32px 0;
+    }
+    .stat-box {
+      background: var(--lavender);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-box .stat-num {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--blue);
+      letter-spacing: -1px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .stat-box .stat-label { font-size: 13px; color: var(--gray-text); line-height: 1.4; }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 15px;
+    }
+    .data-table th {
+      background: var(--blue);
+      color: var(--white);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--lavender); }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-high { background: #FEE2E2; color: #991B1B; }
+    .badge-mid { background: #FEF3C7; color: #92400E; }
+    .badge-low { background: #D1FAE5; color: #065F46; }
+
+    .cta-section {
+      background: linear-gradient(135deg, var(--blue) 0%, #2A1FA0 100%);
+      color: var(--white);
+      border-radius: 16px;
+      padding: 48px;
+      margin: 56px 0 40px;
+      text-align: center;
+    }
+    .cta-section h2 { color: var(--white); font-size: 28px; margin: 0 0 12px; }
+    .cta-section p { font-size: 16px; opacity: 0.9; margin-bottom: 28px; }
+    .cta-section .btn-cta {
+      display: inline-block;
+      background: var(--teal);
+      color: var(--black);
+      font-size: 16px;
+      font-weight: 600;
+      padding: 14px 40px;
+      border-radius: 9999px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .cta-section .btn-cta:hover { opacity: 0.9; }
+
+    .related-section {
+      margin: 40px 0 0;
+      padding-top: 40px;
+      border-top: 1px solid var(--gray-mid);
+    }
+    .related-section h3 { font-size: 20px; font-weight: 700; margin-bottom: 24px; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 24px;
+      text-decoration: none;
+      color: var(--black);
+      transition: box-shadow 0.2s;
+    }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .related-card .rc-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .related-card .rc-title { font-size: 16px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+    .related-card .rc-desc { font-size: 14px; color: var(--gray-text); line-height: 1.5; }
+
+    .footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 48px 0 32px;
+      margin-top: 80px;
+    }
+    .footer .inner { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .footer .footer-brand { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: var(--teal); }
+    .footer .footer-desc { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 24px; }
+    .footer .footer-copy {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2.5px;
+      background: var(--black);
+      border-radius: 2px;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    @media (max-width: 900px) {
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0; right: 0;
+        background: var(--white);
+        border-bottom: 1px solid var(--gray-mid);
+        flex-direction: column;
+        padding: 16px;
+        gap: 0;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        z-index: 99;
+      }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; padding: 0 16px; }
+      .utility-bar .inner { flex-wrap: wrap; justify-content: center; gap: 12px; padding: 0 16px; }
+      .article h1 { font-size: 28px; letter-spacing: -1px; }
+      .article h2 { font-size: 22px; }
+      .article .lead { font-size: 17px; }
+      .related-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 32px 16px; }
+      .cta-section h2 { font-size: 24px; }
+      .stat-row { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
+      th, td { padding: 8px 10px; white-space: nowrap; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-ai-agent-news-april-w4-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Nav -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="../index.html">KanseiLink</a>
+    <span class="sep">/</span>
+    <a href="index.html">Insights</a>
+    <span class="sep">/</span>
+    MCP/AIトレンド速報 2026年4月第4週
+  </div>
+
+  <!-- Article -->
+  <article class="article">
+
+    <div class="article-meta">
+      <span class="tag">MCP Trend</span>
+      <span class="date">2026-04-24</span>
+      <span class="reading-time">11 min read</span>
+    </div>
+
+    <h1>A2A v1.0・Google Colab MCP・Microsoft二連打——2026年4月第4週AIエージェント速報</h1>
+
+    <p class="lead">
+      2026年4月第4週（4月19日〜25日）、AIエージェントエコシステムに複数の重大ニュースが集中した。A2A Protocol v1.0の詳細判明（150+組織参加・Signed Agent Cards・本番稼働）、Google Colab MCP Server公開、MicrosoftのSQL MCP＋Power Apps MCP二連打、そしてMCP公式2026年ロードマップの公表——これらは「エージェント経済の基盤インフラが本番フェーズへ完全移行した」ことを示している。KanseiLinkの視点から4大ニュースと日本SaaSへの影響を解説する。
+    </p>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-num">150+</div>
+        <div class="stat-label">A2A v1.0<br>参加組織数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">1,100</div>
+        <div class="stat-label">Power Apps MCPが<br>接続できるシステム数</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">22,200</div>
+        <div class="stat-label">MCPの米国<br>月間検索数</div>
+      </div>
+    </div>
+
+    <h2>ニュース1 — A2A Protocol v1.0正式リリース：エージェント間通信が本番へ</h2>
+
+    <div class="news-card">
+      <span class="news-num">NEWS 1</span>
+      <div class="news-date">2026-04-09発表 &#8226; A2A Protocol / Linux Foundation</div>
+      <h3>Signed Agent Cards・150+組織・Microsoft/AWS/Salesforceで本番稼働</h3>
+      <p>
+        GoogleがAnthropicと共同で提唱し、Linux Foundation傘下の<strong>A2A Protocol（Agent-to-Agent Protocol）v1.0</strong>が正式リリースされた。v1.0はspec-levelでの後方互換性（v0.3→v1.0移行）を保証した初の安定版だ。
+      </p>
+      <p>
+        <strong>v1.0の主要機能4点</strong>：
+      </p>
+      <ul>
+        <li><strong>Signed Agent Cards</strong>（最重要）——エージェントカードに暗号署名を付加。受信エージェントがカードの発行元ドメインを検証できるようになり、なりすまし攻撃を防止</li>
+        <li><strong>マルチテナント対応</strong>——1エンドポイントで複数エージェントをテナント別に提供。SaaSプロバイダーがクライアントごとに異なるエージェントを配信可能</li>
+        <li><strong>デュアルトランスポート</strong>——同一論理エージェントをJSON-RPC・gRPCの両方で公開可能。レイテンシ要件に応じて切り替えられる</li>
+        <li><strong>バージョンネゴシエーション</strong>——spec-level保証付きのv0.3→v1.0移行パス</li>
+      </ul>
+      <p>
+        現時点でMicrosoft、AWS、Salesforce、SAP、ServiceNowが本番環境でA2A v1.0を稼働。参加組織は150+に達した。
+      </p>
+      <div class="news-impact">
+        <strong>KanseiLink視点：</strong> MCPは「AIエージェントがツール・データソースに接続するプロトコル」、A2Aは「AIエージェント同士が通信・協調するプロトコル」——役割分担が明確になった。日本SaaS事業者は「MCPサーバーを持つだけ」では不十分になりつつあり、A2A対応エージェントを受け入れるインフラも必要になる。特にSalesforce・SAP等と連携するエンタープライズSaaSは早急な対応検討が必要だ。
+      </div>
+    </div>
+
+    <h2>ニュース2 — Google Colab MCP Server：AI実験環境が全エージェントに開放</h2>
+
+    <div class="news-card">
+      <span class="news-num">NEWS 2</span>
+      <div class="news-date">2026年4月 &#8226; Google Developers</div>
+      <h3>オープンソースのColab MCP Serverで、どのAIエージェントでもColabコードを実行可能に</h3>
+      <p>
+        Googleは<strong>Google Colab用の公式MCPサーバー</strong>をオープンソースで公開した。これにより、Claude・GPT・Gemini等のあらゆるAIエージェントが、Google Colabのノートブック環境でコードを実行できるようになった。
+      </p>
+      <p>
+        Colab MCP Serverの特徴は3点だ。①<strong>マネージドGPU/TPU環境へのアクセス</strong>——個人開発者が高コストのGPUを持たずとも、エージェントがColabのGPUリソースで機械学習コードを実行できる。②<strong>オープンソース公開</strong>——カスタマイズ・自己ホストが可能で、企業がセキュリティポリシーに合わせた独自Colab統合を構築できる。③<strong>マルチLLM対応</strong>——Claude Code・OpenAI Agents SDK・Google ADKなど複数のエージェントフレームワークから接続可能。
+      </p>
+      <div class="news-impact">
+        <strong>KanseiLink視点：</strong> データ分析・機械学習・BI系SaaSにとって重要な動向だ。KanseiLinkのBI/Analytics SaaSカテゴリで評価中のサービス（Tableau・PowerBI連携等）は、Colab MCP経由でのデータ分析エージェント統合が容易になる。GoogleがMCPエコシステムに本格参入した証左でもある。
+      </div>
+    </div>
+
+    <h2>ニュース3 — MicrosoftがSQL MCP ＋ Power Apps MCPを同時リリース</h2>
+
+    <div class="news-card">
+      <span class="news-num">NEWS 3</span>
+      <div class="news-date">2026年4月 &#8226; Microsoft</div>
+      <h3>1,100のエンタープライズシステムとSQLデータベースへのエージェントアクセスが開放</h3>
+      <p>
+        Microsoftは4月、2つのMCPサーバーをほぼ同時にリリースした。
+      </p>
+      <p>
+        <strong>① Microsoft SQL MCP Server</strong>——AIエージェントがSQL Serverデータベースに直接アクセスするためのMCPサーバー。Microsoft SQL Server・PostgreSQL・Azure Cosmos DB・MySQLのいずれでも動作し、クラウド・オンプレミスを問わない。エンタープライズのデータウェアハウス・基幹DBへのエージェントアクセスが標準化される。
+      </p>
+      <p>
+        <strong>② Power Apps MCP Server</strong>——Power Platformの<strong>1,100のエンタープライズシステム</strong>をMCPで接続するサーバー。ノーコードでAIエージェントを構築できる環境を提供し、人間承認フィードも内蔵。ビジネスユーザーがエージェントをコードなしで構成できる。
+      </p>
+      <div class="news-impact">
+        <strong>KanseiLink視点：</strong> 日本のエンタープライズ市場ではMicrosoft SQL Serverのシェアが高く、SQL MCPは直接影響を持つ。また、Power Apps経由で接続できる1,100システムには多くの日本向けSaaSコネクタが含まれる可能性が高い。Microsoftが「MCP統合を製品の標準機能として出荷」し始めたことは、他のプラットフォームベンダーへのシグナルでもある。
+      </div>
+    </div>
+
+    <h2>ニュース4 — MCP公式2026年ロードマップ公表：4つの優先課題</h2>
+
+    <div class="news-card">
+      <span class="news-num">NEWS 4</span>
+      <div class="news-date">2026年4月 &#8226; Model Context Protocol Blog</div>
+      <h3>Streamable HTTPのステートレス化・Enterprise認証・Tasksプリミティブ改善が3大テーマ</h3>
+      <p>
+        Anthropicを中心とするMCPメンテナーチームは<strong>「MCP 2026年公式ロードマップ」</strong>を公表した。4つの優先領域が示されている。
+      </p>
+      <ul>
+        <li><strong>① トランスポート進化</strong>——Streamable HTTPのステートレス化（ロードバランサー対応・水平スケール対応）。現状ではセッションが特定マシンに固定されるため、本番スケールでのボトルネックとなっている</li>
+        <li><strong>② エージェント間通信（Tasksプリミティブ）</strong>——非同期エージェント呼び出し用のTasksプリミティブのライフサイクルギャップを解消。リトライセマンティクスと結果保存の有効期限ポリシーが追加予定</li>
+        <li><strong>③ ガバナンス成熟</strong>——コントリビューターラダーと委任モデルの正式化。Den Delimarskyが新Lead Maintainerに就任（2026年4月発表）</li>
+        <li><strong>④ エンタープライズ対応</strong>——SSO統合認証・監査証跡・ゲートウェイパターンの標準化。GDPR・SOC2コンプライアンス対応を容易にする設計ガイドラインも策定予定</li>
+      </ul>
+      <div class="news-impact">
+        <strong>KanseiLink視点：</strong> ロードマップの公表は「MCPが個人エンジニアの実験から企業の本番基盤へ」移行したことの証左だ。特に「エンタープライズ対応」領域は、KanseiLinkが以前分析した<a href="mcp-enterprise-readiness-2026.html" style="color:var(--blue)">「本番MCPの4大課題」</a>に直接対応する。日本SaaS事業者がMCP投資の意思決定をする際に、ロードマップを参照することを強く推奨する。
+      </div>
+    </div>
+
+    <h2>4大ニュースの日本SaaS影響度まとめ</h2>
+
+    <p>今週の4つのニュースを日本SaaS事業者の視点で影響度・緊急度を整理した。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ニュース</th>
+          <th>発表元</th>
+          <th>日本SaaSへの影響</th>
+          <th>緊急度</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>A2A v1.0</strong></td>
+          <td>Google/Linux Foundation</td>
+          <td>エージェント間通信標準化。マルチエージェントSaaS設計を見直す必要性</td>
+          <td><span class="badge badge-high">高</span></td>
+        </tr>
+        <tr>
+          <td><strong>Google Colab MCP</strong></td>
+          <td>Google</td>
+          <td>データ分析・ML系SaaSとのエージェント連携が標準化。BIカテゴリに影響</td>
+          <td><span class="badge badge-mid">中</span></td>
+        </tr>
+        <tr>
+          <td><strong>MS SQL MCP + Power Apps MCP</strong></td>
+          <td>Microsoft</td>
+          <td>SQL Server ユーザーの大企業でエージェントDB接続が容易に。1,100システム接続は業務SaaS統合を加速</td>
+          <td><span class="badge badge-high">高</span></td>
+        </tr>
+        <tr>
+          <td><strong>MCP 2026ロードマップ</strong></td>
+          <td>Anthropic/MCP</td>
+          <td>ステートレス化・SSO認証・監査証跡が正式化。本番投資の根拠が明確化</td>
+          <td><span class="badge badge-mid">中</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="highlight-box">
+      <h3>KanseiLinkの見立て：MCPとA2Aの「二層プロトコル構造」が固まった</h3>
+      <p>
+        2026年4月第4週で最も重要な構造変化は、<strong>MCP（ツール接続層）＋A2A（エージェント間通信層）</strong>の二層プロトコルスタックが業界デファクトとして固まったことだ。MicrosoftとGoogleがどちらの層にも積極的にコントリビュートしていることは、この二層構造が少なくとも数年は継続することを示唆する。
+      </p>
+      <p>
+        日本のSaaS事業者にとって示唆するのは、<strong>「MCPサーバーを持つだけでは不十分」</strong>という現実だ。エージェントの受け皿（MCP）に加え、エージェントが他のエージェントと連携するA2Aへの対応も視野に入れる必要がある。KanseiLinkのAEOスコアでは、2026年Q3より「A2A互換性」を評価項目として追加する予定だ。
+      </p>
+    </div>
+
+    <p style="font-size:13px; color:var(--gray-text); margin-top:32px; padding:16px; background:var(--gray-light); border-radius:8px;">
+      <strong>情報源・検証状況：</strong>
+      A2A v1.0リリース ✅（<a href="https://a2a-protocol.org/latest/announcing-1.0/" target="_blank" style="color:var(--blue)">a2a-protocol.org</a>、2026-04-09）、150+組織・本番稼働 ✅（<a href="https://www.prnewswire.com/news-releases/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year-302737641.html" target="_blank" style="color:var(--blue)">PR Newswire</a>）、Google Colab MCP ✅（<a href="https://developers.googleblog.com/announcing-the-colab-mcp-server-connect-any-ai-agent-to-google-colab/" target="_blank" style="color:var(--blue)">Google Developers Blog</a>）、Power Apps MCP 1,100システム ✅（<a href="https://www.aimagicx.com/blog/power-apps-mcp-server-low-code-agents-2026" target="_blank" style="color:var(--blue)">AI Magicx</a>）、SQL MCP ✅（<a href="https://cloudwars.com/ai/mcp-server-gives-ai-agents-simplified-access-to-data-stored-in-sql-databases/" target="_blank" style="color:var(--blue)">Cloud Wars</a>）、MCP 2026ロードマップ ✅（<a href="https://blog.modelcontextprotocol.io/posts/2026-mcp-roadmap/" target="_blank" style="color:var(--blue)">MCP Blog</a>）、Den Delimarsky Lead Maintainer就任 ✅（<a href="https://blog.modelcontextprotocol.io/posts/2026-04-08-maintainer-update/" target="_blank" style="color:var(--blue)">MCP Blog</a>）、MCP月間検索22,200件 ✅（<a href="https://thenewstack.io/model-context-protocol-roadmap-2026/" target="_blank" style="color:var(--blue)">The New Stack</a>）。
+    </p>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <h2>日本SaaSのAEOスコアをリアルタイムで確認</h2>
+      <p>225+サービスのMCP対応状況・AEOスコアは無料ランキングページで閲覧可能。詳細データはコンサルティングプランで提供中。</p>
+      <a href="../index.html" class="btn-cta">AEOランキングを見る</a>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="related-section">
+      <h3>関連記事</h3>
+      <div class="related-grid">
+        <a href="ai-agent-april-2026-updates.html" class="related-card">
+          <div class="rc-tag">MCP Trend</div>
+          <div class="rc-title">AIエージェント急加速：2026年4月の重大アップデート5選とKanseiLink視点</div>
+          <div class="rc-desc">Claude Opus 4.7・Managed Agents・Routines・Pinterest本番MCP——4月前半の激動を解説。</div>
+        </a>
+        <a href="aaif-mcp-open-standard-2026.html" class="related-card">
+          <div class="rc-tag">MCP Trend</div>
+          <div class="rc-title">MCPがLinux Foundation傘下AAIFに寄贈 — 日本SaaSへの3つの影響</div>
+          <div class="rc-desc">A2A v1.0が載るLinux FoundationとMCPのガバナンス関係を解説。</div>
+        </a>
+        <a href="mcp-enterprise-readiness-2026.html" class="related-card">
+          <div class="rc-tag">Data Story</div>
+          <div class="rc-title">MCPエンタープライズ本番展開の4大課題</div>
+          <div class="rc-desc">MCP Roadmapが対応しようとしている本番デプロイの課題を詳解。</div>
+        </a>
+        <a href="mcp-enterprise-case-studies-2026.html" class="related-card">
+          <div class="rc-tag">MCP Trend</div>
+          <div class="rc-title">Pinterest月66,000呼び出し・Lucidworks 10倍速化 — エンタープライズMCP本番導入の3成功パターン</div>
+          <div class="rc-desc">A2A v1.0が普及した世界でのエンタープライズMCPアーキテクチャを先読みする。</div>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-brand">KanseiLink</div>
+      <div class="footer-desc">AEO Rating Agency for Japanese SaaS. AIエージェント時代のサービス品質を可視化。</div>
+      <div class="footer-copy">&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</div>
+    </div>
+  </footer>
+
+<script>
+document.querySelectorAll('.nav-links a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    document.querySelector('.nav-links').classList.remove('nav-open');
+  });
+});
+</script>
+</body>
+</html>
