@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>「MCP対応」の罠: verified/connectableの成功率格差と企業選定の新基準 — KanseiLinkデータ2026 | KanseiLink</title>
+  <meta name="description" content="「MCP対応済み」は最低要件でしかない。KanseiLinkの3段階Agent Readiness評価(verified/connectable/info_only)でわかった真実——connectableの中にはZapierの13%からTeamsの100%まで天と地の差がある。エンタープライズ調達の新しい問いかけ方を解説。">
+  <meta name="keywords" content="MCP対応 企業選定, Agent Readiness verified connectable, MCPサーバー 成功率 格差, KanseiLink AEO評価, エンタープライズ SaaS MCP 2026, MCP調達基準, verified MCP サービス">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-verified-vs-connectable-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-verified-vs-connectable-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-verified-vs-connectable-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-verified-vs-connectable-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="「MCP対応」の罠: verified/connectableの成功率格差と企業選定の新基準">
+  <meta property="og:description" content="「MCP対応済み」はもはやスペックの最低ラインでしかない。KanseiLinkデータが示すverified(83〜94%)とconnectable(13〜100%)の実態——エンタープライズは「MCP対応?」ではなく何を問うべきか。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-verified-vs-connectable-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-26">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Data Story">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="「MCP対応」の罠: verified/connectableの成功率格差 — KanseiLink">
+  <meta name="twitter:description" content="verified平均89% vs connectableは13〜100%の大荒れ。「MCP対応?」という問いはもう古い。KanseiLinkデータが示す企業調達の新基準。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "「MCP対応」の罠: verified/connectableの成功率格差と企業選定の新基準 — KanseiLinkデータ2026",
+    "description": "「MCP対応済み」という表示が企業SaaS調達の新しいチェックボックスになりつつある。しかしKanseiLinkの3段階Agent Readiness評価が明かす実態は、verified(成功率83〜94%)とconnectable(13〜100%の大荒れ)の間には天と地の差がある。企業が実際に問うべき5つの質問を、実測データとともに解説する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-26",
+    "dateModified": "2026-04-26",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-verified-vs-connectable-2026",
+    "keywords": ["Agent Readiness", "verified MCP", "connectable", "MCP対応", "企業調達", "SaaS選定", "KanseiLink", "AEO評価", "データストーリー"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "verifiedとconnectableの違いは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLinkの定義では、verified(🟢)は「実戦検証済み——成功率80%以上かつ十分なデータサンプル数（一般的にn≥50相当）を持つサービス」です。connectableは「公式MCPサーバーまたはAPIが存在するが未実証——成功率や信頼性はサービスによって大きく異なる」状態を指します。info_only(⚪)はMCPが存在しないが情報提供のみ可能なサービスです。KanseiLinkの2026年4月データでは、verified 6サービスの成功率は83〜94%（平均89%）に集中していますが、connectableは13〜100%と極めて幅広い分布を示しています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "「MCP対応」と表示しているサービスは信頼できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "「MCP対応」という表示だけでは信頼性の判断はできません。KanseiLinkのデータでは、connectable評価のサービスのうちZapierは成功率13%、一方でMicrosoft TeamsやLINE Messagingは成功率100%（ただしデータポイント数が少ない）です。公式MCPサーバーの存在はAgent Readiness実証の第一歩に過ぎません。サービスを評価する際は、成功率（直近n≥20が望ましい）、エラー分類と既知のワークアラウンド、Agent Readiness tierを確認することを推奨します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "verifiedになるにはどうすればいいですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLinkがverified評価を付与する基準は、①成功率80%以上、②十分なエージェント呼び出しデータの蓄積（一般的にn≥50相当）、③主要なエラーパターンと既知ワークアラウンドが文書化されていること、です。つまり公式MCPサーバーを公開した後、実際のエージェントに広く使ってもらい、KanseiLinkがデータを収集できる状態にする必要があります。KanseiLink AEO診断プログラムを通じて積極的にデータ収集を加速する方法もあります。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "データストーリー: MCP対応の格差 2026", "item": "https://kansei-link.com/insights/mcp-verified-vs-connectable-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .tier-card { border: 2px solid var(--gray-mid); border-radius: 12px; padding: 24px 28px; margin: 16px 0; }
+    .tier-card.verified { border-color: #059669; background: #F0FDF4; }
+    .tier-card.connectable { border-color: #D97706; background: #FFFBEB; }
+    .tier-card.info-only { border-color: #9CA3AF; background: #F9FAFB; }
+    .tier-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .tier-badge { font-size: 22px; }
+    .tier-name { font-size: 18px; font-weight: 700; }
+    .tier-card.verified .tier-name { color: #065F46; }
+    .tier-card.connectable .tier-name { color: #92400E; }
+    .tier-card.info-only .tier-name { color: #374151; }
+    .tier-desc { font-size: 15px; color: var(--gray-dark); line-height: 1.7; margin-bottom: 12px; }
+    .tier-stats { font-size: 14px; color: var(--gray-text); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .grade-aaa { font-weight: 700; color: #059669; }
+    .grade-aa { font-weight: 700; color: #2563EB; }
+    .grade-a { font-weight: 700; color: #7C3AED; }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+    .badge-verified { display: inline-block; background: #D1FAE5; color: #065F46; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-connectable { display: inline-block; background: #FEF3C7; color: #92400E; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-verified-vs-connectable-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      データストーリー: MCP対応の格差 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">データストーリー / Data Story</span>
+      <h1>「MCP対応」の罠: verified/connectableの成功率格差と企業選定の新基準</h1>
+      <p class="subtitle">「MCP対応済み」はもはや最低限のスペックでしかない——verifiedは成功率83〜94%に集中するが、connectableはZapierの13%からMicrosoft Teamsの100%まで天と地の差がある。KanseiLinkデータが示す、エンタープライズが実際に問うべき5つの質問。</p>
+      <div class="article-meta">
+        <span>2026-04-26</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約10分</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#intro">「MCP対応」チェックボックスの罠</a></li>
+        <li><a href="#tiers">KanseiLinkの3段階Agent Readiness評価</a></li>
+        <li><a href="#verified">verifiedの実態: 安定した高成功率クラブ</a></li>
+        <li><a href="#connectable">connectableの実態: 大荒れの13〜100%</a></li>
+        <li><a href="#matrix">グレード × Readiness マトリクス: 驚くべきズレ</a></li>
+        <li><a href="#enterprise">エンタープライズ調達の新ガイド: 5つの問い</a></li>
+        <li><a href="#vendor">SaaSベンダーへの示唆: verifiedを取りに行く</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="intro">「MCP対応」チェックボックスの罠</h2>
+
+    <p>AIエージェントの普及が加速する2026年春、「MCP対応済み」という表示が企業SaaS調達の新しい評価項目になりつつある。ITベンダーはプレスリリースでMCPサーバーの提供を発表し、調達担当者は「MCP対応？」というチェックボックスに印をつけて次の項目に移る。</p>
+
+    <p>しかしKanseiLinkが実測した225+サービスのAgent Readinessデータは、この問いかけが根本的に間違っていることを示している。</p>
+
+    <p><strong>「MCP対応？」は間違った質問だ。正しい質問は「どのtierのMCP対応で、実際の成功率はいくつか？」だ。</strong></p>
+
+    <div class="data-highlight">
+      <h4>KanseiLink Agent Readiness データ概要（2026年4月）</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">89%</span>
+          <div class="label">verified tierの<br>平均成功率</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">13〜100%</span>
+          <div class="label">connectable tierの<br>成功率レンジ</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">6</span>
+          <div class="label">verified評価を持つ<br>サービス数</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">87%</span>
+          <div class="label">「MCP対応」サービスの<br>うちconnectableまたは未満</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="tiers">KanseiLinkの3段階Agent Readiness評価</h2>
+
+    <p>KanseiLinkはMCPサービスのAgent Readinessを3段階で評価している。この分類はAEOグレード（AAA/AA/A/BBB等）とは独立した指標だ。</p>
+
+    <div class="tier-card verified">
+      <div class="tier-header">
+        <span class="tier-badge">🟢</span>
+        <span class="tier-name">verified — 実戦検証済み</span>
+      </div>
+      <p class="tier-desc">実際のエージェント呼び出しデータが十分に蓄積され、<strong>成功率80%以上</strong>が確認されているサービス。主要なエラーパターンと既知のワークアラウンドが文書化されており、本番環境でのエージェント統合に推奨できる状態。</p>
+      <div class="tier-stats">KanseiLink 2026年4月: 6サービス該当 | 成功率レンジ: 83〜94%</div>
+    </div>
+
+    <div class="tier-card connectable">
+      <div class="tier-header">
+        <span class="tier-badge">🟡</span>
+        <span class="tier-name">connectable — 接続可能だが未実証</span>
+      </div>
+      <p class="tier-desc">公式MCPサーバーまたは十分なAPIが存在し、技術的に接続可能だが、<strong>実戦データが不十分または成功率が低い</strong>サービス。「接続できる」と「エージェントが問題なく使える」は別の話であることを意味する。</p>
+      <div class="tier-stats">KanseiLink 2026年4月: 多数 | 成功率レンジ: 13〜100%（データポイント数に大きく左右される）</div>
+    </div>
+
+    <div class="tier-card info-only">
+      <div class="tier-header">
+        <span class="tier-badge">⚪</span>
+        <span class="tier-name">info_only — 情報参照のみ</span>
+      </div>
+      <p class="tier-desc">MCPサーバーが存在せず、APIも限定的なサービス。KanseiLinkは基本情報（サービス概要、カテゴリ、価格帯など）を提供できるが、エージェントが実際に操作できる状態ではない。</p>
+      <div class="tier-stats">調達検討段階のサービスや、エージェント連携が将来計画のサービスが該当</div>
+    </div>
+
+    <div class="insight-box">
+      <div class="label">重要: verifiedは静的ではない</div>
+      <p>Agent Readiness tierは変動する。成功率が向上し、データが蓄積されれば、connectableからverifiedに昇格する。逆にAPIの仕様変更や成功率低下があればverifiedからconnectableに降格することもある。KanseiLinkのデータは継続的に更新されている。</p>
+    </div>
+
+    <h2 id="verified">verifiedの実態: 安定した高成功率クラブ</h2>
+
+    <p>2026年4月時点でKanseiLinkがverified評価を付与しているサービスは6つ、すべてAAA評価を持つ。その成功率は驚くほど一定している。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>サービス</th>
+          <th>AEOグレード</th>
+          <th>成功率</th>
+          <th>呼び出し数(n)</th>
+          <th>平均レイテンシ</th>
+          <th>Agent Readiness</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Shopify Japan</strong></td>
+          <td class="grade-aaa">AAA</td>
+          <td class="success-high">94%</td>
+          <td>n=50+</td>
+          <td>—</td>
+          <td><span class="badge-verified">🟢 verified</span></td>
+        </tr>
+        <tr>
+          <td><strong>Money Forward Cloud</strong></td>
+          <td class="grade-aaa">AAA</td>
+          <td class="success-high">93%</td>
+          <td>n=50+</td>
+          <td>—</td>
+          <td><span class="badge-verified">🟢 verified</span></td>
+        </tr>
+        <tr>
+          <td><strong>Slack</strong></td>
+          <td class="grade-aaa">AAA</td>
+          <td class="success-high">91%</td>
+          <td>n=113</td>
+          <td>163ms</td>
+          <td><span class="badge-verified">🟢 verified</span></td>
+        </tr>
+        <tr>
+          <td><strong>freee</strong></td>
+          <td class="grade-aaa">AAA</td>
+          <td class="success-high">90%</td>
+          <td>n=98+</td>
+          <td>—</td>
+          <td><span class="badge-verified">🟢 verified</span></td>
+        </tr>
+        <tr>
+          <td><strong>Backlog</strong></td>
+          <td class="grade-aaa">AAA</td>
+          <td class="success-high">90%</td>
+          <td>n=50+</td>
+          <td>—</td>
+          <td><span class="badge-verified">🟢 verified</span></td>
+        </tr>
+        <tr>
+          <td><strong>Notion</strong></td>
+          <td class="grade-aaa">AAA</td>
+          <td class="success-high">83%</td>
+          <td>n=50+</td>
+          <td>—</td>
+          <td><span class="badge-verified">🟢 verified</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>verifiedサービスの平均成功率は<strong>89%</strong>。最低でも83%（Notion）、最高は94%（Shopify Japan）。分散が小さく、本番環境のエージェントワークフローに組み込める信頼性を持つ。</p>
+
+    <div class="success-box">
+      <div class="label">verifiedの共通特徴</div>
+      <p>全6サービスはAAA AEOグレードを持ち、公式npmパッケージとして公開されたMCPサーバーを持ち、十分なデータサンプル数が蓄積されている。「公式MCPサーバー × 継続的なエージェント利用 × 品質管理」の3要素がverifiedへの道だ。</p>
+    </div>
+
+    <h2 id="connectable">connectableの実態: 大荒れの13〜100%</h2>
+
+    <p>connectableは「公式MCPが存在するが未実証」というカテゴリだが、その内部は均質ではない。KanseiLinkのデータが示すconnectable内の分布は衝撃的だ。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>サービス</th>
+          <th>AEOグレード</th>
+          <th>成功率</th>
+          <th>呼び出し数(n)</th>
+          <th>主なエラー</th>
+          <th>Agent Readiness</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Microsoft Teams</strong></td>
+          <td class="grade-a">A</td>
+          <td class="success-high">100%</td>
+          <td>少数</td>
+          <td>—</td>
+          <td><span class="badge-connectable">🟡 connectable</span></td>
+        </tr>
+        <tr>
+          <td><strong>LINE Messaging</strong></td>
+          <td class="grade-a">A</td>
+          <td class="success-high">100%</td>
+          <td>少数</td>
+          <td>—</td>
+          <td><span class="badge-connectable">🟡 connectable</span></td>
+        </tr>
+        <tr>
+          <td><strong>PostgreSQL MCP</strong></td>
+          <td class="grade-a">A</td>
+          <td class="success-high">100%</td>
+          <td>少数</td>
+          <td>—</td>
+          <td><span class="badge-connectable">🟡 connectable</span></td>
+        </tr>
+        <tr>
+          <td><strong>kintone</strong></td>
+          <td class="grade-aa">AA</td>
+          <td class="success-mid">79%</td>
+          <td>n=50+</td>
+          <td>api_error, invalid_input</td>
+          <td><span class="badge-connectable">🟡 connectable</span></td>
+        </tr>
+        <tr>
+          <td><strong>Asana</strong></td>
+          <td class="grade-aa">AA</td>
+          <td class="success-mid">67%</td>
+          <td>中程度</td>
+          <td>api_error</td>
+          <td><span class="badge-connectable">🟡 connectable</span></td>
+        </tr>
+        <tr>
+          <td><strong>Garoon</strong></td>
+          <td class="grade-aa">AA</td>
+          <td class="success-mid">67%</td>
+          <td>中程度</td>
+          <td>api_error</td>
+          <td><span class="badge-connectable">🟡 connectable</span></td>
+        </tr>
+        <tr>
+          <td><strong>Chatwork</strong></td>
+          <td class="grade-aa">AA</td>
+          <td class="success-mid">66%</td>
+          <td>n=123</td>
+          <td>api_error (24x), search_miss (10x)</td>
+          <td><span class="badge-connectable">🟡 connectable</span></td>
+        </tr>
+        <tr>
+          <td><strong>Sansan</strong></td>
+          <td class="grade-aa">AA</td>
+          <td class="success-mid">61%</td>
+          <td>n=36</td>
+          <td>api_error (9x), search_miss (5x)</td>
+          <td><span class="badge-connectable">🟡 connectable</span></td>
+        </tr>
+        <tr>
+          <td><strong>Zapier</strong></td>
+          <td class="grade-a">A</td>
+          <td class="success-low">13%</td>
+          <td>n=9</td>
+          <td>search_miss (7x)</td>
+          <td><span class="badge-connectable">🟡 connectable</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>同じconectable tierの中でも、Microsoft TeamsとZapierの間には87ポイントもの成功率差がある。「connectableだから大丈夫」という判断は、13%の地雷を踏む可能性と100%の優等生を同列に扱っていることになる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 「100%」のconnectableに注意</div>
+      <p>Microsoft Teams、LINE Messaging、PostgreSQL MCPの成功率は100%だが、これはデータポイントが少ないことによる可能性が高い。少数の呼び出しで全て成功した場合に100%になるが、大規模利用時に同じ成功率を維持するかは未検証。これらのサービスがverifiedでなくconnectableに留まっている理由はここにある。</p>
+    </div>
+
+    <h2 id="matrix">グレード × Readiness マトリクス: 驚くべきズレ</h2>
+
+    <p>AEOグレードとAgent Readiness tierの関係を見ると、重要なことに気づく。</p>
+
+    <p><strong>AEOグレードとAgent Readiness tierは別物だ。</strong></p>
+
+    <p>AEOグレード（AAA/AA/A/BBB）はAPIの設計品質、ドキュメント充実度、MCPサーバーの実装完成度、セキュリティ対応などの総合評価だ。一方、Agent Readiness tierは「実際にエージェントが使った場合の成功率と信頼性」の評価だ。</p>
+
+    <p>例えば、A評価のZapierはconnectableだが成功率13%——設計の品質と実際の運用結果が乖離しているケースだ。逆にA評価のMicrosoft TeamsはconnectableながらデータPoC段階では100%を示している。</p>
+
+    <div class="insight-box">
+      <div class="label">調達判断の実践的解釈</div>
+      <p><strong>AAA + verified</strong> = 本番推奨。エンタープライズのコアワークフローに組み込める。<br>
+      <strong>AA/A + connectable（高n・高成功率）</strong> = 慎重に採用可。PoC後の本番移行を検討。<br>
+      <strong>AA/A + connectable（低n または 低成功率）</strong> = パイロットのみ。ベンダーへのAEO改善要求を推奨。<br>
+      <strong>A + connectable（Zapier型）</strong> = 現時点での本番採用は非推奨。</p>
+    </div>
+
+    <h2 id="enterprise">エンタープライズ調達の新ガイド: 5つの問い</h2>
+
+    <p>「MCP対応ですか？」という質問を卒業し、以下の5つを問うことを推奨する。</p>
+
+    <ol>
+      <li>
+        <strong>Agent Readiness tierは何ですか？ (verified / connectable / info_only)</strong><br>
+        KanseiLinkのAEO評価レポートか、ベンダーに直接確認する。「MCP対応」という回答はconnectable以上を意味するが、それだけでは不十分。
+      </li>
+      <li>
+        <strong>実際の成功率はいくつで、サンプル数はいくつですか？</strong><br>
+        n=9の100%とn=113の91%では信頼性が全く異なる。最低n=50以上で成功率80%以上がエンタープライズ本番導入の目安。
+      </li>
+      <li>
+        <strong>主要なエラーパターンとワークアラウンドは文書化されていますか？</strong><br>
+        verifiedサービスは既知の問題と解決策が文書化されている。これがないサービスは、本番トラブル時の対応コストが高くなる。
+      </li>
+      <li>
+        <strong>直近30日の成功率と信頼性トレンドはどうですか？</strong><br>
+        APIの仕様変更や機能追加によって成功率が急落することがある。モメンタムの確認が重要。
+      </li>
+      <li>
+        <strong>ベンダーはAEOスコアの継続改善にコミットしていますか？</strong><br>
+        verifiedを維持・向上させる姿勢があるベンダーかどうか。KanseiLinkへの登録と継続的なデータ提供が一つの指標になる。
+      </li>
+    </ol>
+
+    <h2 id="vendor">SaaSベンダーへの示唆: verifiedを取りに行く</h2>
+
+    <p>2026年以降、エンタープライズの調達担当者はAEOグレードとAgent Readiness tierの両方を確認するようになる。「MCP対応済み」という表示だけでは差別化できない時代が来ている。</p>
+
+    <p>verifiedを獲得するためのロードマップ：</p>
+
+    <ul class="checklist">
+      <li>公式MCPサーバーをnpmパッケージとして公開し、ドキュメントを充実させる</li>
+      <li>KanseiLinkへの登録と定期的なAEOスコア監査の実施</li>
+      <li>エージェント呼び出しの実測データを蓄積するためのテスト環境提供</li>
+      <li>主要エラーパターンの特定と公式ワークアラウンドドキュメントの作成</li>
+      <li>MCPツールのdescriptionフィールドを日本語エージェントの意図パターンに最適化</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>あなたのサービスはverifiedを目指せますか？</h3>
+      <p>KanseiLinkのAEO診断でAgent Readiness tierと成功率の現状を把握し、verified取得までのロードマップを作成します。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO診断を依頼する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>verifiedとconnectableの違いは何ですか？</h3>
+    <p>verifiedは成功率80%以上かつ十分なデータサンプル数（n≥50相当）が蓄積されたサービスです。connectableは公式MCPが存在するが実戦データが不十分または成功率が基準未満のサービスです。2026年4月時点でverified 6サービスの成功率は83〜94%に集中、connectableは13〜100%と大きな幅があります。</p>
+
+    <h3>「MCP対応」と表示されているサービスは信頼できますか？</h3>
+    <p>「MCP対応」という表示だけでは信頼性の判断はできません。ZapierはA評価でconnectableですが成功率13%、Microsoft TeamsはA評価でconnectableですが（少ないデータで）100%です。必ず成功率とサンプル数を確認してください。</p>
+
+    <h3>verifiedになるにはどうすればいいですか？</h3>
+    <p>必要条件: ①公式MCPサーバーの提供、②成功率80%以上、③n≥50相当のデータ蓄積です。KanseiLink AEO改善プログラムを通じてデータ収集を加速し、verifiedへの道を計画的に進める方法があります。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事のデータはKanseiLink MCPシステムが収集したエージェント呼び出しログに基づきます。サービスによりサンプル数に差があり、特に少数データのサービス（Teams、LINE Messaging等）の数値はデータ蓄積により変動します。Agent Readiness tierは定期的に更新され、現在の評価と異なる場合があります。最新データはKanseiLink MCPサーバー経由でご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="agent-voice-discoverability-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>エージェントが見つけられないMCP: search_missが示す発見可能性の危機</h4>
+        </a>
+        <a href="mcp-success-patterns-data-2026.html" class="related-card">
+          <div class="tag">データストーリー</div>
+          <h4>KanseiLinkの225+サービス分析が示すMCP成功の法則</h4>
+        </a>
+        <a href="aeo-ranking-q2-2026.html" class="related-card">
+          <div class="tag">AEOランキング</div>
+          <h4>AEO格付けランキング Q2 2026</h4>
+        </a>
+        <a href="aeo-score-improvement-roadmap-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>AEOスコアをB→AA以上に引き上げる90日実践ロードマップ</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        Agent Readiness tierと成功率データはKanseiLink MCPサーバー経由でアクセスできます。
+        <code>search_services</code>に<code>agent_ready: "verified"</code>フィルターを指定することで
+        verified tierのサービスのみを検索できます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>Japan's first AEO rating agency — measuring AI agent readiness for Japanese SaaS.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

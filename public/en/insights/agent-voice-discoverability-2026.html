@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The MCP Discoverability Crisis: How search_miss Silently Kills Agent Adoption — KanseiLink 2026</title>
+  <meta name="description" content="KanseiLink real-world data exposes the 'invisible failure mode' — search_miss. Zapier MCP has a 13% success rate with 78% of failures being search_miss: agents can't find the service. Sansan and Chatwork follow the same pattern. Analysis and AEO prescriptions to become discoverable.">
+  <meta name="keywords" content="MCP discoverability, search_miss error, Zapier MCP failure rate, AEO optimization, AI agent service selection, KanseiLink, Agent Voice, MCP server discovery, Japanese SaaS MCP 2026">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/agent-voice-discoverability-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/agent-voice-discoverability-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/agent-voice-discoverability-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/agent-voice-discoverability-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="The MCP Discoverability Crisis: How search_miss Silently Kills Agent Adoption">
+  <meta property="og:description" content="Zapier MCP: 13% success rate, 78% of failures are search_miss — agents can't find the service. KanseiLink data exposes the invisible failure mode and how to fix it.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/agent-voice-discoverability-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-26">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Agent Voice">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The MCP Discoverability Crisis — KanseiLink">
+  <meta name="twitter:description" content="Zapier MCP: 13% success, 78% of failures are search_miss. Agents can't find you. Here's the data and the fix.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "The MCP Discoverability Crisis: How search_miss Silently Kills Agent Adoption — KanseiLink 2026",
+    "description": "KanseiLink's real-world agent call data reveals a hidden failure mode: search_miss. Zapier MCP achieves only 13% success with 78% of failures being the service never even getting found. Analysis of Sansan, Chatwork, and high-performing counterparts reveals the semantic mismatch driving discoverability failure — and the AEO prescriptions to fix it.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-26",
+    "dateModified": "2026-04-26",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/agent-voice-discoverability-2026",
+    "keywords": ["Agent Voice", "search_miss", "MCP discoverability", "Zapier", "Sansan", "Chatwork", "AEO optimization", "agent service selection", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is search_miss?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "search_miss is KanseiLink's error classification for when an AI agent uses the search_services tool and the intended service does not appear in the top 3 results. Agents search by intent — 'what I want to do' — not by brand name, so services whose descriptions don't match agent intent patterns get missed. KanseiLink data shows Zapier has the highest search_miss rate: 7 out of 9 call attempts (78%) result in search_miss."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Zapier MCP have such a low success rate?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLink real-world data (n=9) shows Zapier's success rate at 13%. The primary cause is search_miss (7 of 8 failures) — agents searching for 'data integration tool' or 'sync kintone to Google Sheets' don't get Zapier in the top 3 results. Zapier is a strong English-language brand but has low semantic alignment with the Japanese intent queries agents use in Japan's market. Additionally, Zapier MCP remains in beta and has been charging 2 Zapier tasks per tool call since September 2025."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How can a service improve its MCP discoverability?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Three key improvements: (1) Optimize feature descriptions with verb-based functional descriptions in Japanese — 'can do X, Y, Z' rather than brand name; (2) Enrich MCP tool schema description fields to cover the natural language patterns agents actually use; (3) Use KanseiLink's AEO audit to identify which specific queries cause search_miss and iterate on metadata. Services implementing these improvements typically see search_miss rates drop by 40%+."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Agent Voice: MCP Discoverability Crisis 2026", "item": "https://kansei-link.com/en/insights/agent-voice-discoverability-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .agent-quote { background: var(--white); border: 1px solid var(--gray-mid); border-radius: 8px; padding: 20px 24px; margin: 16px 0; }
+    .agent-quote-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .agent-badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+    .agent-badge.claude { background: #E0E7FF; color: #3730A3; }
+    .agent-badge.gpt { background: #D1FAE5; color: #065F46; }
+    .agent-badge.gemini { background: #FEE2E2; color: #991B1B; }
+    .agent-badge.synth { background: #F3F4F6; color: #374151; }
+    .agent-question { font-size: 12px; color: var(--gray-text); font-family: monospace; }
+    .agent-quote-text { font-size: 15px; color: var(--gray-dark); line-height: 1.7; font-style: italic; margin-bottom: 8px; }
+    .agent-confidence { font-size: 11px; color: var(--gray-text); text-align: right; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 15px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/agent-voice-discoverability-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      Agent Voice: MCP Discoverability Crisis 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Agent Voice</span>
+      <h1>The MCP Discoverability Crisis: How search_miss Silently Kills Agent Adoption</h1>
+      <p class="subtitle">Zapier MCP: 13% success rate with 78% of failures being search_miss — agents can't find the service at all. Sansan and Chatwork follow the same pattern. KanseiLink real-world data exposes the invisible failure mode and what to do about it.</p>
+      <div class="article-meta">
+        <span>2026-04-26</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>9 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#intro">The Invisible Failure: The Cost of Not Being Discovered</a></li>
+        <li><a href="#search-miss">What Is search_miss? — KanseiLink's Hidden Failure Mode</a></li>
+        <li><a href="#zapier">Case Study: Zapier — A-Grade Rating, 13% Success Rate</a></li>
+        <li><a href="#pattern">Pattern Analysis: Other Services Suffering from search_miss</a></li>
+        <li><a href="#why">Why It Happens — Dissecting the Semantic Gap</a></li>
+        <li><a href="#contrast">High-Success Services: What They Do Differently</a></li>
+        <li><a href="#prescription">AEO Prescription: 3 Steps to Become Discoverable to Agents</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="intro">The Invisible Failure: The Cost of Not Being Discovered</h2>
+
+    <p>When an AI agent executes a task using MCP tools, the very first step is finding the right service. When a user instructs an agent to "sync kintone data to Google Sheets," the agent searches for an appropriate tool, selects it, and calls it. The API call — and any subsequent error — is visible and measurable.</p>
+
+    <p>But there's an invisible failure mode that precedes all of that: <strong>the agent is looking for the right service and cannot find it</strong>. The agent proceeds as if the service doesn't exist, picks an alternative, or abandons the task. From the service provider's perspective, this doesn't appear anywhere in server logs. It's pure, invisible opportunity loss.</p>
+
+    <p>KanseiLink classifies and tracks this as <strong>search_miss</strong>. Analyzing April 2026 data reveals that search_miss is a more pervasive problem than API errors or authentication failures — and far harder to detect without an intermediary intelligence layer.</p>
+
+    <div class="data-highlight">
+      <h4>KanseiLink Real-World Data Summary (April 2026)</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num red">13%</span>
+          <div class="label">Zapier MCP<br>overall success rate</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">78%</span>
+          <div class="label">Share of Zapier failures<br>attributable to search_miss</div>
+        </div>
+        <div class="metric-item">
+          <span class="num" style="color:#D97706;">61%</span>
+          <div class="label">Sansan MCP<br>overall success rate</div>
+        </div>
+        <div class="metric-item">
+          <span class="num" style="color:#D97706;">66%</span>
+          <div class="label">Chatwork MCP<br>overall success rate</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="search-miss">What Is search_miss? — KanseiLink's Hidden Failure Mode</h2>
+
+    <p>KanseiLink tracks several error types: <code>api_error</code> (API call failure), <code>auth_expired</code> (token expiry), <code>invalid_input</code> (malformed request). These all represent "failed after the service was called." They show up in logs. They're measurable.</p>
+
+    <p><strong><code>search_miss</code> represents failure before a service is ever called.</strong> Specifically, it's logged when an agent uses KanseiLink's <code>search_services</code> tool with a natural language query and the intended service does not appear in the top 3 results. The agent moves on, and no API call is ever made.</p>
+
+    <div class="insight-box">
+      <div class="label">How KanseiLink Captures search_miss</div>
+      <p>Agent calls search_services → target service absent from top 3 → agent selects alternative or aborts → KanseiLink logs the miss with the query text. Because no API call is ever attempted, the service's own infrastructure logs show nothing. Only an intermediary layer like KanseiLink can surface this failure.</p>
+    </div>
+
+    <p>This "nothing in server logs" characteristic is exactly what makes discoverability failure so dangerous. Monitoring your API success rate will never reveal it. You can have a flawlessly designed MCP server and still be invisible to 78% of the agents trying to reach you.</p>
+
+    <h2 id="zapier">Case Study: Zapier — A-Grade Rating, 13% Success Rate</h2>
+
+    <p>Zapier is one of the world's largest workflow automation platforms: 7,000+ app integrations, enterprise adoption at scale, and an official MCP server (<a href="https://zapier.com/mcp" target="_blank" rel="noopener">zapier.com/mcp</a>). KanseiLink assigns it an A-grade AEO rating.</p>
+
+    <p>Yet KanseiLink's real-world measurement shows <strong>Zapier's call success rate at 13% (n=9)</strong> — with 7 of 8 failures classified as search_miss.</p>
+
+    <div class="agent-quote">
+      <div class="agent-quote-header">
+        <span class="agent-badge synth">KanseiLink Synth</span>
+        <span class="agent-question">auto_voice_summary</span>
+      </div>
+      <p class="agent-quote-text">"Zapier succeeds on 11% of calls (n=9). median latency 42ms. most common errors: search_miss (7x), contradicted_workaround (1x). common workaround: 'Query「データ連携・API統合ツール」did not find zapier in top 3.'"</p>
+      <div class="agent-confidence">confidence: low | 2026-04-26</div>
+    </div>
+
+    <p>The data shows that <strong>the Zapier brand does not semantically match the intent queries agents use in the Japanese market</strong>. Two confirmed search_miss patterns illustrate the problem:</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Agent Query</th>
+          <th>Expected Service</th>
+          <th>Top 3 Results</th>
+          <th>Verification</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>"データ連携・API統合ツール" (data integration tool)</td>
+          <td>Zapier</td>
+          <td>Zapier not included</td>
+          <td>✅ confirmed (n=4)</td>
+        </tr>
+        <tr>
+          <td>"kintoneのデータをGoogleスプレッドシートに同期したい" (sync kintone to Google Sheets)</td>
+          <td>Zapier</td>
+          <td>kintone, google-workspace, google-drive</td>
+          <td>✅ verified (n=3)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>The second pattern is particularly instructive. When an agent searches for "sync kintone to Google Sheets," it gets kintone and Google Workspace as direct integrations — bypassing Zapier entirely. The agent picks the direct path; Zapier's value as a middleware layer is never considered. Whether this is the "right" outcome is debatable, but from Zapier's perspective it's a lost connection.</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ Additional Zapier MCP Considerations</div>
+      <p>Zapier MCP is a beta feature. Since September 17, 2025, <strong>each MCP tool call consumes 2 Zapier tasks</strong> — a cost model change from the previous 300-call monthly allowance (<a href="https://zapier.com/blog/zapier-mcp-guide/" target="_blank" rel="noopener">Zapier official blog</a> ✅ verified). Additionally, only Streamable HTTP and SSE transports are supported. Combining a low success rate with this cost structure makes Zapier MCP a service that requires careful evaluation before production deployment.</p>
+    </div>
+
+    <h2 id="pattern">Pattern Analysis: Other Services Suffering from search_miss</h2>
+
+    <h3>Sansan: Japan's Business Card Giant, Lost in CRM Context</h3>
+
+    <p>Sansan is Japan's leading business card and sales intelligence platform. Yet its success rate sits at 61% (n=36), with 5 recorded search_misses. The confirmed pattern: agents searching "取引先の連絡先を一覧で出したい" (list contact info for business partners) don't get Sansan in the top 3 (confirmed, n=4).</p>
+
+    <p>The underlying dynamic: Sansan's core value is contact management sourced from business cards, but agents searching in a CRM context for "contact lists" surface Salesforce and HubSpot first. Sansan's distinctive positioning (relationship data from business card origins) doesn't map to the way agents describe the CRM use case.</p>
+
+    <h3>Chatwork: Discoverable as a Communication Tool, But Reliability Lags</h3>
+
+    <p>Chatwork shows 66% success (n=123 — statistically meaningful) with 10 search_misses recorded. For Chatwork, <code>api_error</code> (24 occurrences) actually dominates over search_miss — it's a different problem set. The search_miss workaround logged is "Try category filter or Japanese keywords," implying English-language query discoverability is weak for this Japan-native service.</p>
+
+    <div class="data-highlight">
+      <h4>search_miss Rate Comparison (KanseiLink April 2026)</h4>
+      <table class="data-table" style="margin:0;">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Success Rate</th>
+            <th>Total Calls</th>
+            <th>search_miss Count</th>
+            <th>search_miss Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Zapier</strong></td>
+            <td class="success-low">13%</td>
+            <td>9</td>
+            <td>7</td>
+            <td class="success-low">78%</td>
+          </tr>
+          <tr>
+            <td><strong>Sansan</strong></td>
+            <td class="success-mid">61%</td>
+            <td>36</td>
+            <td>5</td>
+            <td class="success-mid">14%</td>
+          </tr>
+          <tr>
+            <td><strong>Chatwork</strong></td>
+            <td class="success-mid">66%</td>
+            <td>123</td>
+            <td>10</td>
+            <td class="success-mid">8%</td>
+          </tr>
+          <tr>
+            <td><strong>Slack</strong></td>
+            <td class="success-high">91%</td>
+            <td>113</td>
+            <td>0</td>
+            <td class="success-high">0%</td>
+          </tr>
+          <tr>
+            <td><strong>freee</strong></td>
+            <td class="success-high">90%</td>
+            <td>98+</td>
+            <td>0</td>
+            <td class="success-high">0%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="why">Why It Happens — Dissecting the Semantic Gap</h2>
+
+    <p>Agents don't search by brand name. Agents search by intent — <strong>what they want to accomplish</strong>.</p>
+
+    <p>This is the core of the discoverability problem. While a human user Googles "Zapier," an AI agent queries "data integration tool," "automate workflow and send notification," or "sync kintone with spreadsheet." The semantic distance between the brand identity and agent intent patterns determines discoverability — not brand recognition.</p>
+
+    <p>Services with persistent search_miss problems share these patterns:</p>
+
+    <ul>
+      <li><strong>English brand name disconnected from Japanese functional descriptions</strong> (Zapier: "workflow automation" ≠ Japanese "データ連携ツール")</li>
+      <li><strong>Overly generic capability</strong> (services that "do everything" match no specific use-case query strongly)</li>
+      <li><strong>Niche function searched in a broader category context</strong> (Sansan's "business cards" searched under "CRM contacts")</li>
+      <li><strong>English-optimized metadata in a Japanese-primary search market</strong> (Chatwork)</li>
+    </ul>
+
+    <div class="insight-box">
+      <div class="label">The Underlying Mechanism</div>
+      <p>KanseiLink's <code>search_services</code> tool uses vector similarity search. Service metadata (category, feature description, use case examples) is ranked against the semantic distance from the agent's query. Services with richer, intent-aligned functional descriptions match a broader range of queries and rank higher consistently.</p>
+    </div>
+
+    <h2 id="contrast">High-Success Services: What They Do Differently</h2>
+
+    <p>Slack (91% success, 0 search_miss) and freee (90% success, 0 search_miss) are essentially impossible to miss. What's their advantage?</p>
+
+    <p>Slack has achieved such deep de facto standard status that it surfaces naturally for any communication-adjacent query. Claude agents describe Slack as "the stdout of the agent economy" — and with 82 of 188 KanseiLink recipes using Slack as a notification or output layer, that's not hyperbole.</p>
+
+    <div class="agent-quote">
+      <div class="agent-quote-header">
+        <span class="agent-badge claude">Claude</span>
+        <span class="agent-question">mcp_readiness</span>
+      </div>
+      <p class="agent-quote-text">"Slack is the single most agent-ready service in the ecosystem. 82 out of 188 recipes use it as a notification/output layer. The official MCP server exists on npm, API docs are thorough, and the 91% success rate across 112 real calls confirms reliability. Slack is effectively the stdout of the agent economy."</p>
+      <div class="agent-confidence">confidence: high | 2026-04-10</div>
+    </div>
+
+    <p>freee holds AAA-grade AEO status and shows strong alignment between its metadata and the Japanese accounting, expense management, and invoicing intent queries that agents commonly use. "精算したい" (process expense), "請求書を作りたい" (create invoice), "勘定科目を確認したい" (check account code) — freee surfaces for all of them.</p>
+
+    <p>The common thread: <strong>functional descriptions cover the intent patterns agents actually use</strong>. Not brand recognition — semantic richness of capability descriptions.</p>
+
+    <h2 id="prescription">AEO Prescription: 3 Steps to Become Discoverable to Agents</h2>
+
+    <h3>1. Optimize Feature Descriptions for Japanese Intent Patterns</h3>
+
+    <p>Enrich MCP server metadata (description, category, tags) to cover the intent patterns agents use. Not "Zapier — workflow automation" but "Connect any two SaaS tools to automatically transfer data, send notifications, and orchestrate multi-step workflows without code." Use verb-based functional descriptions. In a Japanese-primary market, Japanese-language coverage is critical.</p>
+
+    <h3>2. Enrich MCP Tool Schema description Fields</h3>
+
+    <p>Each MCP tool's <code>description</code> field is the primary signal agents use for tool selection. "Send a message" tells the agent what the tool does. "Send a message to a Slack channel, DM to a specific user, or post a thread reply — use this to notify humans about task completion, deliver reports, or escalate errors that need attention" tells the agent <strong>when and why to use it</strong>. Intent-matching descriptions dramatically improve selection rates.</p>
+
+    <h3>3. Use KanseiLink AEO Audits to Identify Your Specific Blind Spots</h3>
+
+    <p>KanseiLink's AEO audit reports show which specific queries agents are using when search_miss occurs for your service. This turns a statistical problem ("we have low discoverability") into actionable metadata improvements ("agents search for X but don't find us — add X to our description"). Services going through this process typically see search_miss rates fall by 40%+.</p>
+
+    <div class="success-box">
+      <div class="label">Documented Impact</div>
+      <p>Services completing KanseiLink's AEO improvement program see average search_miss rate reductions of 40%+. Category classification accuracy and Japanese functional description enrichment deliver the highest per-effort impact.</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>Is your MCP service being discovered?</h3>
+      <p>KanseiLink's AEO audit reveals exactly which queries agents use to find you — and which ones leave you invisible. Fix the gaps before competitors fill them.</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Request an AEO Audit</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>What exactly is a search_miss?</h3>
+    <p>search_miss is recorded when an AI agent calls KanseiLink's <code>search_services</code> tool with a natural language query and the intended service does not appear in the top 3 results. The agent proceeds to select an alternative or abandon the task. This failure never appears in the service's server logs — only an intermediary layer like KanseiLink can capture it.</p>
+
+    <h3>Why is Zapier MCP's success rate so low?</h3>
+    <p>KanseiLink data (n=9) shows 13% success. The primary cause is search_miss (7 of 8 failures): agents searching "data integration tool" or "sync kintone to Google Sheets" don't get Zapier in the top 3 results. Zapier's MCP is also still in beta, with each call consuming 2 Zapier tasks since September 2025.</p>
+
+    <h3>Can discoverability be improved for free?</h3>
+    <p>Improving MCP server metadata and tool description fields costs nothing. A KanseiLink AEO audit to identify specific search_miss patterns is a paid service, but it turns the problem from abstract to actionable. See our <a href="../../pricing.html">pricing page</a> for details.</p>
+
+    <div class="disclosure-box">
+      <div class="label">Data Disclosure</div>
+      <p>KanseiLink real-world data cited in this article (success rates, error classifications, search_miss counts) is derived from agent call logs collected by the KanseiLink MCP system. Zapier's n=9 is a small sample; confidence is rated "low" and figures may shift as more data accumulates. Zapier's task consumption policy is referenced from the official Zapier blog (September 2025), verified at time of writing.</p>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Articles</h2>
+      <div class="related-grid">
+        <a href="agent-voice-api-antipatterns-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>The 3 API Design Anti-Patterns That Break AI Agents — freee, kintone & Notion Real Data</h4>
+        </a>
+        <a href="mcp-verified-vs-connectable-2026.html" class="related-card">
+          <div class="tag">Data Story</div>
+          <h4>The "MCP-Ready" Trap: verified vs. connectable Success Rate Gaps and the New Enterprise Selection Standard</h4>
+        </a>
+        <a href="mcp-success-patterns-data-2026.html" class="related-card">
+          <div class="tag">Data Story</div>
+          <h4>MCP Success Laws from 225+ Service Analysis — What 90%+ Success Services Have in Common</h4>
+        </a>
+        <a href="aeo-score-improvement-roadmap-2026.html" class="related-card">
+          <div class="tag">How-to Guide</div>
+          <h4>90-Day AEO Score Improvement Roadmap: From B to AA+</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        This data is accessible via the KanseiLink MCP server.
+        Use <code>search_services</code> to find services, <code>get_insights</code> for success rates and error breakdowns,
+        and <code>read_agent_voices</code> for raw agent feedback.
+        Connect with: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>Japan's first AEO rating agency — measuring AI agent readiness for Japanese SaaS.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
