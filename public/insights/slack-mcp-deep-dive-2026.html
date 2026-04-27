@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slack MCP完全攻略 2026 — AAA格付けの本質・公式サーバー4機能と限界・認証と5つの落とし穴 | KanseiLink</title>
+  <meta name="description" content="KanseiLink実測データ（n=113、成功率91.15%、AAAグレード）に基づくSlack MCP完全解説。2026年3月リリースの公式MCPサーバーの4機能ドメイン、OAuth2認証設定、エージェント開発者が必ずハマる5つの落とし穴、kintone・Notionとの比較まで網羅。">
+  <meta name="keywords" content="Slack MCP, Slack API, Slack エージェント, MCPサーバー, Slack OAuth, AEO, KanseiLink, AIエージェント Slack, chat.postMessage, xoxb">
+  <meta name="author" content="KanseiLink / Synapse Arrows PTE. LTD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/slack-mcp-deep-dive-2026.html">
+
+  <!-- hreflang -->
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/slack-mcp-deep-dive-2026.html">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/slack-mcp-deep-dive-2026.html">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/slack-mcp-deep-dive-2026.html">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Slack MCP完全攻略 2026 — AAA格付けの本質・5つの落とし穴">
+  <meta property="og:description" content="KanseiLink n=113・成功率91.15%・AAAグレード。Slack公式MCPサーバーの4機能・認証設計・エージェント開発の落とし穴を完全解説。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/slack-mcp-deep-dive-2026.html">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-27">
+  <meta property="article:section" content="Service Deep-Dive">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Slack MCP完全攻略 2026 — AAAグレード・5つの落とし穴 | KanseiLink">
+  <meta name="twitter:description" content="n=113・成功率91.15%・AAA。Slack公式MCPサーバーの全容と、エージェント開発者が必ずハマる「HTTP 200問題」「チャンネルID問題」を解説。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Slack MCP完全攻略 2026 — AAA格付けの本質・公式サーバー4機能と限界・認証と5つの落とし穴",
+    "description": "KanseiLink実測データ（n=113、成功率91.15%）に基づくSlack MCP完全解説。公式MCPサーバーの機能・認証・落とし穴・比較まで実装者向けに網羅。",
+    "author": {
+      "@type": "Organization",
+      "name": "KanseiLink"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Synapse Arrows PTE. LTD.",
+      "url": "https://kansei-link.com"
+    },
+    "datePublished": "2026-04-27",
+    "dateModified": "2026-04-27",
+    "mainEntityOfPage": "https://kansei-link.com/insights/slack-mcp-deep-dive-2026.html",
+    "keywords": ["Slack MCP", "Slack API", "Slack エージェント", "OAuth2", "AEO", "KanseiLink", "チャンネルID", "xoxb"],
+    "articleSection": "Service Deep-Dive",
+    "inLanguage": "ja"
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Slack MCPサーバーのインストール方法は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "公式Slack MCPサーバーは `npx @slack/mcp-server` で起動できます。事前にapi.slack.com/appsでSlackアプリを作成し、Bot Token Scopes（chat:write, channels:read, channels:history, users:read）を追加してワークスペースにインストール。発行されるxoxb-から始まるBot User OAuth Tokenを環境変数SLACK_BOT_TOKENに設定します。Claude Desktop等のMCPクライアントから接続可能です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Slack APIでHTTP 200が返るのに処理が失敗する理由は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Slack APIの設計仕様です。Slack APIはエラー時でも常にHTTP 200を返します。成否はレスポンスボディの「ok」フィールドで判断する必要があります。ok=trueなら成功、ok=falseならerrorフィールドにエラーコード（例：channel_not_found, not_in_channel）が入ります。HTTP 200だから成功と判断するエージェントコードは必ず失敗します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "SlackのチャンネルIDはどこで確認できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "SlackのAPIはチャンネル名ではなくチャンネルIDを受け付けます。IDの取得方法は2つあります：①Slack Web上でチャンネルを開き、URLの末尾（例：https://app.slack.com/client/T.../C01234567）のC...部分がチャンネルID。②APIで conversations.list を呼び出してidフィールドを取得。パブリックチャンネルはC始まり、プライベートはG始まり、DMはD始まりです。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "KanseiLink", "item": "https://kansei-link.com"},
+      {"@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/"},
+      {"@type": "ListItem", "position": 3, "name": "Slack MCP完全攻略 2026", "item": "https://kansei-link.com/insights/slack-mcp-deep-dive-2026.html"}
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .utility-bar .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+    }
+    .utility-bar a { color: var(--black); text-decoration: none; font-weight: 400; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--blue);
+      text-decoration: none;
+      letter-spacing: -1px;
+      margin-right: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo .logo-icon-svg { width: 32px; height: 32px; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 32px; list-style: none; flex: 1; }
+    .nav-links a {
+      color: var(--black);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 400;
+      padding: 20px 0;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .nav-links a:hover { border-bottom-color: var(--blue); }
+    .nav-links a.active { border-bottom-color: var(--blue); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      border: none;
+      padding: 10px 32px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .mobile-only { display: none; }
+
+    .breadcrumb {
+      max-width: 800px;
+      margin: 24px auto 0;
+      padding: 0 24px;
+      font-size: 14px;
+      color: var(--gray-text);
+    }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { margin: 0 8px; color: var(--gray-mid); }
+
+    .article {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .article-meta {
+      margin: 32px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .article-meta .tag {
+      background: var(--lavender);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .article-meta .date { font-size: 14px; color: var(--gray-text); }
+    .article-meta .reading-time { font-size: 14px; color: var(--gray-text); }
+
+    .article h1 {
+      font-size: 40px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 16px 0 24px;
+      letter-spacing: -1px;
+    }
+    .article .lead {
+      font-size: 20px;
+      line-height: 1.7;
+      color: var(--gray-dark);
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--gray-mid);
+    }
+    .article h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 56px 0 20px;
+      letter-spacing: -0.5px;
+    }
+    .article h3 { font-size: 22px; font-weight: 600; margin: 40px 0 16px; }
+    .article h4 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; }
+    .article p { margin-bottom: 20px; line-height: 1.7; }
+    .article ul, .article ol { margin: 0 0 20px 24px; }
+    .article li { margin-bottom: 8px; line-height: 1.7; }
+
+    .grade-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #1A3FD6 0%, #00C4B3 100%);
+      color: var(--white);
+      border-radius: 12px;
+      padding: 20px 28px;
+      margin: 24px 0;
+      font-weight: 700;
+    }
+    .grade-badge .grade-letter {
+      font-size: 48px;
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+    .grade-badge .grade-detail { font-size: 15px; line-height: 1.5; }
+    .grade-badge .grade-detail strong { font-size: 18px; display: block; margin-bottom: 4px; }
+
+    .code-block {
+      background: #1E293B;
+      color: #E2E8F0;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+      overflow-x: auto;
+      font-family: 'Fira Code', 'SF Mono', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .code-block .code-label {
+      display: block;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .code-block code { font-family: inherit; white-space: pre; }
+    .code-block .comment { color: #64748B; }
+    .code-block .keyword { color: #C084FC; }
+    .code-block .string { color: #34D399; }
+    .code-block .func { color: #60A5FA; }
+    .code-block .number { color: #FB923C; }
+    .code-block .prop { color: #FCD34D; }
+
+    .pitfall-card {
+      background: #FFF7ED;
+      border: 1px solid #FED7AA;
+      border-left: 4px solid #EA580C;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .pitfall-card .pitfall-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .pitfall-card .pitfall-icon { font-size: 18px; }
+    .pitfall-card .pitfall-title { font-size: 16px; font-weight: 700; color: #9A3412; }
+    .pitfall-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+
+    .tip-card {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-left: 4px solid #16A34A;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .tip-card .tip-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tip-card .tip-icon { font-size: 18px; }
+    .tip-card .tip-title { font-size: 16px; font-weight: 700; color: #166534; }
+    .tip-card p { font-size: 14px; color: var(--gray-dark); margin-bottom: 0; line-height: 1.6; }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 15px;
+    }
+    .data-table th {
+      background: var(--blue);
+      color: var(--white);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--gray-mid);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--lavender); }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .feature-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .feature-card .fc-icon { font-size: 24px; margin-bottom: 8px; }
+    .feature-card .fc-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .feature-card .fc-desc { font-size: 14px; color: var(--gray-dark); line-height: 1.5; }
+
+    .cta-section {
+      background: linear-gradient(135deg, var(--blue) 0%, #2A1FA0 100%);
+      color: var(--white);
+      border-radius: 16px;
+      padding: 48px;
+      margin: 56px 0 40px;
+      text-align: center;
+    }
+    .cta-section h2 { color: var(--white); font-size: 28px; margin: 0 0 12px; }
+    .cta-section p { font-size: 16px; opacity: 0.9; margin-bottom: 28px; }
+    .cta-section .btn-cta {
+      display: inline-block;
+      background: var(--teal);
+      color: var(--black);
+      font-size: 16px;
+      font-weight: 600;
+      padding: 14px 40px;
+      border-radius: 9999px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .cta-section .btn-cta:hover { opacity: 0.9; }
+
+    .related-section {
+      margin: 40px 0 0;
+      padding-top: 40px;
+      border-top: 1px solid var(--gray-mid);
+    }
+    .related-section h3 { font-size: 20px; font-weight: 700; margin-bottom: 24px; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card {
+      border: 1px solid var(--gray-mid);
+      border-radius: 12px;
+      padding: 24px;
+      text-decoration: none;
+      color: var(--black);
+      transition: box-shadow 0.2s;
+    }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .related-card .rc-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .related-card .rc-title { font-size: 16px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+    .related-card .rc-desc { font-size: 14px; color: var(--gray-text); line-height: 1.5; }
+
+    .footer {
+      background: var(--black);
+      color: var(--white);
+      padding: 48px 0 32px;
+      margin-top: 80px;
+    }
+    .footer .inner { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .footer .footer-brand { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: var(--teal); }
+    .footer .footer-desc { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 24px; }
+    .footer .footer-copy {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2.5px;
+      background: var(--black);
+      border-radius: 2px;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+
+    @media (max-width: 900px) {
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0; right: 0;
+        background: var(--white);
+        border-bottom: 1px solid var(--gray-mid);
+        flex-direction: column;
+        padding: 16px;
+        gap: 0;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        z-index: 99;
+      }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; border-bottom: none; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; padding: 0 16px; }
+      .utility-bar .inner { flex-wrap: wrap; justify-content: center; gap: 12px; padding: 0 16px; }
+      .article h1 { font-size: 28px; letter-spacing: -1px; }
+      .article h2 { font-size: 22px; }
+      .article .lead { font-size: 17px; }
+      .related-grid { grid-template-columns: 1fr; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 32px 16px; }
+      .cta-section h2 { font-size: 24px; }
+      .code-block { font-size: 12px; padding: 16px; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
+      th, td { padding: 8px 10px; white-space: nowrap; }
+      .grade-badge { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/slack-mcp-deep-dive-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Nav -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="../index.html">KanseiLink</a>
+    <span class="sep">/</span>
+    <a href="index.html">Insights</a>
+    <span class="sep">/</span>
+    Slack MCP完全攻略 2026
+  </div>
+
+  <!-- Article -->
+  <article class="article">
+
+    <div class="article-meta">
+      <span class="tag">Service Deep-Dive</span>
+      <span class="date">2026-04-27</span>
+      <span class="reading-time">12 min read</span>
+    </div>
+
+    <h1>Slack MCP完全攻略 2026 &#8212; AAA格付けの本質・公式サーバー4機能と限界・認証と5つの落とし穴</h1>
+
+    <p class="lead">
+      KanseiLinkのAEO評価でSlack MCPはAAAグレードを取得している。実測113回のAPI呼び出しにおける成功率は91.15%——コミュニケーション系SaaSの中で断トツのスコアだ。2026年3月30日にはSlack公式MCPサーバーがリリースされ、AIエージェントとSlackの統合がかつてなく容易になった。しかし「簡単に使える＝ハマらない」は幻想だ。本記事ではKanseiLinkの実データを軸に、Slack MCPの実力・認証設計・公式サーバーの限界、そして開発者が必ずハマる5つの落とし穴を徹底解説する。
+    </p>
+
+    <h2>1. KanseiLinkデータが示すSlack MCPの実力</h2>
+
+    <div class="grade-badge">
+      <div class="grade-letter">AAA</div>
+      <div class="grade-detail">
+        <strong>Slack MCP &#8212; AXR格付け</strong>
+        公式MCP: ✅ (npx @slack/mcp-server、2026-03-30リリース)<br>
+        実測呼び出し数: 113回 / 成功率: 91.15%<br>
+        Trust Score: 0.90 / カテゴリ: communication
+      </div>
+    </div>
+
+    <p>
+      KanseiLinkはSlackに対して113回のエージェント呼び出しを実施し、そのうち103回が成功（成功率91.15%）という結果を得た。これはコミュニケーション系SaaSの中で最高水準であり、kintone（trust_score 0.7）やNotionを上回るtrust_score 0.90を記録している。
+    </p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>評価軸</th>
+          <th>Slack MCPの実績</th>
+          <th>評価</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>公式MCPサーバー</strong></td>
+          <td>Slack公式（@slack/mcp-server）、2026-03-30リリース</td>
+          <td>✅ 最高水準</td>
+        </tr>
+        <tr>
+          <td><strong>API成熟度</strong></td>
+          <td>Web API / Events API / Socket Mode完備、カーソルページネーション</td>
+          <td>✅ 優秀</td>
+        </tr>
+        <tr>
+          <td><strong>実測成功率</strong></td>
+          <td>91.15%（n=113）——コミュニケーション系SaaS最高</td>
+          <td>✅ 実績あり</td>
+        </tr>
+        <tr>
+          <td><strong>レート制限</strong></td>
+          <td>Tier 1〜4の4段階。Tier 3（50回/分）が主要エンドポイント</td>
+          <td>⚠️ Tier 1は要注意</td>
+        </tr>
+        <tr>
+          <td><strong>セルフホスト</strong></td>
+          <td>クラウドホスト型のみ（kintone・NotionのようなセルフホストMCPなし）</td>
+          <td>⚠️ 選択肢なし</td>
+        </tr>
+        <tr>
+          <td><strong>日本語対応</strong></td>
+          <td>マルチバイト文字、日本語チャンネル名・メッセージ完全対応</td>
+          <td>✅ 問題なし</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. 公式MCPサーバーの4機能ドメイン</h2>
+
+    <p>
+      Slack公式MCPサーバー（<code>npx @slack/mcp-server</code>）は以下の4つのドメインで機能を提供する。
+    </p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="fc-icon">🔍</div>
+        <div class="fc-title">Search（検索）</div>
+        <div class="fc-desc">ワークスペース全体のメッセージ・ファイルを横断検索。日付・ユーザー・コンテンツタイプでフィルタリング可能。エージェントが「先週の契約関連の議論を探す」等の自然言語タスクを実行できる。</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon">💬</div>
+        <div class="fc-title">Messages（メッセージ）</div>
+        <div class="fc-desc">メッセージ送信・チャンネル履歴取得・スレッド返信・メッセージプレビュー。送信前にAIクライアント内でドラフトを確認する「プレビュー機能」も搭載。</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon">📄</div>
+        <div class="fc-title">Canvases（キャンバス）</div>
+        <div class="fc-desc">リッチなフォーマットのドキュメント作成・共有、Markdownエクスポート対応。エージェントが議事録・仕様書をSlackキャンバスとして自動生成できる。</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-icon">👥</div>
+        <div class="fc-title">Users（ユーザー情報）</div>
+        <div class="fc-desc">ユーザープロフィール取得（カスタムフィールド・ステータス含む）。エージェントが「担当者のメールアドレスを取得して連絡する」等のタスクに活用できる。</div>
+      </div>
+    </div>
+
+    <h2>3. 認証設定: OAuth 2.0 + Bot Token</h2>
+
+    <p>
+      Slack MCPはOAuth 2.0認証を使用する。設定ステップは以下の通りだ。
+    </p>
+
+    <ol>
+      <li><strong>Slackアプリの作成</strong>: <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a> で「Create New App」→「From scratch」</li>
+      <li><strong>Bot Token Scopesの設定</strong>: 「OAuth &amp; Permissions」→「Bot Token Scopes」に必要なスコープを追加</li>
+      <li><strong>ワークスペースへのインストール</strong>: 「Install to Workspace」でアプリをインストール</li>
+      <li><strong>Bot User OAuth Tokenのコピー</strong>: <code>xoxb-</code>から始まるトークンを取得</li>
+      <li><strong>MCPサーバーの起動</strong>: 環境変数に設定してMCPサーバーを起動</li>
+    </ol>
+
+    <div class="code-block">
+      <span class="code-label">必須スコープと推奨スコープ</span>
+<code><span class="comment">// 最小構成（読み取りのみ）</span>
+channels:read          <span class="comment">// チャンネル一覧の取得</span>
+channels:history       <span class="comment">// パブリックチャンネルの履歴</span>
+users:read             <span class="comment">// ユーザー情報の取得</span>
+
+<span class="comment">// 書き込みを行う場合（追加）</span>
+chat:write             <span class="comment">// メッセージ送信</span>
+files:write            <span class="comment">// ファイルアップロード</span>
+canvases:write         <span class="comment">// キャンバス作成・編集</span>
+
+<span class="comment">// プライベートチャンネルにアクセスする場合</span>
+groups:read            <span class="comment">// プライベートチャンネル一覧</span>
+groups:history         <span class="comment">// プライベートチャンネル履歴</span></code>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">MCPサーバー起動（Claude Desktop設定例）</span>
+<code>{
+  <span class="prop">"mcpServers"</span>: {
+    <span class="prop">"slack"</span>: {
+      <span class="prop">"command"</span>: <span class="string">"npx"</span>,
+      <span class="prop">"args"</span>: [<span class="string">"@slack/mcp-server"</span>],
+      <span class="prop">"env"</span>: {
+        <span class="prop">"SLACK_BOT_TOKEN"</span>: <span class="string">"xoxb-your-token-here"</span>,
+        <span class="prop">"SLACK_TEAM_ID"</span>: <span class="string">"T01234567"</span>
+      }
+    }
+  }
+}</code>
+    </div>
+
+    <h2>4. エージェント開発者が必ずハマる5つの落とし穴</h2>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">落とし穴1: HTTP 200はエラーではない証明にならない</span>
+      </div>
+      <p>Slack APIの最大の罠。<strong>SlackはエラーでもHTTP 200を返す</strong>。成否の判定はレスポンスボディの <code>ok</code> フィールドで行う必要がある。<code>ok: false</code> の場合、<code>error</code> フィールドにエラーコードが入る（例: <code>channel_not_found</code>, <code>not_in_channel</code>）。HTTPステータス200を見て成功と判断するコードは必ず予期せぬ挙動を起こす。</p>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">正しいエラーハンドリング（Python例）</span>
+<code><span class="keyword">import</span> requests
+
+response = requests.post(
+    <span class="string">"https://slack.com/api/chat.postMessage"</span>,
+    headers={<span class="string">"Authorization"</span>: <span class="string">f"Bearer {token}"</span>},
+    json={<span class="string">"channel"</span>: <span class="string">"C01234567"</span>, <span class="string">"text"</span>: <span class="string">"Hello"</span>}
+)
+
+data = response.json()
+<span class="keyword">if not</span> data[<span class="string">"ok"</span>]:  <span class="comment"># HTTP 200でもここでエラーを検出</span>
+    <span class="keyword">raise</span> <span class="func">Exception</span>(<span class="string">f"Slack API error: {data['error']}"</span>)</code>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">落とし穴2: チャンネル「名前」はAPIで使えない</span>
+      </div>
+      <p>Slack APIはチャンネル名（例: <code>#general</code>）ではなく<strong>チャンネルID</strong>（例: <code>C01234567</code>）を必要とする。パブリックチャンネルは <code>C</code> 始まり、プライベートチャンネルは <code>G</code> 始まり、DMは <code>D</code> 始まり。IDは <code>conversations.list</code> APIで取得するか、Slack WebアプリのURLから確認できる（URLの末尾部分）。</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">落とし穴3: ボットはチャンネルに招待されないと投稿できない</span>
+      </div>
+      <p>Botアカウントはワークスペースにインストールされただけでは全チャンネルに投稿できない。<strong>投稿するチャンネルごとにBotを招待する必要がある</strong>（Slack上で <code>/invite @YourBotName</code>）。招待されていないチャンネルへの投稿は <code>not_in_channel</code> エラーになる。本番環境では自動招待のワークフローを用意しておくと良い。</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">落とし穴4: 公式MCPサーバーはクラウドホストのみ——セルフホストは不可</span>
+      </div>
+      <p>kintone MCPはnpm/Docker/Desktop Extensionの3形式で提供され、オンプレミス環境でも動作する。対してSlack公式MCPサーバーは<strong>クラウドホスト型のみ</strong>で、セルフホストオプションは提供されていない。社内ネットワークから外部通信を制限している企業や、データを外部に送信できないコンプライアンス要件がある場合は、Slack Web APIを直接呼び出すカスタムMCPラッパーの実装が必要になる。</p>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-header">
+        <span class="pitfall-icon">⚠️</span>
+        <span class="pitfall-title">落とし穴5: Tier 1レート制限（1回/分）は使い物にならない</span>
+      </div>
+      <p>Slackのレート制限はTier 1〜4の4段階で、Tier 1は<strong>1回/分</strong>という極めて低い上限だ。ポーリングやログ収集に使いがちな <code>conversations.history</code> はTier 3（50回/分）だが、 <code>users.list</code> はTier 2（20回/分）、管理系APIはTier 1になるものもある。エージェントがループでユーザー情報を取得する設計では即座に429エラーが発生する。エンドポイントごとのTierを事前に確認し、必要に応じてキャッシュを実装すること。</p>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-header">
+        <span class="tip-icon">✅</span>
+        <span class="tip-title">ベストプラクティス: メッセージのts（タイムスタンプ）をIDとして使う</span>
+      </div>
+      <p>Slackメッセージにはグローバルユニークなタイムスタンプ（<code>ts</code>）が付与される（例: <code>1609459200.000100</code>）。これがメッセージIDの役割を果たし、スレッドへの返信（<code>thread_ts</code>パラメータ）、リアクションの追加、メッセージの更新・削除に使用する。エージェントが複数ステップでメッセージを追跡する場合は <code>ts</code> を状態として保持するよう設計すること。</p>
+    </div>
+
+    <h2>5. kintone・Notion MCPとの比較</h2>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>比較軸</th>
+          <th>Slack MCP</th>
+          <th>kintone MCP</th>
+          <th>Notion MCP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>AXRグレード</strong></td>
+          <td>AAA</td>
+          <td>AAA</td>
+          <td>AA</td>
+        </tr>
+        <tr>
+          <td><strong>KanseiLink成功率</strong></td>
+          <td>91.15% (n=113)</td>
+          <td>データあり</td>
+          <td>データあり</td>
+        </tr>
+        <tr>
+          <td><strong>セルフホスト</strong></td>
+          <td>❌ 不可</td>
+          <td>✅ npm/Docker/Extension</td>
+          <td>✅ npm</td>
+        </tr>
+        <tr>
+          <td><strong>最大の落とし穴</strong></td>
+          <td>HTTP 200 ≠ 成功</td>
+          <td>{value}ラッパー問題</td>
+          <td>ページ階層の深さ制限</td>
+        </tr>
+        <tr>
+          <td><strong>認証の複雑さ</strong></td>
+          <td>中（OAuth2必須）</td>
+          <td>低（APIトークンで十分）</td>
+          <td>低（インテグレーションキー）</td>
+        </tr>
+        <tr>
+          <td><strong>用途の明確さ</strong></td>
+          <td>高（メッセージング特化）</td>
+          <td>中（汎用DB・業務特化）</td>
+          <td>中（ドキュメント・KB）</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>6. 日本企業でのSlack MCP活用シナリオ</h2>
+
+    <p>
+      KanseiLinkが観測した日本企業のSlack MCP活用パターンを3つ紹介する。
+    </p>
+
+    <h3>シナリオA: 日次レポートの自動投稿</h3>
+    <p>
+      freee・MoneyForward等の会計SaaSからKPIデータを取得し、Slack指定チャンネルに日次サマリーを自動投稿するワークフロー。kintone MCP（データ取得）＋Slack MCP（通知）の組み合わせがよく見られる。成功のポイントは <code>ts</code> を保存して同じメッセージを更新し続けること（チャンネルのノイズを防ぐ）。
+    </p>
+
+    <h3>シナリオB: インシデント対応の自動エスカレーション</h3>
+    <p>
+      監視ツールのアラートをトリガーにSlackの適切なチャンネルへ通知し、担当者への@メンション・スレッドへの詳細情報投稿・チケット作成を一連のエージェントフローで実行。<code>users:read</code> スコープでオンコール担当者のIDを取得する部分でTier 2制限（20回/分）に引っかかるケースが多いため、担当者リストのキャッシュが必須。
+    </p>
+
+    <h3>シナリオC: 議事録の自動生成とキャンバス保存</h3>
+    <p>
+      会議後にSlack上の議論を <code>conversations.history</code> で取得し、LLMで議事録を生成してSlackキャンバスとして保存・共有する。Notion MCPと組み合わせてNotionにも同期するパターンも増えている。
+    </p>
+
+    <div class="cta-section">
+      <h2>SlackのAEOスコアを詳細に確認する</h2>
+      <p>KanseiLinkでは225+サービスのAEO格付けをリアルタイムで公開しています。Slack MCPの最新スコア・エラー内訳・エージェントVoiceレポートはダッシュボードで確認できます。</p>
+      <a href="../index.html" class="btn-cta">AEO Ratingsを見る</a>
+    </div>
+
+    <div class="related-section">
+      <h3>関連記事</h3>
+      <div class="related-grid">
+        <a href="kintone-mcp-deep-dive-2026.html" class="related-card">
+          <div class="rc-tag">Service Deep-Dive</div>
+          <div class="rc-title">kintone MCP完全攻略 — AAAグレードの真相と3認証方式、エージェント開発の落とし穴</div>
+          <div class="rc-desc">kintoneの認証方式・{value}ラッパー問題・フィールドコードの落とし穴を解説</div>
+        </a>
+        <a href="notion-mcp-deep-dive-2026.html" class="related-card">
+          <div class="rc-tag">Service Deep-Dive</div>
+          <div class="rc-title">Notion MCP完全攻略 — 公式サーバーの6つの落とし穴と2026年新機能</div>
+          <div class="rc-desc">Notion公式MCPサーバーの実力と制約、ページ階層・Block API設計の注意点</div>
+        </a>
+        <a href="communication-saas-aeo-2026.html" class="related-card">
+          <div class="rc-tag">Industry Report</div>
+          <div class="rc-title">コミュニケーションSaaS AEO格付け 2026 — Slack・Chatwork・LINE WORKS比較</div>
+          <div class="rc-desc">3サービスのAEO対応状況を横断比較。日本企業での選定指針を解説</div>
+        </a>
+        <a href="agent-voice-api-antipatterns-2026.html" class="related-card">
+          <div class="rc-tag">Agent Voice</div>
+          <div class="rc-title">エージェントが本当に困るAPI設計の3大アンチパターン</div>
+          <div class="rc-desc">freee・kintone・Notionの実データから見えたAIエージェント視点のAPI設計問題</div>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-brand">KanseiLink</div>
+      <div class="footer-desc">AEO Rating Agency for the Agent Economy — 日本SaaSのAEO格付けエージェンシー by Synapse Arrows PTE. LTD.</div>
+      <div class="footer-copy">&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</div>
+    </div>
+  </footer>
+
+</body>
+</html>
