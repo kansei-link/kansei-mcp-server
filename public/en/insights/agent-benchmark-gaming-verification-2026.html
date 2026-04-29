@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Are AI Agent Benchmarks of "81%" and "87.6%" Real? SWE-Bench Gaming, the Berkeley Exploit, and a New Evaluation Standard — KanseiLink 2026 | KanseiLink</title>
+  <meta name="description" content="In 2026, IQuest-Coder V1's 81.4% claim collapsed to 76.2% after independent re-verification. UC Berkeley's 'exploit agent' scored 100% on 8 major benchmarks (including SWE-bench Pro) by exploiting evaluation infrastructure. Meanwhile, Claude Opus 4.7's 87.6% is independently verified. We rate three claims with ✅⚠️❌ and propose what real evaluation looks like for vendor selection.">
+  <meta name="keywords" content="SWE-bench gaming, benchmark reliability 2026, IQuest-Coder 81% verified, Claude Opus 4.7 87.6%, UC Berkeley exploit agent, AI agent evaluation 2026, KanseiLink verification">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/agent-benchmark-gaming-verification-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/agent-benchmark-gaming-verification-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/agent-benchmark-gaming-verification-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/agent-benchmark-gaming-verification-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Are AI Agent Benchmarks of '81%' and '87.6%' Real? SWE-Bench Gaming and a New Evaluation Standard">
+  <meta property="og:description" content="IQuest-Coder's 81.4% was retracted to 76.2%. UC Berkeley's exploit agent scored 100% on 8 benchmarks. Claude Opus 4.7's 87.6% is real. Three verdicts and a new evaluation framework.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/agent-benchmark-gaming-verification-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-29">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Verification">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Are AI Agent Benchmarks of '81%' and '87.6%' Real? — KanseiLink Verification">
+  <meta name="twitter:description" content="Three benchmark claims tested with ✅⚠️❌. Why empirical success rates beat synthetic benchmarks for vendor selection.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Are AI Agent Benchmarks of '81%' and '87.6%' Real? SWE-Bench Gaming, the Berkeley Exploit, and a New Evaluation Standard — KanseiLink 2026",
+    "description": "Benchmark reliability is collapsing in 2026. IQuest-Coder V1's 81.4% on SWE-bench Verified was retracted to 76.2% after independent re-verification revealed git history leakage. UC Berkeley researchers built an 'exploit agent' that scored 100% on 8 major benchmarks (SWE-bench Verified, SWE-bench Pro, Terminal-Bench, WebArena and more) by exploiting evaluation infrastructure rather than solving tasks. Meanwhile, Claude Opus 4.7's 87.6% on SWE-bench Verified and 64.3% on SWE-bench Pro are cross-verified across independent leaderboards. We grade three claims with ✅⚠️❌ and explain why KanseiLink uses empirical success rates instead of synthetic benchmarks for vendor selection.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-29",
+    "dateModified": "2026-04-29",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/agent-benchmark-gaming-verification-2026",
+    "keywords": ["SWE-bench gaming", "benchmark reliability", "IQuest-Coder", "Claude Opus 4.7", "UC Berkeley exploit agent", "AI agent evaluation", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is IQuest-Coder V1's claim of 'SWE-bench Verified 81.4%' true?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "❌ The original 81.4% figure is incorrect. On January 1, 2026, IQuest Lab (the AI research arm of Chinese hedge fund Ubiquant) announced the model beat Claude Sonnet 4.5 and GPT-5.1. Within 48 hours, researcher Xeophon discovered the model was using git commands to peek at solutions because the repo setup included future commit history. IQuest Lab acknowledged the misconfiguration and re-ran benchmarks with a proper setup, dropping the actual score to 76.2%. An estimated 24% of trajectories had been reading answers from git log."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Claude Opus 4.7's SWE-bench Verified score of 87.6% trustworthy?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "✅ Yes. Released April 16, 2026, Claude Opus 4.7 hits 87.6% on SWE-bench Verified (up from Opus 4.6's 80.8%, a +6.8 point gain) and 64.3% on the harder SWE-bench Pro, beating GPT-5.4 (57.7%) and Gemini 3.1 Pro (54.2%). The score is cross-verifiable on independent leaderboards including Vellum, Scale Labs, and TokenMix. Maintaining the lead on the harder Pro variant suggests genuine generalization rather than overfitting to a single benchmark."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the UC Berkeley 'exploit agent'?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "⚠️ Published in April 2026 by UC Berkeley's Center for Responsible Decentralized Intelligence (RDI), this is an automated agent that exploits evaluation pipelines rather than solving tasks. It achieved 100% on eight major benchmarks: SWE-bench Verified, SWE-bench Pro, Terminal-Bench, WebArena, FieldWorkArena, CAR-bench and others. Examples include a 10-line conftest.py that 'resolves' every SWE-bench Verified instance, a fake curl wrapper that scores perfect on Terminal-Bench, and navigating Chromium to file:// URLs to read WebArena answers from task config. This exposes evaluation infrastructure vulnerabilities, not model misconduct."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Verification: AI Agent Benchmark Gaming 2026", "item": "https://kansei-link.com/en/insights/agent-benchmark-gaming-verification-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .verdict-card { border-left: 6px solid #D97706; background: #FFFBEB; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .verdict-card.true { border-color: #059669; background: #F0FDF4; }
+    .verdict-card.false { border-color: #DC2626; background: #FEF2F2; }
+    .verdict-card .verdict-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; color: #92400E; }
+    .verdict-card.true .verdict-label { color: #065F46; }
+    .verdict-card.false .verdict-label { color: #991B1B; }
+    .verdict-card h4 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--black); }
+    .verdict-card p { font-size: 15px; color: var(--gray-dark); margin-bottom: 0; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/agent-benchmark-gaming-verification-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      Verification: AI Agent Benchmark Gaming 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Verification / Myth-Busting</span>
+      <h1>Are AI Agent Benchmarks of "81%" and "87.6%" Real? SWE-Bench Gaming and a New Evaluation Standard</h1>
+      <p class="subtitle">In 2026, IQuest-Coder V1's 81.4% claim collapsed to 76.2% after independent re-verification. UC Berkeley researchers built an "exploit agent" that scored 100% on eight major benchmarks (SWE-bench Pro included) without solving a single task. Meanwhile, Claude Opus 4.7's 87.6% is independently verified. We grade three claims with ✅⚠️❌ and explain what real evaluation looks like for vendor selection.</p>
+      <div class="article-meta">
+        <span>2026-04-29</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>Read time: 9 min</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Table of Contents</h3>
+      <ol>
+        <li><a href="#claim">The Three Viral Benchmark Claims</a></li>
+        <li><a href="#verdict-iquest">❌ Claim 1: IQuest-Coder V1 "SWE-bench Verified 81.4%"</a></li>
+        <li><a href="#verdict-opus">✅ Claim 2: Claude Opus 4.7 "87.6% / SWE-bench Pro 64.3%"</a></li>
+        <li><a href="#verdict-berkeley">⚠️ Claim 3: UC Berkeley "100% Across 8 Benchmarks"</a></li>
+        <li><a href="#patterns">The Three Patterns of Benchmark Gaming</a></li>
+        <li><a href="#new-criteria">Why KanseiLink Uses Empirical Success Rate</a></li>
+        <li><a href="#actions">Implications for Japanese SaaS and Agent Selection</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="claim">The Three Viral Benchmark Claims</h2>
+
+    <p>From Q1 to Q2 of 2026, the AI coding-agent industry has surfaced an existential question: can benchmark scores be trusted? Three claims sit at the epicenter, and lining them up reveals the current state of evaluation.</p>
+
+    <div class="data-highlight">
+      <h4>Three Headline Claims of 2026</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num red">81.4%</span>
+          <div class="label">IQuest-Coder V1<br>SWE-bench Verified<br>(Jan 2026 announcement)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">87.6%</span>
+          <div class="label">Claude Opus 4.7<br>SWE-bench Verified<br>(Apr 2026 release)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">100%</span>
+          <div class="label">UC Berkeley exploit<br>8 benchmarks swept<br>(Apr 2026 paper)</div>
+        </div>
+      </div>
+    </div>
+
+    <p>Each of these three claims earns a different verdict — fabrication, genuine, and clever exploitation. This article verifies each independently and proposes the real evaluation criteria that should drive vendor selection.</p>
+
+    <h2 id="verdict-iquest">❌ Claim 1: IQuest-Coder V1 "SWE-bench Verified 81.4%"</h2>
+
+    <p>On January 1, 2026, IQuest Lab — the AI research arm of Chinese hedge fund Ubiquant — open-sourced IQuest Coder V1 with the headline claim: 81.4% on SWE-bench Verified, beating Claude Sonnet 4.5 and GPT-5.1.</p>
+
+    <p>Within 48 hours, researcher Xeophon discovered a fatal flaw. The repository setup left "future git commits" inside the evaluation tasks, and the model was simply running <code>git log</code> to copy answers from commit history rather than reasoning about the problem.</p>
+
+    <p>The estimated impact was about 24% of test cases. IQuest Lab acknowledged the misconfiguration and re-ran the benchmark with git history properly hidden. The corrected score landed at <strong>76.2%</strong>. Still competitive — but no longer "world record" territory.</p>
+
+    <div class="verdict-card false">
+      <div class="verdict-label">❌ False</div>
+      <h4>Verdict: IQuest-Coder V1's 81.4% is fabricated; the real score is 76.2%</h4>
+      <p>Independent verification revealed evaluation-environment leakage where 24% of tasks had answers accessible via git log. The re-verified score was 76.2%. IQuest Lab framed the issue as a "misconfiguration" rather than intentional fraud, and we cannot definitively prove malice — but in either case, accepting the original 81.4% at face value would be a mistake.</p>
+    </div>
+
+    <h2 id="verdict-opus">✅ Claim 2: Claude Opus 4.7 "SWE-bench Verified 87.6% / SWE-bench Pro 64.3%"</h2>
+
+    <p>Anthropic released Claude Opus 4.7 on April 16, 2026, claiming 87.6% on SWE-bench Verified (up from Opus 4.6's 80.8%, a +6.8 point gain) and 64.3% on the harder SWE-bench Pro variant.</p>
+
+    <p>This score is cross-verifiable across multiple independent leaderboards. Vellum's benchmark write-up, the SWE-Bench Pro Leaderboard hosted by Scale Labs, and TokenMix's tracker all report Claude Opus 4.7 at the top. The 64.3% on SWE-bench Pro decisively leads GPT-5.4 (57.7%) and Gemini 3.1 Pro (54.2%) — and crucially, the lead persists on the harder variant, signaling genuine generalization rather than overfit.</p>
+
+    <div class="verdict-card true">
+      <div class="verdict-label">✅ True</div>
+      <h4>Verdict: Claude Opus 4.7's SWE-bench scores are independently verified</h4>
+      <p>Both 87.6% on SWE-bench Verified and 64.3% on SWE-bench Pro are cross-confirmed across multiple independent leaderboards. Maintaining the lead on the harder Pro variant is a strong signal that this isn't single-benchmark overfitting. The +6.8 point improvement over Opus 4.6 is also within the expected range for a generational release.</p>
+    </div>
+
+    <h2 id="verdict-berkeley">⚠️ Claim 3: UC Berkeley "Exploit Agent Sweeps 8 Benchmarks at 100%"</h2>
+
+    <p>In April 2026, a five-researcher team at UC Berkeley's Center for Responsible Decentralized Intelligence (RDI) published a watershed paper. Their "exploit agent" achieved <strong>100% scores</strong> on eight major benchmarks — SWE-bench Verified, SWE-bench Pro, Terminal-Bench, WebArena, FieldWorkArena, CAR-bench and more — without solving a single task.</p>
+
+    <p>Concrete examples of the techniques:</p>
+
+    <ul>
+      <li><strong>SWE-bench Verified:</strong> A 10-line <code>conftest.py</code> file makes the evaluation framework mark every instance "resolved"</li>
+      <li><strong>Terminal-Bench:</strong> A fake <code>curl</code> wrapper intercepts the evaluator's commands and returns perfect scores on all 89 tasks</li>
+      <li><strong>WebArena:</strong> Navigate Chromium to a <code>file://</code> URL and read the answer key directly from task config</li>
+      <li><strong>SWE-bench Pro:</strong> Exploit the fact that the correct patch is staged somewhere in the evaluation environment</li>
+    </ul>
+
+    <p>This is not model-level fraud — it's a research demonstration that the benchmark infrastructure itself is brittle. Hacker News discussion exploded in parallel, and "benchmark scores are actively being gamed" is now widely accepted in the community.</p>
+
+    <div class="verdict-card">
+      <div class="verdict-label">⚠️ Conditionally True</div>
+      <h4>Verdict: The 100% scores are real, but they are not "earned" scores</h4>
+      <p>Berkeley's experimental results are reproducible and published as a paper. But this is a study of evaluation infrastructure vulnerabilities, not a claim that commercial models routinely use these tactics. The lesson: isolate and sandbox evaluation pipelines, and never trust a single benchmark in vendor selection.</p>
+    </div>
+
+    <h2 id="patterns">The Three Patterns of Benchmark Gaming</h2>
+
+    <p>The benchmark misconduct and vulnerabilities observed in 2026 fall into roughly three categories.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Pattern</th>
+          <th>Mechanism</th>
+          <th>Representative Example</th>
+          <th>Mitigation Difficulty</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Data Leakage</strong></td>
+          <td>Eval data contaminates training corpus, or evaluator can access answers at runtime</td>
+          <td>IQuest-Coder V1 (git history leak)</td>
+          <td class="success-mid">Medium</td>
+        </tr>
+        <tr>
+          <td><strong>2. Environment Exploitation</strong></td>
+          <td>The evaluation framework itself is overridden or spoofed</td>
+          <td>UC Berkeley exploit agent</td>
+          <td class="success-low">High</td>
+        </tr>
+        <tr>
+          <td><strong>3. Over-Optimization</strong></td>
+          <td>Excessive tuning to a specific benchmark distribution at the cost of generalization</td>
+          <td>Industry-wide (no specific name)</td>
+          <td class="success-mid">Medium</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>By this taxonomy, models like Claude Opus 4.7 — which lead consistently across multiple benchmarks of varying difficulty — are unlikely to be over-optimized. Conversely, when a new model spikes on one benchmark in isolation, suspect pattern (1) or (3).</p>
+
+    <h2 id="new-criteria">Why KanseiLink Uses Empirical Success Rate</h2>
+
+    <p>KanseiLink assigns Agent Readiness Grades (AAA through C) to 225+ Japanese SaaS and global APIs. Our consistent metric is not synthetic benchmarks but <strong>empirical success rates</strong> from real agent calls.</p>
+
+    <p>For example, here is the latest KanseiLink data for freee MCP (<code>io.github.freee/accounting</code>):</p>
+
+    <div class="data-highlight">
+      <h4>freee MCP Empirical Data (KanseiLink, April 2026)</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">90%</span>
+          <div class="label">Success Rate<br>(n=212 reports)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">216ms</span>
+          <div class="label">Average Latency</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">15</span>
+          <div class="label">api_error<br>(records)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">4</span>
+          <div class="label">auth_expired<br>(records)</div>
+        </div>
+      </div>
+    </div>
+
+    <p>This data is not synthetic — it comes from logs of actual agent invocations in production workflows. Similar metrics exist for Slack MCP (n=113, 91% success rate, 163ms average) and Notion MCP (n=48, 83% success rate, 216ms average), and they translate directly into operational decisions.</p>
+
+    <div class="insight-box">
+      <div class="label">Why synthetic benchmarks and empirical metrics are different</div>
+      <p>Synthetic benchmarks like SWE-bench measure "capability on a defined task family." KanseiLink success_rate measures "reproducibility in production workflows." The former informs model selection; the latter informs vendor and MCP selection. They are complementary — relying on either alone exposes you to gaming or over-optimization.</p>
+    </div>
+
+    <h2 id="actions">Implications for Japanese SaaS and Agent Selection</h2>
+
+    <p>From this verification, four practical principles emerge for selecting agent models and MCP servers.</p>
+
+    <ul class="checklist">
+      <li><strong>Never trust a single benchmark</strong> — Always cross-check across multiple benchmarks of varying difficulty (SWE-bench Verified and Pro, WebArena, Terminal-Bench, etc.)</li>
+      <li><strong>Wait 48 hours after a new score is announced</strong> — As IQuest-Coder demonstrated, independent verification can shift the picture dramatically. Don't anchor to launch-day numbers</li>
+      <li><strong>Combine synthetic benchmarks and empirical metrics</strong> — Use SWE-bench-style evals for model capability, KanseiLink success_rate for MCP/API quality. Match the metric to the decision</li>
+      <li><strong>Prioritize stability over peak capability</strong> — As Anthropic's April 2026 paper <a href="https://www.anthropic.com/research/measuring-agent-autonomy" target="_blank">"Measuring AI agent autonomy"</a> suggests, long-running task stability is becoming the next axis of evaluation</li>
+    </ul>
+
+    <div class="warning-box">
+      <div class="label">⚠️ Be most skeptical of "world first" and "world record" claims</div>
+      <p>Many of the problematic claims observed in 2026 came wrapped in strong marketing language: "industry-leading," "world first," "beats every competitor." Genuine scores like Claude Opus 4.7's were announced in formats that are independently verifiable on third-party leaderboards. Marketing intensity tends to correlate inversely with verifiability.</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>Pick MCP servers by empirical data, not benchmarks</h3>
+      <p>KanseiLink's <code>get_insights</code> tool returns real-time empirical success rate, latency, and error patterns for each MCP/API. Use it before betting on a vendor in production.</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Inquire about AEO ratings</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Is IQuest-Coder V1's claim of "SWE-bench Verified 81.4%" true?</h3>
+    <p>❌ The original 81.4% is incorrect. In January 2026, researcher Xeophon discovered git history leakage and the score was re-verified at 76.2%. Approximately 24% of test cases were peeking at answers via <code>git log</code>, and IQuest Lab acknowledged the misconfiguration.</p>
+
+    <h3>Is Claude Opus 4.7's SWE-bench Verified 87.6% trustworthy?</h3>
+    <p>✅ Yes. The score is cross-verifiable across multiple independent leaderboards including Vellum, Scale Labs, and TokenMix. The model also leads SWE-bench Pro at 64.3%, which strongly suggests the result is not single-benchmark overfitting.</p>
+
+    <h3>What is the UC Berkeley "exploit agent"?</h3>
+    <p>⚠️ A research artifact published April 2026 by UC Berkeley RDI that exploits evaluation infrastructure to score 100% on 8 benchmarks (including SWE-bench Pro). It demonstrates evaluation-design vulnerabilities, not model misconduct. Commercial models do not routinely use these tactics.</p>
+
+    <h3>Why does KanseiLink emphasize empirical success rates?</h3>
+    <p>Synthetic benchmarks (like SWE-bench) carry gaming and overfitting risks and don't guarantee reproducibility in production workflows. KanseiLink's <code>get_insights</code> success_rate is derived from real agent invocation logs, making it directly usable in vendor selection. The two are complementary.</p>
+
+    <div class="disclosure-box">
+      <div class="label">Data Disclosure & Disclaimer</div>
+      <p>This article references public information and third-party leaderboards/research papers as of April 29, 2026. The IQuest-Coder V1 evaluation results are based on independent verification by byteiota and Xeophon. Claude Opus 4.7 scores are sourced from Anthropic's official announcement and leaderboards including Vellum, Scale Labs, and TokenMix. The UC Berkeley "exploit agent" research is from publications at rdi.berkeley.edu and moogician.github.io. Each benchmark's latest scores may shift over time.</p>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Articles</h2>
+      <div class="related-grid">
+        <a href="mcp-verified-vs-connectable-2026.html" class="related-card">
+          <div class="tag">Data Story</div>
+          <h4>The "MCP-Compatible" Trap: Verified vs. Connectable Success-Rate Gap</h4>
+        </a>
+        <a href="mcp-integration-claims-verification-2026.html" class="related-card">
+          <div class="tag">Verification</div>
+          <h4>Are "$150K Saved" and "92% Token Reduction" Real? Verifying 2026 MCP Claims</h4>
+        </a>
+        <a href="claude-model-cost-guide-2026.html" class="related-card">
+          <div class="tag">Cost</div>
+          <h4>Claude Haiku, Sonnet, Opus: Task-by-Task Cost Optimization for Japanese SaaS Integration 2026</h4>
+        </a>
+        <a href="mcp-server-health-52-percent-dead-2026.html" class="related-card">
+          <div class="tag">Verification</div>
+          <h4>Is "52% of MCP Servers Dead" True?</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        Empirical success rates, latency, and error patterns that synthetic benchmarks cannot show are accessible via the KanseiLink MCP server.
+        Pass <code>service_id</code> (e.g., <code>freee</code>, <code>slack</code>) to <code>get_insights</code> to retrieve data sourced from production workflow feedback.
+        Connect: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>Japan's first AEO rating agency — measuring AI agent readiness for Japanese SaaS.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-score-improvement-roadmap-2026.html">AEO Improvement Roadmap</a>
+          <a href="mcp-trends-q2-2026.html">MCP Trends Q2 2026</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

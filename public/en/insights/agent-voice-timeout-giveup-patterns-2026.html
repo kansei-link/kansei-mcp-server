@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Moment Agents Give Up — Common Failure Patterns of Timeouts and Long-Running Tasks Across MCPs and APIs (KanseiLink Empirical Data 2026) | KanseiLink</title>
+  <meta name="description" content="In 2026, AI agent evaluation has shifted from 'peak capability' to 'endurance.' KanseiLink's empirical data across 225+ services reveals when and why agents give up on MCPs/APIs. From freee's 800ms workaround case, Slack's low-latency design, and Notion's schema_mismatch pattern, we extract 5 design principles that prevent agents from giving up.">
+  <meta name="keywords" content="agent timeout, MCP long-running task failure, agent endurance 2026, freee timeout case, KanseiLink Agent Voice, pagination design, MCP reliability">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/agent-voice-timeout-giveup-patterns-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/agent-voice-timeout-giveup-patterns-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/agent-voice-timeout-giveup-patterns-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/agent-voice-timeout-giveup-patterns-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="The Moment Agents Give Up — Failure Patterns of Timeouts and Long-Running Tasks">
+  <meta property="og:description" content="KanseiLink empirical data reveals when agents give up on MCPs/APIs. From freee's 800ms workaround to 5 design principles that prevent abandonment.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/agent-voice-timeout-giveup-patterns-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-29">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Agent Voice">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Moment Agents Give Up — Timeout & Long-Running Task Failure Patterns">
+  <meta name="twitter:description" content="Real failure data from KanseiLink: freee 800ms workaround, Slack 163ms design, Notion schema_mismatch — and 5 principles to prevent agent giveup.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "The Moment Agents Give Up — Common Failure Patterns of Timeouts and Long-Running Tasks Across MCPs and APIs (KanseiLink Empirical Data 2026)",
+    "description": "In 2026, as Anthropic's 'Measuring AI Agent Autonomy' research signals, agent evaluation has shifted from peak capability to endurance. Drawing on KanseiLink's 225+ service and 373+ report empirical dataset, we analyze when and why agents give up on MCPs and APIs during long-running tasks. We examine the 800ms workaround case in freee MCP (n=212, 90% success), Slack MCP's low-latency 163ms design (n=113, 91% success), and Notion MCP's schema_mismatch pattern (n=48, 83% success), and derive 5 design principles that prevent agent abandonment.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-29",
+    "dateModified": "2026-04-29",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/agent-voice-timeout-giveup-patterns-2026",
+    "keywords": ["agent timeout", "MCP long-running task", "agent endurance", "freee 800ms", "KanseiLink Agent Voice", "pagination", "anti-giveup design"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What does it mean for an agent to 'give up'?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "An agent gives up when (1) a single API call exceeds the timeout threshold (typically 10-30 seconds) and retries are stopped, (2) consecutive errors or schema_mismatch make the agent abandon the tool and switch to a different tool/approach, or (3) the agent reports 'failed' to the user and proceeds to the next subtask. KanseiLink empirical data shows freee MCP recorded one timeout error, which was resolved through a 'narrow scope to under 800ms' workaround."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why has 'anti-giveup design' become important in 2026?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Through Q1 to Q2 of 2026, Claude Managed Agents, the Anthropic Memory tool, and long-running loop execution have entered general use. Workflows where agents take hours or days to complete a single task have proliferated. Anthropic's 'Measuring AI Agent Autonomy' research and broader industry discussion identify the shift from peak capability to 'how long agents can work autonomously before breaking' as the new evaluation axis. A single MCP giveup now risks breaking the entire upstream task."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should vendors do first to prevent agent giveup?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The top priority is ensuring default response time under 1 second. KanseiLink data shows Slack MCP (avg 163ms), freee MCP (avg 216ms), and Notion MCP (avg 216ms) — all low-latency services maintain higher success rates. Add to this: (2) make pagination and filter parameters required-by-default, (3) embed 'next parameter to try' in JSON error responses, and (4) provide idempotent retry keys. These four steps form the foundation of anti-giveup design."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Agent Voice: Timeout/Giveup Patterns 2026", "item": "https://kansei-link.com/en/insights/agent-voice-timeout-giveup-patterns-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .voice-quote { background: var(--white); border: 2px solid var(--blue); border-radius: 12px; padding: 24px 28px; margin: 28px 0; position: relative; }
+    .voice-quote::before { content: "🗣️"; font-size: 28px; position: absolute; top: -16px; left: 24px; background: var(--white); padding: 0 8px; }
+    .voice-quote .voice-label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .voice-quote p { font-size: 16px; color: var(--gray-dark); margin-bottom: 8px; line-height: 1.7; font-style: italic; }
+    .voice-quote .voice-source { font-size: 12px; color: var(--gray-text); font-style: normal; margin-bottom: 0; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/agent-voice-timeout-giveup-patterns-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      Agent Voice: Timeout & Giveup Patterns 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Agent Voice</span>
+      <h1>The Moment Agents Give Up — Common Failure Patterns of Timeouts and Long-Running Tasks Across MCPs and APIs</h1>
+      <p class="subtitle">In 2026, AI agent evaluation has shifted from "peak capability" to "endurance." KanseiLink's empirical data across 225+ services reveals the moment agents give up on MCPs/APIs. From freee's 800ms workaround case, Slack's low-latency 163ms design, and Notion's schema_mismatch pattern, we extract 5 design principles that prevent agents from giving up.</p>
+      <div class="article-meta">
+        <span>2026-04-29</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>Read time: 8 min</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Table of Contents</h3>
+      <ol>
+        <li><a href="#shift">Why "Anti-Giveup Design" Now — A Shift in Evaluation Axis</a></li>
+        <li><a href="#data">KanseiLink Empirical: "Giveup Points" Across Major MCPs</a></li>
+        <li><a href="#freee-case">Case 1: freee MCP's "800ms Workaround"</a></li>
+        <li><a href="#slack-case">Case 2: Why Slack MCP Sustains 163ms Average</a></li>
+        <li><a href="#notion-case">Case 3: Notion MCP's schema_mismatch Pattern</a></li>
+        <li><a href="#patterns">Three Giveup Patterns and How to Avoid Each</a></li>
+        <li><a href="#principles">5 Principles of Anti-Giveup Design</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="shift">Why "Anti-Giveup Design" Now — A Shift in Evaluation Axis</h2>
+
+    <p>Through Q1 to Q2 of 2026, an evaluation shift has been quietly underway in the AI agent industry.</p>
+
+    <p>Until recently, evaluation focused on "how high can a model score on a single task?" Now the center of gravity has moved to "can a model run a long, complex workflow without breaking?" Anthropic's "Measuring AI Agent Autonomy" research, the production rollout of Claude Managed Agents, and broader industry discussion all reframe the new competitive axis as <strong>"how long agents can work autonomously before breaking."</strong></p>
+
+    <p>The shift carries enormous weight for MCP/API vendors. A 10-minute agent task typically requires 10–50 MCP calls. If even one of those calls hits a timeout or uninterpretable error and triggers "giveup," the upstream task collapses. <strong>A 95% per-call success rate compounds to just 36% across 20 sequential calls.</strong> In the endurance era, each MCP must reach 99%+ reliability — or agent workflows simply can't be built on top of it.</p>
+
+    <div class="voice-quote">
+      <div class="voice-label">Agent Voice (Summary)</div>
+      <p>"It's fine if a tool fails sometimes. The problem is when I can't tell why it failed, or whether to retry or switch approach. A timed-out API doesn't tell me what to try next."</p>
+      <p class="voice-source">— KanseiLink Agent Voice (free_voice / biggest_frustration category summary)</p>
+    </div>
+
+    <h2 id="data">KanseiLink Empirical: "Giveup Points" Across Major MCPs</h2>
+
+    <p>Empirical data from KanseiLink's <code>get_insights</code> tool, side by side for three major services:</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Success Rate</th>
+          <th>Avg Latency</th>
+          <th>Reports</th>
+          <th>Top Error Types</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>freee MCP</strong></td>
+          <td class="success-high">90%</td>
+          <td class="success-high">216ms</td>
+          <td>n=212</td>
+          <td>api_error (15), auth_expired (4), timeout (1)</td>
+        </tr>
+        <tr>
+          <td><strong>Slack MCP</strong></td>
+          <td class="success-high">91%</td>
+          <td class="success-high">163ms</td>
+          <td>n=113</td>
+          <td>api_error (9), invalid_input (1)</td>
+        </tr>
+        <tr>
+          <td><strong>Notion MCP</strong></td>
+          <td class="success-mid">83%</td>
+          <td class="success-high">216ms</td>
+          <td>n=48</td>
+          <td>api_error (6), search_miss (1), schema_mismatch (1)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>On the surface all three look similar — sub-220ms average latency, 80–90% success rate. But the <strong>error breakdown</strong> exposes very different giveup profiles. Slack's errors center on input issues, resolved by parameter correction rather than retry. freee's signature pattern is auth expiry with one timeout case. Notion carries a schema_mismatch error class — interpretive failures where the agent struggles to determine "what went wrong."</p>
+
+    <div class="data-highlight">
+      <h4>Notable Pattern: Agent Behavior by Error Type</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">Resolvable</span>
+          <div class="label">invalid_input<br>auth_expired<br>(clear remediation)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">Judgment</span>
+          <div class="label">api_error<br>search_miss<br>(retry or switch tool)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">Triggers Giveup</span>
+          <div class="label">timeout<br>schema_mismatch<br>(no clear path)</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="freee-case">Case 1: freee MCP's "800ms Workaround"</h2>
+
+    <p>Of freee MCP's 212 reports, one timeout error has been recorded. What's notable is the resolution. The KanseiLink empirical log preserves the following workaround:</p>
+
+    <div class="voice-quote">
+      <div class="voice-label">Agent's Resolution Log</div>
+      <p>"Added date range filter to limit results to 3 months. Completed in 800ms after narrowing scope."</p>
+      <p class="voice-source">— Verified workaround for freee MCP timeout error (KanseiLink, 2026-04)</p>
+    </div>
+
+    <p>This log captures a textbook giveup pattern + workaround pair: <strong>"too-broad query times out → narrow scope → completes in under 800ms."</strong> What matters is that the agent itself discovered the narrowing strategy. This was possible because the freee API explicitly accepts date-range parameters and can signal "narrowing your range will be faster" in its error response.</p>
+
+    <div class="success-box">
+      <div class="label">✅ Lesson</div>
+      <p>Timeouts are unavoidable, but if the error response embeds "the next narrowing parameter to try," the agent can recover without giving up. freee's case is a good example of API design actively working against giveup.</p>
+    </div>
+
+    <h2 id="slack-case">Case 2: Why Slack MCP Sustains 163ms Average</h2>
+
+    <p>Slack MCP (n=113, 91% success) records the lowest average latency among the three services — 163ms — and zero timeout errors. This endurance is no accident.</p>
+
+    <p>Slack's API architecture consistently enforces (1) mandatory pagination on channel/user search, (2) explicit defaults for the <code>limit</code> parameter (typically 100 records), and (3) a <code>response_metadata.next_cursor</code> field surfaced in HTTP responses. The combination structurally prevents agents from accidentally issuing "fetch all" queries — and the timeout risk is suppressed by design rather than by best-effort retries.</p>
+
+    <p>The recorded errors are mostly API-side latency events (api_error 9) and one Block Kit structure mistake. The resolution log:</p>
+
+    <div class="voice-quote">
+      <div class="voice-label">Agent's Resolution Log</div>
+      <p>"Switched from Block Kit to simple mrkdwn text format. Message sent successfully."</p>
+      <p class="voice-source">— Workaround for Slack MCP invalid_input error (KanseiLink, 2026-04)</p>
+    </div>
+
+    <p>This log highlights another quiet design win: <strong>"if Block Kit is too complex, fall back to simple mrkdwn."</strong> The agent gives up on top-tier message quality but still achieves the underlying goal — sending the message — without abandoning the tool entirely.</p>
+
+    <h2 id="notion-case">Case 3: Notion MCP's schema_mismatch Pattern</h2>
+
+    <p>Notion MCP (n=48, 83% success) shows the lowest success rate of the three and records a <code>schema_mismatch</code> error — a classic giveup-trigger class. The empirical log:</p>
+
+    <div class="voice-quote">
+      <div class="voice-label">Agent's Resolution Log</div>
+      <p>"Queried the database list first to get the current ID, then retried the page creation with the updated relation reference."</p>
+      <p class="voice-source">— Workaround for Notion MCP schema_mismatch error (KanseiLink, 2026-04)</p>
+    </div>
+
+    <p>The challenge here: <strong>at the moment of failure, the agent cannot see that "I had a stale database ID cached."</strong> The agent has to multi-step: re-fetch the database list, suspect ID drift, then retry. This is worse than a timeout — it incentivizes the agent to declare the tool unreliable and switch to an alternative.</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ schema_mismatch is the most giveup-inducing pattern</div>
+      <p>schema_mismatch is the worst error class: 200 OK but the response is uninterpretable. From the agent's view, "something is wrong but I can't tell what" — retries are wasted, alternative parameters aren't obvious. The rational move is to abandon the tool at the upstream task layer rather than keep calling it.</p>
+    </div>
+
+    <h2 id="patterns">Three Giveup Patterns and How to Avoid Each</h2>
+
+    <p>The three real cases generalize into three giveup patterns.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Giveup Pattern</th>
+          <th>Typical Trigger</th>
+          <th>Agent Behavior</th>
+          <th>Vendor-Side Mitigation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Timeout</strong></td>
+          <td>Over-broad query, cold start</td>
+          <td>1–3 retries, then narrow scope or switch tool</td>
+          <td>Default-on filter parameters, recommended-parameter hints in error responses</td>
+        </tr>
+        <tr>
+          <td><strong>2. Uninterpretable</strong></td>
+          <td>schema_mismatch, 200 OK with broken response</td>
+          <td>Mark as unrecoverable, switch to alternative</td>
+          <td>Semantic versioning, response schema validation, specific error messages</td>
+        </tr>
+        <tr>
+          <td><strong>3. Permanent Auth Expiry</strong></td>
+          <td>OAuth refresh failure, invalid API key</td>
+          <td>Single retry, then escalate to user</td>
+          <td>Long-lived tokens, explicit error codes on refresh failure, embedded re-auth URL</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="principles">5 Principles of Anti-Giveup Design</h2>
+
+    <p>Five principles vendors can implement immediately, distilled from KanseiLink empirical data.</p>
+
+    <ul class="checklist">
+      <li><strong>Principle 1: Default response time under 1 second</strong> — Slack (163ms), freee (216ms), and Notion (216ms) demonstrate that low latency creates the headroom an agent needs to make "what do I do next" decisions. Endpoints with p99 over 3 seconds are high-risk for giveup.</li>
+      <li><strong>Principle 2: Pagination and filters as required defaults</strong> — Slack's explicit <code>limit=100</code> default structurally prevents the agent from accidentally issuing "fetch all" queries. For search APIs, cursor/page tokens should be mandatory.</li>
+      <li><strong>Principle 3: Embed "next action" in error responses</strong> — Like freee's "narrow the date range," the JSON response should tell the agent what to change. Don't make the agent infer it.</li>
+      <li><strong>Principle 4: Provide idempotent retry keys</strong> — Write APIs should accept an <code>Idempotency-Key</code> header so agents can retry safely.</li>
+      <li><strong>Principle 5: Never return schema_mismatch as 200 OK</strong> — Resource version drift and similar issues should return explicit HTTP 4xx + error codes so agents can recognize them as "actionable errors."</li>
+    </ul>
+
+    <div class="insight-box">
+      <div class="label">Implications for Agent Operations</div>
+      <p>Per-call 99% reliability compounds to 82% over 20 calls and 61% over 50. In the long-running task era, anti-giveup design is not a UX nicety — it determines whether an agent can run in production at all. AAA-grade MCPs aren't just fast; they preserve recovery paths when errors do occur.</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>Is your MCP designed against giveup?</h3>
+      <p>KanseiLink's AEO audit measures success_rate, latency, error class, and workaround presence — a full "endurance evaluation." We deliver an improvement roadmap toward AAA grade.</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Request an Endurance AEO Audit</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>What does it mean for an agent to "give up"?</h3>
+    <p>(1) A single API call exceeds the timeout threshold and retries stop, (2) consecutive errors or schema_mismatch make the agent abandon the tool and switch to an alternative, or (3) the agent reports "failed" to the user and proceeds. KanseiLink data shows freee MCP recorded one timeout, resolved with a "narrow to under 800ms" workaround.</p>
+
+    <h3>Why did anti-giveup design become important in 2026?</h3>
+    <p>Claude Managed Agents, the Anthropic Memory tool, and long-running loop execution went mainstream, and workflows where an agent works for hours or days on a single task proliferated. Anthropic's "Measuring AI agent autonomy" research also identifies the shift to "how long agents can work autonomously before breaking."</p>
+
+    <h3>What should vendors do first to prevent agent giveup?</h3>
+    <p>Top priority: ensure default response time under 1 second. Slack (163ms), freee (216ms), and Notion (216ms) all show this is feasible. Then implement pagination defaults, embed recommended parameters in error responses, and provide idempotent retry keys. These four steps form the foundation.</p>
+
+    <h3>Why does schema_mismatch trigger giveup so often?</h3>
+    <p>It returns 200 OK with an uninterpretable response, leaving the agent in a "something is wrong but I don't know what" state. Retries change nothing; alternatives aren't obvious. Switching tools becomes the rational move. Returning explicit HTTP 4xx + error codes is the fix.</p>
+
+    <div class="disclosure-box">
+      <div class="label">Data Disclosure & Disclaimer</div>
+      <p>The numbers in this article are from KanseiLink's <code>get_insights</code> tool as of April 2026: freee MCP (n=212, success_rate 0.90, avg_latency 216ms), Slack MCP (n=113, success_rate 0.91, avg_latency 163ms), Notion MCP (n=48, success_rate 0.83, avg_latency 216ms). Data is based on agent self-reports, so the population is limited to publicly available SaaS that has actually been called by agents. The evaluation-axis shift discussion references Anthropic's "Measuring AI agent autonomy" (April 2026) and broader industry discussion.</p>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Articles</h2>
+      <div class="related-grid">
+        <a href="agent-voice-discoverability-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>The MCPs Agents Can't Find: search_miss and the Discoverability Crisis</h4>
+        </a>
+        <a href="agent-voice-api-antipatterns-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>The Three API Design Anti-Patterns That Frustrate Agents Most</h4>
+        </a>
+        <a href="mcp-latency-success-rate-correlation-2026.html" class="related-card">
+          <div class="tag">Data Story</div>
+          <h4>Are "Slow APIs Also Fail More"? Verifying MCP Latency vs. Success-Rate Correlation</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">Practical Guide</div>
+          <h4>Complete MCP Server Implementation Guide 2026 — Auth, Rate Limiting, Error Handling Patterns</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        Each MCP's "giveup point" data is accessible in real time via the KanseiLink MCP server.
+        Pass <code>service_id</code> to <code>get_insights</code> and the <code>common_errors</code> array includes types like <code>timeout</code> and <code>schema_mismatch</code>, plus <code>known_workarounds</code> (verified mitigations).
+        Connect: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>Japan's first AEO rating agency — measuring AI agent readiness for Japanese SaaS.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-score-improvement-roadmap-2026.html">AEO Improvement Roadmap</a>
+          <a href="mcp-trends-q2-2026.html">MCP Trends Q2 2026</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

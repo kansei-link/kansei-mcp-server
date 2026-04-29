@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>エージェントが諦める瞬間 — タイムアウトと長時間タスクで失敗するMCP/APIの共通パターン KanseiLink実測データ2026 | KanseiLink</title>
+  <meta name="description" content="2026年、AIエージェントの評価軸は『瞬発力』から『耐久力』へ移行している。KanseiLink 225+サービスの実測データから、エージェントがタイムアウトで諦めるMCP/APIの共通パターンを抽出。freeeの800ms解決事例、Slackの低レイテンシ設計、Notionのスキーマミスマッチ等から、ベンダーが採るべき5つの『諦めさせない設計原則』を提示する。">
+  <meta name="keywords" content="エージェント タイムアウト, MCP 長時間タスク 失敗, agent endurance 2026, freee timeout 検証, KanseiLink Agent Voice, ペジネーション設計, MCP 信頼性">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/agent-voice-timeout-giveup-patterns-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/agent-voice-timeout-giveup-patterns-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/agent-voice-timeout-giveup-patterns-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/agent-voice-timeout-giveup-patterns-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="エージェントが諦める瞬間 — タイムアウトと長時間タスクで失敗するMCP/APIの共通パターン">
+  <meta property="og:description" content="KanseiLink実測データから、エージェントがタイムアウトで諦めるMCP/APIの共通パターンを抽出。freeeの800ms解決事例、ベンダーが採るべき5つの『諦めさせない設計原則』を提示。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/agent-voice-timeout-giveup-patterns-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-29">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Agent Voice">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="エージェントが諦める瞬間 — タイムアウトと長時間タスクの失敗パターン">
+  <meta name="twitter:description" content="KanseiLink実測データから抽出した『エージェントが諦める瞬間』。freee 800ms解決、Slack 163ms設計、Notion schema_mismatch等の本音データ。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "エージェントが諦める瞬間 — タイムアウトと長時間タスクで失敗するMCP/APIの共通パターン KanseiLink実測データ2026",
+    "description": "2026年、AnthropicのMeasuring AI Agent Autonomy研究にも示されるとおり、エージェントの評価軸は『瞬発力』から『耐久力』へ移行している。KanseiLinkの225+サービス・373レポート以上の実測データから、エージェントが長時間タスクやタイムアウトで諦めるMCP/APIの共通パターンを抽出。freeeのn=212・成功率90%データに含まれる『800ms解決ワークアラウンド』事例、Slackの平均163msという低レイテンシ設計、Notionのschema_mismatchパターンを分析し、ベンダーが採るべき5つの『諦めさせない設計原則』を提示する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-29",
+    "dateModified": "2026-04-29",
+    "mainEntityOfPage": "https://kansei-link.com/insights/agent-voice-timeout-giveup-patterns-2026",
+    "keywords": ["エージェント タイムアウト", "MCP 長時間タスク", "agent endurance", "freee 800ms", "KanseiLink Agent Voice", "ペジネーション", "諦めさせない設計"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "エージェントが『諦める』とは具体的にどういう状態ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "エージェントが諦めるとは、(1) 単一API呼び出しでタイムアウト閾値（典型的には10〜30秒）を超えてリトライを停止する、(2) 連続エラーや schema_mismatch でツール呼び出しを断念し別ツール/別アプローチに切り替える、(3) ユーザーへ『失敗した』と報告して次のサブタスクへ進む、のいずれかの状態です。KanseiLink実測データでは、freee MCPで1件のtimeoutエラーが記録されており、ユーザーが『800ms以下に絞り込む』ワークアラウンドで解決しました。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "なぜ2026年に『諦めない設計』が重要になったのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "2026年Q1からQ2にかけて、Claude Managed Agents、Anthropic Memory tool、長時間ループ実行が一般化し、エージェントが数時間〜数日かけて1つのタスクを完遂するワークフローが増えました。Anthropicの『Measuring AI agent autonomy』研究や業界の議論でも、評価軸が『瞬発力』から『how long agents can work autonomously before breaking（壊れずにどれだけ長く働けるか）』へ移行していると指摘されています。1つのMCP呼び出しで諦めると、上位タスク全体が破綻するリスクが高まっています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "ベンダーが『諦めさせない設計』のために最初にすべきことは？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "最優先は『デフォルトレスポンス時間1秒以内』の確保です。KanseiLink実測データではSlack MCP（平均163ms）、freee MCP（平均216ms）、Notion MCP（平均216ms）と低レイテンシのサービスが上位の成功率を維持しています。これに加えて、(2) ペジネーション・絞り込みパラメータを必須デフォルト化、(3) エラーレスポンスに『次に試すべきパラメータ』をJSON応答に同梱、(4) idempotent（冪等）リトライキーの提供、の4つで諦めさせない設計の基盤が整います。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Agent Voice: タイムアウト/諦めパターン 2026", "item": "https://kansei-link.com/insights/agent-voice-timeout-giveup-patterns-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .voice-quote { background: var(--white); border: 2px solid var(--blue); border-radius: 12px; padding: 24px 28px; margin: 28px 0; position: relative; }
+    .voice-quote::before { content: "🗣️"; font-size: 28px; position: absolute; top: -16px; left: 24px; background: var(--white); padding: 0 8px; }
+    .voice-quote .voice-label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .voice-quote p { font-size: 16px; color: var(--gray-dark); margin-bottom: 8px; line-height: 1.7; font-style: italic; }
+    .voice-quote .voice-source { font-size: 12px; color: var(--gray-text); font-style: normal; margin-bottom: 0; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/agent-voice-timeout-giveup-patterns-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      Agent Voice: タイムアウト/諦めパターン 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Agent Voice / エージェントの本音</span>
+      <h1>エージェントが諦める瞬間 — タイムアウトと長時間タスクで失敗するMCP/APIの共通パターン</h1>
+      <p class="subtitle">2026年、エージェントの評価軸は『瞬発力』から『耐久力』へ移行している。KanseiLink 225+サービスの実測データから、エージェントがタイムアウトで諦めるMCP/APIの共通パターンを抽出。freeeの800ms解決事例、Slack 163ms設計、Notion schema_mismatch等の本音データから、ベンダーが採るべき5つの『諦めさせない設計原則』を提示する。</p>
+      <div class="article-meta">
+        <span>2026-04-29</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約8分</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#shift">なぜ今『諦めない設計』なのか — 評価軸の移行</a></li>
+        <li><a href="#data">KanseiLink実測: 主要MCPの『諦めポイント』比較</a></li>
+        <li><a href="#freee-case">事例①: freee MCPの『800ms解決ワークアラウンド』</a></li>
+        <li><a href="#slack-case">事例②: Slack MCPが平均163msを保てる理由</a></li>
+        <li><a href="#notion-case">事例③: Notion MCPのschema_mismatchパターン</a></li>
+        <li><a href="#patterns">エージェントが諦める3類型と回避策</a></li>
+        <li><a href="#principles">諦めさせない設計の5原則</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="shift">なぜ今『諦めない設計』なのか — 評価軸の移行</h2>
+
+    <p>2026年Q1からQ2にかけて、AIエージェント業界の評価軸が静かに移行している。</p>
+
+    <p>かつての評価は「単発タスクで何点取れるか」だった。現在は「長時間にわたる複雑なワークフローを壊れずに完遂できるか」へ重心が移っている。AnthropicのMeasuring AI Agent Autonomy研究、Claude Managed Agentsの本番展開、業界の議論はいずれも<strong>「how long agents can work autonomously before breaking（壊れずにどれだけ長く働けるか）」</strong>を新しい競争軸として位置づけている。</p>
+
+    <p>この変化は、MCP/APIベンダーにとって大きな意味を持つ。エージェントが10分のタスクを完遂するためには10〜50回のMCP呼び出しが必要であり、そのうち1回でもタイムアウトや解釈不能エラーで「諦め」が発生すれば、上位タスク全体が破綻する。<strong>個別呼び出しの95%成功率では、20回連続で全成功する確率は36%にしかならない</strong>。耐久力の時代には、各MCPが99%以上の信頼性を持たなければエージェントワークフローが成立しない。</p>
+
+    <div class="voice-quote">
+      <div class="voice-label">エージェントの本音 (要約)</div>
+      <p>「ツールが時々失敗するのは構わない。問題は、なぜ失敗したか分からないこと、リトライすべきか別アプローチに切り替えるべきか判断できないことだ。タイムアウトしたAPIは『次にどうすべきか』を教えてくれない。」</p>
+      <p class="voice-source">— KanseiLink Agent Voice (free_voice / biggest_frustration カテゴリ要約)</p>
+    </div>
+
+    <h2 id="data">KanseiLink実測: 主要MCPの『諦めポイント』比較</h2>
+
+    <p>KanseiLinkの<code>get_insights</code>から取得した、主要3サービスの実測データを並べる。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>サービス</th>
+          <th>成功率</th>
+          <th>平均レイテンシ</th>
+          <th>レポート数</th>
+          <th>主要エラー類型</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>freee MCP</strong></td>
+          <td class="success-high">90%</td>
+          <td class="success-high">216ms</td>
+          <td>n=212</td>
+          <td>api_error (15)、auth_expired (4)、timeout (1)</td>
+        </tr>
+        <tr>
+          <td><strong>Slack MCP</strong></td>
+          <td class="success-high">91%</td>
+          <td class="success-high">163ms</td>
+          <td>n=113</td>
+          <td>api_error (9)、invalid_input (1)</td>
+        </tr>
+        <tr>
+          <td><strong>Notion MCP</strong></td>
+          <td class="success-mid">83%</td>
+          <td class="success-high">216ms</td>
+          <td>n=48</td>
+          <td>api_error (6)、search_miss (1)、schema_mismatch (1)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>表面的にはどれも「200ms前後・成功率8〜9割」で似ているが、エラーの<strong>内訳</strong>を見ると諦めポイントが鮮明に分かれる。Slackは入力系のエラーが中心で、リトライではなくパラメータ修正で解決する。freeeは認証期限切れと1件のtimeoutが特徴。Notionはschema_mismatchという解釈系エラーを抱えており、エージェントが「何が間違っていたのか」を判定しにくい。</p>
+
+    <div class="data-highlight">
+      <h4>注目データ: エラー類型ごとのエージェント挙動</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">解決可能</span>
+          <div class="label">invalid_input<br>auth_expired<br>(明確な対処法あり)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">要判断</span>
+          <div class="label">api_error<br>search_miss<br>(リトライor別ツール)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">諦め誘発</span>
+          <div class="label">timeout<br>schema_mismatch<br>(対処法不明)</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="freee-case">事例①: freee MCPの『800ms解決ワークアラウンド』</h2>
+
+    <p>freee MCPには合計212件のレポートのうち、timeoutエラーが1件記録されている。注目すべきはその解決方法だ。KanseiLink実測ログには以下のワークアラウンドが残っている。</p>
+
+    <div class="voice-quote">
+      <div class="voice-label">エージェントが残した解決ログ</div>
+      <p>「Added date range filter to limit results to 3 months. Completed in 800ms after narrowing scope.」</p>
+      <p class="voice-source">— freee MCP timeout エラーに対する verified workaround (KanseiLink, 2026-04)</p>
+    </div>
+
+    <p>このログが示しているのは、<strong>『広すぎるクエリでタイムアウトする → 範囲絞り込みで800ms以内に完了する』</strong>という典型的な諦めパターンと回避策のペアだ。重要なのは、エージェント自身がこの絞り込み戦略を発見できたこと。これはfreee APIが期間パラメータを明示的に受け付け、「期間指定で速くなる」というシグナルをエラーレスポンスに含められる設計だったからだ。</p>
+
+    <div class="success-box">
+      <div class="label">✅ 学び</div>
+      <p>タイムアウトは避けられないが、「次に試すべき絞り込みパラメータ」をエラーレスポンス内に提示できると、エージェントは諦めずにリカバリできる。freeeのケースは、API設計が『諦めさせない』方向に作用した好例。</p>
+    </div>
+
+    <h2 id="slack-case">事例②: Slack MCPが平均163msを保てる理由</h2>
+
+    <p>Slack MCP（n=113、成功率91%）は3サービス中最低の平均レイテンシ163msを記録している。タイムアウトエラーはゼロ。この耐久性は偶然ではない。</p>
+
+    <p>Slackのテクニカルアーキテクチャは(1) チャンネル・ユーザー検索のページネーション必須化、(2) <code>limit</code>パラメータのデフォルト値（典型的には100件）、(3) HTTPレスポンスでの<code>response_metadata.next_cursor</code>明示、という設計を一貫して採用している。これにより、エージェントが「全件取得」のような長時間クエリを誤って投げる可能性が低く、タイムアウトリスクが構造的に抑制されている。</p>
+
+    <p>記録されたエラーはほぼAPI側の応答遅延（api_error 9件）と、Block Kit構造を間違えたケース1件のみ。後者の解決ログは以下のとおり。</p>
+
+    <div class="voice-quote">
+      <div class="voice-label">エージェントが残した解決ログ</div>
+      <p>「Switched from Block Kit to simple mrkdwn text format. Message sent successfully.」</p>
+      <p class="voice-source">— Slack MCP invalid_input エラーに対するワークアラウンド (KanseiLink, 2026-04)</p>
+    </div>
+
+    <p>このログが示すのは、<strong>「Block Kitが複雑すぎる場合、シンプルなmrkdwnへフォールバック可能」</strong>というSlackのフォールバック設計の妙だ。エージェントは最高品質を諦めても、メッセージを送るという本来の目的は達成できる。</p>
+
+    <h2 id="notion-case">事例③: Notion MCPのschema_mismatchパターン</h2>
+
+    <p>Notion MCP（n=48、成功率83%）は3サービス中最も低い成功率となっており、<code>schema_mismatch</code>という諦め誘発型のエラーが記録されている。実測ログを見よう。</p>
+
+    <div class="voice-quote">
+      <div class="voice-label">エージェントが残した解決ログ</div>
+      <p>「Queried the database list first to get the current ID, then retried the page creation with the updated relation reference.」</p>
+      <p class="voice-source">— Notion MCP schema_mismatch エラーに対するワークアラウンド (KanseiLink, 2026-04)</p>
+    </div>
+
+    <p>このパターンが厄介なのは、<strong>エラーが起きた時点では『古いデータベースIDをキャッシュしていた』ことがエージェントから見えない</strong>点だ。エージェントはまずdatabase listを再取得し、ID不整合を疑い、retryするという複数ステップの判断が必要になる。タイムアウトより質が悪く、エージェントが「このツールは信頼できない」と評価して別ツールに切り替える誘因となる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ schema_mismatchは『諦め』を誘発しやすい</div>
+      <p>schema_mismatchは「200 OKだが内容が解釈できない」という最悪のエラータイプ。エージェントから見ると『何が悪いか分からないがなぜか動かない』状態となり、リトライしても無駄、別パラメータも分からない。再度ツールを呼ぶより、上位タスクで別アプローチに切り替えるインセンティブが働く。</p>
+    </div>
+
+    <h2 id="patterns">エージェントが諦める3類型と回避策</h2>
+
+    <p>3つの実例から、エージェントが諦めるパターンは以下の3類型に整理できる。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>諦め類型</th>
+          <th>典型的トリガー</th>
+          <th>エージェント行動</th>
+          <th>ベンダー側の回避策</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>① タイムアウト型</strong></td>
+          <td>クエリ範囲過大・cold start</td>
+          <td>1〜3回リトライ後、範囲絞り込みorツール切替</td>
+          <td>絞り込みパラメータのデフォルト化、エラー時の推奨パラメータ提示</td>
+        </tr>
+        <tr>
+          <td><strong>② 解釈不能型</strong></td>
+          <td>schema_mismatch、200 OK + 壊れたレスポンス</td>
+          <td>復旧不能と判定し、別ツール/別アプローチへ</td>
+          <td>セマンティックバージョニング、レスポンススキーマ検証、エラーメッセージの具体化</td>
+        </tr>
+        <tr>
+          <td><strong>③ 認証永久切れ型</strong></td>
+          <td>OAuth refresh失敗、APIキー無効</td>
+          <td>1回リトライ後、ユーザーへエスカレーション</td>
+          <td>長寿命トークン、refresh失敗時の明示的エラーコード、再認証URLの同梱</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="principles">諦めさせない設計の5原則</h2>
+
+    <p>KanseiLink実測データから抽出した、ベンダーが今すぐ実装できる『諦めさせない設計』の5原則を提示する。</p>
+
+    <ul class="checklist">
+      <li><strong>原則1: デフォルトレスポンス時間1秒以内</strong> — Slack 163ms・freee 216ms・Notion 216msのような低レイテンシが、エージェントの『次の行動』判断のための余裕を生む。p99で3秒を超えるエンドポイントは諦め誘発リスクが高い</li>
+      <li><strong>原則2: ペジネーションと絞り込みを必須デフォルト化</strong> — Slackの<code>limit=100</code>のような明示デフォルトで、エージェントの「全件取得」誤発を構造的に防ぐ。検索系APIではcursor/page tokenの併用も必須</li>
+      <li><strong>原則3: エラーレスポンスに『次のアクション』を同梱</strong> — freeeの『期間絞り込み』のように、何を変えれば成功するかをJSON応答内で示す。エージェントが推論で対処を見つける必要がない設計</li>
+      <li><strong>原則4: idempotent（冪等）リトライキーを提供</strong> — 書き込み系APIでは<code>Idempotency-Key</code>ヘッダ等を受け付け、エージェントが安全にリトライできる仕組みを提供する</li>
+      <li><strong>原則5: schema_mismatchを『200 OK』で返さない</strong> — リソースバージョン不整合等は明示的なHTTP 4xx + エラーコードで返し、エージェントが「対処可能なエラー」と認識できるようにする</li>
+    </ul>
+
+    <div class="insight-box">
+      <div class="label">エージェント運用全体への含意</div>
+      <p>個別MCPの99%信頼性が、20回連続呼び出しで82%、50回で61%まで複利的に低下する事実を考えると、長時間タスクの世界では「諦めさせない設計」は単なるUXではなく、エージェント全体の本番運用可否を決定する。AAAグレードのMCPは、平均レイテンシが速いだけでなく、エラー時の回復可能性まで含めて高品質な傾向がある。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>あなたのMCPは『諦めさせない設計』ですか？</h3>
+      <p>KanseiLinkのAEO診断では、success_rate・レイテンシ・エラー類型・ワークアラウンド有無まで含めた『耐久力評価』を実施。AAAグレード取得への改善ロードマップを提供します。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">耐久力AEO診断を依頼する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>エージェントが『諦める』とは具体的にどういう状態ですか？</h3>
+    <p>(1) 単一API呼び出しでタイムアウト閾値を超えてリトライを停止する、(2) 連続エラーやschema_mismatchでツール呼び出しを断念し別ツール/別アプローチに切り替える、(3) ユーザーへ『失敗した』と報告して次のサブタスクへ進む、のいずれかです。KanseiLink実測データではfreee MCPで1件のtimeoutが記録され、『800ms以内に絞り込む』ワークアラウンドで解決しました。</p>
+
+    <h3>なぜ2026年に『諦めない設計』が重要になったのですか？</h3>
+    <p>Claude Managed Agents、Anthropic Memory tool、長時間ループ実行が一般化し、エージェントが数時間〜数日かけて1タスクを完遂するワークフローが増えました。Anthropicの『Measuring AI agent autonomy』研究も、評価軸が『瞬発力』から『壊れずにどれだけ長く働けるか』へ移行していると指摘しています。</p>
+
+    <h3>ベンダーが『諦めさせない設計』のために最初にすべきことは？</h3>
+    <p>最優先は『デフォルトレスポンス時間1秒以内』の確保です。Slack（163ms）、freee（216ms）、Notion（216ms）のような低レイテンシ設計が前提条件。次にペジネーションのデフォルト化、エラーレスポンスへの推奨パラメータ同梱、idempotentリトライキー提供の順で実装すると諦め誘発を構造的に減らせます。</p>
+
+    <h3>schema_mismatchエラーはなぜ『諦め』を誘発しやすいのですか？</h3>
+    <p>200 OKを返しながらレスポンスが解釈できないため、エージェントは「何が悪いか分からない」状態に陥ります。リトライしても結果は変わらず、対処法も不明なため、別ツールへの切替が合理的判断となります。明示的なHTTP 4xx + エラーコード化が回避策です。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の数値はKanseiLink MCP <code>get_insights</code>ツールの2026年4月時点データに基づきます: freee MCP (n=212, success_rate 0.90, avg_latency 216ms)、Slack MCP (n=113, success_rate 0.91, avg_latency 163ms)、Notion MCP (n=48, success_rate 0.83, avg_latency 216ms)。本データはエージェント自己報告に基づくため、母集団は公開SaaSのうち実際にエージェント呼び出しが行われたサービスに限られます。エージェント評価軸の変化に関する記述はAnthropic「Measuring AI agent autonomy」(2026年4月)および業界議論の参照に基づきます。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="agent-voice-discoverability-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>エージェントが見つけられないMCP: search_missが示す発見可能性の危機</h4>
+        </a>
+        <a href="agent-voice-api-antipatterns-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>エージェントが本当に困るAPI設計の3大アンチパターン</h4>
+        </a>
+        <a href="mcp-latency-success-rate-correlation-2026.html" class="related-card">
+          <div class="tag">データストーリー</div>
+          <h4>「遅いAPIは失敗率も高い」は本当か？ MCPレイテンシと成功率の相関を検証</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー実装完全ガイド 2026 — 認証・レート制限・エラーハンドリングの実践パターン</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        各MCPの『諦めポイント』データはKanseiLink MCPサーバー経由でリアルタイムに取得できます。
+        <code>get_insights</code>に<code>service_id</code>を指定すると、common_errors配列に<code>timeout</code>・<code>schema_mismatch</code>等の類型と<code>known_workarounds</code>（既知の回避策）が含まれます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>Japan's first AEO rating agency — measuring AI agent readiness for Japanese SaaS.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
