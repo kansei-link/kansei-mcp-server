@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloudflare Workers MCPサーバー本番デプロイ実装ガイド 2026 — 30分構築から「52%死亡」を回避する運用パターンまで | KanseiLink</title>
+  <meta name="description" content="Cloudflare Workersは2026年現在、リモートMCPサーバーの最有力ホスティング先。npm create cloudflare@latestから本番デプロイまで30分。Wrangler CLI、OAuth、コールドスタート回避、ヘルスチェックまで日本SaaS開発者向けに完全解説。">
+  <meta name="keywords" content="Cloudflare Workers MCP, MCPサーバー デプロイ 2026, wrangler CLI, remote MCP, V8 isolate, OAuth Cloudflare Access, MCPサーバー 構築ガイド">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/cloudflare-workers-mcp-deployment-guide-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/cloudflare-workers-mcp-deployment-guide-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/cloudflare-workers-mcp-deployment-guide-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/cloudflare-workers-mcp-deployment-guide-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Cloudflare Workers MCPサーバー本番デプロイ実装ガイド 2026">
+  <meta property="og:description" content="Wrangler CLIから本番リモートMCPサーバーまで30分。V8 isolateベースのコールドスタートゼロ、OAuth設定、ヘルスチェック、52%死亡率を回避する7つの運用パターンを完全解説。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/cloudflare-workers-mcp-deployment-guide-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-28">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Practical Guide">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Cloudflare Workers MCPサーバー本番デプロイ実装ガイド 2026 — KanseiLink">
+  <meta name="twitter:description" content="30分構築・OAuth・コールドスタート回避・ヘルスチェック。Cloudflare WorkersでMCPサーバーを本番運用するための完全ガイド。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Cloudflare Workers MCPサーバー本番デプロイ実装ガイド 2026 — 30分構築から「52%死亡」を回避する運用パターンまで",
+    "description": "2026年4月、リモートMCPサーバーの過半数が放棄状態と報告される中、Cloudflare WorkersはV8 isolateベースのコールドスタート回避とエッジ配信で本番運用の有力候補に。本記事はwrangler CLIによる初期構築から、Cloudflare Accessを使ったOAuth認証、MCP Inspectorでの検証、ヘルスチェック設計、レート制限、本番運用の7つのパターンまでをコード例とともに解説する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-28",
+    "dateModified": "2026-04-28",
+    "mainEntityOfPage": "https://kansei-link.com/insights/cloudflare-workers-mcp-deployment-guide-2026",
+    "keywords": ["Cloudflare Workers", "MCPサーバー", "wrangler CLI", "リモートMCP", "OAuth", "Cloudflare Access", "本番デプロイ", "実践ガイド"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Cloudflare Workersは他のサーバーレスプラットフォームと何が違いますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cloudflare WorkersはV8 isolateベースで動作し、コンテナベースのサーバーレス（AWS Lambda、Vercel Functions等）と異なり、コールドスタートがほぼゼロ（数ミリ秒）です。これにより、低頻度アクセスのMCPサーバーでも10秒タイムアウトで死ぬという問題が回避できます。一方、V8 isolateは完全なPython/Goランタイムをサポートしないため、TypeScript/JavaScriptがファーストクラスとなります。Python FastMCPはCloudflare Workersでは動作しません。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "本番デプロイまで実際にどれくらい時間がかかりますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cloudflareアカウントを既に持ち、Node.js 18以上がインストール済みであれば、`npm create cloudflare@latest -- --template=cloudflare/ai/demos/remote-mcp-authless`から最初のデプロイまで約15-30分です。認証付きMCP（Cloudflare AccessやサードパーティOAuth）を組み込む場合は追加で1-2時間。MCP Inspectorでの動作検証、ヘルスチェック実装、本番監視セットアップを含めても合計半日で本番運用が開始できます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "「MCPサーバーの52%が死亡」というデータを回避するには？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cloudflare Workersのプラットフォーム特性を活かしつつ、(1) ヘルスチェックエンドポイントの実装、(2) アップストリームAPIバージョンのピン留め、(3) スキーマドリフト検知のCIテスト、(4) Cloudflare Logpushでの可観測性確保、(5) Wrangler `secret`によるシークレット管理、(6) デッドサーバーレジストリからの定期的な再検証、(7) KanseiLink等のAEO評価への登録、の7つの運用パターンを実装することで、放棄サーバー化を防げます。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "実践ガイド: Cloudflare Workers MCP 2026", "item": "https://kansei-link.com/insights/cloudflare-workers-mcp-deployment-guide-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .code-block { background: #0a1628; color: #E5E7EB; padding: 20px 24px; border-radius: 8px; margin: 20px 0; font-family: 'SF Mono', Monaco, Consolas, 'Courier New', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+    .code-block .comment { color: #9CA3AF; }
+    .code-block .keyword { color: #7882DC; }
+    .code-block .string { color: #00C4B3; }
+    .code-block .filename { color: #FBBF24; font-weight: 600; font-size: 12px; display: block; margin-bottom: 8px; }
+
+    .step-card { border: 2px solid var(--blue-light); background: var(--lavender); border-radius: 12px; padding: 24px 28px; margin: 20px 0; position: relative; padding-left: 80px; }
+    .step-card .step-num { position: absolute; left: 24px; top: 24px; width: 40px; height: 40px; background: var(--blue); color: var(--white); border-radius: 50%; font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+    .step-card h3 { font-size: 18px; font-weight: 700; margin: 0 0 8px 0; color: var(--black); }
+    .step-card p { font-size: 15px; color: var(--gray-dark); margin: 0; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .step-card { padding-left: 24px; padding-top: 70px; }
+      .step-card .step-num { left: 24px; top: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/cloudflare-workers-mcp-deployment-guide-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      実践ガイド: Cloudflare Workers MCP 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">実践ガイド / Practical Guide</span>
+      <h1>Cloudflare Workers MCPサーバー本番デプロイ実装ガイド 2026 — 30分構築から「52%死亡」を回避する運用パターンまで</h1>
+      <p class="subtitle">2026年4月、リモートMCPサーバーの過半数が放棄状態と報告される中、Cloudflare WorkersはV8 isolateベースのコールドスタート回避とエッジ配信で本番ホスティングの最有力候補に。Wrangler CLI初期構築、OAuth認証統合、ヘルスチェック、運用パターンまでをコード例とともに解説する。</p>
+      <div class="article-meta">
+        <span>2026-04-28</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約11分</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜCloudflare Workersが2026年のMCP本番運用先か</a></li>
+        <li><a href="#prereq">前提環境とアカウント準備</a></li>
+        <li><a href="#step1">Step 1: ボイラープレート生成（5分）</a></li>
+        <li><a href="#step2">Step 2: ローカル開発とMCP Inspectorで検証（10分）</a></li>
+        <li><a href="#step3">Step 3: 本番デプロイ（5分）</a></li>
+        <li><a href="#auth">認証統合: Cloudflare Access vs OAuth</a></li>
+        <li><a href="#prod">本番運用の7パターン: 「52%死亡」を回避する</a></li>
+        <li><a href="#limits">制約と注意点 — Pythonランタイムは選べない</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜCloudflare Workersが2026年のMCP本番運用先か</h2>
+
+    <p>2026年4月のApigene調査では、リモートMCPサーバー2,181エンドポイントのうち52%が完全に死亡し、健康なものはわずか9%だった（KanseiLink検証記事も参照）。この死亡率の主因の一つが「サーバーレスのコールドスタートタイムアウト」であり、ここでCloudflare Workersの構造的優位が活きる。</p>
+
+    <p>Cloudflare WorkersはV8 isolateベースで動作する。AWS LambdaやVercel Functionsのコンテナベースサーバーレスがコールドスタートで数秒〜10秒かかるのに対し、Workersは数ミリ秒で起動する。低頻度アクセスのMCPサーバーでも、エージェントがタイムアウトで諦めるリスクが大幅に減る。</p>
+
+    <div class="data-highlight">
+      <h4>Cloudflare Workers MCP運用の優位性（2026年4月時点）</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">~5ms</span>
+          <div class="label">コールドスタート<br>(V8 isolate)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">300+</span>
+          <div class="label">グローバル<br>エッジロケーション</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">10万/日</span>
+          <div class="label">無料枠の<br>リクエスト数</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">99.9%↓</span>
+          <div class="label">Code Mode併用時の<br>トークン削減上限</div>
+        </div>
+      </div>
+    </div>
+
+    <p>2026年4月22日、CloudflareはエンタープライズMCPの参照アーキテクチャを公開し、集中ガバナンス、リモートサーバーインフラ、コストコントロールを本番MCPの3要件として提示した（InfoQ報道）。同社の「Code Mode」はMCPツール定義を動的エントリポイントに集約することで、最大99.9%のトークン削減を実現する設計だ（KanseiLinkの「Cloudflare Code Modeトークン99.9%削減検証」記事も参照）。</p>
+
+    <h2 id="prereq">前提環境とアカウント準備</h2>
+
+    <p>本ガイドを進めるには以下が必要だ。</p>
+
+    <ul class="checklist">
+      <li>Cloudflareアカウント（無料プランで構築検証は可能）</li>
+      <li>Node.js 18以上とnpm</li>
+      <li>TypeScriptの基本知識（PythonベースのMCPは本ガイドの対象外）</li>
+      <li>MCPクライアント（Claude Desktop、Cursor、もしくはMCP Inspector）</li>
+      <li>ターミナル（macOS、Linux、もしくはWSL）</li>
+    </ul>
+
+    <h2 id="step1">Step 1: ボイラープレート生成（5分）</h2>
+
+    <div class="step-card">
+      <span class="step-num">1</span>
+      <h3>Wrangler CLIでテンプレートからプロジェクトを生成</h3>
+      <p>Cloudflareが公式に提供する<code>remote-mcp-authless</code>テンプレートが最速の出発点。認証なし、ステートレスのリモートMCPサーバーを生成する。</p>
+    </div>
+
+    <div class="code-block">
+<span class="comment"># プロジェクト作成（対話形式で名前と設定を選ぶ）</span>
+<span class="keyword">npm create</span> cloudflare@latest <span class="keyword">--</span> my-mcp-server <span class="string">\</span>
+  <span class="keyword">--template=</span><span class="string">cloudflare/ai/demos/remote-mcp-authless</span>
+
+<span class="comment"># プロジェクトディレクトリへ移動</span>
+<span class="keyword">cd</span> my-mcp-server
+
+<span class="comment"># 依存関係を確認（template作成時に自動インストール済み）</span>
+<span class="keyword">npm</span> install
+    </div>
+
+    <p>生成されたプロジェクト構成の主要ファイル:</p>
+    <ul>
+      <li><code>src/index.ts</code> — MCPサーバー本体。<code>McpAgent</code>を継承したクラスでツールを定義</li>
+      <li><code>wrangler.jsonc</code> — Cloudflare Workersのデプロイ設定</li>
+      <li><code>package.json</code> — <code>@modelcontextprotocol/sdk</code>等の依存関係</li>
+    </ul>
+
+    <h2 id="step2">Step 2: ローカル開発とMCP Inspectorで検証（10分）</h2>
+
+    <div class="step-card">
+      <span class="step-num">2</span>
+      <h3>ローカルサーバー起動 + MCP Inspectorでツール動作確認</h3>
+      <p>本番デプロイ前にローカルでツールが正常動作することを必ず確認する。MCP Inspectorは公式の視覚的デバッグツールだ。</p>
+    </div>
+
+    <div class="code-block">
+<span class="comment"># ローカル開発サーバー起動（http://localhost:8788/mcp で待ち受け）</span>
+<span class="keyword">npx</span> wrangler dev
+
+<span class="comment"># 別ターミナルでMCP Inspectorを起動して検証</span>
+<span class="keyword">npx</span> @modelcontextprotocol/inspector
+<span class="comment"># ブラウザで http://127.0.0.1:6274 を開く</span>
+<span class="comment"># Transport: SSE → URL: http://localhost:8788/mcp で接続</span>
+    </div>
+
+    <p>サンプルツール（calculator等）が呼び出せれば成功。任意のツールを<code>src/index.ts</code>に追加して、ホットリロードで動作確認する。例: 日本SaaSサービス検索ツールを追加する場合、<code>this.server.tool(...)</code>でツール名・引数スキーマ・実装を定義する。</p>
+
+    <div class="insight-box">
+      <div class="label">MCP Inspectorのチェックポイント</div>
+      <p>(1) ツールがリストに表示されるか、(2) 引数バリデーションが期待通りか、(3) レスポンスがMCP仕様準拠か（contentフィールドのtype/text）、(4) エラー時にエージェントが解釈可能なメッセージを返しているか。これら4点をローカルで潰しておくと本番でのデバッグコストが大幅に下がる。</p>
+    </div>
+
+    <h2 id="step3">Step 3: 本番デプロイ（5分）</h2>
+
+    <div class="step-card">
+      <span class="step-num">3</span>
+      <h3>Cloudflare Workersへ本番デプロイ</h3>
+      <p>Wranglerコマンド一発でデプロイ完了。デプロイURLは<code>https://my-mcp-server.&lt;account&gt;.workers.dev/mcp</code>形式で発行される。</p>
+    </div>
+
+    <div class="code-block">
+<span class="comment"># 初回はCloudflareログイン（ブラウザ認証）</span>
+<span class="keyword">npx</span> wrangler login
+
+<span class="comment"># シークレットを設定（必要に応じて）</span>
+<span class="keyword">npx</span> wrangler secret put UPSTREAM_API_KEY
+
+<span class="comment"># 本番デプロイ</span>
+<span class="keyword">npx</span> wrangler deploy
+
+<span class="comment"># デプロイ後、エンドポイントが表示される</span>
+<span class="comment"># ✅ Deployed my-mcp-server</span>
+<span class="comment">#    https://my-mcp-server.your-account.workers.dev</span>
+    </div>
+
+    <p>このエンドポイントをClaude Desktop等のMCPクライアントに登録すれば、即座にエージェントから利用可能になる。</p>
+
+    <h2 id="auth">認証統合: Cloudflare Access vs OAuth</h2>
+
+    <p>認証なしのMCPは社内ツールやデモ用途に限定すべきで、本番のエージェントワークフローでは何らかの認証が必須だ。Cloudflareが推奨する2つのパターンを比較する。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>パターン</th>
+          <th>仕組み</th>
+          <th>適用シーン</th>
+          <th>セットアップ難易度</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cloudflare Access</strong></td>
+          <td>Cloudflareがゼロトラスト方式でMCPの前段に配置され、Google/Microsoft/Okta等のIdPでSSO。MCP本体はトークン検証不要。</td>
+          <td>社内エージェント、エンタープライズ用途、複数IdP統合</td>
+          <td>低</td>
+        </tr>
+        <tr>
+          <td><strong>OAuth Provider統合</strong></td>
+          <td>MCPサーバーが自身でOAuth2フローを実装し、サードパーティ（Google/GitHub等）にトークン発行を委譲。エージェントがアクセストークンで認証。</td>
+          <td>SaaS製品としてのMCP、ユーザー単位の権限制御が必要なケース</td>
+          <td>中〜高</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="success-box">
+      <div class="label">推奨: まずはCloudflare Access</div>
+      <p>OAuth Provider実装はリフレッシュトークン管理、PKCE、スコープ設計など考慮事項が多い。社内利用なら、Cloudflare Accessでゼロトラスト認証を有効化するだけで本番品質に到達する。SaaS製品として外部公開する段階でOAuth Providerに移行するのが堅実。</p>
+    </div>
+
+    <h2 id="prod">本番運用の7パターン: 「52%死亡」を回避する</h2>
+
+    <p>デプロイ完了は本番運用のスタートでしかない。MCPサーバーが半年後に「死亡サーバー」とカウントされないために、以下の7パターンを実装する。</p>
+
+    <ul class="checklist">
+      <li><strong>① ヘルスチェックエンドポイントの実装</strong> — <code>/health</code>でアップストリームAPIまで疎通確認し、CronトリガーでLogpushに記録する</li>
+      <li><strong>② アップストリームAPIバージョンのピン留め</strong> — <code>v1</code>等のメジャーバージョンを環境変数で固定し、リクエストURLに明示する</li>
+      <li><strong>③ スキーマドリフト検知のCIテスト</strong> — Vitest等でリクエスト/レスポンスの形を検証し、APIの破壊的変更を週次で検知する</li>
+      <li><strong>④ Cloudflare Logpushでの可観測性</strong> — エラーログをR2/S3に転送し、Datadog/Honeycombで分析する。エージェントが起こす<code>search_miss</code>のパターンも追跡可能</li>
+      <li><strong>⑤ Wrangler secretによるシークレット管理</strong> — APIキーやOAuthクライアントシークレットは<code>wrangler secret put</code>で安全に管理。コミットログに残さない</li>
+      <li><strong>⑥ レート制限の実装</strong> — Cloudflare Rate Limitingでツール呼び出し頻度を制御し、アップストリームAPIのレート違反を防ぐ</li>
+      <li><strong>⑦ KanseiLink等のAEO評価への登録</strong> — 第三者によるAgent Readiness評価を受け、verified tier獲得を目指す。ユーザー獲得とサーバー品質の両方を継続的にトラッキング</li>
+    </ul>
+
+    <div class="warning-box">
+      <div class="label">⚠️ Workers Free planの限界</div>
+      <p>無料プランは1日10万リクエスト、1リクエスト10ms CPU時間という制限がある。MCPツールがアップストリームAPI呼び出しを伴う場合、CPU時間制限に達することがある。本番運用では<strong>Workers Paid plan（月$5/300万リクエスト）</strong>への移行を推奨。CPU時間が30秒に拡張され、Smart Placementやより多くの可観測性機能も利用可能になる。</p>
+    </div>
+
+    <h2 id="limits">制約と注意点 — Pythonランタイムは選べない</h2>
+
+    <p>Cloudflare Workersの主な制約と、MCPサーバー実装上の注意点を整理する。</p>
+
+    <ul>
+      <li><strong>Python FastMCPは動作しない</strong> — V8 isolateベースのため、完全なPythonランタイムは提供されない。Pyodideベースのpython-on-workersはあるが、本番MCP用途では推奨されない。Python実装にこだわる場合はFly.io、Render、Railway等のコンテナベースを選ぶ</li>
+      <li><strong>長時間ジョブはDurable Objectsへ</strong> — 30秒を超える処理はDurable Objects + Alarm APIに切り出す設計が必要</li>
+      <li><strong>メモリ128MB上限</strong> — 大きなレスポンスのストリーミング処理では、ヒープに溜め込まずチャンク返却で対応する</li>
+      <li><strong>Node.js APIは部分的サポート</strong> — <code>node:fs</code>等のネイティブモジュールは使えない。<code>nodejs_compat</code>フラグで一部互換あり</li>
+      <li><strong>SSEのKeep-Alive</strong> — リモートMCPはSSEトランスポートが基本だが、Cloudflareの100秒タイムアウトを意識し、定期的なpingを送るかStreamable HTTP（2025-03-26仕様）を検討する</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>あなたのMCPサーバーをverified tierへ</h3>
+      <p>Cloudflare Workersでデプロイしたら、KanseiLinkに登録してエージェントの実利用データを蓄積。verified取得で「健康な9%」のクラブに加わりましょう。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO診断を依頼する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Cloudflare Workersは他のサーバーレスプラットフォームと何が違いますか？</h3>
+    <p>V8 isolateベースで動作するため、コールドスタートが数ミリ秒（コンテナベースは数秒〜10秒）。300+グローバルエッジで配信されるため低レイテンシ。一方でPython完全ランタイムは利用不可、メモリ128MB、CPU時間制限ありなど制約もあります。MCPサーバーには「軽量・低レイテンシ・高可用性」が重要なため、JavaScriptベースの実装ならばWorkersは最有力候補です。</p>
+
+    <h3>本番デプロイまで実際にどれくらい時間がかかりますか？</h3>
+    <p>Cloudflareアカウントを既に持ち、Node.js 18以上があれば、<code>npm create</code>から最初のデプロイまで約15-30分です。認証統合（OAuth）は追加1-2時間。MCP Inspectorでの検証、ヘルスチェック実装、本番監視を含めても半日で本番運用が開始できます。</p>
+
+    <h3>「MCPサーバーの52%が死亡」を回避するには？</h3>
+    <p>本記事で解説した7パターン: ヘルスチェック実装、APIバージョンピン留め、CIスキーマテスト、Cloudflare Logpushでの可観測性、Wrangler secretでのシークレット管理、レート制限、第三者AEO評価への登録。Cloudflare Workersのプラットフォーム特性（コールドスタート回避、エッジ配信）を活かすことで、構造的に「死なない」運用が可能です。</p>
+
+    <div class="disclosure-box">
+      <div class="label">技術情報・免責事項</div>
+      <p>本記事はCloudflare公式ドキュメント（developers.cloudflare.com/agents）、Apigene社「Host MCP Server: 2026 Deployment Guide」、Cloudflare Blog「Scaling MCP adoption: Reference architecture」（2026年4月22日公開）等を参照しています。Wranglerコマンドや設定ファイルの形式は2026年4月時点のものであり、Cloudflare側の更新により変更される可能性があります。本番デプロイ前に最新の公式ドキュメントを確認してください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="mcp-server-health-52-percent-dead-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>「MCPサーバーの52%は死んでいる」は本当か？</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー実装完全ガイド 2026 — 認証・レート制限・エラーハンドリング</h4>
+        </a>
+        <a href="mcp-server-observability-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー可観測性入門ガイド 2026</h4>
+        </a>
+        <a href="cloudflare-code-mode-token-verification-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>Cloudflare Code Modeの「トークン99.9%削減」は本当か？</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        本ガイドで構築したCloudflare Workers MCPサーバーをKanseiLinkに登録すると、
+        エージェントの実利用データが蓄積されAgent Readiness tierが評価されます。
+        登録方法は<code>contact@synapse-arrows.com</code>までご連絡ください。
+        既存サービスの評価データは<code>npx -y @kansei-link/mcp-server</code>で取得可能です。
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>Japan's first AEO rating agency — measuring AI agent readiness for Japanese SaaS.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

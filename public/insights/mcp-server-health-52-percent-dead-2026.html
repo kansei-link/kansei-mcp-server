@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>「MCPサーバーの52%は死んでいる」は本当か？— 2,181エンドポイント調査の真相と日本SaaSへの示唆 2026 | KanseiLink</title>
+  <meta name="description" content="2026年4月、リモートMCPサーバー2,181エンドポイントを調査したら『52%が死亡・9%のみ健康』という衝撃データが出た。Apigeneと別調査の数字を検証し、KanseiLink 225+サービスデータと照合。日本SaaSが今すぐすべき7つの予防策を提示する。">
+  <meta name="keywords" content="MCPサーバー 死亡 52%, MCP健康度 調査 2026, リモートMCPサーバー abandoned, KanseiLink 検証, MCP本番運用 信頼性, 日本SaaS MCP 監視">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-server-health-52-percent-dead-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-server-health-52-percent-dead-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-server-health-52-percent-dead-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-server-health-52-percent-dead-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="「MCPサーバーの52%は死んでいる」は本当か？— 2,181エンドポイント調査の真相">
+  <meta property="og:description" content="2026年4月の2,181リモートMCPエンドポイント調査で『52%死亡・9%のみ健康』というデータが拡散している。検証可能か、日本SaaSにどう響くか、KanseiLink実測データで検証する。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-server-health-52-percent-dead-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-04-28">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Verification">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="「MCPサーバーの52%は死んでいる」は本当か？ — KanseiLink検証">
+  <meta name="twitter:description" content="2,181エンドポイント調査で『52%死亡』データが話題。検証可能か、日本SaaSへの示唆をKanseiLinkデータで分析。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "「MCPサーバーの52%は死んでいる」は本当か？— 2,181エンドポイント調査の真相と日本SaaSへの示唆 2026",
+    "description": "2026年4月、Apigene社のホスティングガイドが引用したMCP健康度調査『2,181エンドポイント中52%死亡・9%健康』が話題に。Rapid Claw社の別調査では『1,847サーバー中52%放棄・17%本番品質』。両者の主張を検証可能性・サンプリング方法・カバレッジで分析し、KanseiLink 225+サービスの日本SaaS実測データと照合する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-04-28",
+    "dateModified": "2026-04-28",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-server-health-52-percent-dead-2026",
+    "keywords": ["MCPサーバー健康度", "リモートMCP", "abandoned servers", "本番運用信頼性", "KanseiLink検証", "AEO評価", "日本SaaS"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "「2,181エンドポイント中52%死亡」の出典はどこですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "2026年4月公開のApigene社「Host MCP Server: 2026 Deployment Guide」が初出として広く引用されています。これとは別にRapid Claw社が同月『1,847 MCP servers audited: 52% abandoned, 31% lightly maintained, 17% production-grade』というデータを公表しており、両調査とも『52%死亡・放棄』という数字で一致しています。ただし、両調査ともサンプリング方法・対象範囲・健康判定基準の詳細は完全には公開されていません。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "KanseiLinkデータでも同じ傾向ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLinkは225+サービス（日本SaaS中心）を対象としており、調査対象が異なります。KanseiLinkの2026年4月データではverified（成功率80%以上）が6サービス（約3%）、connectable（公式MCPやAPIあり）が多数、info_only（API/MCPなし）が残りという構成です。「健康なサーバー9%」という外部調査の数字は、KanseiLinkのverified比率3%と『MCPがある中で実際に動く比率』として近い水準にあります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPサーバーが『死ぬ』主な原因は何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apigeneが指摘する主因は3つ: (1) 認証情報の期限切れによる放棄サーバー、(2) アップストリームAPIの仕様変更によるサイレント破損（200 OKを返しながらレスポンスが壊れる）、(3) サーバーレスのコールドスタートタイムアウト。KanseiLink実測データでも、search_miss（発見されない）、api_error（仕様変更）、無応答（cold start・デプロイ消失）が主要なエラー類型として観測されています。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "検証: MCP 52%死亡説 2026", "item": "https://kansei-link.com/insights/mcp-server-health-52-percent-dead-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .verdict-card { border-left: 6px solid #D97706; background: #FFFBEB; padding: 24px 28px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .verdict-card.true { border-color: #059669; background: #F0FDF4; }
+    .verdict-card.false { border-color: #DC2626; background: #FEF2F2; }
+    .verdict-card .verdict-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; color: #92400E; }
+    .verdict-card.true .verdict-label { color: #065F46; }
+    .verdict-card.false .verdict-label { color: #991B1B; }
+    .verdict-card h4 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--black); }
+    .verdict-card p { font-size: 15px; color: var(--gray-dark); margin-bottom: 0; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-server-health-52-percent-dead-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      検証: MCPサーバー52%死亡説 2026
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">検証 / Myth-Busting</span>
+      <h1>「MCPサーバーの52%は死んでいる」は本当か？— 2,181エンドポイント調査の真相と日本SaaSへの示唆</h1>
+      <p class="subtitle">2026年4月、リモートMCPサーバー2,181エンドポイントの調査で『52%が完全に死亡・9%のみ健康』というデータが拡散している。Apigene、Rapid Claw、両者の主張を検証可能性で分解し、KanseiLink 225+サービス実測データと照合する。日本SaaSベンダーが今すぐすべき7つの予防策を提示。</p>
+      <div class="article-meta">
+        <span>2026-04-28</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約9分</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#claim">話題のクレーム: 「2,181エンドポイント中52%死亡」</a></li>
+        <li><a href="#sources">出典の検証: ApigeneとRapid Clawの2調査</a></li>
+        <li><a href="#verdict">⚠️ 検証結果: 数字は『部分的に正しい』</a></li>
+        <li><a href="#kanseilink">KanseiLink 225+サービスデータとの照合</a></li>
+        <li><a href="#causes">なぜMCPサーバーは死ぬのか — 3大原因</a></li>
+        <li><a href="#actions">日本SaaSが今すぐすべき7つの予防策</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="claim">話題のクレーム: 「2,181エンドポイント中52%死亡」</h2>
+
+    <p>2026年4月後半、AIエージェント開発者コミュニティで一つの数字が拡散している。</p>
+
+    <p><strong>「リモートMCPサーバー2,181エンドポイントを調査したところ、52%が完全に死亡し、健康なものはわずか9%だった」</strong></p>
+
+    <p>この数字は、2026年4月公開のApigene社「Host MCP Server: The 2026 Deployment Guide」が初出として広く引用されている。Cloudflareのエンタープライズ向けMCPアーキテクチャ発表（2026年4月22日、InfoQ報道）と時期を同じくしており、「MCPブームの裏側でゴーストサーバーが激増している」というナラティブを補強する形で拡散している。</p>
+
+    <p>同じ4月にはRapid Claw社も別の調査結果を公表しており、「監査した1,847サーバーのうち52%が放棄状態（abandoned）、31%が軽微なメンテナンスのみ、本番品質基準を満たすのは17%」と報告している。両調査とも「52%死亡・放棄」という数字で奇妙に一致している。</p>
+
+    <div class="data-highlight">
+      <h4>2026年4月の2大調査（数字の比較）</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num red">52%</span>
+          <div class="label">Apigene調査:<br>完全死亡（n=2,181）</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">39%</span>
+          <div class="label">Apigene調査:<br>劣化状態</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">9%</span>
+          <div class="label">Apigene調査:<br>完全に健康</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">17%</span>
+          <div class="label">Rapid Claw調査:<br>本番品質（n=1,847）</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="sources">出典の検証: ApigeneとRapid Clawの2調査</h2>
+
+    <p>クレームの妥当性を判断するため、両調査の以下の点を確認した。</p>
+
+    <h3>① 出典の独立性</h3>
+    <p>ApigeneとRapid Clawは独立したベンダー・出版主体であり、両者が同月に「52%死亡・放棄」という数字を出していることは偶然の一致か、あるいは類似の母集団（パブリックなMCPレジストリ）からのスクレイピング結果が収束した可能性がある。少なくとも一方が他方を引用した形跡は確認できなかった。</p>
+
+    <h3>② サンプリング方法</h3>
+    <p>両調査ともサンプリング方法の詳細は公開されていない。一般的にこの種のスクレイピングは、modelcontextprotocol.io/serversや各種MCPレジストリ、GitHubで公開されているリモートMCPエンドポイントを巡回する形で実施される。これは「すべてのMCPサーバー」ではなく、「公開レジストリに掲載されたMCPサーバー」という偏ったサンプルである点に留意が必要だ。</p>
+
+    <h3>③ 健康判定基準</h3>
+    <p>Apigeneは「ヘルスチェック実行で200 OKかつ有効なJSONレスポンスを返す」を健康の定義としているとされる。「死亡」はタイムアウト、5xxエラー、接続不能を含む。Rapid Clawの「本番品質」基準はより厳しく、ヘルスチェックに加えて「直近30日のコミット」「ドキュメント完備」「セマンティックバージョニング」などを求めている。</p>
+
+    <div class="verdict-card">
+      <div class="verdict-label">⚠️ 部分的に正しい (Conditionally True)</div>
+      <h4 id="verdict">検証結果: 「公開MCPサーバーの過半数が死んでいる」は概ね正しいが、母集団に注意が必要</h4>
+      <p>Apigene・Rapid Claw双方の独立調査が「52%死亡・放棄」で一致している点から、公開レジストリ上のMCPサーバーの過半数がメンテナンスされていない実態は信頼に足る。ただしこれは「すべてのMCPサーバー」ではなく「公開レジストリ掲載のサーバー」の話であり、エンタープライズの自社運用やクローズドなサーバーには適用できない。また「健康9%」と「本番品質17%」の差は判定基準の厳格さの違いを反映しており、両者は矛盾していない。</p>
+    </div>
+
+    <h2 id="kanseilink">KanseiLink 225+サービスデータとの照合</h2>
+
+    <p>KanseiLinkは225+サービス（日本SaaS中心）を対象にAgent Readiness評価を実施している。外部調査の数字と直接比較はできないが、構造的に近い指標を並べると以下のようになる。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>指標</th>
+          <th>Apigene (n=2,181)</th>
+          <th>Rapid Claw (n=1,847)</th>
+          <th>KanseiLink (n=225+)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>「健康」または最高品質</strong></td>
+          <td class="success-low">9%</td>
+          <td class="success-mid">17%</td>
+          <td class="success-low">約3% (verified 6社)</td>
+        </tr>
+        <tr>
+          <td><strong>接続可能だが品質未確定</strong></td>
+          <td class="success-mid">39%</td>
+          <td class="success-mid">31%</td>
+          <td class="success-mid">大多数 (connectable)</td>
+        </tr>
+        <tr>
+          <td><strong>事実上利用不可</strong></td>
+          <td class="success-low">52%</td>
+          <td class="success-low">52%</td>
+          <td>約30% (info_only)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>KanseiLinkは「ベンダー公式に存在を確認できたサービス」を対象としているため、「完全に死亡」の比率は外部調査より低い。一方、verified比率（約3%）は「実際にエージェントが使って成功する」という厳しい基準のため、Apigeneの「健康9%」より低い。<strong>母集団と判定基準を揃えれば、3つの調査は同じ結論を指している: MCPサーバーの大多数は『接続できるが信頼できない』状態にある</strong>。</p>
+
+    <div class="insight-box">
+      <div class="label">日本SaaSへの示唆</div>
+      <p>KanseiLinkデータでは、AAA評価のサービスはほぼすべてverified（成功率80%以上）に到達している一方、AA以下のサービスでは成功率が大きくばらつく。これは「公式MCPサーバーをリリースした」と「エージェントが本番で使える」の間に大きなギャップがあることを示しており、外部調査の数字とも整合する。</p>
+    </div>
+
+    <h2 id="causes">なぜMCPサーバーは死ぬのか — 3大原因</h2>
+
+    <p>Apigeneと業界の指摘、KanseiLinkのエラーログを総合すると、MCPサーバーが「死ぬ」主な原因は3つに集約される。</p>
+
+    <h3>原因①: 認証情報の期限切れによる放棄サーバー</h3>
+    <p>個人開発者がデモ用に立てたMCPサーバーが、APIキーやOAuthトークンの期限切れ後にメンテナンスされず放置されるパターン。レジストリには登録されたままで、健康調査では「死亡」とカウントされる。</p>
+
+    <h3>原因②: アップストリームAPIのサイレント破損</h3>
+    <p>SaaSベンダーがAPIの仕様を変更した際、MCPサーバーが追従せず、レスポンスのスキーマが壊れる。HTTP 200を返すため死亡判定はされないが、エージェントから見ると「呼べるけど結果が解釈できない」状態になる。KanseiLinkでは<code>api_error</code>として記録されるエラー類型の多くがこれに該当する。</p>
+
+    <h3>原因③: サーバーレスのコールドスタートタイムアウト</h3>
+    <p>Cloudflare Workers以外のサーバーレス（Lambda、Vercel Functions等）でMCPサーバーをデプロイすると、低頻度アクセス時にコールドスタートで初回リクエストが10秒以上かかり、エージェントがタイムアウトで諦める。健康調査では時刻によって結果が変動する不安定なサーバーとなる。</p>
+
+    <h2 id="actions">日本SaaSが今すぐすべき7つの予防策</h2>
+
+    <p>「公開レジストリ上の死亡率52%」というデータは、日本SaaSベンダーへの警鐘でもある。MCPサーバーをリリースしたあとに「死なせない」ための7つの予防策を提示する。</p>
+
+    <ul class="checklist">
+      <li><strong>ヘルスチェックエンドポイントの実装と外形監視</strong> — 5分間隔のpingでアップストリームAPIまで疎通確認し、ダウンタイムを即検知する</li>
+      <li><strong>アップストリームAPIバージョンのピン留め</strong> — `v1` 等のメジャーバージョンに固定し、スキーマドリフトを検知する単体テストをCIに組み込む</li>
+      <li><strong>セマンティックバージョニングの徹底</strong> — MCPサーバー自身もv0.x系から早期にv1に移行し、互換性のシグナルを明確化する</li>
+      <li><strong>Cloudflare Workers等のエッジ採用</strong> — V8 isolateベースでコールドスタート問題を回避し、グローバルにレイテンシを安定させる</li>
+      <li><strong>レジストリ情報の四半期更新</strong> — modelcontextprotocol.ioや各種レジストリへの掲載情報を四半期ごとに再確認し、廃止サーバーは明示的に削除する</li>
+      <li><strong>KanseiLink等のAEO評価への登録</strong> — 第三者によるAgent Readiness評価を受け、verified tierを目指す。エージェントの実利用データが品質シグナルになる</li>
+      <li><strong>エラーパターンの公式ワークアラウンド文書化</strong> — `search_miss`や`api_error`を起こすエッジケースを公式ドキュメントに記載し、エージェント開発者の手戻りを減らす</li>
+    </ul>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 「リリースして放置」が最も危険</div>
+      <p>「MCPサーバーを公開しました」というプレスリリースを出した後、半年間更新がないサーバーは、外部調査で「死亡」とカウントされ、ベンダーの信頼性スコアを毀損する。MCPサーバーは継続的に運用するソフトウェア資産であり、APIと同じ品質管理ライフサイクルが必要だ。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>あなたのMCPサーバーは「健康9%」に入れますか？</h3>
+      <p>KanseiLinkのAEO診断で、MCPサーバーの本番運用品質を第三者視点で評価し、verified取得までのロードマップを作成します。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO診断を依頼する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>「2,181エンドポイント中52%死亡」の出典はどこですか？</h3>
+    <p>2026年4月公開のApigene社「Host MCP Server: 2026 Deployment Guide」が広く引用されています。同月にRapid Claw社も「1,847サーバー中52%放棄」を公表しており、独立した2調査が同じ結論に到達しています。ただし両調査ともサンプリング方法と判定基準の詳細は完全には公開されていません。</p>
+
+    <h3>KanseiLinkデータでも同じ傾向ですか？</h3>
+    <p>KanseiLinkは225+サービス（日本SaaS中心）が対象で、外部調査と母集団が異なります。verified（成功率80%以上）はわずか3%（6サービス）で、外部調査の「健康9%」「本番品質17%」と同様に「実際に信頼して使えるサーバーは少数」という結論が一致しています。</p>
+
+    <h3>MCPサーバーが死ぬ主な原因は何ですか？</h3>
+    <p>(1) 認証情報の期限切れによる放棄、(2) アップストリームAPIのサイレント破損（200 OKを返しながら壊れたレスポンス）、(3) サーバーレスのコールドスタートタイムアウト、の3つが主因です。日本SaaSベンダーは継続的なヘルス監視とAPIバージョンピン留めで対策できます。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事はApigene社およびRapid Claw社が2026年4月に公表した第三者調査データを引用しています。両調査のサンプリング方法と判定基準の詳細は完全には公開されておらず、母集団（公開MCPレジストリ掲載サーバー）に偏りがある可能性があります。KanseiLinkデータは225+サービスのエージェント呼び出しログに基づき、外部調査と直接比較はできない点にご留意ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="mcp-verified-vs-connectable-2026.html" class="related-card">
+          <div class="tag">データストーリー</div>
+          <h4>「MCP対応」の罠: verified/connectableの成功率格差と企業選定の新基準</h4>
+        </a>
+        <a href="mcp-enterprise-readiness-2026.html" class="related-card">
+          <div class="tag">エンタープライズ</div>
+          <h4>MCPエンタープライズ本番展開の4大課題</h4>
+        </a>
+        <a href="mcp-server-observability-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー可観測性入門ガイド 2026</h4>
+        </a>
+        <a href="mcp-integration-claims-verification-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>「MCP導入で統合コスト$15万節約」「トークン92%削減」は本当か？</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- For AI Agents -->
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        MCPサーバーの実測健康度データはKanseiLink MCPサーバー経由でアクセスできます。
+        <code>get_insights</code>に<code>service_id</code>を指定すると、直近のエラー類型・成功率・レイテンシを取得できます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>Japan's first AEO rating agency — measuring AI agent readiness for Japanese SaaS.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
