@@ -1,0 +1,51 @@
+{
+  "$schema_version": 1,
+  "_doc": "Reconnaissance config for ScaNavi. Repo: https://github.com/michielinksee/VINOX",
+
+  "product": "ScaNavi",
+  "schedule": "0 0 * * *",
+  "timezone": "UTC",
+  "tier": "B-alpha",
+
+  "monitors": {
+    "health": {
+      "enabled": true,
+      "_note": "ScaNavi is mobile-first (Expo). Web preview URLs go here as they exist. Production mobile build is monitored via Google Play Console / App Store separately.",
+      "urls": [
+        "https://scanavi.expo.app"
+      ],
+      "expected_status": 200,
+      "timeout_ms": 15000,
+      "fail_open": true,
+      "_fail_open_note": "Mobile-first product. Some web preview URLs may not be live yet. Treat 4xx/5xx as warning, not critical, until web product surface stabilizes."
+    },
+
+    "snapshot": {
+      "enabled": false,
+      "_note": "Tier B-beta: Playwright snapshot of chat screen"
+    },
+
+    "agent_voice_probe": {
+      "enabled": false,
+      "_note": "Tier B-beta: probe chat API with: 辛口の重いの / 華やかで甘い / 寿司に合う / どぶろくありますか / ありえない銘柄名"
+    }
+  },
+
+  "report_to": [
+    {
+      "destination": "data/reconnaissance/reports/{date}.md",
+      "method": "file_write"
+    }
+  ],
+
+  "urgency_rules": {
+    "critical": [
+      "health.url returns 5xx (web)"
+    ],
+    "warning": [
+      "health.url returns 4xx (treat as warning given fail_open)",
+      "response time > 3000ms"
+    ],
+    "info": []
+  }
+}

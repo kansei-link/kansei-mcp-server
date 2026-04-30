@@ -1,0 +1,50 @@
+{
+  "$schema_version": 1,
+  "_doc": "Reconnaissance config for CardWize. Repo: https://github.com/michielinksee/Card_Navi",
+
+  "product": "CardWize",
+  "schedule": "0 0 * * *",
+  "timezone": "UTC",
+  "tier": "B-alpha",
+
+  "monitors": {
+    "health": {
+      "enabled": true,
+      "urls": [
+        "https://card-nabi.vercel.app",
+        "https://card-nabi.vercel.app/cards",
+        "https://card-nabi.vercel.app/wallet",
+        "https://card-nabi.vercel.app/diagnosis"
+      ],
+      "expected_status": 200,
+      "timeout_ms": 10000
+    },
+
+    "snapshot": {
+      "enabled": false,
+      "_note": "Tier B-beta: Playwright snapshot of /cards, /wallet, /diagnosis"
+    },
+
+    "agent_voice_probe": {
+      "enabled": false,
+      "_note": "Tier B-beta: probe diagnosis flow with sample inputs"
+    }
+  },
+
+  "report_to": [
+    {
+      "destination": "data/reconnaissance/reports/{date}.md",
+      "method": "file_write"
+    }
+  ],
+
+  "urgency_rules": {
+    "critical": [
+      "health.url returns non-2xx"
+    ],
+    "warning": [
+      "response time > 3000ms"
+    ],
+    "info": []
+  }
+}
