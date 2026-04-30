@@ -1,0 +1,59 @@
+{
+  "$schema_version": 1,
+  "_doc": "Reconnaissance config for KanseiLINK self-monitoring. References the existing HEALTH.json at repo root.",
+
+  "product": "KanseiLink",
+  "schedule": "0 0 * * *",
+  "timezone": "UTC",
+  "tier": "B-alpha",
+
+  "monitors": {
+    "health": {
+      "enabled": true,
+      "urls": [
+        "https://kansei-link.com",
+        "https://kansei-link.com/dashboard/",
+        "https://kansei-link.com/changelog.html",
+        "https://kansei-link-mcp-production.up.railway.app/health",
+        "https://kansei-link-mcp-production.up.railway.app/api/dashboard/freshness",
+        "https://kansei-link-mcp-production.up.railway.app/api/dashboard/rankings?limit=10",
+        "https://kansei-link-mcp-production.up.railway.app/api/dashboard/recipes",
+        "https://kansei-link-mcp-production.up.railway.app/api/dashboard/changelog?limit=10",
+        "https://linksee-site.vercel.app"
+      ],
+      "_excluded_urls_pending_method_support": [
+        "https://linksee-site.vercel.app/api/waitlist (POST-only — Tier B-β: add method-aware health monitor)"
+      ],
+      "expected_status": 200,
+      "timeout_ms": 10000
+    },
+
+    "snapshot": {
+      "enabled": false,
+      "_note": "Tier B-beta: Playwright UI snapshot diff"
+    },
+
+    "agent_voice_probe": {
+      "enabled": false,
+      "_note": "Tier B-beta: send N test queries to chat features"
+    }
+  },
+
+  "report_to": [
+    {
+      "destination": "data/reconnaissance/reports/{date}.md",
+      "method": "file_write"
+    }
+  ],
+
+  "urgency_rules": {
+    "critical": [
+      "health.url returns non-2xx",
+      "health.url times out"
+    ],
+    "warning": [
+      "response time > 3000ms"
+    ],
+    "info": []
+  }
+}
