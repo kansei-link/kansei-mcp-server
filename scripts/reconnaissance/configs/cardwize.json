@@ -21,8 +21,20 @@
     },
 
     "snapshot": {
-      "enabled": false,
-      "_note": "Tier B-beta: Playwright snapshot of /cards, /wallet, /diagnosis"
+      "enabled": true,
+      "_note": "Tier B-β. Rolling baseline. /cards skipped pending route fix (returned 404 in Day 1 health probe).",
+      "urls": [
+        "https://card-nabi.vercel.app",
+        "https://card-nabi.vercel.app/wallet",
+        "https://card-nabi.vercel.app/diagnosis"
+      ],
+      "diff_threshold_pct": 5,
+      "viewport": { "width": 1280, "height": 800 },
+      "timeout_ms": 30000,
+      "ignore_selectors": [
+        "[data-testid='timestamp']",
+        ".loading-skeleton"
+      ]
     },
 
     "agent_voice_probe": {

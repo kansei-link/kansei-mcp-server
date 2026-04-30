@@ -29,8 +29,20 @@
     },
 
     "snapshot": {
-      "enabled": false,
-      "_note": "Tier B-beta: Playwright UI snapshot diff"
+      "enabled": true,
+      "_note": "Tier B-β. Rolling baseline (yesterday vs today). Diff > threshold raises warning/critical.",
+      "urls": [
+        "https://kansei-link.com",
+        "https://kansei-link.com/dashboard/",
+        "https://kansei-link.com/changelog.html"
+      ],
+      "diff_threshold_pct": 5,
+      "viewport": { "width": 1280, "height": 800 },
+      "timeout_ms": 30000,
+      "ignore_selectors": [
+        "[data-testid='timestamp']",
+        ".updated-at"
+      ]
     },
 
     "agent_voice_probe": {
