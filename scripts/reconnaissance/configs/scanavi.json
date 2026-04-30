@@ -29,7 +29,40 @@
 
     "agent_voice_probe": {
       "enabled": false,
-      "_note": "Tier B-beta: probe chat API with: 辛口の重いの / 華やかで甘い / 寿司に合う / どぶろくありますか / ありえない銘柄名"
+      "_note": "Tier B-γ infrastructure ready. Disabled until ScaNavi web chat API has a stable production URL. Probe queries below are pre-defined per docs/specs/chat-recommendation.md §5 — flip enabled=true once the URL endpoint is confirmed.",
+      "timeout_ms": 30000,
+      "probes": [
+        {
+          "name": "chat: 辛口の重いの → recommendation pattern",
+          "request": {
+            "method": "POST",
+            "url": "https://TBD-scanavi-web-url/api/chat",
+            "body": { "message": "辛口の重いの" }
+          },
+          "expectations": {
+            "status": 200,
+            "json_paths": [
+              { "path": "brands", "type": "array", "min": 1 },
+              { "path": "message", "type": "string", "min": 10 }
+            ],
+            "substrings": ["在庫状況"]
+          },
+          "spec_ref": "docs/specs/chat-recommendation.md#5.1"
+        },
+        {
+          "name": "chat: ありえない銘柄なんとか → no-match fallback",
+          "request": {
+            "method": "POST",
+            "url": "https://TBD-scanavi-web-url/api/chat",
+            "body": { "message": "ありえない銘柄なんとか" }
+          },
+          "expectations": {
+            "status": 200,
+            "substrings": ["申し訳ありません"]
+          },
+          "spec_ref": "docs/specs/chat-ui.md#5.2"
+        }
+      ]
     }
   },
 

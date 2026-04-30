@@ -4,7 +4,7 @@
 >
 > Implements the [Playbook reconnaissance-ant pattern](https://github.com/michielinksee/synapse-arrows-playbook/blob/main/02-process/reconnaissance-ant.md).
 >
-> Status: **Tier B-β** — health probe + UI snapshot diff + Linksee Memory bridge (queue).
+> Status: **Tier B-γ (Tier B feature-complete)** — health probe + UI snapshot diff + agent_voice probe + Linksee Memory bridge.
 
 ## Purpose
 
@@ -43,26 +43,27 @@ and the early-warning system that catches drift before users do.
 └─────────────────────────────────────────┘
 ```
 
-## What's monitored (Tier B-β)
+## What's monitored (Tier B-γ — feature-complete)
 
 Per product:
 - **health**: `urls_must_200` — every URL should return 2xx + response time
 - **snapshot**: Playwright UI screenshot + pixel diff against rolling baseline (yesterday)
-- **linksee bridge**: critical findings queued to `data/reconnaissance/linksee-queue.jsonl`
+- **agent_voice**: API contract / chat-style probes — assert response matches expected JSON paths and substrings
+- **linksee bridge**: critical/warning findings queued to `data/reconnaissance/linksee-queue.jsonl`
   for downstream Claude session to ingest
 
-## What's deferred
+## What's deferred to Tier C
 
-| Monitor / feature | Tier | Notes |
-|---|---|---|
-| agent_voice probe (chat API testing) | B-γ | Requires per-product API endpoint + test query bank |
-| Cross-repo STATE.md auto-commit | C | Requires PAT setup |
-| Slack / email alerter | C | Requires webhook config |
-| 朝digest agent integration | C | Depends on digest agent existing |
-| design.lock.json compliance | C | Depends on `design.lock.json` existing in product repos |
-| perf baseline (TTFB / TTF token) | C | Depends on Tier B-γ infra |
-| cost baseline (audit_cost integration) | C | Depends on KanseiLINK audit_cost tool internal mode |
-| cross-product UX consistency | C | Depends on 2+ products having configs |
+| Feature | Notes |
+|---|---|
+| Cross-repo STATE.md auto-commit | Requires PAT (cross-repo write) |
+| Slack / email alerter | Requires webhook config |
+| 朝digest agent integration | Depends on digest agent existing |
+| Linksee queue → MCP auto-consume | Currently a Claude session must `recall` the queue manually |
+| design.lock.json compliance | Depends on `design.lock.json` existing in product repos |
+| perf baseline (TTFB / TTF token) | Add a perf monitor with rolling p95 |
+| cost baseline (audit_cost integration) | Depends on KanseiLINK audit_cost tool internal mode |
+| cross-product UX consistency | Depends on 2+ products having spec docs |
 
 ## Configs
 

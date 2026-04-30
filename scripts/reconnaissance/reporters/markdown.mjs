@@ -37,14 +37,15 @@ export function formatReport(date, productResults) {
   // ---------- Summary ----------
   lines.push("## Summary");
   lines.push("");
-  lines.push("| Product | Status | Health | Snapshot |");
-  lines.push("|---|---|---|---|");
+  lines.push("| Product | Status | Health | Snapshot | Agent voice |");
+  lines.push("|---|---|---|---|---|");
 
   for (const result of productResults) {
     const allFindings = result.findings || [];
     const overall = classifyOverall(allFindings);
     const healthCounts = countByUrgency(result.health || []);
     const snapCounts = countByUrgency(result.snapshot || []);
+    const voiceCounts = countByUrgency(result.agent_voice || []);
 
     const healthCell = (result.health || []).length === 0
       ? "—"
@@ -52,9 +53,12 @@ export function formatReport(date, productResults) {
     const snapCell = (result.snapshot || []).length === 0
       ? "—"
       : formatCellSummary(snapCounts, (result.snapshot || []).length);
+    const voiceCell = (result.agent_voice || []).length === 0
+      ? "—"
+      : formatCellSummary(voiceCounts, (result.agent_voice || []).length);
 
     lines.push(
-      `| ${result.product} | ${ICON[overall] || "⚪"} ${overall} | ${healthCell} | ${snapCell} |`
+      `| ${result.product} | ${ICON[overall] || "⚪"} ${overall} | ${healthCell} | ${snapCell} | ${voiceCell} |`
     );
   }
   lines.push("");
@@ -104,9 +108,26 @@ export function formatReport(date, productResults) {
       lines.push("");
     }
 
+    // Agent voice findings
+    if (result.agent_voice && result.agent_voice.length > 0) {
+      lines.push("### Agent voice probe");
+      lines.push("");
+      lines.push("| Probe | Status | Response | Result |");
+      lines.push("|---|---|---|---|");
+      for (const f of result.agent_voice) {
+        const status = f.status ?? "—";
+        const rt = f.response_time_ms != null ? `${f.response_time_ms}ms` : "—";
+        const icon = ICON[f.urgency] || "⚪";
+        const probeName = (f.probe_name || "(unnamed)").replace(/\|/g, "\\|");
+        lines.push(`| ${probeName} | ${status} | ${rt} | ${icon} ${f.reason} |`);
+      }
+      lines.push("");
+    }
+
     if (
       (!result.health || result.health.length === 0) &&
-      (!result.snapshot || result.snapshot.length === 0)
+      (!result.snapshot || result.snapshot.length === 0) &&
+      (!result.agent_voice || result.agent_voice.length === 0)
     ) {
       lines.push("_No findings (no monitors enabled)._");
       lines.push("");
@@ -118,8 +139,7 @@ export function formatReport(date, productResults) {
   lines.push("");
   lines.push(`Report generated at ${new Date().toISOString()}`);
   lines.push("");
-  lines.push("Tier B-β. Future tiers will add:");
-  lines.push("- Tier B-γ: agent_voice probe (chat API regression detection)");
+  lines.push("Tier B-γ (Tier B feature-complete). Future tiers will add:");
   lines.push("- Tier C: design.lock.json compliance, perf/cost baselines, Slack alerts, cross-repo STATE.md, 朝digest agent");
   lines.push("");
 
