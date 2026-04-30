@@ -19,6 +19,7 @@ import path from "node:path";
 
 import { runHealthMonitor } from "./monitors/health.mjs";
 import { runSnapshotMonitor } from "./monitors/snapshot.mjs";
+import { runAgentVoiceProbe } from "./monitors/agent-voice-probe.mjs";
 import { formatReport } from "./reporters/markdown.mjs";
 import { recordCriticalFindings } from "./reporters/linksee-bridge.mjs";
 
@@ -64,6 +65,7 @@ async function runConfig(config) {
   const monitorsRun = [];
   const healthFindings = [];
   const snapshotFindings = [];
+  const agentVoiceFindings = [];
 
   if (config.monitors?.health?.enabled) {
     monitorsRun.push("health");
@@ -94,8 +96,27 @@ async function runConfig(config) {
     }
   }
 
-  // Tier B-γ monitors hook in here:
-  //   if (config.monitors?.agent_voice_probe?.enabled) { ... }
+  if (config.monitors?.agent_voice_probe?.enabled) {
+    monitorsRun.push("agent_voice");
+    try {
+      const out = await runAgentVoiceProbe(config);
+      agentVoiceFindings.push(...out);
+    } catch (error) {
+      console.error(
+        `[reconnaissance-ant]   agent_voice probe crashed for ${config.product}: ${error.message}`
+      );
+      agentVoiceFindings.push({
+        probe_name: "(agent_voice probe)",
+        url: null,
+        status: null,
+        response_time_ms: 0,
+        ok: false,
+        urgency: "critical",
+        reason: `agent_voice probe crashed: ${error.message}`,
+        error: error.message,
+      });
+    }
+  }
 
   return {
     product: config.product,
@@ -103,7 +124,8 @@ async function runConfig(config) {
     monitorsRun,
     health: healthFindings,
     snapshot: snapshotFindings,
-    findings: [...healthFindings, ...snapshotFindings], // unified for backwards-compat with summary
+    agent_voice: agentVoiceFindings,
+    findings: [...healthFindings, ...snapshotFindings, ...agentVoiceFindings],
   };
 }
 

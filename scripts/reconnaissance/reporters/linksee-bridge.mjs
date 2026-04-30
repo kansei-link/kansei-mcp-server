@@ -92,6 +92,25 @@ function buildEntriesForProduct(date, result) {
     });
   }
 
+  // 3. Agent voice probe drift (warning) → context layer
+  // Critical agent_voice findings are already in (1) above.
+  const voiceWarnings = (result.agent_voice || []).filter(
+    (f) => f.urgency === "warning"
+  );
+  if (voiceWarnings.length > 0) {
+    entries.push({
+      ts: new Date().toISOString(),
+      entity_name: normalizeEntityName(result.product),
+      entity_kind: "project",
+      layer: "context",
+      importance: 0.75,
+      content: formatVoiceWarning(date, result.product, voiceWarnings),
+      source: "reconnaissance-ant",
+      report_date: date,
+      action: "remember",
+    });
+  }
+
   return entries;
 }
 
@@ -123,6 +142,19 @@ function formatSnapshotWarning(date, product, snapshotWarnings) {
   lines.push("");
   lines.push(`If intentional, no action needed (baseline is rolling).`);
   lines.push(`If unintentional, this is the kind of "fix breaks UI" drift scope-locks Tier 5 visual regression would catch in CI.`);
+  return lines.join("\n");
+}
+
+function formatVoiceWarning(date, product, voiceWarnings) {
+  const lines = [];
+  lines.push(`**Agent voice probe drift (${date})**`);
+  lines.push("");
+  for (const f of voiceWarnings) {
+    lines.push(`- ${f.probe_name || "(unnamed probe)"}: ${f.reason}`);
+  }
+  lines.push("");
+  lines.push(`Probe expectation no longer matches API response. Either the API changed (regression), the spec changed (intentional), or the probe is stale.`);
+  lines.push(`Review docs/specs/ for the relevant feature, update probe config if intentional, or fix the API.`);
   return lines.join("\n");
 }
 

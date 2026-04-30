@@ -46,8 +46,56 @@
     },
 
     "agent_voice_probe": {
-      "enabled": false,
-      "_note": "Tier B-beta: send N test queries to chat features"
+      "enabled": true,
+      "_note": "Tier B-γ. KanseiLINK has no chat feature, so we use API contract probes — assert that public dashboard APIs respond with non-empty expected fields. Catches schema drift that urls_must_200 cannot.",
+      "timeout_ms": 15000,
+      "probes": [
+        {
+          "name": "dashboard freshness reports services_total >= 1",
+          "request": {
+            "method": "GET",
+            "url": "https://kansei-link-mcp-production.up.railway.app/api/dashboard/freshness"
+          },
+          "expectations": {
+            "status": 200,
+            "json_paths": [
+              { "path": "services_total", "type": "number", "min": 1 }
+            ]
+          },
+          "spec_ref": "HEALTH.json#baselines.railway_services_total"
+        },
+        {
+          "name": "dashboard rankings returns >=1 service with id+category+axr_grade",
+          "request": {
+            "method": "GET",
+            "url": "https://kansei-link-mcp-production.up.railway.app/api/dashboard/rankings?limit=10"
+          },
+          "expectations": {
+            "status": 200,
+            "json_paths": [
+              { "path": "services", "type": "array", "min": 1 },
+              { "path": "services[0].id", "type": "string" },
+              { "path": "services[0].category", "type": "string" },
+              { "path": "services[0].axr_grade", "type": "string" }
+            ]
+          }
+        },
+        {
+          "name": "dashboard recipes returns >=1 recipe with id+goal",
+          "request": {
+            "method": "GET",
+            "url": "https://kansei-link-mcp-production.up.railway.app/api/dashboard/recipes"
+          },
+          "expectations": {
+            "status": 200,
+            "json_paths": [
+              { "path": "recipes", "type": "array", "min": 1 },
+              { "path": "recipes[0].id", "type": "string" },
+              { "path": "recipes[0].goal", "type": "string" }
+            ]
+          }
+        }
+      ]
     }
   },
 
