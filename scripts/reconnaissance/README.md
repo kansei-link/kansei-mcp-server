@@ -4,7 +4,7 @@
 >
 > Implements the [Playbook reconnaissance-ant pattern](https://github.com/michielinksee/synapse-arrows-playbook/blob/main/02-process/reconnaissance-ant.md).
 >
-> Status: **Tier B-α (MVP)** — health probe only.
+> Status: **Tier B-β** — health probe + UI snapshot diff + Linksee Memory bridge (queue).
 
 ## Purpose
 
@@ -43,22 +43,24 @@ and the early-warning system that catches drift before users do.
 └─────────────────────────────────────────┘
 ```
 
-## What's monitored (Tier B-α)
+## What's monitored (Tier B-β)
 
 Per product:
-- `urls_must_200` — every URL in HEALTH.json should return 2xx
-- response time (informational, no threshold yet)
-
-That's it for B-α. Deliberately small: **prove it runs daily, then add monitors**.
+- **health**: `urls_must_200` — every URL should return 2xx + response time
+- **snapshot**: Playwright UI screenshot + pixel diff against rolling baseline (yesterday)
+- **linksee bridge**: critical findings queued to `data/reconnaissance/linksee-queue.jsonl`
+  for downstream Claude session to ingest
 
 ## What's deferred
 
-| Monitor | Tier | Notes |
+| Monitor / feature | Tier | Notes |
 |---|---|---|
-| Playwright UI snapshot diff | B-β | Requires Playwright in CI image |
-| agent_voice probe (chat API testing) | B-β | Requires per-product test query bank |
+| agent_voice probe (chat API testing) | B-γ | Requires per-product API endpoint + test query bank |
+| Cross-repo STATE.md auto-commit | C | Requires PAT setup |
+| Slack / email alerter | C | Requires webhook config |
+| 朝digest agent integration | C | Depends on digest agent existing |
 | design.lock.json compliance | C | Depends on `design.lock.json` existing in product repos |
-| perf baseline (TTFB / TTF token) | C | Depends on Tier B-β infra |
+| perf baseline (TTFB / TTF token) | C | Depends on Tier B-γ infra |
 | cost baseline (audit_cost integration) | C | Depends on KanseiLINK audit_cost tool internal mode |
 | cross-product UX consistency | C | Depends on 2+ products having configs |
 

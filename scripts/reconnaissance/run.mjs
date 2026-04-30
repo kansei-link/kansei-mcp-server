@@ -18,7 +18,9 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { runHealthMonitor } from "./monitors/health.mjs";
+import { runSnapshotMonitor } from "./monitors/snapshot.mjs";
 import { formatReport } from "./reporters/markdown.mjs";
+import { recordCriticalFindings } from "./reporters/linksee-bridge.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -60,23 +62,48 @@ async function loadConfigs(filterProduct) {
 
 async function runConfig(config) {
   const monitorsRun = [];
-  const findings = [];
+  const healthFindings = [];
+  const snapshotFindings = [];
 
   if (config.monitors?.health?.enabled) {
     monitorsRun.push("health");
-    const healthFindings = await runHealthMonitor(config);
-    findings.push(...healthFindings);
+    const out = await runHealthMonitor(config);
+    healthFindings.push(...out);
   }
 
-  // Tier B-β monitors will hook in here:
-  //   if (config.monitors?.snapshot?.enabled) { ... }
+  if (config.monitors?.snapshot?.enabled) {
+    monitorsRun.push("snapshot");
+    try {
+      const out = await runSnapshotMonitor(config);
+      snapshotFindings.push(...out);
+    } catch (error) {
+      console.error(
+        `[reconnaissance-ant]   snapshot monitor crashed for ${config.product}: ${error.message}`
+      );
+      snapshotFindings.push({
+        url: "(snapshot monitor)",
+        screenshot_path: null,
+        baseline_path: null,
+        diff_pct: null,
+        diff_path: null,
+        ok: false,
+        urgency: "critical",
+        reason: `snapshot monitor crashed: ${error.message}`,
+        error: error.message,
+      });
+    }
+  }
+
+  // Tier B-γ monitors hook in here:
   //   if (config.monitors?.agent_voice_probe?.enabled) { ... }
 
   return {
     product: config.product,
     tier: config.tier,
     monitorsRun,
-    findings,
+    health: healthFindings,
+    snapshot: snapshotFindings,
+    findings: [...healthFindings, ...snapshotFindings], // unified for backwards-compat with summary
   };
 }
 
@@ -128,6 +155,17 @@ async function main() {
   const reportPath = path.join(REPORTS_DIR, `${date}.md`);
   await writeFile(reportPath, report, "utf-8");
   console.log(`[reconnaissance-ant] wrote ${reportPath}`);
+
+  // Linksee Memory bridge: record critical findings to JSONL queue for
+  // downstream consumption by Claude sessions (朝digest agent — Tier C).
+  try {
+    const recorded = await recordCriticalFindings(date, results);
+    if (recorded > 0) {
+      console.log(`[reconnaissance-ant] queued ${recorded} entries for Linksee Memory`);
+    }
+  } catch (error) {
+    console.error(`[reconnaissance-ant] linksee bridge failed (non-fatal): ${error.message}`);
+  }
 
   // Exit code: 1 if any critical findings, 0 otherwise
   const hasCritical = results.some((r) =>

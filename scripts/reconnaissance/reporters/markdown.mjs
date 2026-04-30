@@ -37,17 +37,24 @@ export function formatReport(date, productResults) {
   // ---------- Summary ----------
   lines.push("## Summary");
   lines.push("");
-  lines.push("| Product | Status | Findings |");
-  lines.push("|---|---|---|");
+  lines.push("| Product | Status | Health | Snapshot |");
+  lines.push("|---|---|---|---|");
 
   for (const result of productResults) {
-    const overall = classifyOverall(result.findings);
-    const counts = countByUrgency(result.findings);
-    const summary = `${counts.ok}/${result.findings.length} healthy${
-      counts.critical > 0 ? `, ${counts.critical} critical` : ""
-    }${counts.warning > 0 ? `, ${counts.warning} warning` : ""}`;
+    const allFindings = result.findings || [];
+    const overall = classifyOverall(allFindings);
+    const healthCounts = countByUrgency(result.health || []);
+    const snapCounts = countByUrgency(result.snapshot || []);
+
+    const healthCell = (result.health || []).length === 0
+      ? "—"
+      : formatCellSummary(healthCounts, (result.health || []).length);
+    const snapCell = (result.snapshot || []).length === 0
+      ? "—"
+      : formatCellSummary(snapCounts, (result.snapshot || []).length);
+
     lines.push(
-      `| ${result.product} | ${ICON[overall] || "⚪"} ${overall} | ${summary} |`
+      `| ${result.product} | ${ICON[overall] || "⚪"} ${overall} | ${healthCell} | ${snapCell} |`
     );
   }
   lines.push("");
@@ -60,23 +67,50 @@ export function formatReport(date, productResults) {
     lines.push(`Monitors run: ${result.monitorsRun.join(", ") || "(none)"}`);
     lines.push("");
 
-    if (result.findings.length === 0) {
-      lines.push("_No findings (no monitors enabled)._");
+    // Health findings
+    if (result.health && result.health.length > 0) {
+      lines.push("### Health probe");
       lines.push("");
-      continue;
+      lines.push("| URL | Status | Response | Result |");
+      lines.push("|---|---|---|---|");
+      for (const f of result.health) {
+        const status = f.status ?? "—";
+        const rt = `${f.response_time_ms}ms`;
+        const icon = ICON[f.urgency] || "⚪";
+        lines.push(
+          `| ${escapeUrl(f.url)} | ${status} | ${rt} | ${icon} ${f.reason} |`
+        );
+      }
+      lines.push("");
     }
 
-    lines.push("| URL | Status | Response | Result |");
-    lines.push("|---|---|---|---|");
-    for (const f of result.findings) {
-      const status = f.status ?? "—";
-      const rt = `${f.response_time_ms}ms`;
-      const icon = ICON[f.urgency] || "⚪";
-      lines.push(
-        `| ${escapeUrl(f.url)} | ${status} | ${rt} | ${icon} ${f.reason} |`
-      );
+    // Snapshot findings
+    if (result.snapshot && result.snapshot.length > 0) {
+      lines.push("### Snapshot diff");
+      lines.push("");
+      lines.push("| URL | Diff % | Result | Files |");
+      lines.push("|---|---|---|---|");
+      for (const f of result.snapshot) {
+        const icon = ICON[f.urgency] || "⚪";
+        const diff = f.diff_pct === null ? "—" : `${f.diff_pct.toFixed(2)}%`;
+        const files = [];
+        if (f.screenshot_path) files.push(`[baseline](${repoLink(f.screenshot_path)})`);
+        if (f.diff_path) files.push(`[diff](${repoLink(f.diff_path)})`);
+        const filesCell = files.join(" / ") || "—";
+        lines.push(
+          `| ${escapeUrl(f.url)} | ${diff} | ${icon} ${f.reason} | ${filesCell} |`
+        );
+      }
+      lines.push("");
     }
-    lines.push("");
+
+    if (
+      (!result.health || result.health.length === 0) &&
+      (!result.snapshot || result.snapshot.length === 0)
+    ) {
+      lines.push("_No findings (no monitors enabled)._");
+      lines.push("");
+    }
   }
 
   // ---------- Footer ----------
@@ -84,23 +118,37 @@ export function formatReport(date, productResults) {
   lines.push("");
   lines.push(`Report generated at ${new Date().toISOString()}`);
   lines.push("");
-  lines.push("Tier B-α (MVP). Future tiers will add:");
-  lines.push("- Tier B-β: Playwright UI snapshot diff, agent_voice probe");
-  lines.push("- Tier C: design.lock.json compliance, perf/cost baselines, alerts");
+  lines.push("Tier B-β. Future tiers will add:");
+  lines.push("- Tier B-γ: agent_voice probe (chat API regression detection)");
+  lines.push("- Tier C: design.lock.json compliance, perf/cost baselines, Slack alerts, cross-repo STATE.md, 朝digest agent");
   lines.push("");
 
   return lines.join("\n");
 }
 
+function formatCellSummary(counts, total) {
+  const parts = [];
+  parts.push(`${counts.ok}/${total} ok`);
+  if (counts.critical > 0) parts.push(`${counts.critical} 🔴`);
+  if (counts.warning > 0) parts.push(`${counts.warning} 🟡`);
+  return parts.join(", ");
+}
+
+function repoLink(repoRelativePath) {
+  // Markdown link to the file relative to the report's location
+  // (data/reconnaissance/reports/{date}.md → ../../../{path})
+  return `../../../${repoRelativePath}`;
+}
+
 function classifyOverall(findings) {
-  if (findings.length === 0) return "info";
+  if (!findings || findings.length === 0) return "info";
   if (findings.some((f) => f.urgency === "critical")) return "critical";
   if (findings.some((f) => f.urgency === "warning")) return "warning";
   return "info";
 }
 
 function countByUrgency(findings) {
-  return findings.reduce(
+  return (findings || []).reduce(
     (acc, f) => {
       if (f.ok) acc.ok += 1;
       if (f.urgency === "critical") acc.critical += 1;
