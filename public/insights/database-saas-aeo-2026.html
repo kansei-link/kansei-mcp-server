@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>データベースSaaS AEO比較 2026 — Postgres・MySQL・Qdrant・Chroma・Redis・Turso・Supabaseのエージェント対応格付け | KanseiLink</title>
+  <meta name="description" content="エージェント時代のデータベース選定ガイド。Anthropic公式Postgres MCP・Qdrant公式・Chroma・Redis・Turso・MySQL・Supabase・Neon・PlanetScale・MongoDB Atlasの10サービスをKanseiLink AEO格付けで比較。ベクトルDB/RDB/KVS別の選び方とエージェント連携の落とし穴を整理。">
+  <meta name="keywords" content="データベース MCP, vector DB MCP, Postgres MCP, Qdrant MCP, Chroma MCP, Redis MCP, Supabase MCP, Turso MCP, AEO比較, KanseiLink, AIエージェント データベース">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/database-saas-aeo-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/database-saas-aeo-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/database-saas-aeo-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/database-saas-aeo-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="データベースSaaS AEO比較 2026 — Postgres・Qdrant・Chroma・Redisのエージェント対応格付け">
+  <meta property="og:description" content="Anthropic公式Postgres・Qdrant公式・Chromaなど10サービスをKanseiLink AEO格付けで比較。RAG/エージェント時代のDB選定の決定版。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/database-saas-aeo-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-01">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="業界比較">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="データベースSaaS AEO比較 2026 — エージェント時代のDB選定ガイド">
+  <meta name="twitter:description" content="ベクトルDB・RDB・KVSの10サービスをKanseiLink格付けで比較。RAG構築・エージェント連携の最適解を提示。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "データベースSaaS AEO比較 2026 — Postgres・MySQL・Qdrant・Chroma・Redis・Turso・Supabaseのエージェント対応格付け",
+    "description": "エージェント時代のデータベース選定ガイド。Anthropic公式Postgres MCP・Qdrant公式・Chroma・Redis・Turso・MySQL・Supabase・Neon・PlanetScale・MongoDB Atlasの10サービスをKanseiLink AEO格付けで比較。ベクトルDB/RDB/KVS別の選び方とエージェント連携の落とし穴を整理。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-01",
+    "dateModified": "2026-05-01",
+    "mainEntityOfPage": "https://kansei-link.com/insights/database-saas-aeo-2026",
+    "keywords": ["Database MCP", "Postgres MCP", "Qdrant", "Chroma", "Redis", "Supabase", "AEO比較", "KanseiLink", "AIエージェント データベース"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "AIエージェント向けに最初に選ぶべきデータベースは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "用途で分かれます。構造化データ・既存業務系の中心に据えるならAnthropic公式のPostgres MCPサーバー(平均82ms、成功率100%、Aグレード)が出発点。RAG・セマンティック検索を組むならQdrant公式MCP(85ms、A、MITライセンス)。プロトタイプ段階や軽量埋め込みストアならChroma(100ms、A)。キャッシュ/セッションはRedis MCP(105ms)。Postgres MCPはAnthropic公式リポジトリの reference servers として整備されており、現在は modelcontextprotocol/servers のアーカイブ枠でコミュニティ主導に移行していますが、依然として最も学習コストが低い入口です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "ベクトルデータベースのMCPサーバーで本番運用に耐えるのはどれですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "2026年5月時点で最も信頼できるのはQdrant公式MCPサーバー(github.com/qdrant/mcp-server-qdrant、MITライセンス)。FastEmbed埋め込みモデルがデフォルトで、ローカルモード(--qdrant-local-path)とマネージドCloudの双方をサポートします。Chromaはプロトタイピング向けで、本番のスケール要件には公式Qdrantが優位。MongoDB AtlasのVector SearchはAtlas Adminを併用する形で連携可能ですが、KanseiLink AEO格付けではBBB(connectable)に留まり、エージェント自己報告データはまだ少数です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Supabase MCPサーバーは公式ですか？認証はどうなりますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Supabase MCPは supabase-community/supabase-mcp で公開され、Supabase公式ドキュメントの「Model context protocol (MCP)」セクションでも案内されています。2026年の重要な変更として、Supabase AuthがOAuth 2.1 / OpenID Connectプロバイダーとなり、MCPサーバーのデフォルト認証もOAuthのDynamic Client Registrationに切り替わりました。CI/CDなどの非対話シナリオではPersonal Access Token(PAT)を使い分けます。AEO格付けはBBB(connectable)で、エージェント自己報告データはまだ少数のため、本番投入前に小規模PoCで検証することを推奨します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Postgres MCPサーバーは『アーカイブされた』と聞きました。今でも使えますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "modelcontextprotocol/servers のリファレンス実装はAnthropicから『learning purposes / archived』のステータスに移行しており、新機能追加はコミュニティ実装(pgEdge MCP、Postgres MCP Pro、@anthropic/postgres-mcp など)が主導しています。基本的なスキーマ参照とクエリは引き続き動作し、KanseiLink実測でもsuccess_rate 100%・82msと安定していますが、書き込み権限・行レベル権限制御・接続プールが必要な本番ワークロードでは、pgEdge MCPやSupabase MCP、Neon MCPといった『書き込み対応』『マルチテナント対応』のコミュニティ実装を選ぶのが2026年の実務的選択です。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "データベースSaaS AEO比較 2026", "item": "https://kansei-link.com/insights/database-saas-aeo-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/database-saas-aeo-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      データベースSaaS AEO比較 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">業界比較 / Industry Report</span>
+      <h1>データベースSaaS AEO比較 2026 — Postgres・Qdrant・Chroma・Redis・Turso・Supabaseのエージェント対応格付け</h1>
+      <p class="subtitle">RAG・エージェント時代に「最初に繋ぐべきDB」はどれか。Anthropic公式Postgres・Qdrant公式・Chroma・Redis・MySQL・Turso・Supabase・Neon・PlanetScale・MongoDB Atlasの10サービスを、KanseiLink AEO格付けと実測レイテンシで横並び比較する。</p>
+      <div class="article-meta">
+        <span>2026-05-01</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約10分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜ今「DB × エージェント」を比較するのか</a></li>
+        <li><a href="#ranking">AEO格付け一覧 — RDB/Vector/KVS横断ランキング</a></li>
+        <li><a href="#postgres">Anthropic公式Postgres MCP — 「アーカイブ」表記の実態</a></li>
+        <li><a href="#qdrant">Qdrant公式 — ベクトルDB MCPの本命</a></li>
+        <li><a href="#chroma">Chroma — プロトタイピングの軽量解</a></li>
+        <li><a href="#kvs">Redis・Turso — KVS/エッジSQLiteの位置付け</a></li>
+        <li><a href="#supabase-neon">Supabase・Neon・PlanetScale — マネージドPostgres勢の現在地</a></li>
+        <li><a href="#mongo-mysql">MongoDB Atlas・MySQL — 既存資産との接続</a></li>
+        <li><a href="#decision">用途別の選定フロー</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜ今「DB × エージェント」を比較するのか</h2>
+
+    <p>2026年に入り、エージェント側のフロー(プランニング・ツール呼び出し・メモリ管理)はかなり標準化されてきた一方、その「直下」にあるデータベース層では再編が続いている。RAG向けのベクトルDB、長期記憶のKVS、業務系のRDB、エッジ低レイテンシ用のSQLite、マルチテナント前提のサーバーレスPostgres——選択肢は増え続け、それぞれにMCPサーバーが整備されつつある。</p>
+
+    <p>KanseiLinkは225+のサービスについてエージェント自己報告データを集約しており、データベース系は <code>category: database</code> と <code>category: storage</code> に分類される。本記事では特にエージェント連携用途で出現頻度の高い10サービスをピックアップし、AEO格付け・実測レイテンシ・ライセンスを横並びで整理する。</p>
+
+    <div class="insight-box">
+      <div class="label">2026年5月の編集視点</div>
+      <p>RDB/ベクトル/KVSの三層を「単一エージェントから直接叩く」構成が増えた。DBそのものの性能比較ではなく、<strong>「MCPとして公開されているか」「エージェントから呼んだときに何msで返るか」「公式か第三者か」</strong>という観点で並べると、選定の優先順位が変わる。</p>
+    </div>
+
+    <h2 id="ranking">AEO格付け一覧 — RDB/Vector/KVS横断ランキング</h2>
+
+    <p>KanseiLinkの <code>get_insights</code> 値(2026年4月時点)を、AEO格付けの高い順に並べた。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>サービス</th>
+          <th>カテゴリ</th>
+          <th>MCP状態</th>
+          <th>AEO</th>
+          <th>レイテンシ</th>
+          <th>成功率</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>PostgreSQL MCP</strong></td><td>RDB</td><td>公式 (Anthropic reference)</td><td class="success-high">A</td><td class="success-high">82ms</td><td class="success-high">100%</td></tr>
+        <tr><td><strong>Qdrant</strong></td><td>Vector DB</td><td>公式 (qdrant/mcp-server-qdrant)</td><td class="success-high">A</td><td class="success-high">85ms</td><td class="success-high">100%</td></tr>
+        <tr><td><strong>Chroma</strong></td><td>Vector DB</td><td>第三者</td><td class="success-high">A</td><td>100ms</td><td class="success-high">100%</td></tr>
+        <tr><td><strong>Redis</strong></td><td>KVS / Cache</td><td>第三者 (modelcontextprotocol/server-redis)</td><td class="success-mid">BBB</td><td>105ms</td><td class="success-high">100%</td></tr>
+        <tr><td><strong>MySQL</strong></td><td>RDB</td><td>第三者 (modelcontextprotocol/server-mysql)</td><td class="success-mid">BBB</td><td>108ms</td><td class="success-high">100%</td></tr>
+        <tr><td><strong>Turso</strong></td><td>Edge SQLite</td><td>API only</td><td class="success-mid">BB</td><td>100ms</td><td class="success-high">100%</td></tr>
+        <tr><td><strong>Supabase</strong></td><td>BaaS / Postgres</td><td>第三者 (公式リポジトリ案内あり)</td><td class="success-mid">BBB</td><td>—</td><td>n/a</td></tr>
+        <tr><td><strong>Neon</strong></td><td>Serverless Postgres</td><td>第三者 (@neondatabase/mcp-server-neon)</td><td class="success-mid">BBB</td><td>—</td><td>n/a</td></tr>
+        <tr><td><strong>PlanetScale</strong></td><td>Serverless MySQL</td><td>API only</td><td class="success-mid">BB</td><td>—</td><td>n/a</td></tr>
+        <tr><td><strong>MongoDB Atlas</strong></td><td>Document DB</td><td>第三者</td><td class="success-mid">BBB</td><td>—</td><td>n/a</td></tr>
+      </tbody>
+    </table>
+
+    <p>「—」は2026年4月時点でエージェント自己報告データが不足しており、KanseiLinkの実測値ベースでは判定できないことを示す。connectableステータスとして列挙はするが、本番投入前に小規模PoCでメトリクスを集めるのが望ましい。</p>
+
+    <h2 id="postgres">Anthropic公式Postgres MCP — 「アーカイブ」表記の実態</h2>
+
+    <p>Anthropicは <code>modelcontextprotocol/servers</code> に複数のreference実装を公開しており、Postgresはその代表格だ。KanseiLink実測では <strong>レイテンシ82ms / 成功率100% / Aグレード(trust 0.8)</strong> と、データベース系の中で最速級の応答時間を記録している。</p>
+
+    <pre><code># Claude Desktop config例
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost/mydb"]
+    }
+  }
+}</code></pre>
+
+    <p>2026年に入って公開ステータスが「learning purposes / archived」に切り替わった点は誤解されやすい。これは「廃止」を意味するのではなく、Anthropic自身が新機能追加を続けるのではなく <strong>コミュニティ実装に主役を譲る</strong> シグナルだ。読み取り中心・スキーマ参照には引き続き安定して使える一方、書き込み・行レベル権限・接続プールが必要な本番ワークロードでは、pgEdge MCP・Postgres MCP Pro・@anthropic/postgres-mcp などのコミュニティ拡張版を選ぶのが現実解になる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 公式archive状態の解釈</div>
+      <p>「archived = 使ってはいけない」ではない。<strong>read-only用途では十分に堅牢</strong>で、KanseiLink実測でもエラー件数0件。ただし、<strong>書き込み・運用機能を求めるならコミュニティ製のPostgres MCPサーバーへ移行</strong>が2026年の正攻法だ。</p>
+    </div>
+
+    <h2 id="qdrant">Qdrant公式 — ベクトルDB MCPの本命</h2>
+
+    <p>RAG・エージェント長期記憶の文脈で2026年に最も「無難な選択」となったのが <strong>Qdrant公式MCPサーバー</strong>(<code>github.com/qdrant/mcp-server-qdrant</code>、MITライセンス)。KanseiLink実測では <strong>レイテンシ85ms / 成功率100% / Aグレード(trust 0.9)</strong>。</p>
+
+    <p>このMCPサーバーは <code>sentence-transformers/all-MiniLM-L6-v2</code> をデフォルトの埋め込みモデルとし、FastEmbed系のローカルモデルが動く。<code>--qdrant-local-path</code> 引数でローカルファイルベースのモードに切り替えられるため、PoC段階ではマネージドCloudにつなげる前にオフラインで動作確認できる。Smithery経由(<code>npx @smithery/cli install mcp-server-qdrant --client claude</code>)のインストールにも対応している。</p>
+
+    <div class="success-box">
+      <div class="label">✅ Qdrantを選ぶべきケース</div>
+      <p>・本番RAGで <strong>1000万ベクトル超</strong> を扱う見込みがある<br>・「PoCはローカル、本番はCloud」と段階的に進めたい<br>・MCPサーバーが <strong>公式・MITライセンス</strong> であることを社内承認の条件にしたい</p>
+    </div>
+
+    <h2 id="chroma">Chroma — プロトタイピングの軽量解</h2>
+
+    <p>Chromaは「数百〜数十万ベクトル」のスケールでRAGを試作するチームに依然として人気が高い。KanseiLink実測では <strong>レイテンシ100ms / 成功率100% / Aグレード(trust 0.8)</strong>。Pythonクライアント・JSクライアントの両対応で、ノートブック上で <code>chroma.PersistentClient(path=...)</code> ですぐ立ち上がる手軽さが魅力だ。</p>
+
+    <p>MCPサーバーは第三者実装(<code>npx -y chroma-mcp</code>)で、bearer_token認証。本番運用では永続化・バックアップ・水平スケールを自前で設計する必要があるため、 <strong>「Chromaで作って、本番直前にQdrantへ移行する」</strong> というロードマップが多くのプロジェクトで採用されている。</p>
+
+    <h2 id="kvs">Redis・Turso — KVS/エッジSQLiteの位置付け</h2>
+
+    <p>エージェントの「短期記憶」「セッションコンテキスト」「LLM応答キャッシュ」の置き場として、Redis MCPは標準解だ。KanseiLink実測では <strong>レイテンシ105ms / 成功率100% / BBBグレード(trust 0.7)</strong>。<code>modelcontextprotocol/server-redis</code> 経由でセットアップでき、キー・ストリーム・Pub/Sub・検索といったRedis機能を一通り操作できる。</p>
+
+    <p>一方で2026年に存在感を増したのが <strong>Turso</strong> (Edge SQLite / libSQL)。30以上のリージョンから低レイテンシで読み出せるレプリケーションと、ローカル組み込みレプリカ機能を持つ。KanseiLink実測 <strong>100ms / 成功率100% / BBグレード</strong> で、現時点ではAPIアクセスのみ(MCPは未提供)だが、エッジで動くエージェントの「ローカルファースト」DB候補として注目されている。</p>
+
+    <h2 id="supabase-neon">Supabase・Neon・PlanetScale — マネージドPostgres勢の現在地</h2>
+
+    <p>Supabase MCPは <code>supabase-community/supabase-mcp</code> として公開され、Supabase公式ドキュメントの「Model context protocol (MCP)」セクションでも案内されている。2026年の重要な変更点として、<strong>Supabase AuthがOAuth 2.1 / OpenID Connectプロバイダーとなり、MCPサーバーのデフォルト認証もOAuthのDynamic Client Registrationに切り替わった</strong>。CI/CDなど非対話シナリオでは引き続きPersonal Access Token(PAT)が使える。</p>
+
+    <p>Neonは <code>@neondatabase/mcp-server-neon</code>、PlanetScaleはAPIのみ(MCP未提供)で、いずれもサーバーレスPostgres/MySQLとしてブランチング・スケールゼロ・即時プロビジョニングを訴求する。エージェント連携の文脈では、<strong>「LLMが書いたマイグレーションを別ブランチで安全に試す」</strong> という運用が現実味を帯びてきた。</p>
+
+    <div class="insight-box">
+      <div class="label">マネージドPostgres勢の選び分け</div>
+      <p><strong>Supabase</strong>: Auth/Storage/Realtimeも含むBaaSとして使うなら最有力。OAuth 2.1対応で2026年の標準になりつつある。<br><strong>Neon</strong>: 「Postgresブランチング」を中心に据えたい場合。CIごとに本番コピーを作る運用に強い。<br><strong>PlanetScale</strong>: 既存MySQL資産を持ちつつスケールを優先したい場合。MCP未提供のため、エージェント連携にはAPI経由の自前ラッパーが必要。</p>
+    </div>
+
+    <h2 id="mongo-mysql">MongoDB Atlas・MySQL — 既存資産との接続</h2>
+
+    <p>MongoDB Atlasは Atlas Search・Vector Searchを含む「ドキュメントDB+ベクトル統合」のポジションを取る。MCPサーバーは第三者実装(<code>mongodb-mcp-server</code>)があり、Atlas Admin/Data APIを介して操作する。KanseiLink格付けはBBB(connectable)で、エージェント自己報告データはまだ少数だが、既にMongoDBで動いている業務システムにエージェントを後付けするには有力な選択肢だ。</p>
+
+    <p>MySQL系はOSS版・各種マネージド(RDS、Cloud SQL、PlanetScale)を一括りで「<code>modelcontextprotocol/server-mysql</code>でスキーマ参照と読み取りクエリができる」位置付け。KanseiLink実測 <strong>108ms / 成功率100% / BBBグレード</strong>。書き込みやストアドプロシージャの呼び出しは、引き続きアプリケーション側で薄いAPIを書く運用が無難だ。</p>
+
+    <h2 id="decision">用途別の選定フロー</h2>
+
+    <p>「迷ったらこれ」という単純な答えは存在しないが、以下のフローで多くのケースをカバーできる。</p>
+
+    <ul class="checklist">
+      <li><strong>RAG / セマンティック検索が主目的</strong> → 公式Qdrant MCP(本番)、Chroma(プロトタイプ)</li>
+      <li><strong>業務系SQLクエリの読み取り</strong> → Anthropic公式Postgres MCP(まずはここから)</li>
+      <li><strong>業務系SQLクエリの書き込み・本番運用</strong> → Supabase MCP / pgEdge MCP / @anthropic/postgres-mcp(コミュニティ実装)</li>
+      <li><strong>エージェント長期記憶 + キャッシュ</strong> → Redis MCP</li>
+      <li><strong>エッジ低レイテンシのKey-Valueストア</strong> → Turso(現状API、MCP化が次の一手)</li>
+      <li><strong>既存MongoDB / MySQL 資産にエージェントを接続</strong> → 第三者MCP + 自前API薄ラッパー</li>
+      <li><strong>マルチテナント / ブランチング前提のSaaS開発</strong> → Neon MCP / Supabase MCP</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>データベースSaaSのAEO格付けを社内導入したい方へ</h3>
+      <p>KanseiLinkは225+のSaaSについて、成功率・レイテンシ・エラー類型・既知ワークアラウンドの実測データをMCP経由で提供します。データベース層の選定もエージェント実測ベースで判断できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO格付けデータの活用を相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>AIエージェント向けに最初に選ぶべきデータベースは？</h3>
+    <p>用途で分かれます。構造化データ・既存業務系の中心に据えるならAnthropic公式Postgres MCP(82ms / 100% / A)。RAG・セマンティック検索ならQdrant公式MCP(85ms / 100% / A、MITライセンス)。プロトタイプならChroma(100ms / 100% / A)。キャッシュ/セッションはRedis MCP(105ms / 100% / BBB)。</p>
+
+    <h3>ベクトルDB MCPで本番運用に耐えるのは？</h3>
+    <p>2026年5月時点で最も信頼できるのはQdrant公式MCPサーバー。FastEmbedがデフォルトで、ローカルモードとマネージドCloudの双方をサポート。Chromaはプロトタイピング向けで、本番のスケール要件には公式Qdrantが優位。</p>
+
+    <h3>Postgres MCPは『アーカイブされた』と聞きました。今でも使えますか？</h3>
+    <p>はい。<code>modelcontextprotocol/servers</code> のリファレンス実装はAnthropicから「learning purposes / archived」のステータスに移行していますが、これは「廃止」ではなく「コミュニティ実装に主役を譲る」シグナル。読み取り・スキーマ参照には十分堅牢で、KanseiLink実測でもsuccess_rate 100% / 82msと安定。書き込み・本番運用にはpgEdge MCPやSupabase MCPなどのコミュニティ実装が現実解です。</p>
+
+    <h3>Supabase MCPの認証はどうなりますか？</h3>
+    <p>2026年の重要な変更として、Supabase AuthがOAuth 2.1 / OpenID Connectプロバイダーとなり、MCPサーバーのデフォルト認証もOAuthのDynamic Client Registrationに切り替わりました。CI/CDなど非対話シナリオではPersonal Access Token(PAT)を使い分けます。</p>
+
+    <h3>「データなし」の項目はどう解釈すればよいですか？</h3>
+    <p>「—」表示はKanseiLinkにエージェント自己報告データが十分集まっていないことを示します。サービス自体の品質を否定するものではなく、本番投入前に小規模PoCでメトリクスを集めることを推奨します。<code>report_outcome</code> ツールでKanseiLinkに実測値を寄稿いただけると、業界全体の選定精度が上がります。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の数値はKanseiLink MCP <code>search_services</code> / <code>get_insights</code> ツールの2026年4月時点データに基づきます: PostgreSQL MCP (n=1, 82ms, 100%, A)、Qdrant (n=1, 85ms, 100%, A)、Chroma (n=1, 100ms, 100%, A)、Redis (n=1, 105ms, 100%, BBB)、MySQL (n=1, 108ms, 100%, BBB)、Turso (n=1, 100ms, 100%, BB)、Supabase / Neon / PlanetScale / MongoDB Atlas は usage_count=0 のため実測値は提示せず。Postgres MCPの「archived」ステータスは <code>github.com/modelcontextprotocol/servers</code> の公式表記、Qdrant公式MCPサーバーは <code>github.com/qdrant/mcp-server-qdrant</code>(MITライセンス)、Supabase MCPのOAuth 2.1対応は <code>supabase.com/docs/guides/getting-started/mcp</code> の2026年4月公開ドキュメントを参照。サンプル数が少ない項目は今後のデータ蓄積で値が変動する可能性があるため、本番運用時は最新の各公式ドキュメントを必ずご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="devtools-saas-aeo-2026.html" class="related-card">
+          <div class="tag">業界比較</div>
+          <h4>開発者ツール AEO比較 2026 — GitHub・GitLab・AWS・Playwright MCPの格付けレポート</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー実装完全ガイド 2026 — 認証・レート制限・エラーハンドリング</h4>
+        </a>
+        <a href="mcp-success-patterns-data-2026.html" class="related-card">
+          <div class="tag">データ分析</div>
+          <h4>225+サービス分析が示すMCP成功の法則 — 成功率90%超えサービスの共通点</h4>
+        </a>
+        <a href="mcp-verified-vs-connectable-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>「MCP対応」の罠: verified/connectableの成功率格差と企業選定の新基準</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        データベース系MCPの実測メトリクス(成功率・レイテンシ・MCP状態)はKanseiLink MCP経由で取得できます。
+        <code>search_services</code> に <code>category: "database"</code> または <code>category: "storage"</code> を指定すると、Postgres / Qdrant / Chroma / Redis / Supabase / Neon / MongoDB Atlas など主要DBサービスがランク付けされて返ります。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
