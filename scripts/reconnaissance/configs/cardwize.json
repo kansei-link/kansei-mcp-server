@@ -12,9 +12,11 @@
       "enabled": true,
       "urls": [
         "https://card-nabi.vercel.app",
-        "https://card-nabi.vercel.app/cards",
         "https://card-nabi.vercel.app/wallet",
         "https://card-nabi.vercel.app/diagnosis"
+      ],
+      "_note_excluded_urls": [
+        "/cards is a dynamic route /cards/[cardId] — no static index page. Removed 2026-05-06 after 5 days of false-positive CRITICAL detection."
       ],
       "expected_status": 200,
       "timeout_ms": 10000
@@ -22,7 +24,7 @@
 
     "snapshot": {
       "enabled": true,
-      "_note": "Tier B-β. Rolling baseline. /cards skipped pending route fix (returned 404 in Day 1 health probe).",
+      "_note": "Tier B-β. Rolling baseline. /cards is a dynamic route — no static page to snapshot.",
       "urls": [
         "https://card-nabi.vercel.app",
         "https://card-nabi.vercel.app/wallet",

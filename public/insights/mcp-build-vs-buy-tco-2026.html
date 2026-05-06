@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCPサーバー Build vs Buy 2026 — 自社構築・公式利用・サードパーティの3年TCO比較 | KanseiLink</title>
+  <meta name="description" content="MCPサーバーは自社で建てるべきか、公式に乗るべきか、サードパーティに任せるべきか。Cloudflare Workers / AWS Lambda / セルフホスト / 公式マネージドの3年TCOを実価格で比較。「Hetzner $6.50/月の罠」「3〜5倍の見積もり過小評価」を含む隠れコストを分解し、3つのケースで意思決定フレームを提示。">
+  <meta name="keywords" content="MCP Build vs Buy, MCPサーバー TCO, MCP hosting cost, Cloudflare Workers, AWS Lambda, MCP self-host, KanseiLink, AIエージェント インフラ">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-build-vs-buy-tco-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-build-vs-buy-tco-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-build-vs-buy-tco-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-build-vs-buy-tco-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCPサーバー Build vs Buy 2026 — 自社構築・公式利用・サードパーティの3年TCO比較">
+  <meta property="og:description" content="$6.50/月のVPSが$206.50/月になる仕組み、3〜5倍の見積もり過小評価、Cloudflare Workers vs AWS Lambdaの実コスト。3つのケースで判断フレームを提示。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-build-vs-buy-tco-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-01">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="コスト・ROI分析">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCPサーバー Build vs Buy 2026 — 3年TCO比較で見える正解">
+  <meta name="twitter:description" content="$6.50/月のVPSが$206.50/月になる仕組み。Cloudflare Workers vs AWS Lambdaの実コスト分解。意思決定フレーム付き。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCPサーバー Build vs Buy 2026 — 自社構築・公式利用・サードパーティの3年TCO比較",
+    "description": "MCPサーバーは自社で建てるべきか、公式に乗るべきか、サードパーティに任せるべきか。Cloudflare Workers / AWS Lambda / セルフホスト / 公式マネージドの3年TCOを実価格で比較。「Hetzner $6.50/月の罠」「3〜5倍の見積もり過小評価」を含む隠れコストを分解し、3つのケースで意思決定フレームを提示。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-01",
+    "dateModified": "2026-05-01",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-build-vs-buy-tco-2026",
+    "keywords": ["MCP Build vs Buy", "MCPサーバー TCO", "MCP hosting cost", "Cloudflare Workers", "AWS Lambda", "MCP self-host", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "MCPサーバーをセルフホストすると本当はいくらかかりますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "サーバー単体は安価です。Hetznerなどでは$6.50/月程度から始められますが、業界調査では人件費(月4〜8時間: Dockerアップデート1〜2時間、サーバー監視1〜2時間、インシデント対応2〜4時間、セキュリティパッチ1時間)を時給$50で換算すると実質$206.50/月相当に達します。さらにLLM API利用料が月$30〜60上乗せされます。セルフホスト評価者の90%以上がTCOを3〜5倍過小評価しているという業界レポートもあり、「サーバー代 ≠ ホスト料金」の落とし穴に注意が必要です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Cloudflare Workers と AWS Lambda、どちらがMCPホストに向きますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ワークロード次第です。Cloudflare Workers有料プランは$5/月で1000万リクエスト込み、追加100万あたり$0.30で、CPU時間のみ課金される設計のため I/O待ちの長いMCPサーバーで割安になります。AWS Lambdaは1Mリクエスト + 400K GB秒/月の永続無料枠を持ち、リクエスト課金は$0.20/1M、$0.0000166667/GB秒。ベンチマークでは I/Oヘビーな高頻度HTTPエンドポイントでWorkersが50〜80%安い一方、軽量で実行時間の短いタスクではLambdaが20〜25%安いケースもあります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "公式MCPサーバーがある場合、自社構築するメリットはありますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ほぼありません。公式MCPがあるサービス(Backlog・kintone・Notion・Slack・freee・Qdrantなど)は、KanseiLink実測でも成功率80〜90%超のAA/AAAグレードに集中しています。自社構築はメンテナンスコストが継続発生する一方、API仕様変更への追従が遅れがちで、長期的には公式が信頼性で勝ります。例外は『社内APIのみが対象でMCPが存在しない』『規制業界でデータが境界外に出せない』場合に限られます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPサーバー Build vs Buy の意思決定フレームを教えてください。",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "3つの問いで判断します。①対象SaaSの公式MCPは存在するか? → Yesなら原則『公式利用』。②社内システムだけが対象で公式が存在しないか? → Yesなら『自社構築 + マネージドホスト(Cloudflare Workers/AWS Lambda)』が次善解。③公式があるが拡張機能やマルチテナント要件で足りないか? → Yesなら『サードパーティ(pgEdge MCP / Postgres MCP Pro 等)』を検討。Buildの判断基準は『機能差分の大きさ』ではなく『運用継続できる人月予算が3年確保できるか』。週4〜8時間の運用が読めない場合はBuyに倒すのが2026年の安全策です。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCPサーバー Build vs Buy 2026", "item": "https://kansei-link.com/insights/mcp-build-vs-buy-tco-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-build-vs-buy-tco-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCPサーバー Build vs Buy 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">コスト・ROI分析 / Cost Analysis</span>
+      <h1>MCPサーバー Build vs Buy 2026 — 自社構築・公式利用・サードパーティの3年TCO比較</h1>
+      <p class="subtitle">「公式MCPがあるなら自社で建てる必要があるか」「Cloudflare WorkersとAWS Lambda、どちらが安いか」「セルフホストは本当に安いか」。表面のサーバー代金に隠れた人件費・保守・LLM API費を分解し、3つの典型ケースでBuild vs Buyの判断フレームを提示する。</p>
+      <div class="article-meta">
+        <span>2026-05-01</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約9分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜ今 Build vs Buy を整理するか</a></li>
+        <li><a href="#layers">MCPサーバー TCO の4レイヤー分解</a></li>
+        <li><a href="#selfhost">セルフホストの隠れコスト — $6.50/月の罠</a></li>
+        <li><a href="#serverless">マネージド: Cloudflare Workers vs AWS Lambda</a></li>
+        <li><a href="#official">公式MCPサーバーの「タダ乗りメリット」</a></li>
+        <li><a href="#cases">ケース別シミュレーション</a></li>
+        <li><a href="#framework">意思決定フレーム</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜ今 Build vs Buy を整理するか</h2>
+
+    <p>2026年に入り、AnthropicのリファレンスMCPサーバーが「コミュニティ主導」へ移行し、Cloudflare・Supabase・Affinityなどがhosted MCPを次々と提供し始めた。一方で「自社の業務APIをMCP化したい」という需要も急増している。意思決定者の前には <strong>(A)公式に乗る (B)サードパーティを使う (C)自社で建ててマネージドにホストする (D)自社で建ててセルフホストする</strong> の4択が並ぶ。</p>
+
+    <p>各選択肢の表面コストは大きく違って見えるが、3年TCO(人件費を含めた総保有コスト)で並べると印象は反転することが多い。本稿では業界データと公開価格をもとに、それぞれの「実質月額」を分解する。</p>
+
+    <div class="insight-box">
+      <div class="label">編集視点 — 2026年5月</div>
+      <p>「サーバー代だけ見れば自社が安い」「マネージドは高い」という直感は、人件費を時給化した瞬間にひっくり返ることが多い。<strong>『3年で運用人月予算を確保できるか』</strong>がBuild vs Buyの本質的な分岐点だ。</p>
+    </div>
+
+    <h2 id="layers">MCPサーバー TCO の4レイヤー分解</h2>
+
+    <p>MCPサーバーの実コストは1つの数字では決まらない。最低でも以下の4レイヤーで分けて見るのが正確だ。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>レイヤー</th>
+          <th>内訳</th>
+          <th>典型レンジ(月額)</th>
+          <th>見落とされやすさ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>1. インフラ</td><td>VPS / Workers / Lambda / コンテナ</td><td>$0 〜 $30</td><td>低(誰もが見る)</td></tr>
+        <tr><td>2. LLM API</td><td>モデル呼び出し料金(Claude / GPT 等)</td><td>$30 〜 $60</td><td>中</td></tr>
+        <tr><td>3. 運用人件費</td><td>監視・パッチ・インシデント対応</td><td>$200 〜 $400</td><td class="success-low">高(最大の盲点)</td></tr>
+        <tr><td>4. 機会費用</td><td>本来やるべき機能開発の遅延</td><td>定量化困難</td><td class="success-low">高</td></tr>
+      </tbody>
+    </table>
+
+    <p>レイヤー1だけを比較すると「Hetzner $6.50/月 vs Cloudflare $5/月」と僅差に見えるが、レイヤー3を加えるとセルフホストは月$200〜400の人件費が常時発生する。これが「サーバー代≠ホスト料金」の正体だ。</p>
+
+    <h2 id="selfhost">セルフホストの隠れコスト — $6.50/月の罠</h2>
+
+    <p>業界調査によれば、セルフホスト評価者の <strong>90%以上がTCOを3〜5倍過小評価している</strong>。原因は人件費のレイヤーを「自分の趣味の時間」として無視するクセにある。</p>
+
+    <div class="data-highlight">
+      <h4>セルフホスト 月次コスト分解(時給$50換算)</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num">$6.50</span>
+          <div class="label">サーバー(例: Hetzner)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">$200</span>
+          <div class="label">運用4時間 × $50</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">$30〜60</span>
+          <div class="label">LLM API</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">≈$240〜266</span>
+          <div class="label">月次実質TCO</div>
+        </div>
+      </div>
+    </div>
+
+    <p>具体的に何が4時間に乗っているかというと、業界調査では <strong>Dockerアップデート1〜2時間、サーバー監視1〜2時間、インシデント対応2〜4時間、セキュリティパッチ1時間</strong> が月次の「適切な保守工数」として挙げられている。</p>
+
+    <p>セルフホストが「実質的に安く」なる条件は、(1) 既存の社内VPSに同居させて限界費用ゼロで運用できる、(2) 規制やデータ主権の要件で外に出せない、(3) その人件費を別の予算で吸収できる(例: 社内SREチームが既に存在する) — のいずれかが成立するときに限られる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 「自分でやれば安い」の誤謬</div>
+      <p>個人開発者・週末プロジェクトでは時給$0で計算しても問題ないが、業務として運用するなら時給を載せて初めて他選択肢と比較可能になる。Hetzner $6.50 と Cloudflare Workers $5 の差は、運用工数の差で簡単にひっくり返る。</p>
+    </div>
+
+    <h2 id="serverless">マネージド: Cloudflare Workers vs AWS Lambda</h2>
+
+    <p>セルフホストを避けつつ自社実装する場合、選択肢は実質的に2強体制になっている。それぞれの公開価格は以下のとおり(2026年4月時点)。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>項目</th>
+          <th>Cloudflare Workers</th>
+          <th>AWS Lambda</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>無料枠</td><td>10万リクエスト/日</td><td>100万リクエスト + 40万GB秒/月(永続)</td></tr>
+        <tr><td>有料プラン入口</td><td>$5/月(1000万リクエスト込み)</td><td>$0.20/100万リクエスト + $0.0000166667/GB秒</td></tr>
+        <tr><td>追加課金</td><td>$0.30/100万リクエスト</td><td>同上(GB秒×時間)</td></tr>
+        <tr><td>課金モデル</td><td>CPU時間のみ(I/O待ち無料)</td><td>実行時間×メモリ(I/O待ちも課金)</td></tr>
+        <tr><td>エッジ</td><td>標準で全リージョン分散</td><td>CloudFront + Lambda@Edgeが必要</td></tr>
+      </tbody>
+    </table>
+
+    <p>業界ベンチマークの結論は明快だ: <strong>I/Oが多くレイテンシが長いMCPサーバーでは、Cloudflare WorkersがAWS Lambdaより50〜80%安い</strong>。Workersは「I/O待ち時間に課金しない」設計のため、外部APIに問い合わせて結果を返すだけの典型的MCPワークロードと相性が良い。</p>
+
+    <p>逆に <strong>軽量で実行時間が短く、AWSエコシステム(IAM・VPC・RDS)との結合が必要な場合はLambdaが20〜25%安いケースもある</strong>。意思決定の分岐点は「外部API呼び出しが多いか」「AWS既存資産があるか」の2点だ。</p>
+
+    <div class="success-box">
+      <div class="label">✅ 推奨デフォルト(2026年5月)</div>
+      <p>新規でMCPサーバーを建てるなら <strong>Cloudflare Workers</strong> を第一候補に。スケールゼロ・エッジ標準・I/O待ち無料の3点が、典型的なMCPワークロードと噛み合う。AWSに既存資産が大量にある場合のみLambdaを検討する。</p>
+    </div>
+
+    <h2 id="official">公式MCPサーバーの「タダ乗りメリット」</h2>
+
+    <p>対象SaaSが既に公式MCPを出している場合、自社実装は <strong>原則的に避けるべき</strong>。KanseiLink実測データを見ると、Backlog(成功率90%、AAA)、Notion(83%、AAA)、Slack(AAA)、kintone(AA)、freee(AA)など、公式MCPサーバーは平均してAA以上に集中している。これらに対抗する自社実装を作っても、API仕様変更への追従コストが永続的に発生し、長期的に勝ち目が薄い。</p>
+
+    <p>例外は3つだけ。(1) 社内の独自APIだけが対象でMCPが存在しない、(2) 規制業界(医療・金融)でデータが境界外に出せない、(3) 公式が機能不足で、サードパーティ実装(pgEdge MCP / Postgres MCP Pro 等)も要件を満たさない、というケース。それ以外は <strong>「公式に乗る」が支配戦略</strong> になる。</p>
+
+    <h2 id="cases">ケース別シミュレーション</h2>
+
+    <p>3つの典型ケースで3年TCOを試算する。前提: 月10万リクエスト、平均レイテンシ200ms、LLM API利用月$45、保守工数月4時間、人件費$50/時。</p>
+
+    <h3>ケース1: 日本のSaaSベンダー(対象SaaSに公式MCPあり)</h3>
+    <p><strong>選択: 公式MCP利用</strong>。インフラ$0、LLM API $45/月、運用1時間$50、3年合計 = $3,420。</p>
+    <p>自社で同等機能を作るとインフラ$5、運用4時間$200、3年合計 = $9,000。<strong>公式利用で$5,580(62%)安い</strong>。</p>
+
+    <h3>ケース2: 社内専用APIのMCP化(公式なし)</h3>
+    <p><strong>選択: Cloudflare Workers + 自社実装</strong>。インフラ$5、LLM API $45、運用2時間$100、3年合計 = $5,400。</p>
+    <p>セルフホスト(Hetzner)に切り替えるとインフラ$6.50、運用4時間$200、3年合計 = $9,054。<strong>マネージドで$3,654(40%)安い</strong>。</p>
+
+    <h3>ケース3: 規制業界・データを境界外に出せない</h3>
+    <p><strong>選択: セルフホスト一択</strong>。3年合計 = $9,054(オンプレ込みの実コスト)。これに加えてSOC2 / ISMS等の追加監査コストが乗る。コスト最適化ではなく <strong>コンプライアンスが選定理由</strong> になるケース。</p>
+
+    <h2 id="framework">意思決定フレーム</h2>
+
+    <p>3つの問いを順に投げかけることで、ほとんどのケースで判定できる。</p>
+
+    <ul class="checklist">
+      <li><strong>Q1: 対象SaaSの公式MCPは存在するか?</strong> → Yesなら原則「公式利用」。これだけで意思決定の8割は決まる</li>
+      <li><strong>Q2: 社内APIのみが対象で公式が存在しないか?</strong> → Yesなら「Cloudflare Workers + 自社実装」が第一候補。Lambdaは既存AWS資産がある場合のみ</li>
+      <li><strong>Q3: 公式があるが拡張機能・マルチテナントで不足か?</strong> → Yesなら「サードパーティ(pgEdge MCP / Postgres MCP Pro 等)」を検討。それでも不足なら自社実装</li>
+      <li><strong>Q4: セルフホスト一択になる条件を満たすか?</strong> → 規制要件・データ主権・既存SREチーム — このいずれかでなければセルフホストは選ばない</li>
+      <li><strong>Q5: 月4〜8時間の運用工数を3年確保できるか?</strong> → No なら Build を諦めて Buy に倒す</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>MCP導入の Build vs Buy を社内で整理したい方へ</h3>
+      <p>KanseiLinkは225+のSaaSについて、公式MCP有無・成功率・レイテンシ・運用上の落とし穴をMCP経由で提供します。「公式に乗るべきか自社実装するか」の判断を、エージェント実測データで補強できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEOデータで意思決定を補強する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>セルフホストの本当のコストは?</h3>
+    <p>サーバー単体は安価(Hetzner $6.50/月程度)ですが、月4〜8時間の保守(Dockerアップデート・監視・インシデント対応・セキュリティパッチ)を時給$50で換算すると、実質$206.50/月相当に達します。さらにLLM API $30〜60が乗ります。業界レポートでは評価者の90%以上がTCOを3〜5倍過小評価しています。</p>
+
+    <h3>Cloudflare Workers と AWS Lambda、どちらがMCPホストに向きますか?</h3>
+    <p>I/Oヘビーな高頻度HTTPエンドポイントではWorkersが50〜80%安い。理由はWorkersがCPU時間のみ課金で、I/O待ちが無料だから。逆に軽量で実行時間が短く、AWS資産との結合が必要なケースではLambdaが20〜25%安い場合もあります。新規構築なら原則Workersを推奨。</p>
+
+    <h3>公式MCPサーバーがある場合、自社構築するメリットは?</h3>
+    <p>ほぼありません。Backlog(AAA)、Notion(AAA)、Slack(AAA)、kintone(AA)、freee(AA)など、公式MCPは平均してAA以上に集中しています。自社で対抗実装を作るとAPI仕様変更追従が永続コスト化し、長期的に勝ち目が薄い。例外は社内専用APIや規制要件のみ。</p>
+
+    <h3>マネージドMCPサービスは選ぶ価値がありますか?</h3>
+    <p>用途次第です。Cloudflare、Supabase、Affinity、Composio など hosted MCP プラットフォームが2026年に整備されました。「マルチテナント対応」「OAuth/SSO」「監査ログ」が要件にある場合は、自社実装するより選定する方が早い。逆にPoCや単一ユーザー用途では公式MCPの直接利用で十分です。</p>
+
+    <h3>公式MCPが「archived」になっていても使えますか?</h3>
+    <p>はい。Anthropicの <code>modelcontextprotocol/servers</code> リファレンス実装の一部は「learning purposes / archived」へ移行していますが、これは「廃止」ではなく「コミュニティ主導に移行」のシグナルです。読み取り中心のワークロードでは引き続き安定しています。書き込み・本番運用にはコミュニティ拡張版(pgEdge MCP・Postgres MCP Pro 等)を選ぶのが現実解。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の価格情報は2026年4月時点の各社公開ページに基づきます: Cloudflare Workers Paid $5/月・1000万リクエスト込み・追加$0.30/100万リクエスト(blog.cloudflare.com/workers-pricing-scale-to-zero/、cloudflare.com/plans/developer-platform/);AWS Lambda 永続無料枠1Mリクエスト+400K GB秒/月、有料$0.20/1Mリクエスト+$0.0000166667/GB秒(aws.amazon.com/lambda/pricing/)。セルフホスト時間レンジ(月4〜8時間: Dockerアップデート1〜2時間、監視1〜2時間、インシデント対応2〜4時間、セキュリティパッチ1時間)、TCO過小評価3〜5倍は業界比較レポート(blink.new、xcloud.host、apigene.ai 2026年公開記事)を参照。Claude Sonnet 4.5料金($3/M input、$15/M output、2026年3月時点)はAnthropic公式価格に基づく。KanseiLink AEO格付けデータは <code>get_insights</code> ツール 2026年4月時点。価格・仕様は予告なく変更される可能性があるため、本番運用時は最新の公式ドキュメントをご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="cloudflare-workers-mcp-deployment-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>Cloudflare Workers MCPサーバー本番デプロイ実装ガイド 2026</h4>
+        </a>
+        <a href="agent-token-cost-optimization-2026.html" class="related-card">
+          <div class="tag">コスト分析</div>
+          <h4>AIエージェント運用コスト96%削減の実証 — KanseiLinkトークン最適化データ</h4>
+        </a>
+        <a href="claude-model-cost-guide-2026.html" class="related-card">
+          <div class="tag">コスト分析</div>
+          <h4>Claude Haiku・Sonnet・Opus: 日本SaaS連携タスク別コスト最適化ガイド 2026</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー実装完全ガイド 2026 — 認証・レート制限・エラーハンドリング</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        対象SaaSの公式MCPサーバーの有無・運用コストの参考メトリクス(成功率・レイテンシ・既知ワークアラウンド)はKanseiLink MCP経由で取得できます。
+        <code>search_services</code> で対象SaaSを検索し、<code>mcp_status</code>(official / third_party / api_only)を確認してから Build vs Buy の判断に進むのが効率的です。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
