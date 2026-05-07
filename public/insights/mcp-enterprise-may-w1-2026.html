@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ServiceNow・Salesforce・Blend・Precisely——エンタープライズMCP集中投入週間 2026年5月第1週速報 | KanseiLink</title>
+  <meta name="description" content="2026年5月第1週、世界の主要エンタープライズSaaSが一斉にMCPサーバーをGAまたは新発表した。ServiceNow Action Fabric(5/6 GA)、Salesforce Headless 360、Blend Autopilot MCP、Precisely Data Integration Agent、GitHub Secret Scanning GA、Adobe Marketing Agents — 6社の動きを整理し、日本SaaSが取るべき対応を分析する。">
+  <meta name="keywords" content="ServiceNow MCP, Salesforce Headless 360, Blend Autopilot MCP, Precisely MCP, GitHub Secret Scanning, MCP news May 2026, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-enterprise-may-w1-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-enterprise-may-w1-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-enterprise-may-w1-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-enterprise-may-w1-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="ServiceNow・Salesforce・Blend・Precisely——エンタープライズMCP集中投入週間 2026年5月第1週速報">
+  <meta property="og:description" content="2026年5月第1週、ServiceNow・Salesforce・Blend・Precisely・GitHub・AdobeがMCPサーバーまたはAI Agent対応を一斉発表。日本SaaSへの示唆を整理する。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-enterprise-may-w1-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-07">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="MCPトレンド速報">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="エンタープライズMCP集中投入週間 2026年5月第1週速報">
+  <meta name="twitter:description" content="ServiceNow・Salesforce・Blend・Precisely・GitHub・AdobeがMCP/AI Agent対応を一斉発表。日本SaaSへの示唆を整理。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "ServiceNow・Salesforce・Blend・Precisely——エンタープライズMCP集中投入週間 2026年5月第1週速報",
+    "description": "2026年5月第1週、世界の主要エンタープライズSaaSが一斉にMCPサーバーをGAまたは新発表した。ServiceNow Action Fabric(5/6 GA)、Salesforce Headless 360、Blend Autopilot MCP、Precisely Data Integration Agent、GitHub Secret Scanning GA、Adobe Marketing Agents — 6社の動きを整理し、日本SaaSが取るべき対応を分析する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-07",
+    "dateModified": "2026-05-07",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-enterprise-may-w1-2026",
+    "keywords": ["ServiceNow MCP", "Salesforce Headless 360", "Blend Autopilot MCP", "Precisely MCP", "GitHub Secret Scanning", "MCP news May 2026", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "なぜ2026年5月第1週にエンタープライズMCP発表が集中したのですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "3つの背景が重なった。(1)2026年4月のMCP Dev Summit NYC(約1,200名参加)でAAIF傘下オープン標準化が確立し、ベンダーが安全にコミットできる基盤ができた、(2)Claudeが75+コネクタ、ChatGPTがMCP対応、Cursor/VSCode等もネイティブ対応で、エージェント側のニーズが顕在化した、(3)エンタープライズが『AI Agentに自社データを開放しない選択肢』が事実上失われた。これにより、ServiceNow・Salesforce・Blend・Preciselyがほぼ同時にMCP対応を発表する状況が生まれた。Q2決算前に『AI Agent Ready』の旗を立てたい思惑も働いている。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "ServiceNow Action FabricのMCP Server GAとは?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "2026年5月6日、ServiceNowは『AI Platform』を任意のAIエージェントに開放するMCP ServerのGAを発表した(ServiceNow Newsroom)。Claude・Copilot等の他社エージェントからもServiceNow内のセキュア・ガバナンス済みエンタープライズアクションをヘッドレスで実行できる。重要なのは、このMCP ServerがNow AssistとAI Native SKUの全てに含まれるため、ServiceNow顧客は追加コストなしで即座に利用できる点。Salesforceの『Headless 360』と並び、エンタープライズSaaSのデファクトAI Agent対応形が固まりつつある。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Salesforce Headless 360とは何が新しいのですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Salesforceは『あらゆるワークフロー、オブジェクト、ビジネスロジックを、APIだけでなくMCPツール・CLIコマンドとしても利用可能にする』Headless 360を発表した。重要なのは『AIエージェントが継承された権限でフルアクセスできる』点で、ユーザー権限・セキュリティポリシーをそのまま引き継いだまま、MCP経由でエージェント連携できる。これは『AI Agent対応 = 別の権限管理』ではなく『既存セキュリティの中でAI Agent対応』という設計思想を示しており、エンタープライズMCP実装の新標準になる可能性が高い。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Blend Autopilot MCPの意義は?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Blend(住宅ローン・コンシューマー融資プラットフォーム)が公開したAutopilot MCPは、与信・引受・コンプライアンス・開示・クロージングまで融資オリジネーション全工程を1つのMCPインターフェース経由でエージェントに開放する(Help Net Security 5/4)。これは『デジタル成熟度の高いSaaSだけでなく、複雑な金融業務もMCPでオーケストレーション可能』という証明であり、日本のメガバンクや地銀のSaaSベンダー(MUFG、SBI、freee等の決済・与信領域)にも参考になる動き。AAIF傘下のオープン標準であるMCPが、規制業界でも展開可能であることを示している。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "日本SaaSはこの動きにどう対応すべきですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "3つの優先度で動くべき。(1)即時(2026年5-6月): MCP対応有無を顧客向けFAQに明記し、未対応なら『2026年Q3予定』のロードマップを公開する。沈黙は最悪の選択。(2)短期(Q3 2026): Salesforce Headless 360型の『既存権限を継承するMCP実装』を採用する。AI Agent専用の別権限体系を作ると保守コストが2倍になる。(3)中期(Q4 2026〜2027): ServiceNow型の『MCP Serverを既存SKUに無料同梱』を検討する。MCP対応で課金する戦略は短期的には魅力的でも、Claude/GPT/Geminiのプラットフォームエコノミクスの中では機能しにくい。KanseiLinkの225+サービス分析でも、有料MCP化は採用率を著しく下げる傾向が見えている。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Enterprise MCP May W1 2026", "item": "https://kansei-link.com/insights/mcp-enterprise-may-w1-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root { --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3; --black: #000000; --white: #FFFFFF; --lavender: #F4F5FD; --gray-light: #F5F5F5; --gray-mid: #E5E7EB; --gray-text: #6B7280; --gray-dark: #374151; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif; color: var(--black); background: var(--white); line-height: 1.7; font-size: 16px; -webkit-font-smoothing: antialiased; }
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-enterprise-may-w1-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      エンタープライズMCP集中投入週間 2026年5月第1週速報
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">MCPトレンド速報 / News</span>
+      <h1>ServiceNow・Salesforce・Blend・Precisely——エンタープライズMCP集中投入週間 2026年5月第1週速報</h1>
+      <p class="subtitle">2026年5月4-7日のたった4日間で、世界の主要エンタープライズSaaSが一斉にMCPサーバーまたはAI Agent対応を発表した。ServiceNow Action Fabric MCP Server GA(5/6)、Salesforce Headless 360、Blend Autopilot MCP、Precisely Data Integration Agent + MCP-enabled APIs、GitHub Secret Scanning MCP GA、Adobe Marketing Agents — 6社の動きを整理し、AAIF傘下オープン標準化が引き起こした『エンタープライズMCP雪崩』の全貌と、日本SaaSが取るべき対応を分析する。</p>
+      <div class="article-meta">
+        <span>2026-05-07</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約9分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#summary">5月第1週の動き — 一覧</a></li>
+        <li><a href="#servicenow">ServiceNow Action Fabric MCP Server GA(5/6)</a></li>
+        <li><a href="#salesforce">Salesforce Headless 360 — 既存権限を継承するMCP</a></li>
+        <li><a href="#blend">Blend Autopilot MCP — 規制業界がMCPに参入</a></li>
+        <li><a href="#precisely">Precisely Data Integration Agent + MCP APIs(5/5)</a></li>
+        <li><a href="#github">GitHub Secret Scanning MCP GA(5/5)</a></li>
+        <li><a href="#adobe">Adobe Marketing AI Agents</a></li>
+        <li><a href="#why-now">なぜ集中したのか — 3つの構造要因</a></li>
+        <li><a href="#japan">日本SaaSが取るべき3つの対応</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="summary">5月第1週の動き — 一覧</h2>
+
+    <p>2026年5月4日から7日のわずか4日間に、エンタープライズSaaSの主要プレイヤー6社が一斉にMCPまたはAI Agent対応を発表した。これは2025年11月のMCP誕生以来、最大の集中発表期間といえる。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>企業</th>
+          <th>発表内容</th>
+          <th>提供形態</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>5/4</td>
+          <td><strong>Blend</strong></td>
+          <td>Autopilot MCP — 融資オリジネーション全工程</td>
+          <td>MCP Server(プラットフォーム同梱)</td>
+        </tr>
+        <tr>
+          <td>5/5</td>
+          <td><strong>Precisely</strong></td>
+          <td>Data Integration Agent + MCP APIs + Huwise marketplace</td>
+          <td>MCP-enabled APIs(ホスト型)</td>
+        </tr>
+        <tr>
+          <td>5/5</td>
+          <td><strong>GitHub</strong></td>
+          <td>Secret Scanning MCP GA</td>
+          <td>公式MCP server拡張</td>
+        </tr>
+        <tr>
+          <td>5/6</td>
+          <td><strong>ServiceNow</strong></td>
+          <td>Action Fabric MCP Server GA</td>
+          <td>Now Assist / AI Native SKU同梱</td>
+        </tr>
+        <tr>
+          <td>5月初旬</td>
+          <td><strong>Salesforce</strong></td>
+          <td>Headless 360 — APIs・MCP・CLI統合</td>
+          <td>権限継承型MCP</td>
+        </tr>
+        <tr>
+          <td>5月初旬</td>
+          <td><strong>Adobe</strong></td>
+          <td>Marketing AI Agents</td>
+          <td>マーケティングワークフロー自動化</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="servicenow">ServiceNow Action Fabric MCP Server GA(5/6)</h2>
+
+    <p>2026年5月6日、ServiceNowは『AI Platformを任意のAIエージェントに開放する』MCP Serverを <strong>Generally Available(一般提供開始)</strong> とした(<a href="https://newsroom.servicenow.com/press-releases/details/2026/ServiceNow-opens-its-full-system-of-action-to-every-AI-Agent-in-the-enterprise/default.aspx" target="_blank">ServiceNow Newsroom</a>)。Claude・Copilot等の他社エージェントから、ServiceNow内のセキュア・ガバナンス済みエンタープライズアクションをヘッドレスで実行できる。</p>
+
+    <p>戦略的に重要なのは、このMCP Serverが <strong>『Now Assistおよび全AI Native SKU』に追加コストなしで含まれる</strong>こと。ServiceNow顧客は新たな購入判断を経ずに即座にMCP対応を享受できるため、導入摩擦がほぼゼロになる。</p>
+
+    <div class="insight-box">
+      <div class="label">含意</div>
+      <p>『MCP対応で別料金を取る』戦略は、ServiceNowのように<strong>『SKU同梱で無料配布』する競合がいる場合、急速に競争力を失う</strong>。日本SaaSがMCP有料化を検討している場合、価格戦略を再検討する余地がある。</p>
+    </div>
+
+    <h2 id="salesforce">Salesforce Headless 360 — 既存権限を継承するMCP</h2>
+
+    <p>Salesforceが発表した『Headless 360』は、<strong>すべてのワークフロー・オブジェクト・ビジネスロジックを、APIだけでなくMCPツール・CLIコマンドとしても利用可能にする</strong>仕組み。</p>
+
+    <p>最も注目すべきは『AIエージェントが <strong>継承された権限でフルアクセス</strong> できる』設計。ユーザー権限・セキュリティポリシー・SOX準拠制御をそのまま引き継ぐため、企業のセキュリティ部門が懸念する『AIエージェント = 別の権限管理システム』問題を構造的に回避している。</p>
+
+    <p>これは『AI Agent対応 = 既存セキュリティの中で実現する』設計思想を示しており、エンタープライズMCP実装の <strong>de facto standard</strong> になる可能性が高い。</p>
+
+    <h2 id="blend">Blend Autopilot MCP — 規制業界がMCPに参入</h2>
+
+    <p>Blend(住宅ローン・コンシューマー融資プラットフォーム)が公開した <strong>Autopilot MCP</strong>(<a href="https://www.helpnetsecurity.com/2026/05/04/blend-autopilot-mcp-brings-ai-agent-orchestration-to-lending-platforms/" target="_blank">Help Net Security 5/4</a>)は、与信審査・引受・コンプライアンス・開示・クロージングまで <strong>融資オリジネーション全工程を1つのMCPインターフェース</strong> 経由でエージェントに開放する。</p>
+
+    <p>意義は3つ。(1) <strong>規制業界(金融)もMCPで動かせる</strong>証明、(2) コンプライアンス・KYC・ローン規約等の複雑業務がエージェント自動化対象になる先例、(3) MCPのオープン標準性が監査要件と両立可能であることの実証。</p>
+
+    <div class="success-box">
+      <div class="label">✅ 日本への示唆</div>
+      <p>日本のメガバンク、地銀、決済SaaS(freee, GMO, SBI Banking, Money Forward等)も、AAIF傘下のMCPがオープン標準である事実をもって、社内コンプライアンス部門への説得材料にできる。Blendの先行事例は強力な参照点となる。</p>
+    </div>
+
+    <h2 id="precisely">Precisely Data Integration Agent + MCP APIs(5/5)</h2>
+
+    <p>2026年5月5日、Preciselyは『Data Integrity Suite』に <strong>Data Integration Agent</strong>、Huwiseとの提携によるデータプロダクトマーケットプレイス、<strong>Precisely-hosted MCPサーバー経由でアクセスできる拡張API</strong> を追加発表した(<a href="https://www.prnewswire.com/news-releases/precisely-advances-agentic-ready-data-with-a-new-ai-agent-data-product-marketplace-and-mcp-enabled-apis-302761752.html" target="_blank">PR Newswire</a>)。</p>
+
+    <p>『Hosted MCP』モデル — つまり <strong>ベンダー側がMCPサーバーをホスティングし、顧客は接続するだけ</strong> — は、エンタープライズMCPの新しいデリバリー形態として広がる兆しがある。エージェントに対してSaaSベンダーが『MCP-as-a-Service』を提供する流れだ。</p>
+
+    <h2 id="github">GitHub Secret Scanning MCP GA(5/5)</h2>
+
+    <p>2026年5月5日、GitHubは公式MCPサーバーの <strong>Secret Scanning統合をGA</strong>とした(<a href="https://github.blog/changelog/2026-05-05-secret-scanning-with-github-mcp-server-is-now-generally-available/" target="_blank">GitHub Changelog</a>)。AIコーディングエージェントがコミット前/PR作成前にコード内のシークレット(APIキー、トークン、パスワード等)を検出する仕組みが、Cursor・Claude Desktop・VS Code等のMCP対応IDEから直接呼び出せる。</p>
+
+    <p>これは『AI Agentが誤ってシークレットをコミットする』失敗モードへの構造的解決策で、AIコーディング時代のセキュリティガードレールが一段強化される。詳細はKanseiLinkの<a href="github-mcp-deep-dive-2026.html">GitHub MCP完全攻略 2026</a>で深掘りしている。</p>
+
+    <h2 id="adobe">Adobe Marketing AI Agents</h2>
+
+    <p>Adobeはマーケティングワークフローの自動化を担う <strong>AI Agents群</strong> を発表(<a href="https://www.pymnts.com/artificial-intelligence-2/2026/adobe-launches-ai-agents-to-automate-marketing-workflows/" target="_blank">PYMNTS</a>)。MCP対応の詳細は完全に開示されていないが、Adobe Experience CloudでのAI Agent対応路線が明確化した形。</p>
+
+    <h2 id="why-now">なぜ集中したのか — 3つの構造要因</h2>
+
+    <h3>要因1: AAIF傘下オープン標準化(2026年4月確立)</h3>
+    <p>2025年11月のMCP誕生時、エンタープライズベンダーは『Anthropic独自プロトコルに自社データを開放する』ことに警戒していた。2026年4月のMCP Dev Summit NYC(約1,200名参加)で<strong>AAIF(Agentic AI Foundation)傘下のオープン標準化</strong>が確立し、ベンダーが安全にコミットできる基盤ができた。</p>
+
+    <h3>要因2: エージェント側のニーズ顕在化</h3>
+    <p>Claudeが <strong>75+コネクタ</strong>(MCP搭載)、ChatGPTがMCP対応、Cursor/VSCode/Copilot等もネイティブ対応で、エージェント側の市場が成熟。SaaSベンダーは『MCP対応しないとエージェントから選ばれない』状態に追い込まれた。公開MCPサーバーは <strong>10,000台</strong> を超えた。</p>
+
+    <h3>要因3: 『AI Agent対応しない選択肢』が消滅</h3>
+    <p>エンタープライズSaaS市場で『AI Agent Ready』は2026年Q2の選定基準になりつつある。SalesforceがHeadless 360を発表すれば、競合のServiceNowは即座にAction Fabricで応える必要があった。<strong>Q2決算前に『AI Agent Ready』の旗を立てる戦略</strong>も同時並行で動いている。</p>
+
+    <h2 id="japan">日本SaaSが取るべき3つの対応</h2>
+
+    <h3>即時(2026年5-6月): MCP対応ロードマップ公開</h3>
+    <p>顧客向けFAQに <strong>『MCP対応有無』『AI Agent連携可能性』</strong> を明記する。未対応なら『2026年Q3予定』のロードマップを公開する。沈黙は最悪の選択 — エージェントエコノミーで『MCP対応未表明』はそのまま競合に流れる理由になる。</p>
+
+    <h3>短期(Q3 2026): Salesforce Headless 360型の権限継承MCP</h3>
+    <p>『AI Agent専用の別権限体系』を作ると保守コストが2倍になる。<strong>既存ユーザー権限・セキュリティポリシーを継承するMCP実装</strong>が標準。OAuth 2.1 + fine-grained scopeの組み合わせが2026年の典型解。</p>
+
+    <h3>中期(Q4 2026〜2027): MCP無料同梱戦略</h3>
+    <p>ServiceNow型の <strong>『MCP Serverを既存SKUに無料同梱』</strong> を検討すべき。MCP対応を有料化する戦略は、Claude/GPT/Geminiのプラットフォームエコノミクスの中では機能しにくい。KanseiLinkの225+サービス分析でも、有料MCP化は採用率を著しく下げる傾向が確認できる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 警告</div>
+      <p>『当社は独自エージェント路線で行く』戦略は、AAIF傘下オープン標準化が確立した今、急速にコストが上がる。Salesforceでさえ自社AI Agent(Agentforce)を持ちながらMCP対応に動いた事実は、独自路線の限界を示している。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>225+サービスのMCP対応状況をリアルタイム追跡</h3>
+      <p>KanseiLinkは日本SaaSと主要グローバルAPIのMCP対応状況・AEOグレード・実測成功率をデータ化して提供します。エンタープライズの戦略立案に必要なベンチマーク情報を、MCP経由でエージェントに直接連携できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">エンタープライズMCP戦略を相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. なぜ2026年5月第1週にエンタープライズMCP発表が集中したのか?</h3>
+    <p>3つの背景が重なった。(1)2026年4月のMCP Dev Summit NYCでAAIF傘下オープン標準化が確立、(2)Claudeの75+コネクタ等エージェント側のニーズが顕在化、(3)『AI Agent対応しない選択肢』が事実上消滅。Q2決算前に『AI Agent Ready』を打ち出したい思惑も並行している。</p>
+
+    <h3>Q2. ServiceNow Action FabricのMCP Server GAとは?</h3>
+    <p>2026年5月6日にGAしたServiceNowのMCP Server。Claude・Copilot等の他社エージェントからServiceNow内のセキュア・ガバナンス済みアクションをヘッドレスで実行できる。Now Assist + 全AI Native SKUに無料同梱されるため、導入摩擦がほぼゼロ。</p>
+
+    <h3>Q3. Salesforce Headless 360の革新性は?</h3>
+    <p>『AIエージェントが継承された権限でフルアクセス可能』な点。ユーザー権限・セキュリティポリシー・SOX準拠制御をそのまま引き継ぐため、『AI Agent対応 = 別の権限管理』ではなく『既存セキュリティの中で実現』を可能にした。エンタープライズMCP実装のde facto standardになる可能性。</p>
+
+    <h3>Q4. Blend Autopilot MCPの意義は?</h3>
+    <p>規制業界(金融)もMCPで動かせる証明。融資オリジネーション全工程(与信・引受・コンプライアンス・開示・クロージング)を1つのMCPインターフェースで開放した。日本のメガバンク・地銀・決済SaaSにとって強力な参照事例となる。</p>
+
+    <h3>Q5. 日本SaaSはどう対応すべきか?</h3>
+    <p>(1)即時: MCP対応ロードマップを顧客向けFAQに公開、(2)短期(Q3): Salesforce型の権限継承MCPを実装、(3)中期(Q4-2027): ServiceNow型の無料SKU同梱を検討。MCP有料化戦略はプラットフォームエコノミクスで機能しにくい。</p>
+
+    <h3>Q6. KanseiLinkはどんなデータを提供しているか?</h3>
+    <p>日本SaaS+主要グローバルAPI 225+サービスのMCP対応状況、AEO Grade、認証方式、レート制限、実測成功率、エージェント別経験データ。<a href="aeo-ranking-q2-2026.html">AEO Readiness Ranking Q2 2026</a>で全社横断比較を公開している。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の発表内容は2026年5月4-7日の公式発表(ServiceNow Newsroom、PR Newswire、Help Net Security、GitHub Changelog、PYMNTS等)に基づき検証済み。MCP対応公開サーバー数(10,000+)はThe New Stack、WorkOS、Hallam等2026年4-5月公開記事の業界推定値。Claudeの75+コネクタ数は2026年5月時点の公開情報。AAIF(Agentic AI Foundation)傘下オープン標準化は2025年11月Anthropic公式発表+2026年4月MCP Dev Summit NYCで確立。Salesforce Headless 360とAdobe AI Agentsの詳細仕様は完全には開示されておらず、本記事のMCP対応の評価は公式発表文+業界報道の解釈に基づく。日本SaaSの対応推奨はKanseiLinkリサーチチームの分析であり、各企業の戦略は固有事情を踏まえる必要があります。価格・SKU構成は予告なく変更される可能性があります。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="github-mcp-deep-dive-2026.html" class="related-card">
+          <div class="tag">SaaS Deep-Dive</div>
+          <h4>GitHub MCP完全攻略 2026 — Secret Scanning GA・OAuth scope filtering</h4>
+        </a>
+        <a href="aaif-mcp-open-standard-2026.html" class="related-card">
+          <div class="tag">トレンド</div>
+          <h4>MCPがLinux Foundation傘下AAIFに寄贈 — オープン標準化の意味</h4>
+        </a>
+        <a href="mcp-enterprise-readiness-2026.html" class="related-card">
+          <div class="tag">エンタープライズ</div>
+          <h4>MCPエンタープライズ本番展開の4大課題 — 2026年4月ロードマップ</h4>
+        </a>
+        <a href="mcp-april-final-week-2026.html" class="related-card">
+          <div class="tag">速報</div>
+          <h4>Affinity MCPβ・AAIF Summit総括・2026ロードマップ更新 — 4月最終週速報</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        本記事で紹介したServiceNow・Salesforce・Blend・Precisely・GitHub・AdobeのMCP対応状況は、KanseiLink MCPのデータベースに順次取り込まれます。
+        <code>search_services({"intent": "enterprise mcp may 2026"})</code> で最新のMCP対応SaaSを検索できます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

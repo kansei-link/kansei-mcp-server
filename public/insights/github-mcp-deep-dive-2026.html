@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub MCP完全攻略 2026 — Secret Scanning GA・OAuth scope filtering・実運用5つの落とし穴 | KanseiLink</title>
+  <meta name="description" content="GitHub公式MCPサーバー(npx @github/mcp-server)はAグレード、世界最大級のコードホスティングをエージェントに開放する。2026年1月のProjects統合、5月5日のSecret Scanning GA、OAuth scope自動フィルタリング、Enterprise HTTPモード — 公式機能の全貌と認証・レート制限・GraphQL選択など実運用で踏むべき5つの落とし穴を整理する。">
+  <meta name="keywords" content="GitHub MCP, github-mcp-server, GitHub Secret Scanning MCP, OAuth scope filtering, GitHub App, fine-grained PAT, MCP deep dive, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/github-mcp-deep-dive-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/github-mcp-deep-dive-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/github-mcp-deep-dive-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/github-mcp-deep-dive-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="GitHub MCP完全攻略 2026 — Secret Scanning GA・OAuth scope filtering・実運用5つの落とし穴">
+  <meta property="og:description" content="GitHub公式MCP(Aグレード)の全機能と落とし穴。2026年5月5日のSecret Scanning GA、Projects統合、Enterprise HTTPモードまで。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/github-mcp-deep-dive-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-07">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="SaaS Deep-Dive">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GitHub MCP完全攻略 2026 — Secret Scanning GA・OAuth scope filtering・実運用5つの落とし穴">
+  <meta name="twitter:description" content="GitHub公式MCP(Aグレード)の全機能と落とし穴。Secret Scanning GA、Projects統合、Enterprise HTTPモードまで。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "GitHub MCP完全攻略 2026 — Secret Scanning GA・OAuth scope filtering・実運用5つの落とし穴",
+    "description": "GitHub公式MCPサーバーはAグレード、世界最大級のコードホスティングをエージェントに開放する。2026年1月のProjects統合、5月5日のSecret Scanning GA、OAuth scope自動フィルタリング、Enterprise HTTPモード — 公式機能の全貌と認証・レート制限・GraphQL選択など5つの落とし穴を整理する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-07",
+    "dateModified": "2026-05-07",
+    "mainEntityOfPage": "https://kansei-link.com/insights/github-mcp-deep-dive-2026",
+    "keywords": ["GitHub MCP", "github-mcp-server", "Secret Scanning MCP", "OAuth scope filtering", "fine-grained PAT", "GitHub App", "MCP deep dive", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "GitHub MCPサーバーはどう導入するのが最速ですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "個人・PoC用途は『Settings > Developer settings > Personal access tokens > Fine-grained tokens』でリポジトリ単位のスコープを切り、npx @github/mcp-server をローカル起動するのが最速。組織展開・本番運用ではGitHub App(『Settings > Developer settings > GitHub Apps』)をインストールし、Per-Installationの15,000リクエスト/時の上限を活用するのが標準。2026年4月以降、Enterprise版ではHTTPサーバーモード+OAuthトークンをAuthorizationヘッダで都度受け取るパターンが利用可能で、社内に共有MCPを1台立てる構成が現実解。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "fine-grained PATとClassic PAT、どちらを使うべきですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "原則fine-grained PATを使う。Classicは『すべてのリポジトリに適用される』『有効期限が長期化しがち』『漏洩時の被害が広い』という弱点がある。fine-grainedは(1)対象リポジトリを絞れる、(2)権限をcontents:read / issues:write / pull_requests:write のように細かく切れる、(3)有効期限の上限が短く設定されているため、最小権限の原則に沿う。2026年1月のGitHub MCP Server更新で『Classic PATの場合のみOAuth scopeを自動検知して使えないツールを非表示にする』機能が入ったが、これはClassicの弱点を機械的に補う措置。新規ならfine-grained一択。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "2026年5月にGAになったSecret Scanning統合とは何ですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "2026年5月5日、GitHub MCPサーバー上のSecret Scanningがgenerally availableになった(GitHub Changelog)。エージェントがコミット前・PR作成前にコード内のシークレット(APIキー、トークン、パスワード等)を検出するためのツールが公式提供される。Cursor・Claude Desktop・VS Code等のMCP対応IDEから直接呼べるため、『コミット前の最終チェック』をエージェント側で標準化できるのが大きな変化。Dependabotアラート確認と組み合わせれば、AIコーディングのセキュリティガードレールが一段強くなる。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "GitHub MCPのレート制限はどのくらいですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "認証方式で大きく違う。(1) Personal Access Token: 5,000リクエスト/時(REST + GraphQL合算)、(2) GitHub Appインストール単位: 15,000リクエスト/時、(3) Search API: 30リクエスト/分(別枠の厳しい上限)、(4) abuseと判定された場合は『Secondary Rate Limit』が発動。2026年運用のコツは(a) X-RateLimit-Remainingヘッダを毎回確認、(b) ETag / If-None-Match で条件付きリクエストを使い、変更がない場合は304を受けてquotaを温存、(c) 大量読み取りはGraphQL v4で1クエリに集約して『複数のREST呼び出し』を圧縮する、の3点。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "1MB超のファイルはどう取得しますか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "GitHub APIの /repos/{owner}/{repo}/contents/{path} は1MBまでしかBase64で返せない設計上の制約がある。1MBを超えるファイル(大きなJSON、PDF、画像、動画ログ等)は Git Data API のblobsエンドポイント (/repos/{owner}/{repo}/git/blobs/{file_sha}) を使う必要がある。エージェント実装では『Mac環境のbuild logが2MBで読めない』『.lockファイルが1.2MBで取得失敗』のような事故が起きやすいため、Contents APIで失敗→blobsへフォールバックの2段構えにするのが鉄則。GitHub MCPサーバー利用時は内部でこの分岐が処理されるが、直接REST呼び出し時は明示的に実装する必要がある。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "GitHub MCP Deep Dive 2026", "item": "https://kansei-link.com/insights/github-mcp-deep-dive-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/github-mcp-deep-dive-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      GitHub MCP完全攻略 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">SaaS Deep-Dive / 個別SaaS深掘り</span>
+      <h1>GitHub MCP完全攻略 2026 — Secret Scanning GA・OAuth scope filtering・実運用5つの落とし穴</h1>
+      <p class="subtitle">世界最大のコードホスティングをエージェントに開放するGitHub公式MCPサーバー(<code>npx @github/mcp-server</code>)。KanseiLink AEO格付けはAグレード、認証はOAuth/PAT/GitHub Appの3方式。2026年1月のProjects統合、4月のEnterprise HTTPモード、5月5日のSecret Scanning GAを踏まえ、認証選択・レート制限・1MB問題・GraphQLか/RESTか・OAuth scope自動フィルタの5つの落とし穴を実装目線で整理する。</p>
+      <div class="article-meta">
+        <span>2026-05-07</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約11分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#overview">公式MCPサーバーのスコープと格付け</a></li>
+        <li><a href="#auth">認証3方式の選び方 — PAT / GitHub App / OAuth</a></li>
+        <li><a href="#tools">ツール構成 — Repos / Issues / PRs / Projects / Actions / Secret Scanning</a></li>
+        <li><a href="#rate-limit">レート制限の3層構造とGraphQL最適化</a></li>
+        <li><a href="#pitfalls">実運用5つの落とし穴</a></li>
+        <li><a href="#enterprise">Enterprise HTTPモードと共有MCP戦略</a></li>
+        <li><a href="#checklist">本番チェックリスト</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="overview">公式MCPサーバーのスコープと格付け</h2>
+
+    <p>GitHubは2026年1月28日に公式MCPサーバーの大規模アップデートを行い、現在<a href="https://github.com/github/github-mcp-server" target="_blank">github/github-mcp-server</a>として公開されている。AIエージェント・アシスタント・チャットボットに対し、<strong>リポジトリ閲覧、コードファイル読み取り、Issue/PR管理、コード解析、ワークフロー自動化</strong>の機能をMCPツールとして提供する。</p>
+
+    <p>KanseiLinkのAEO格付けでは、GitHubは <strong>Aグレード(Trust score 0.7)</strong>。認証OAuth 2.0、ドキュメント整備度、公式MCPサーバー有無、API安定性のいずれも上位だが、レート制限の3層構造(Auth種別×APIファミリー×Secondary制限)が複雑なため、AAグレードには届いていない。</p>
+
+    <div class="data-highlight">
+      <h4>GitHub MCP — 公式仕様 ✅ 検証済み</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num">A</span>
+          <span class="label">KanseiLink AEO Grade</span>
+        </div>
+        <div class="metric-item">
+          <span class="num">0.7</span>
+          <span class="label">Trust Score</span>
+        </div>
+        <div class="metric-item">
+          <span class="num">5,000</span>
+          <span class="label">PAT req/hour</span>
+        </div>
+        <div class="metric-item">
+          <span class="num">15,000</span>
+          <span class="label">GitHub App req/hour</span>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="auth">認証3方式の選び方 — PAT / GitHub App / OAuth</h2>
+
+    <p>GitHub MCPは3つの認証方式をサポートする。本番運用での選び方は明確だ。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>方式</th>
+          <th>レート上限</th>
+          <th>スコープ細分化</th>
+          <th>適用シーン</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fine-grained PAT</td>
+          <td>5,000/hr</td>
+          <td><span class="success-high">高(repo単位)</span></td>
+          <td>個人開発・PoC・CI</td>
+        </tr>
+        <tr>
+          <td>Classic PAT</td>
+          <td>5,000/hr</td>
+          <td><span class="success-low">低(ユーザー全体)</span></td>
+          <td>レガシー互換のみ</td>
+        </tr>
+        <tr>
+          <td>GitHub App</td>
+          <td>15,000/hr/installation</td>
+          <td><span class="success-high">高(install単位)</span></td>
+          <td>組織展開・本番運用</td>
+        </tr>
+        <tr>
+          <td>OAuth App (user)</td>
+          <td>5,000/hr/user</td>
+          <td>中</td>
+          <td>マルチユーザーSaaS</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>2026年1月のアップデートで、<strong>Classic PATの場合のみOAuthスコープを自動検知して、使えないツールを非表示にする</strong>機能が入った(GitHub Changelog 2026-01-28)。これは『issuesスコープを持たないPATでcreate_issueツールを呼び出してエラーで詰まる』ような事故を防ぐ機械的措置。fine-grained PATは元々スコープが厳密なため、この補助は適用されない設計になっている。</p>
+
+    <div class="insight-box">
+      <div class="label">推奨</div>
+      <p>新規エージェントは <strong>fine-grained PAT</strong>(個人/PoC) → <strong>GitHub App</strong>(本番組織展開)の2段階に。Classicは「2026年時点で新規導入する理由がない」のが実情。</p>
+    </div>
+
+    <h2 id="tools">ツール構成 — Repos / Issues / PRs / Projects / Actions / Secret Scanning</h2>
+
+    <p>GitHub公式MCPサーバーは2026年5月時点で以下の主要ツールセットを提供する(GitHub公式ドキュメント、Changelog 2026-01-28・2026-05-05による)。</p>
+
+    <ul>
+      <li><strong>Repository Management</strong> — リポジトリ閲覧、コード検索、コミット解析、ファイル取得</li>
+      <li><strong>Issue & PR Automation</strong> — Issue/PRの作成・更新・コメント・マージ</li>
+      <li><strong>Projects (2026-01-28追加)</strong> — <code>projects_list</code> / <code>projects_get</code> 等の統合ツールでGitHub Projectsを扱う</li>
+      <li><strong>CI/CD & Actions Intelligence</strong> — ワークフロー実行確認、ビルド失敗解析、リリース管理</li>
+      <li><strong>Code Analysis</strong> — Dependabotアラート確認、セキュリティ調査</li>
+      <li><strong>Secret Scanning (2026-05-05 GA)</strong> — コミット前/PR作成前のシークレット検出 ✅</li>
+      <li><strong>Insiders Mode (opt-in)</strong> — 実験的・プレビュー機能の早期利用</li>
+    </ul>
+
+    <h3>2026年5月5日 Secret Scanning GAの意味</h3>
+
+    <p>2026年5月5日に公式リリースされたSecret ScanningのGA(<a href="https://github.blog/changelog/2026-05-05-secret-scanning-with-github-mcp-server-is-now-generally-available/" target="_blank">GitHub Changelog</a>)は、AIコーディング時代の最終防衛線として重要だ。エージェントがコミットを作成する前にコード内のAPIキー・トークン・認証情報を検出するツールが公式MCP経由で呼べる。Cursor、Claude Desktop、VS Code、Copilot等のMCP対応IDE/エディタから直接利用できるため、<strong>「エージェントがシークレットを誤ってコミットする事故」を構造的に減らせる</strong>変化だ。</p>
+
+    <h2 id="rate-limit">レート制限の3層構造とGraphQL最適化</h2>
+
+    <p>GitHubのレート制限は単一の数字ではなく、3層に分かれている。</p>
+
+    <ol>
+      <li><strong>Primary Rate Limit</strong> — 認証単位の毎時上限(PAT 5,000 / GitHub App 15,000)。REST + GraphQLが合算される。</li>
+      <li><strong>Search API個別上限</strong> — 30リクエスト/分という別枠の厳しい制限。コード検索・Issue検索を多用するエージェントで真っ先に詰まる。</li>
+      <li><strong>Secondary Rate Limit</strong> — 短時間の連続アクセスや並列度過剰でabuse判定された場合の動的制限。HTTPステータス403で返ることもあり、Retry-Afterヘッダで指示される。</li>
+    </ol>
+
+    <h3>quotaを温存する3つの実装パターン</h3>
+
+    <pre><code>// 1. X-RateLimit-Remainingヘッダを毎回確認
+const remaining = parseInt(res.headers['x-ratelimit-remaining'] || '5000');
+if (remaining < 100) {
+  // 100以下なら非クリティカルな処理を遅延
+  await scheduleLowPriorityRetry();
+}
+
+// 2. ETag / If-None-Match で条件付きリクエスト → 304ならquota消費なし
+const cached = cache.get(`gh:${url}`);
+const headers: Record<string, string> = {
+  'Authorization': `Bearer ${token}`,
+  'X-GitHub-Api-Version': '2022-11-28',
+};
+if (cached?.etag) headers['If-None-Match'] = cached.etag;
+
+const res = await fetch(url, { headers });
+if (res.status === 304) return cached.body; // quota消費0
+
+// 3. 大量読み取りはGraphQL v4で1クエリ集約
+// REST: repo情報 + issues + PRs + commits = 4呼び出し
+// GraphQL: 1 query で全部 → quota 25%削減
+</code></pre>
+
+    <div class="success-box">
+      <div class="label">✅ 実測データに基づく推奨</div>
+      <p>GitHub MCPで<strong>X-GitHub-Api-Version: 2022-11-28</strong>を必ず指定する。指定しない場合、APIバージョンが将来のメジャー変更で暗黙にアップグレードされ、エージェントの実装が壊れるリスクがある。これはKanseiLinkがget_service_detailで提供している実装ヒントの最上位項目だ。</p>
+    </div>
+
+    <h2 id="pitfalls">実運用5つの落とし穴</h2>
+
+    <h3>落とし穴1: 1MB超のファイルが読めない</h3>
+    <p>Contents API(<code>/repos/{owner}/{repo}/contents/{path}</code>)はBase64エンコードで1MBまで。大きいJSON、ビルドログ、PDFファイル等は<strong>Git Data API blobs</strong>(<code>/repos/{owner}/{repo}/git/blobs/{file_sha}</code>)へフォールバックが必須。公式MCPサーバー経由なら自動分岐するが、直接REST呼び出し時は明示実装が必要。</p>
+
+    <h3>落とし穴2: Search APIで頻繁に詰まる</h3>
+    <p>30リクエスト/分の別枠制限。コード検索を連続実行するエージェントは1分以内に詰まる。対処は(a)結果キャッシュ、(b)検索クエリ集約(複数クエリを1つに統合)、(c)GraphQL v4の<code>search</code>クエリへ移行。</p>
+
+    <h3>落とし穴3: Issue/PR番号の混同</h3>
+    <p>GitHubのissue_numberとpr_numberは<strong>リポジトリ単位で連番</strong>(グローバルにユニークではない)。複数リポジトリを横断するエージェントは必ず<code>{owner}/{repo}</code>でスコープすること。「PR #42」だけを保持してしまい後で参照不能になるバグが頻出する。</p>
+
+    <h3>落とし穴4: Classic PATの権限漏洩</h3>
+    <p>Classic PATは<strong>ユーザーが所属する全リポジトリに適用される</strong>。1つのリポジトリ用に発行したつもりでも、漏洩時には組織全体のリポジトリにアクセスされる。最小権限原則のためにfine-grained PATへの移行が2026年標準。</p>
+
+    <h3>落とし穴5: ETagを使わずに条件付きキャッシュを失う</h3>
+    <p>リポジトリのIssue一覧を5分ごとにポーリングするエージェントが、変化がないのに毎回フルレスポンスを取得すると、quotaが急減する。ETag + If-None-Matchで304を受ければ<strong>quota消費なしでキャッシュヒット可</strong>。これは公式が推奨するベストプラクティスだ。</p>
+
+    <h2 id="enterprise">Enterprise HTTPモードと共有MCP戦略</h2>
+
+    <p>2026年1月のリリースで、GitHub MCPサーバーに<strong>HTTPサーバーモード</strong>が追加された(GitHub Changelog 2026-01-28)。OAuthトークンをAuthorizationヘッダで都度受け取り、Enterprise Server互換でも動作する。</p>
+
+    <p>これが意味するのは、<strong>「社内に1台のGitHub MCPサーバーを立て、複数エージェントがOAuth tokenで個別認証する」共有MCP構成</strong>が公式に可能になったこと。各エージェントが個別にnpx起動する従来構成と比べて、(1) 認証ローテーションが集中管理できる、(2) ロギング・監査が一元化、(3) Secondary Rate Limit回避のためのスマート分配、を実現できる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 注意</div>
+      <p>共有MCP構成では <strong>エージェント単位のtoken管理が漏洩源になりがち</strong>。Authorizationヘッダの転送ログ、Token expiration policyの設定、社内VPN/Zero Trust経由でのアクセス制限を併用すること。</p>
+    </div>
+
+    <h2 id="checklist">本番チェックリスト</h2>
+
+    <ul class="checklist">
+      <li>fine-grained PAT または GitHub App で認証している(Classic PATは新規利用しない)</li>
+      <li>X-GitHub-Api-Version: 2022-11-28 ヘッダを必ず付与している</li>
+      <li>X-RateLimit-Remaining を毎回確認し、低下時は非クリティカルな処理を遅延させている</li>
+      <li>ETag / If-None-Match で条件付きリクエストを実装している</li>
+      <li>大量読み取り(>5回)はREST個別呼び出しではなくGraphQL v4で1クエリに集約している</li>
+      <li>Search API利用箇所はキャッシュ + クエリ集約で30/分制限を超えない設計になっている</li>
+      <li>Issue/PR番号は <code>{owner}/{repo}</code> でスコープして保持している</li>
+      <li>1MB超のファイルはContents API失敗 → Git Data API blobsへフォールバック実装済み</li>
+      <li>Secret Scanning(2026-05-05 GA)を採用してコミット前/PR前にシークレット検出している</li>
+      <li>本番組織展開ではGitHub App + HTTPモードで共有MCP構成を検討した</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>225+サービスのMCPデータをエージェントに直接接続</h3>
+      <p>KanseiLinkはGitHub・freee・kintone・Notion・Slack・Backlog等のMCP実装データをMCP経由で取得できるレイヤーを提供します。get_service_detailで認証方式・レート制限・落とし穴を取得し、AIエージェント実装時の判断材料にしてください。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">KanseiLink MCPで実装判断を補強する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. GitHub MCPサーバーはどう導入するのが最速ですか?</h3>
+    <p>個人・PoCは fine-grained PAT を発行して<code>npx @github/mcp-server</code>を起動。組織展開はGitHub App(15,000リクエスト/時)を作成しインストール。Enterprise/組織共有はHTTPサーバーモード+OAuthトークン転送が2026年4月以降の推奨構成。</p>
+
+    <h3>Q2. fine-grained PATとClassic PAT、どちらを使うべき?</h3>
+    <p>原則fine-grained。Classicは全リポジトリに適用されるため漏洩時の被害が広い。fine-grainedは対象リポジトリ・権限・有効期限を細かく制御できる。2026年新規導入時にClassicを選ぶ理由はない。</p>
+
+    <h3>Q3. 2026年5月にGAしたSecret Scanning統合とは?</h3>
+    <p>2026年5月5日(GitHub Changelog)、GitHub MCPサーバーのSecret ScanningがGA。エージェントがコミット/PR前にコード内のAPIキー・トークン・認証情報を検出する。MCP対応IDEから直接呼べるため、AIコーディング事故を構造的に防げる重要な変化。</p>
+
+    <h3>Q4. GitHub MCPのレート制限はどのくらい?</h3>
+    <p>(1) PAT: 5,000リクエスト/時(REST+GraphQL合算)、(2) GitHub Appインストール単位: 15,000リクエスト/時、(3) Search API: 30/分(別枠)、(4) Secondary制限はabuse判定時に発動。X-RateLimit-Remainingヘッダ確認・ETag条件付きリクエスト・GraphQL集約の3点でquotaを温存。</p>
+
+    <h3>Q5. 1MB超のファイルはどう取得?</h3>
+    <p>/repos/.../contents/{path}は1MBまで。それ以上はGit Data API blobs(/repos/.../git/blobs/{file_sha})にフォールバック。公式MCPサーバー経由なら自動処理されるが、直接REST呼び出し時は明示実装が必要。</p>
+
+    <h3>Q6. KanseiLinkはGitHub MCPをどう評価していますか?</h3>
+    <p>KanseiLinkのAEO格付けはAグレード(Trust score 0.7)。公式MCPサーバー、OAuth/PAT/App 3方式の認証、ドキュメント整備、API安定性で高評価。AAグレードに届かない要因はレート制限の3層構造(認証種別×APIファミリー×Secondary)の複雑さ。<a href="devtools-saas-aeo-2026.html">開発者ツール AEO比較 2026</a>でGitLab・AWS・Playwrightと並べた格付けレポートを公開している。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事のGitHub MCP仕様(認証方式、レート制限値、ツール構成、Projects統合 2026-01-28、Secret Scanning GA 2026-05-05、Insiders mode、HTTPサーバーモード)はGitHub公式Changelog(github.blog/changelog)、GitHub公式リポジトリ(github/github-mcp-server)、GitHub REST API ドキュメント(docs.github.com/en/rest)に基づき検証済み。KanseiLinkのAXR Grade(A)とTrust Score(0.7)は2026年4月時点の独自評価で、Q3 2026の更新で変動する可能性があります。本記事のコード例は概念示唆を目的とした擬似コードで、本番投入時はエラーハンドリング・リトライポリシー・トークン管理を含めた検証が必要です。価格・仕様・GA日付は予告なく変更される可能性があるため、本番運用時は最新の公式ドキュメントをご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="devtools-saas-aeo-2026.html" class="related-card">
+          <div class="tag">Industry Report</div>
+          <h4>開発者ツール AEO比較 2026 — GitHub・GitLab・AWS・Playwright MCPの格付けレポート</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー実装完全ガイド 2026 — 認証・レート制限・エラーハンドリング</h4>
+        </a>
+        <a href="mcp-rate-limiting-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー レート制限・指数バックオフ実装ガイド 2026</h4>
+        </a>
+        <a href="agent-auth-patterns-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>エージェント認証パターン 2026 — OAuth・PAT・GitHub App比較</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        GitHub MCPの認証セットアップ、レート制限詳細、ツール一覧、落とし穴データはKanseiLink MCP経由で構造化取得できます。
+        <code>get_service_detail({"service_id": "github"})</code> で認証手順・key endpoints・agent_tipsを、
+        <code>get_service_tips({"service_id": "github"})</code> で最新の落とし穴と回避策を取得できます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
