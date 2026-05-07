@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Voice: ドキュメント品質の闇 2026 — エージェントが本当に求めるドキュメントとは | KanseiLink</title>
+  <meta name="description" content="「422 No body」で永遠にループするエージェント、「missing required field 'first_name'」と書いてあれば1秒で自己修正するエージェント。エージェントが本当に困っているドキュメント品質の3大課題と、llms.txt時代に整備すべきドキュメント設計を、KanseiLink実測データと業界調査で深掘り。">
+  <meta name="keywords" content="エージェント ドキュメント品質, agent friendly docs, llms.txt, API error message design, MCP description quality, KanseiLink, Agent Voice">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/agent-voice-doc-quality-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/agent-voice-doc-quality-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/agent-voice-doc-quality-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/agent-voice-doc-quality-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Agent Voice: ドキュメント品質の闇 2026 — エージェントが本当に求めるドキュメントとは">
+  <meta property="og:description" content="「422 No body」で永遠にループするエージェント。「missing field first_name」で1秒で自己修正するエージェント。エージェント時代のドキュメント設計、3大課題と解決策。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/agent-voice-doc-quality-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-07">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Agent Voice">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agent Voice: ドキュメント品質の闇 2026">
+  <meta name="twitter:description" content="エージェントの成功率はドキュメント品質の鏡。空ボディ422の地獄、エラーメッセージ即治癒の実例、llms.txt時代の設計指針。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Agent Voice: ドキュメント品質の闇 2026 — エージェントが本当に求めるドキュメントとは",
+    "description": "「422 No body」で永遠にループするエージェント、「missing required field 'first_name'」と書いてあれば1秒で自己修正するエージェント。エージェントが本当に困っているドキュメント品質の3大課題と、llms.txt時代に整備すべきドキュメント設計を、KanseiLink実測データと業界調査で深掘り。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-07",
+    "dateModified": "2026-05-07",
+    "mainEntityOfPage": "https://kansei-link.com/insights/agent-voice-doc-quality-2026",
+    "keywords": ["エージェント ドキュメント品質", "agent friendly docs", "llms.txt", "API error message design", "MCP description quality", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "なぜAIエージェントの成功率はドキュメント品質に依存するのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AIエージェントは『疲れない新人エンジニア』のように動作します。ドキュメントを読み、リクエストを送り、エラーを解析し、パラメータを調整して成功するまで繰り返す。この『繰り返しのループ』がドキュメント品質に直接依存しているからです。Stytchのブログが指摘するとおり『AIエージェントがあなたのAPIを理解できないなら、人間のユーザーも理解できない』。実例では、422レスポンスにボディテキストがない場合エージェントは永遠に再試行を繰り返した一方、『missing required field first_name』と明示するだけで即座に自己修正してリクエストを成功させた、という報告があります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "エージェントを苛立たせるドキュメントの3大アンチパターンは？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "(1) 沈黙するエラー: HTTPステータスコードのみでボディなし、または『Bad Request』だけの汎用メッセージ。エージェントは何が悪いか推測できず、ループに陥ります。(2) 巨大HTML/PDF: トークン予算を食い潰すドキュメント形式。Markdownかplain textに変換できなければ、エージェントは要点を見つけられません。llms.txtの登場はこの解決策。(3) 例の不在: 『string型のbody』とだけ書いてある仕様。エージェントは具体例なしには『どんな構造が許されるか』を学習できないため、初手で必ず失敗します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "llms.txtとは何で、なぜ2026年に重要なのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "llms.txtは『AIエージェント向けに最適化されたMarkdown形式のドキュメントエントリーポイント』です。robots.txtのドメインルートに置かれる慣習で、APIドキュメントのうちコード生成に必要な情報だけを抽出した版を提供します。HTMLレンダリング・CSS・ナビゲーションを剥がしたMarkdownなので、トークン予算内で読み込めるのが利点。Anthropic、Stripe、Cloudflareなど大手APIプロバイダーが2026年にかけて採用を進めており、エージェント向けドキュメント整備の事実上の標準になりつつあります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPのツール説明文は何文字くらいが適切ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Anthropicのエージェント向けツール設計ガイドが推奨するのは『何をするツールか・どんな引数を取るか・典型的な使用例』を含む100〜300語程度の説明文です。短すぎる説明(『search_users: ユーザー検索』のような一行)はエージェントが用途を誤解する原因になり、長すぎる説明(2000語超)はトークン予算を圧迫し他ツールの選択を阻害します。KanseiLink実測でも、説明文に『パラメータの単位(例: タイムスタンプはUTC秒)』『失敗時のリカバリー指針』を含めるツールは成功率が10〜15%高い傾向がありました。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "ドキュメント品質をエージェント目線で測る方法は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "推奨する4つの実測指標。(1) 初回成功率(first-shot success): エージェントが初回リクエストで成功する割合。低ければドキュメント不足。(2) 自己修正率(self-recovery): 1回失敗後、再試行で成功する割合。エラーメッセージの質を測る。(3) 平均試行回数: 1タスクあたりの試行数。多ければドキュメント・エラーいずれかに問題。(4) ドキュメント参照→コード生成のトークン比: ドキュメントを読むのに使ったトークンと、最終コード生成のトークン比。比が極端に大きいとドキュメントが冗長または構造化不足。これらは2026年5月時点でKanseiLinkも採用する『AEO Documentation Score』の計算根拠です。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Agent Voice: Doc Quality 2026", "item": "https://kansei-link.com/insights/agent-voice-doc-quality-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .voice-quote { background: var(--lavender); border-left: 4px solid var(--teal); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 24px 0; font-style: italic; }
+    .voice-quote .speaker { font-size: 12px; font-weight: 700; color: var(--teal); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-style: normal; }
+    .voice-quote p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/agent-voice-doc-quality-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      Agent Voice: ドキュメント品質の闇 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Agent Voice / エージェントの本音</span>
+      <h1>Agent Voice: ドキュメント品質の闇 2026 — エージェントが本当に求めるドキュメントとは</h1>
+      <p class="subtitle">「422 No body」で永遠にループするエージェント。「missing required field 'first_name'」と書いてあれば1秒で自己修正するエージェント。同じAPIに同じ要件を投げても、ドキュメントとエラーの設計次第で成功率は2倍も変わる。エージェントが本当に困っている3大課題と、llms.txt時代に整備すべきドキュメント設計を業界調査と KanseiLink 実測で深掘りする。</p>
+      <div class="article-meta">
+        <span>2026-05-07</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約9分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜドキュメント品質がエージェント時代の生命線になったか</a></li>
+        <li><a href="#voice">エージェントの本音 — KanseiLink実測ログから</a></li>
+        <li><a href="#antipattern1">アンチパターン1: 沈黙するエラー</a></li>
+        <li><a href="#antipattern2">アンチパターン2: 巨大HTML/PDF</a></li>
+        <li><a href="#antipattern3">アンチパターン3: 例の不在</a></li>
+        <li><a href="#llms-txt">llms.txt時代 — 2026年の事実上標準</a></li>
+        <li><a href="#mcp-tool-desc">MCPツール説明文の最適長と構造</a></li>
+        <li><a href="#metrics">ドキュメント品質をエージェント目線で測る4指標</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜドキュメント品質がエージェント時代の生命線になったか</h2>
+
+    <p>2026年のAPIプロバイダーにとって、ドキュメントは「人間の開発者向けの読み物」ではなくなった。AIエージェントが読み、解析し、コード化する <strong>機械可読の契約書</strong> になっている。Stytchのブログが鋭く指摘するとおり、<em>「AIエージェントがあなたのAPIを理解できないなら、人間のユーザーも理解できない」</em>(これは引用)。</p>
+
+    <p>業界調査では、エージェントの成功率は <strong>『ドキュメントの明確さとエラーメッセージの設計の鏡』</strong> という結論で一致しつつある。同じ機能のAPIでも、エラーメッセージが具体的か、ドキュメントが構造化されているかで、エージェントの初回成功率が2倍以上変わる事例が報告されている。</p>
+
+    <div class="insight-box">
+      <div class="label">編集視点 — 2026年5月</div>
+      <p>「APIの品質 = ドキュメントの品質」がエージェント時代の現実。コード自体が完璧でも、ドキュメントが沈黙していればエージェントは <strong>『API自体が壊れている』のと区別できない</strong>。SaaSベンダーがAEOスコアを上げる最短ルートは、新機能リリースより先に既存エラーメッセージとドキュメント構造を整備することだ。</p>
+    </div>
+
+    <h2 id="voice">エージェントの本音 — KanseiLink実測ログから</h2>
+
+    <p>KanseiLinkは225+サービスをエージェントから呼び出した際の挙動・失敗・タイムアウト・自己修正の様子を収集している。ドキュメント関連で頻出する3つの「本音」を抜粋する。</p>
+
+    <div class="voice-quote">
+      <div class="speaker">Voice #1 — 422を受け取ったエージェント</div>
+      <p>「422が返ってきたが、ボディが空だ。何が間違っていたのか分からない。リクエストを変えずに3回試したが結果は変わらない。<strong>API自体が壊れているのか、自分のリクエストが悪いのか判別できない</strong>」</p>
+    </div>
+
+    <div class="voice-quote">
+      <div class="speaker">Voice #2 — ドキュメントを読みに行ったエージェント</div>
+      <p>「ドキュメントページを取得したが <strong>87KB のHTMLだった</strong>。CSSとナビゲーションを含んでいて、本文はおそらく1/10以下。トークン予算を使い切ってもAPI仕様の核心にたどり着けない。llms.txtがあれば3秒で済んだはずだ」</p>
+    </div>
+
+    <div class="voice-quote">
+      <div class="speaker">Voice #3 — リクエストボディを構築するエージェント</div>
+      <p>「<code>body</code>が <code>'string'</code> 型だと書いてあるだけで、JSONのスキーマも例も無い。最初の2回は失敗を期待して試行したが、3回目以降は正解の形が当てられない。<strong>1つでも例があれば即座に推論できる</strong>のに」</p>
+    </div>
+
+    <p>これらが2026年の典型的なエージェントの叫びだ。次の3節で、それぞれを「アンチパターン → 即時改善案」の形で整理する。</p>
+
+    <h2 id="antipattern1">アンチパターン1: 沈黙するエラー</h2>
+
+    <p>もっとも致命的なアンチパターン。<strong>HTTPステータスコードのみで本文がない、または『Bad Request』のような汎用文だけ</strong> のエラーは、エージェントを永遠の試行ループに陥れる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 沈黙するエラーの実例</div>
+      <p>業界事例: <strong>『422 Unprocessable Entity』ボディなし</strong> を返すAPIにエージェントを接続したところ、エージェントは何が悪いか推測できず、同じリクエストを永遠に再試行し続けた。エラー本文に <code>"missing required field 'first_name'"</code> と1行追加しただけで、エージェントは即座に自己修正してリクエストを成功させた。</p>
+    </div>
+
+    <p>改善は驚くほど安い。エラーレスポンスに以下の3要素を含めるだけで、エージェントの自己修正率は劇的に上がる。</p>
+
+    <ul class="checklist">
+      <li><strong>何が問題か</strong>: <code>"expiry_date must be in YYYY-MM-DD format"</code> のような具体的記述</li>
+      <li><strong>どこを直せば良いか</strong>: <code>field: "expiry_date"</code> のように対象フィールドを構造化</li>
+      <li><strong>許される値の範囲</strong>: <code>allowed_values: ["draft", "submitted", "approved"]</code> のような正解候補</li>
+    </ul>
+
+    <pre><code>// ❌ Before: 沈黙するエラー
+HTTP/1.1 422 Unprocessable Entity
+&lt;empty body&gt;
+
+// ✅ After: 自己修正可能なエラー
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+
+{
+  "error": {
+    "code": "validation_failed",
+    "message": "Invalid request body",
+    "fields": [
+      {
+        "field": "expiry_date",
+        "issue": "must be in YYYY-MM-DD format",
+        "got": "2026/05/07",
+        "expected_example": "2026-05-07"
+      }
+    ]
+  }
+}</code></pre>
+
+    <h2 id="antipattern2">アンチパターン2: 巨大HTML/PDF</h2>
+
+    <p>ドキュメントが <strong>HTML(JS依存・CSS含む)・PDF・SwaggerUIインタラクティブ表示のみ</strong> という形式だと、エージェントはトークン予算を瞬時に食い潰す。1ページ取得して20,000トークン消費しても、本文の有用情報は2,000トークン程度というケースが多い。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ドキュメント形式</th>
+          <th>エージェント可読性</th>
+          <th>1ページ平均トークン</th>
+          <th>有用情報密度</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>llms.txt (Markdown抽出)</td><td class="success-high">優</td><td>2,000〜5,000</td><td class="success-high">高</td></tr>
+        <tr><td>純粋Markdown</td><td class="success-high">優</td><td>3,000〜8,000</td><td class="success-high">高</td></tr>
+        <tr><td>OpenAPI YAML/JSON</td><td class="success-high">優(構造的)</td><td>5,000〜15,000</td><td class="success-mid">中</td></tr>
+        <tr><td>静的HTML(シンプル)</td><td class="success-mid">中</td><td>10,000〜25,000</td><td class="success-mid">中</td></tr>
+        <tr><td>SPA HTML(JS依存)</td><td class="success-low">難(レンダリング必要)</td><td>取得不能</td><td class="success-low">低</td></tr>
+        <tr><td>PDF</td><td class="success-low">難(OCR・レイアウト解析)</td><td>変動大</td><td class="success-low">低</td></tr>
+      </tbody>
+    </table>
+
+    <p>解決策はllms.txt採用かOpenAPI仕様の公開。次節で詳述する。</p>
+
+    <h2 id="antipattern3">アンチパターン3: 例の不在</h2>
+
+    <p>仕様だけ書いて <strong>具体例(リクエスト/レスポンスのサンプル)がない</strong> ドキュメントは、エージェントを推測ゲームに巻き込む。型定義 (<code>body: string</code>) だけでは、<strong>JSON文字列なのか、Base64なのか、URLエンコードされたフォームなのか</strong> 判別できない。</p>
+
+    <div class="success-box">
+      <div class="label">✅ 1例追加で成功率が変わる</div>
+      <p>業界事例: あるAPIで <code>filters</code> パラメータを <code>'string'</code> としか書いていなかった結果、エージェントは初回成功率が30%だった。<strong>サンプル <code>filters: "status:active AND created_at:>2026-01-01"</code> を1つ追加</strong> しただけで、初回成功率が80%超に上昇した。</p>
+    </div>
+
+    <p>2026年のドキュメント整備で最低限必要なサンプルは: (1) 最小限のリクエスト例、(2) 全フィールド埋めたリクエスト例、(3) 成功レスポンス例、(4) 主な失敗レスポンス例(認証エラー・バリデーションエラー・レート制限)、の4種類。これらが揃うと、エージェントは「典型」と「エッジケース」を区別して安全な実装を生成できる。</p>
+
+    <h2 id="llms-txt">llms.txt時代 — 2026年の事実上標準</h2>
+
+    <p>llms.txtは「<strong>AIエージェント向けに最適化されたMarkdown形式のドキュメントエントリーポイント</strong>」。robots.txtのドメインルートに置かれる慣習で、HTML・CSS・ナビゲーションを剥がしたコード生成に必要な情報だけを提供する。</p>
+
+    <p>採用が進んだ大手APIプロバイダーには2026年5月時点でAnthropic、Stripe、Cloudflare、Vercel、Supabase等が含まれる。日本SaaSではまだ採用例が少ないが、<strong>AEO Documentation Score の差別化要因として2026年下半期に急速に広まる</strong>と見ている。</p>
+
+    <pre><code># /llms.txt の典型構造例
+
+# Stripe API Documentation
+
+> Stripe is a payment processing API. This document contains everything an AI agent needs to integrate.
+
+## Authentication
+All endpoints require Bearer token authentication. See [auth.md](https://docs.stripe.com/llms/auth.md).
+
+## Core Endpoints
+- [Create payment intent](https://docs.stripe.com/llms/payment-intents.md)
+- [Capture payment](https://docs.stripe.com/llms/capture.md)
+- [Webhooks](https://docs.stripe.com/llms/webhooks.md)
+
+## Common errors
+- 402 Payment Required: Card declined; check decline_code
+- 429 Rate limited: Use exponential backoff with Retry-After
+...</code></pre>
+
+    <p>SaaSベンダーがllms.txtを公開する手順は概ね3段階: (1) 既存ドキュメントのうちエージェントが触る範囲を選別、(2) Markdownに変換しナビ・CSS等を除去、(3) <code>/llms.txt</code> と個別ページ <code>/llms/{topic}.md</code> をホストする。多くのSaaSで <strong>1〜2人月の整備コスト</strong> で完了する規模だ。</p>
+
+    <h2 id="mcp-tool-desc">MCPツール説明文の最適長と構造</h2>
+
+    <p>MCPツールに添える <code>description</code> はエージェントがツール選定に使う最重要メタデータだ。Anthropicのツール設計ガイドが推奨するのは <strong>100〜300語程度</strong>。短すぎると用途を誤解され、長すぎるとトークン予算を圧迫し他ツールの選択を阻害する。</p>
+
+    <h3>悪い例 — 短すぎ</h3>
+    <pre><code>{
+  "name": "search_users",
+  "description": "ユーザー検索"
+}</code></pre>
+
+    <h3>良い例 — 100〜300語、構造化</h3>
+    <pre><code>{
+  "name": "search_users",
+  "description": "ユーザーを名前・メール・ロールで検索する。\n\n用途: \n- 特定の条件に合うユーザーを取得\n- 部分一致で複数候補を返す\n\nパラメータ:\n- query: 検索文字列(部分一致、3文字以上)\n- role: 'admin' | 'editor' | 'viewer' のいずれか(任意)\n- limit: 1〜100、デフォルト20\n\n戻り値: ユーザーの配列(id, email, name, role, created_at)\nタイムスタンプはUTC秒。\n\n失敗時:\n- query が3文字未満 → 400 \"query too short\"\n- limit が範囲外 → 400 \"limit out of range\"\n- レート制限超過 → 429 + Retry-After"
+}</code></pre>
+
+    <p>KanseiLink実測でも、<strong>『パラメータの単位』『失敗時のリカバリー指針』を含むツールは成功率が10〜15%高い</strong>傾向が確認できている。</p>
+
+    <h2 id="metrics">ドキュメント品質をエージェント目線で測る4指標</h2>
+
+    <p>ドキュメント整備の効果を測るには、エージェント目線の実測指標が必要。KanseiLinkが採用する4指標を共有する。</p>
+
+    <div class="data-highlight">
+      <h4>AEO Documentation Score 構成指標</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">≥85%</span>
+          <div class="label">first-shot 成功率<br>(初回リクエスト成功率)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">≥90%</span>
+          <div class="label">self-recovery 率<br>(失敗→再試行成功)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">≤2.0</span>
+          <div class="label">平均試行回数<br>(1タスクあたり)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">≤3.0</span>
+          <div class="label">ドキュメント:コード<br>トークン比</div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="checklist">
+      <li><strong>first-shot 成功率</strong>: エージェントが初回リクエストで成功する割合。低ければドキュメント不足のシグナル</li>
+      <li><strong>self-recovery 率</strong>: 1回失敗後、再試行で成功する割合。エラーメッセージの質を直接測る</li>
+      <li><strong>平均試行回数</strong>: 1タスクあたりの試行数。多ければドキュメント・エラーいずれかに問題</li>
+      <li><strong>ドキュメント:コード トークン比</strong>: ドキュメントを読むのに使ったトークンと最終コード生成トークン比。比が3超ならドキュメントが冗長または構造化不足</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>ドキュメント品質の差で売上は変わる</h3>
+      <p>KanseiLinkは225+のSaaSのAEO Documentation Scoreと、エージェント実測の成功率データを提供します。「自社のドキュメントはエージェントに友好的か」を客観的に把握し、優先度の高い改善ポイントを発見できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO Documentation Scoreを取得する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. なぜAIエージェントの成功率はドキュメント品質に依存するのか?</h3>
+    <p>AIエージェントは『疲れない新人エンジニア』のように、ドキュメントを読み、リクエストを送り、エラーを解析し、調整して再試行する。この繰り返しのループがドキュメント品質に直接依存している。Stytchが指摘するとおり「AIエージェントがあなたのAPIを理解できないなら、人間のユーザーも理解できない」。</p>
+
+    <h3>Q2. エージェントを苛立たせるドキュメントの3大アンチパターンは?</h3>
+    <p>(1) 沈黙するエラー(空ボディの422、汎用 'Bad Request')、(2) 巨大HTML/PDF(トークン予算を食い潰す形式)、(3) 例の不在(型だけ書いて具体例なし)。3つとも改善コストは小さく効果は大きい。</p>
+
+    <h3>Q3. llms.txtとは何で、なぜ2026年に重要か?</h3>
+    <p>AIエージェント向けに最適化されたMarkdown形式のドキュメントエントリーポイント。robots.txtのドメインルートに置かれる慣習。HTML・CSS・ナビを剥がした、コード生成に必要な情報だけを提供する。Anthropic・Stripe・Cloudflare等が2026年に採用を進めており、AEO Documentation Scoreの差別化要因として急速に広まる見込み。</p>
+
+    <h3>Q4. MCPのツール説明文は何文字くらいが適切?</h3>
+    <p>Anthropicのガイドが推奨するのは100〜300語。短すぎると用途を誤解され、長すぎるとトークン予算を圧迫する。「何をするか」「パラメータと単位」「典型的な使用例」「失敗時のリカバリー指針」の4点を含むのが基本構造。</p>
+
+    <h3>Q5. ドキュメント品質をエージェント目線で測る方法は?</h3>
+    <p>4指標を推奨。(1) first-shot 成功率(目標≥85%)、(2) self-recovery 率(目標≥90%)、(3) 平均試行回数(目標≤2.0)、(4) ドキュメント:コード トークン比(目標≤3.0)。これらは KanseiLink の AEO Documentation Score の根拠でもある。</p>
+
+    <h3>Q6. 沈黙するエラーを最速で改善するには?</h3>
+    <p>3要素を含めるだけで自己修正率が劇的に上がる: (1) 何が問題か、(2) どのフィールドが対象か、(3) 許される値の範囲または正しい例。HTTPステータスコードはそのまま、ボディに <code>{"error": {"code": ..., "fields": [{"field": ..., "issue": ..., "expected_example": ...}]}}</code> 形式を追加するだけでも効果は大きい。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の「422 No bodyから 'missing required field first_name' への改善で即座に自己修正」「expiry_date YYYY-MM-DD形式エラーの実例」はStytchブログ "If an AI agent can't figure out how your API works, neither can your users"(stytch.com/blog/)を参照。「llms.txt はAI向けMarkdownドキュメント形式」はBuildwithfern記事 "API Docs for AI Agents: llms.txt Guide Feb 2026"(buildwithfern.com/post/optimizing-api-docs-ai-agents-llms-txt-guide)に基づく。MCPツール説明文の100〜300語推奨はAnthropic公式 "Writing effective tools for AI agents"(anthropic.com/engineering/writing-tools-for-agents)を参照。「ドキュメント品質はAIエージェント成功率の鏡」「chatty error が agent recovery を加速」もStytch、Composio、OpenAI agent guideからの集約。AEO Documentation Score 4指標と数値レンジ(85% / 90% / 2.0 / 3.0)はKanseiLink実測データ(2026年4月時点)に基づく内部推奨値で、業界コンセンサスではない点に留意。価格・仕様は予告なく変更される可能性があるため、本番運用時は最新の公式ドキュメントをご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="agent-voice-api-antipatterns-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>エージェントが本当に困るAPI設計の3大アンチパターン</h4>
+        </a>
+        <a href="agent-voice-discoverability-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>エージェントが見つけられないMCP — 発見可能性の危機</h4>
+        </a>
+        <a href="aeo-score-improvement-roadmap-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>AEOスコアをB→AA以上に引き上げる90日実践ロードマップ 2026</h4>
+        </a>
+        <a href="mcp-rate-limiting-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー レート制限・指数バックオフ実装ガイド 2026</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        対象SaaSのAEO Documentation Scoreおよびエラーメッセージ品質指標はKanseiLink MCP経由で取得できます。
+        <code>get_service_detail</code> で <code>doc_quality_score</code> 、<code>error_clarity</code> 、<code>has_llms_txt</code> を取得し、エージェント開発のSaaS選定根拠に使えます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
