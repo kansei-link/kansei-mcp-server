@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>「リトライ税」の経済学 2026 — 成功率の低いMCPサーバーが、なぜAPI請求書を静かに膨らませるのか | KanseiLink</title>
+  <meta name="description" content="MCPサーバーの成功率は、信頼性指標であると同時に「コスト指標」でもある。1回成功させるための期待試行回数は1/pで決まり、成功率20%のサービスは91%のサービスの約4.5倍のトークンを消費する。KanseiLink実測1,404件のアウトカムデータから、リトライ税の計算式と削減の4階層を解説する。">
+  <meta name="keywords" content="MCP リトライコスト, エージェント コスト最適化, 成功率 トークン, リトライ税, プロンプトキャッシング, Claude API 料金 2026, KanseiLink, AIエージェント 運用コスト">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-retry-tax-economics-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-retry-tax-economics-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-retry-tax-economics-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-retry-tax-economics-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="「リトライ税」の経済学 2026 — 成功率の低いMCPサーバーが、なぜAPI請求書を静かに膨らませるのか">
+  <meta property="og:description" content="成功率はコスト指標である。1回成功させる期待試行回数は1/pで決まり、成功率20%のサービスは91%の約4.5倍のトークンを焼く。KanseiLink実測データでリトライ税を解剖する。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-retry-tax-economics-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-15">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="コスト分析">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="「リトライ税」の経済学 2026">
+  <meta name="twitter:description" content="成功率はコスト指標。期待試行回数1/pでトークン消費が決まる。KanseiLink実測1,404件のデータでリトライ税を解剖。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "「リトライ税」の経済学 2026 — 成功率の低いMCPサーバーが、なぜAPI請求書を静かに膨らませるのか",
+    "description": "MCPサーバーの成功率は信頼性指標であると同時にコスト指標でもある。1回成功させる期待試行回数は1/pで決まり、KanseiLink実測1,404件のアウトカムデータからリトライ税の計算式と削減の4階層を解説する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-15",
+    "dateModified": "2026-05-15",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-retry-tax-economics-2026",
+    "keywords": ["MCP Retry Cost", "Agent Cost Optimization", "Success Rate", "Retry Tax", "Prompt Caching", "Claude API Pricing 2026", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "「リトライ税」とは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "リトライ税とは、MCPサーバーやAPIの成功率が低いことによって追加で発生するトークン消費・レイテンシ・LLM呼び出しコストの総称です。エージェントはツール呼び出しが失敗すると再試行しますが、1回の失敗ごとにエラーレスポンスの解析、リトライ判断、再実行というLLMのターンが追加で発生します。1回成功させるための期待試行回数は成功率pに対して1/pで近似でき、成功率20%なら平均5回、成功率91%なら平均1.1回の試行が必要です。つまり成功率20%のサービスは91%のサービスの約4.5倍のトークンを同じ成果のために消費します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "成功率が低いと、なぜトークンコストが「掛け算」で増えるのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "失敗1回のコストは「ツール呼び出しの入力トークン」だけではないからです。失敗するとエージェントは(1)エラーレスポンス全文をコンテキストに取り込み、(2)原因を推論し、(3)リトライまたは代替手段を選択する、という追加のLLMターンを回します。会話履歴が長くなるほど後続ターンの入力トークンも膨らみます。さらに失敗→リトライはレイテンシも積み増すため、トークン・LLM呼び出し回数・実行時間の3軸が同時に悪化します。KanseiLinkのaudit_costデータでは、LINE WORKS(成功率20%)からSlack MCP(91%)への切り替えで約71%のトークン削減が見込めると試算されています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "プロンプトキャッシングはリトライ税にどう効きますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "プロンプトキャッシングはリトライ税の「土台」を下げます。Claude APIのプロンプトキャッシングでは、キャッシュ読み取りが基本入力単価の0.1倍(90%引き)になります(2026年5月時点、5分キャッシュの書き込みは1.25倍、1時間キャッシュは2倍)。リトライのたびに再送されるシステムプロンプトやツール定義、会話履歴の固定部分をキャッシュに載せておけば、リトライが発生しても入力トークンの大半が90%引きで処理されます。リトライ税そのものを消すわけではありませんが、税率を大きく下げる効果があります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "リトライ税を下げる一番効果的な方法は何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "最も効果が大きいのは「成功率の高い代替サービスへ切り替える」ことです。KanseiLinkのaudit_costは4階層(モデル選択・サービス代替・アーキテクチャ・インフラ)で最適化を提案しますが、サービス代替層は成功率を20%から91%へといった桁違いの改善を生むため、トークン削減効果が最大になります。次点は(1)プロンプトキャッシングで土台を下げる、(2)バッチAPIや一括エンドポイント(kintoneの/records.jsonなど)で呼び出し回数自体を減らす、(3)既知のワークアラウンド(SmartHRはv2エンドポイントを使う等)を事前に組み込んで初回成功率を上げる、の順です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "成功率はどこで確認できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLink MCPのget_insightsツールで、対象サービスのsuccess_rate、avg_latency_ms、common_errors(既知のワークアラウンド付き)、confidence_scoreを取得できます。search_servicesでも各サービスのsuccess_rateが返ります。225+の日本SaaSについて、エージェントの実測アウトカム報告(2026年5月時点で累計1,404件)を集計した値です。接続コマンドは npx -y @kansei-link/mcp-server です。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "「リトライ税」の経済学 2026", "item": "https://kansei-link.com/insights/mcp-retry-tax-economics-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-retry-tax-economics-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      「リトライ税」の経済学 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">コスト分析 / Cost ROI</span>
+      <h1>「リトライ税」の経済学 2026 — 成功率の低いMCPサーバーが、なぜAPI請求書を静かに膨らませるのか</h1>
+      <p class="subtitle">MCPサーバーの成功率は「信頼性指標」だと思われがちだが、実は「コスト指標」でもある。1回成功させるための期待試行回数は 1/p で決まり、成功率の差はそのままトークン消費の差になる。KanseiLink実測1,404件のアウトカムデータから、リトライ税の計算式と削減の4階層を解剖する。</p>
+      <div class="article-meta">
+        <span>2026-05-15</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約10分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜ「成功率」を財務指標として読むべきか</a></li>
+        <li><a href="#formula">リトライ税の計算式 — 期待試行回数は 1/p</a></li>
+        <li><a href="#data">KanseiLink実測データ — 4つの切り替えで見る節約幅</a></li>
+        <li><a href="#multiply">リトライ税は「掛け算」で効く</a></li>
+        <li><a href="#reduce">リトライ税を下げる4階層</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜ「成功率」を財務指標として読むべきか</h2>
+
+    <p>エージェント運用のコスト議論は、長らく「どのモデルを使うか」「どこにホスティングするか」に偏ってきた。だが2026年に入り、エージェントが実際に叩く<strong>MCPサーバーやAPIの成功率そのものがコスト要因</strong>だという認識が広がりつつある。</p>
+
+    <p>理由はシンプルだ。エージェントはツール呼び出しが失敗しても、そこで止まらない。エラーを読み、原因を推論し、リトライするか代替手段を取るかを判断する。<strong>1回の失敗は、追加のLLMターンを1つ以上発生させる</strong>。そして会話履歴が伸びるほど、後続ターンの入力トークンも膨らんでいく。成功率が低いサービスは、ユーザーが目にする請求書を静かに、しかし確実に押し上げる。</p>
+
+    <p>本記事ではこの追加コストを<strong>「リトライ税(Retry Tax)」</strong>と呼ぶ。リトライ税は、KanseiLinkが225+の日本SaaSについて集計しているエージェントの実測アウトカム報告(2026年5月時点で累計1,404件)から、定量的に試算できる。</p>
+
+    <div class="insight-box">
+      <div class="label">2026年5月の編集視点</div>
+      <p>「成功率80%」という数字を、多くのチームは「まあ及第点」と読む。だが財務的に読み直すと、成功率80%は<strong>同じ成果に平均1.25回の試行が必要</strong>＝25%のリトライ税という意味になる。成功率は品質管理表の数字ではなく、<strong>原価計算の係数</strong>として扱うべきだ。</p>
+    </div>
+
+    <h2 id="formula">リトライ税の計算式 — 期待試行回数は 1/p</h2>
+
+    <p>各試行が独立で成功確率 p だと近似すると、1回成功させるまでの<strong>期待試行回数は 1/p</strong>(幾何分布の期待値)で表せる。これがリトライ税の核となる式だ。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>成功率 p</th>
+          <th>期待試行回数 (1/p)</th>
+          <th>成功率91%基準のリトライ税</th>
+          <th>財務的な読み方</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="success-high">91%</span></td><td>約1.10回</td><td>基準(1.0x)</td><td>ほぼ無税</td></tr>
+        <tr><td><span class="success-high">80%</span></td><td>約1.25回</td><td>約1.14x</td><td>+14%の追加トークン</td></tr>
+        <tr><td><span class="success-mid">66%</span></td><td>約1.52回</td><td>約1.38x</td><td>+38%の追加トークン</td></tr>
+        <tr><td><span class="success-mid">50%</span></td><td>約2.00回</td><td>約1.82x</td><td>呼び出しコストが約1.8倍</td></tr>
+        <tr><td><span class="success-low">39%</span></td><td>約2.56回</td><td>約2.33x</td><td>呼び出しコストが約2.3倍</td></tr>
+        <tr><td><span class="success-low">20%</span></td><td>約5.00回</td><td>約4.55x</td><td>呼び出しコストが約4.5倍</td></tr>
+      </tbody>
+    </table>
+
+    <p>注目すべきは曲線の形だ。成功率が91%から80%へ落ちても税率は14%増にとどまるが、<strong>50%を切ったあたりから急激に立ち上がる</strong>。成功率20%のサービスは、91%のサービスと同じ成果を出すために<strong>約4.5倍のツール呼び出し</strong>を必要とする。これは「ちょっと不便」ではなく、原価が4倍以上違うという話だ。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ この式は下限である</div>
+      <p>1/p はあくまで「ツール呼び出し回数」の期待値だ。実際のリトライ税はこれより重い。各リトライは(1)エラーレスポンス全文のコンテキスト取り込み、(2)原因推論のためのLLMターン、(3)膨らんだ会話履歴を抱えた後続ターン、を伴う。後述の通り、リトライ税は呼び出し回数だけでなく<strong>トークン量・LLM呼び出し回数・実行時間の3軸で掛け算的に</strong>効く。</p>
+    </div>
+
+    <h2 id="data">KanseiLink実測データ — 4つの切り替えで見る節約幅</h2>
+
+    <p>KanseiLinkの <code>audit_cost</code> ツールは、エージェントのAPI支出を4階層(モデル選択・サービス代替・アーキテクチャ・インフラ)で分析し、最適化を提案する。2026年5月15日時点の分析(累計1,404件のアウトカム報告ベース)が示した「サービス代替」レイヤーの提案を見ると、リトライ税の実額がよく分かる。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>現行サービス</th>
+          <th>成功率</th>
+          <th>推奨切替先</th>
+          <th>切替後 成功率</th>
+          <th>推定トークン削減</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>LINE WORKS</td><td><span class="success-low">20%</span></td><td>Slack MCP</td><td><span class="success-high">91%</span></td><td><span class="success-high">約71%</span></td></tr>
+        <tr><td>Talentio</td><td><span class="success-low">35%</span></td><td>KING OF TIME</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">約31%</span></td></tr>
+        <tr><td>SmartHR</td><td><span class="success-low">39%</span></td><td>KING OF TIME</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">約27%</span></td></tr>
+        <tr><td>Chatwork MCP</td><td><span class="success-mid">66%</span></td><td>Slack MCP</td><td><span class="success-high">91%</span></td><td><span class="success-mid">約25%</span></td></tr>
+      </tbody>
+    </table>
+
+    <p>最も極端なのが <strong>LINE WORKS → Slack MCP</strong> だ。成功率20%から91%へ。<code>get_insights</code> でLINE WORKSを引くと、5件のアウトカム報告のうち成功は1件、残りは <code>search_miss</code>(意図したリソースに辿り着けない)で占められている。一方Slack MCPは113件の報告で成功率91%、主なエラーは軽微な <code>api_error</code> が9件。この差が、同じ「メッセージを送る」というタスクで<strong>約71%のトークン削減</strong>として表れる。</p>
+
+    <p>注意したいのは <strong>SmartHR</strong> のケースだ。SmartHRは日本のHR SaaSの市場リーダーだが、KanseiLink実測では成功率39%(92件の報告)。<code>common_errors</code> の内訳は <code>api_error</code> 36件、<code>auth_expired</code> 10件、<code>search_miss</code> 7件。市場での知名度と、エージェントから見た「叩きやすさ」は別物であり、リトライ税は知名度を考慮してくれない。</p>
+
+    <div class="data-highlight">
+      <h4>リトライ税の実額イメージ</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num red">4.5x</span>
+          <div class="label">成功率20%サービスの呼び出しコスト(91%基準)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">71%</span>
+          <div class="label">LINE WORKS→Slack切替の推定トークン削減</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">2.3x</span>
+          <div class="label">成功率39%(SmartHR実測)の呼び出しコスト</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="multiply">リトライ税は「掛け算」で効く</h2>
+
+    <p>前述の通り、リトライ税は「ツール呼び出しが N 回に増える」だけでは終わらない。失敗1回が連鎖的に複数のコストを生む。</p>
+
+    <ul>
+      <li><strong>トークン軸</strong>: エラーレスポンス全文がコンテキストに入り、リトライ判断のLLMターンが追加され、会話履歴が伸びた状態で後続ターンが回る。失敗が後半で起きるほど、抱えている履歴が大きく入力トークンが重い。</li>
+      <li><strong>LLM呼び出し軸</strong>: 1回の失敗につき最低1つ、多くは2〜3つの追加ターン(エラー解析→リトライ実行→結果確認)。モデル単価がそのまま乗る。</li>
+      <li><strong>レイテンシ軸</strong>: 失敗→リトライは実行時間を積み増す。SmartHRの平均レイテンシは337ms、Slack MCPは163ms。遅いサービスを2.3回叩く構図は、ユーザー体感を二重に悪化させる。</li>
+    </ul>
+
+    <p>だからこそ、リトライ税対策は「成功率を上げる」だけでなく「<strong>失敗1回あたりの単価を下げる</strong>」両面で考える価値がある。後者で最も効くのが<strong>プロンプトキャッシング</strong>だ。</p>
+
+    <h3>プロンプトキャッシングはリトライ税の「税率」を下げる</h3>
+
+    <p>Claude APIのプロンプトキャッシングでは、キャッシュ読み取りが基本入力単価の<strong>0.1倍(90%引き)</strong>になる(2026年5月時点。5分キャッシュの書き込みは1.25倍、1時間キャッシュは2倍)。具体的には、Claude Sonnet 4.6 のキャッシュ読み取りは $3/100万トークンが $0.30 に、Claude Opus 4.7 は $5 が $0.50 になる。</p>
+
+    <p>リトライのたびに再送されるのは、システムプロンプト・ツール定義・会話履歴の固定部分だ。これらをキャッシュに載せておけば、リトライが発生しても入力トークンの大半が90%引きで処理される。リトライ税そのものを消すわけではないが、<strong>税率を大きく下げる</strong>。リトライが避けられないワークロードほど、キャッシュの効果は大きい。</p>
+
+    <pre><code># Claude API: 固定部分をキャッシュに載せる(疑似コード)
+messages.create(
+  model="claude-sonnet-4-6",
+  system=[
+    { "type": "text", "text": SYSTEM_PROMPT,
+      "cache_control": {"type": "ephemeral"} }   # ← リトライ時もキャッシュ読み取り(0.1x)
+  ],
+  tools=[ ...TOOL_DEFS, {"cache_control": {"type": "ephemeral"}} ],
+  messages=conversation,
+)</code></pre>
+
+    <h2 id="reduce">リトライ税を下げる4階層</h2>
+
+    <p>KanseiLinkの <code>audit_cost</code> の4階層フレームに沿って、リトライ税の削減策を効果の大きい順に並べる。</p>
+
+    <ul class="checklist">
+      <li><strong>サービス代替(最大効果)</strong> — 成功率20%→91%のような桁違いの改善はここでしか得られない。<code>search_services</code> や <code>get_insights</code> で代替候補の成功率を確認し、タスクが許す限り高成功率サービスへ寄せる。</li>
+      <li><strong>初回成功率を上げる</strong> — 既知のワークアラウンドを事前に組み込む。例: SmartHRはv1ではなくv2エンドポイントを使う(<code>auth_expired</code> 回避)、kintoneは <code>/records.json</code> の一括APIを使う(個別呼び出しを最大50分の1に)、Chatworkは <code>application/x-www-form-urlencoded</code> でPOSTする(JSON送信で400エラーになる)。<code>get_service_tips</code> でこれらは事前に取得できる。</li>
+      <li><strong>失敗単価を下げる(プロンプトキャッシング)</strong> — システムプロンプト・ツール定義・会話履歴の固定部分をキャッシュ。リトライが避けられないワークロードで税率を下げる。</li>
+      <li><strong>インフラ層</strong> — Vercel→Cloudflare Workers移行(高トラフィックで最大85%削減)、AWS App Runner利用者はECS Express Mode等への移行検討(App Runnerは2026年4月30日以降、新規受付停止・メンテナンスモード移行)。リトライ税とは別軸だが、運用コスト全体を見るなら同時に点検したい。</li>
+    </ul>
+
+    <div class="success-box">
+      <div class="label">✅ 実務の優先順位</div>
+      <p>まず <code>get_insights</code> で現行サービスの成功率を確認する。50%を切っているなら、それは「不便」ではなく「原価が約1.8倍以上」のサインだ。<code>audit_cost</code> のサービス代替提案を見て、タスクが許す範囲で高成功率サービスへ。同時にプロンプトキャッシングを有効化し、避けられないリトライの税率を下げる。この2手だけで、多くのエージェントは目に見えてトークン消費が落ちる。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>あなたのエージェントは、いくらリトライ税を払っていますか？</h3>
+      <p>KanseiLinkは225+の日本SaaSについて、成功率・レイテンシ・エラー類型・既知ワークアラウンドの実測データをMCP経由で提供。リトライ税の発生源を、サービス単位で特定できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">コスト監査を相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>「リトライ税」とは何ですか？</h3>
+    <p>MCPサーバーやAPIの成功率が低いことで追加発生するトークン消費・レイテンシ・LLM呼び出しコストの総称です。1回成功させる期待試行回数は成功率pに対して 1/p で近似でき、成功率20%なら平均5回、91%なら平均1.1回。成功率20%のサービスは91%の約4.5倍のトークンを同じ成果のために消費します。</p>
+
+    <h3>成功率が低いと、なぜコストが「掛け算」で増えるのですか？</h3>
+    <p>失敗1回のコストはツール呼び出しの入力トークンだけではないからです。失敗するとエージェントはエラー全文の取り込み・原因推論・リトライ判断という追加LLMターンを回し、会話履歴が伸びるほど後続ターンの入力トークンも増えます。トークン・LLM呼び出し回数・実行時間の3軸が同時に悪化します。</p>
+
+    <h3>プロンプトキャッシングはリトライ税にどう効きますか？</h3>
+    <p>リトライ税の「税率」を下げます。Claude APIのキャッシュ読み取りは基本入力単価の0.1倍(90%引き)です(2026年5月時点)。リトライ時に再送されるシステムプロンプトやツール定義をキャッシュに載せておけば、リトライが発生しても入力トークンの大半が90%引きで処理されます。</p>
+
+    <h3>リトライ税を下げる一番効果的な方法は？</h3>
+    <p>成功率の高い代替サービスへの切り替えです。成功率20%→91%のような桁違いの改善はサービス代替でしか得られず、トークン削減効果が最大になります。次点はプロンプトキャッシング、一括API/バッチAPI、既知ワークアラウンドの事前組み込みです。</p>
+
+    <h3>成功率はどこで確認できますか？</h3>
+    <p>KanseiLink MCPの <code>get_insights</code> で、対象サービスの success_rate・avg_latency_ms・common_errors(既知ワークアラウンド付き)・confidence_score を取得できます。<code>search_services</code> でも各サービスの success_rate が返ります。接続コマンドは <code>npx -y @kansei-link/mcp-server</code> です。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の成功率・レイテンシ・トークン削減率は、KanseiLinkがエージェントから収集した実測アウトカム報告(2026年5月15日時点で累計1,404件)を集計したものです。サービス別成功率は <code>get_insights</code> 実測値: LINE WORKS 20%(5件)、Slack MCP 91%(113件)、SmartHR 39%(92件)、Backlog 90%(91件)。切り替え時のトークン削減率は <code>audit_cost</code> ツールの推定値(confidence: medium)で、実際のワークロード・タスク構成により変動します。「期待試行回数 1/p」は各試行が独立で成功確率一定という近似に基づく下限値です。プロンプトキャッシングの料金(キャッシュ読み取り0.1倍、5分書き込み1.25倍、1時間書き込み2倍)は2026年5月時点のClaude API公式ドキュメントに基づきます(<code>platform.claude.com/docs/en/build-with-claude/prompt-caching</code>)。AWS App Runnerの新規受付停止(2026年4月30日)・メンテナンスモード移行はAWS公式アナウンスに基づきます。サービスの成功率・料金は変動するため、本番判断前に各 <code>get_insights</code> および各社公式の最新情報をご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="agent-token-cost-optimization-2026.html" class="related-card">
+          <div class="tag">コスト分析</div>
+          <h4>エージェントのトークンコスト最適化 2026 — 「呼ぶ前に知る」で消費を削る実践設計</h4>
+        </a>
+        <a href="claude-model-cost-guide-2026.html" class="related-card">
+          <div class="tag">コスト分析</div>
+          <h4>Claudeモデル別コストガイド 2026 — どのタスクにOpus・Sonnet・Haikuを割り当てるか</h4>
+        </a>
+        <a href="mcp-success-rate-divergence-2026.html" class="related-card">
+          <div class="tag">データストーリー</div>
+          <h4>MCP成功率の二極化 — 「動く」サービスと「動かない」サービスの分岐点</h4>
+        </a>
+        <a href="mcp-latency-success-rate-correlation-2026.html" class="related-card">
+          <div class="tag">データストーリー</div>
+          <h4>レイテンシと成功率の相関 — 遅いMCPサーバーはなぜ失敗もしやすいのか</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        リトライ税の発生源は KanseiLink MCP で特定できます。
+        <code>get_insights</code> で現行サービスの success_rate を確認し、50%を下回るなら <code>audit_cost</code> のサービス代替提案を参照してください。<code>get_service_tips</code> で既知ワークアラウンドを事前取得すれば初回成功率を上げられます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
