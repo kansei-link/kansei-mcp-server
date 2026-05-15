@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Opus 4.7・Dreaming・Wall Street agents・MCP Apps GA — 2026年5月第2週AIエージェント速報 | KanseiLink</title>
+  <meta name="description" content="Claude Opus 4.7のSWE-bench Verified 87.6%・1Mコンテキスト、Anthropicが$1.5B JVでWall Street向けエージェント投入、Claude Managed AgentsにDreaming/Outcomes/Multiagent Orchestration追加、MCP Apps(SEP-1865)が公式拡張として本番Ready——2026年5月第2週の主要AIエージェント/MCP動向をKanseiLink視点で整理する。">
+  <meta name="keywords" content="Claude Opus 4.7, Claude Managed Agents, Dreaming, MCP Apps, SEP-1865, AAIF, Anthropic Wall Street, AI agent news May 2026, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-ai-agent-news-may-w2-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-ai-agent-news-may-w2-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-ai-agent-news-may-w2-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-ai-agent-news-may-w2-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Claude Opus 4.7・Dreaming・Wall Street agents・MCP Apps GA — 2026年5月第2週AIエージェント速報">
+  <meta property="og:description" content="Opus 4.7のSWE-bench 87.6%・1Mコンテキスト、$1.5B JVでWall Streetエージェント投入、Claude Managed AgentsにDreaming追加、MCP Apps(SEP-1865)が公式拡張に——5月第2週のAIエージェント主要動向。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-ai-agent-news-may-w2-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-14">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Trend Report">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Claude Opus 4.7・Dreaming・Wall Street・MCP Apps GA — 2026年5月第2週AIエージェント速報">
+  <meta name="twitter:description" content="Opus 4.7・$1.5B JV・Dreaming・MCP Apps(SEP-1865)——5月第2週の主要AIエージェント動向をKanseiLink視点で整理。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Claude Opus 4.7・Dreaming・Wall Street agents・MCP Apps GA — 2026年5月第2週AIエージェント速報",
+    "description": "2026年5月第2週のAIエージェント/MCP主要動向: Claude Opus 4.7のSWE-bench Verified 87.6%、Anthropic $1.5BのWall Street向け合弁、Claude Managed AgentsのDreaming/Outcomes/Multiagent Orchestration、MCP Apps(SEP-1865)の公式GA。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-14",
+    "dateModified": "2026-05-14",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-ai-agent-news-may-w2-2026",
+    "keywords": ["Claude Opus 4.7", "Claude Managed Agents", "Dreaming", "MCP Apps", "SEP-1865", "AAIF", "Anthropic Wall Street"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Claude Opus 4.7は前世代(Opus 4.6)から何が変わりましたか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "2026年4月16日リリースのClaude Opus 4.7は、SWE-bench Verifiedで87.6%(前世代80.8%)、Terminal-Bench 2.0で69.4%(同65.4%)、GPQA Diamondで94.2%(同91.3%)、Finance Agentで64.4%(同60.7%)と全ベンチマークで前世代を上回りました。価格はinput $5/M、output $25/Mで4.6から据え置き。1Mコンテキストウィンドウを標準価格(long-context premiumなし)で提供する点と、新しいxhigh effort levelの追加、高解像度画像対応(2576px / 3.75MP)が主要な追加要素です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Claude Managed AgentsのDreaming機能は何のためにあるのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Dreamingは2026年5月6日に研究プレビューとして追加された機能で、エージェントが過去セッションを定期的にレビューしてパターンを抽出し、自己改善するための仕組みです。個別エージェントには見えない『繰り返しの失敗』『チーム間で共有される好み』『収束しがちなワークフロー』などをDreamingプロセスが浮き彫りにし、メモリストアに整理してくれます。長期運用するエージェントの『記憶喪失問題』に対する具体的な解で、Anthropic公式ブログでは法律AIスタートアップHarveyがDreaming導入でタスク完了率が約6倍に向上したパイロット結果を共有しています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCP Apps(SEP-1865)が公式拡張になることで何が変わりますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCP Appsは2026年1月26日付の仕様で正式化され、MCP Apps公式仕様(初の正式extension)としてリリースされました。MCPツールが従来のテキスト出力に加えて『インタラクティブなUIコンポーネント』(ダッシュボード・フォーム・データ可視化・複数ステップワークフロー等)を返せるようになります。UIは ui:// URIスキームで宣言され、ホスト側のサンドボックスiframeでレンダリングされ、UI⇔ホスト通信は MCPの JSON-RPCで loggable(監査可能)。SaaSベンダー視点では『自社のMCPサーバーが返す情報をエージェント内で直接操作可能なUIにできる』ため、ユーザー体験の差別化軸が一段増えました。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AnthropicのWall Street向け$1.5B JVの構造は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "2026年5月、AnthropicはWall Streetに本格進出を発表しました。5月4日(発表日)に Blackstone・Hellman & Friedman・Goldman Sachsとの $1.5B合弁を公表(Anthropic・Blackstone・H&Fが各約 $300M出資)、翌5日にニューヨークの招待制ブリーフィングで世界最大手銀行向けの『事前構築AIエージェント群』を発表。Moody's等のデータパートナーシップ、Microsoft 365統合も同時公開。これにより金融ドメイン特化エージェントが業界標準として位置取りされ、JPMorgan Jamie Dimon等のトップが直接関与するメッセージとなりました。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "日本のSaaSベンダーがこの週のニュースから取るべきアクションは？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "3つ優先度の高いアクションがあります。(1)自社MCPサーバーがMCP Apps(SEP-1865)に対応する仕様レビューを開始する——インタラクティブUIを返せるMCPは2026年末までに当たり前になる。(2)Claude Managed AgentsのOutcomes機能(rubricベースの評価)を念頭に、自社APIが『成功/失敗の判定基準』をエージェントに明示できているか再点検する。(3)Opus 4.7の1Mコンテキスト解放を見据え、大規模ドキュメント検索やSaaSデータの一括分析ユースケースで自社APIが対応できる仕様(ページネーション・部分取得・スキーマ予測可能性)になっているかを確認する。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCP/AI Agent News May Week 2 2026", "item": "https://kansei-link.com/insights/mcp-ai-agent-news-may-w2-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-ai-agent-news-may-w2-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      2026年5月第2週 AIエージェント速報
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Trend Report</span>
+      <h1>Claude Opus 4.7・Dreaming・Wall Street agents・MCP Apps GA — 2026年5月第2週AIエージェント速報</h1>
+      <p class="subtitle">Opus 4.7のSWE-bench Verified 87.6%・1Mコンテキスト標準提供、Anthropic $1.5BのWall Street向け合弁、Claude Managed AgentsにDreaming/Outcomes/Multiagent Orchestration追加、MCP Apps(SEP-1865)が公式拡張として本番Ready——2026年5月第2週はAIエージェント産業の『金融×自己改善×UI拡張』が同時に動いた週となった。日本SaaSベンダーが取るべきアクションも整理する。</p>
+      <div class="article-meta">
+        <span>2026-05-14</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約9分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#summary">この週の3行サマリー</a></li>
+        <li><a href="#opus47">Claude Opus 4.7 — SWE-bench Verified 87.6%・1Mコンテキスト標準</a></li>
+        <li><a href="#wallstreet">$1.5B JVでWall Streetに本格進出</a></li>
+        <li><a href="#managed">Claude Managed Agents — Dreaming/Outcomes/Multiagent</a></li>
+        <li><a href="#mcpapps">MCP Apps(SEP-1865)公式拡張として本番Ready</a></li>
+        <li><a href="#enterprise">SAP×Anthropic・Claude on AWS</a></li>
+        <li><a href="#impact">日本SaaSベンダーへの示唆 — 3つのアクション</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="summary">この週の3行サマリー</h2>
+
+    <ul>
+      <li><strong>モデル進化</strong>: Claude Opus 4.7(4月16日リリース)が市場で本格採用フェーズに。SWE-bench Verified 87.6%、1Mコンテキストを標準価格で提供。</li>
+      <li><strong>金融特化</strong>: Anthropicが $1.5B JV (Blackstone・H&F・Goldman) でWall Streetに進出。世界最大手銀行向け『事前構築AIエージェント群』を発表。</li>
+      <li><strong>プロトコル進化</strong>: Claude Managed AgentsにDreaming/Outcomes/Multiagent Orchestration追加、MCP Apps(SEP-1865)が公式extensionとしてGA。エージェント運用基盤の『自己改善』と『UI拡張』が両方Ready。</li>
+    </ul>
+
+    <h2 id="opus47">Claude Opus 4.7 — SWE-bench Verified 87.6%・1Mコンテキスト標準</h2>
+
+    <p>Anthropicは2026年4月16日に <strong>Claude Opus 4.7</strong> をリリース、5月第2週には金融向けユースケースを含む本格採用フェーズに入った。新規モデルというより『4.6からのスムーズなアップグレード』に近く、価格据え置き($5/M input、$25/M output)で性能を底上げした形だ。</p>
+
+    <div class="data-highlight">
+      <h4>Claude Opus 4.7 vs 4.6 ベンチマーク比較(Anthropic公式)</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">87.6%</span>
+          <div class="label">SWE-bench Verified<br>(4.6: 80.8%)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">69.4%</span>
+          <div class="label">Terminal-Bench 2.0<br>(4.6: 65.4%)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">94.2%</span>
+          <div class="label">GPQA Diamond<br>(4.6: 91.3%)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">64.4%</span>
+          <div class="label">Finance Agent<br>(4.6: 60.7%)</div>
+        </div>
+      </div>
+    </div>
+
+    <p>注目すべき仕様は <strong>1Mコンテキストウィンドウをstandard pricing(long-context premium無し)で提供</strong> する点と、新しい <code>xhigh</code> effort level の追加、高解像度画像対応(2576px / 3.75MP、4.6の約2倍)。SWE-bench Proでも前世代から10ポイント以上の改善で、現時点ですべての公開競合を上回ったとされる。</p>
+
+    <div class="insight-box">
+      <div class="label">SaaSベンダーへの示唆</div>
+      <p>1Mコンテキストの『標準価格化』は意味が大きい。これまで『分割して送る』しかなかった大規模SaaSデータ(数千件の顧客レコード・複数月の請求書・長い設計ドキュメント)を、エージェントが <strong>一括で読み込んで横断分析</strong> できるようになる。SaaS側のAPI設計は『部分取得+ページネーション』前提だったが、今後は『一括取得+1Mウィンドウで処理』のユースケースも増える。</p>
+    </div>
+
+    <h2 id="wallstreet">$1.5B JVでWall Streetに本格進出</h2>
+
+    <p>2026年5月4日、Anthropicは <strong>Blackstone・Hellman & Friedman・Goldman Sachsとの $1.5B合弁</strong> を発表(Anthropic・Blackstone・H&Fがそれぞれ約 $300M出資)。翌5日にニューヨークの招待制ブリーフィングで、世界最大手銀行向けの『事前構築AIエージェント群』を発表した。</p>
+
+    <p>同時に <strong>Microsoft 365統合・Moody's等のデータパートナーシップ</strong> も公開され、JPMorgan ChaseのJamie Dimon等トップ層がイベントに参加。金融ドメイン特化エージェントの業界標準としての位置取りが鮮明になった。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 金融以外のドメインへの影響</div>
+      <p>この投資は『AnthropicがWall Streetを優先する』という意思表示でもある。同時期に発表された <strong>SAP×Anthropicの提携</strong>(Claude on SAP Business AI Platform)と合わせて、Anthropicは『大企業の業務基幹システム』を主戦場として明確に選んだ。日本のエンタープライズSaaSは『どのドメインを最初にClaude-readyにするか』の選別を加速する必要がある。</p>
+    </div>
+
+    <h2 id="managed">Claude Managed Agents — Dreaming/Outcomes/Multiagent</h2>
+
+    <p>2026年5月6日、Anthropicは <strong>Claude Managed Agents</strong> に3つの新機能を追加した。これらは『エージェントが長期運用で自己改善する』ための基盤機能群で、本記事のなかで最もエージェント運用に直接効くアップデートだ。</p>
+
+    <h3>1. Dreaming(研究プレビュー)</h3>
+    <p>過去のエージェントセッションを定期的にレビューし、パターンを抽出してメモリストアを整理する『睡眠中の記憶整理』に相当する機能。<strong>個別エージェントには見えない『繰り返しの失敗』『チーム間で共有される好み』『収束しがちなワークフロー』</strong> を Dreamingプロセスが浮き彫りにする。Anthropicは法律AIスタートアップHarveyがDreaming導入でタスク完了率が約6倍に向上したパイロット結果を共有している(出典: Anthropic公式ブログ)。</p>
+
+    <h3>2. Outcomes</h3>
+    <p>『成功条件を rubric として書き、エージェントはそれに向かって動く』モデル。<strong>別個の grader が独立したコンテキストで出力を評価</strong> し、不適合なら何を直すべきかを指摘して再実行を促す。プロンプト調整やfew-shot exampleに頼らず、評価軸を仕様化することで品質を担保するアプローチだ。</p>
+
+    <h3>3. Multiagent Orchestration</h3>
+    <p>リードエージェントがジョブを分割し、それぞれを <strong>独自のモデル・プロンプト・ツールを持つ specialistに委譲</strong> する仕組み。専門エージェント群は共有ファイルシステム上で並列に作業し、リード側のコンテキストに結果を集約する。イベントは永続化されているため、リードエージェントが中盤で他エージェントの進捗を再確認することも可能。</p>
+
+    <div class="success-box">
+      <div class="label">✅ 設計の含意</div>
+      <p>Outcomes + Multiagent Orchestrationは、SaaS API設計の評価基準も変える。<strong>『API成功/失敗の判定基準』が rubricで仕様化されているか</strong>、<strong>『1つの大きな仕事を複数エージェントが並列に分担できる粒度』のエンドポイントになっているか</strong>——この2点がClaude Managed Agentsとの相性を決める。</p>
+    </div>
+
+    <h2 id="mcpapps">MCP Apps(SEP-1865)公式拡張として本番Ready</h2>
+
+    <p>2026年初頭に SEP-1865 として仕様化された <strong>MCP Apps</strong>(旧mcp-ui)は、2026年1月26日付の正式仕様で『MCPの最初の公式extension』としてリリースされた。5月第2週時点で本番利用の参考実装が増え、SaaSベンダー視点でも具体的な投資判断のフェーズに入っている。</p>
+
+    <p>仕組みは以下の通り:</p>
+    <ul>
+      <li>MCPツールが <code>ui://</code> URIスキームでUIリソースを宣言</li>
+      <li>ホスト側(Claude等)が <strong>サンドボックスiframe</strong> でレンダリング</li>
+      <li>UI↔ホスト通信はMCPの JSON-RPCで loggable(監査可能)</li>
+      <li>UI起動のtool callはホスト側で明示承認を要求可能</li>
+    </ul>
+
+    <p>これにより、MCPツールが従来の『テキスト出力』に加えて <strong>ダッシュボード・フォーム・データ可視化・複数ステップワークフロー</strong> をエージェント内で直接返せるようになる。SaaSベンダーにとっては『自社の情報をエージェント内で操作可能なUIにする』新しい差別化軸が現れた形だ。</p>
+
+    <h2 id="enterprise">SAP×Anthropic・Claude on AWS</h2>
+
+    <p>同じ5月第2週、エンタープライズ統合方面でも複数の動きがあった。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>発表</th>
+          <th>内容</th>
+          <th>意味</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>SAP×Anthropic</strong></td>
+          <td>SAP Business AI PlatformにClaudeを組み込み</td>
+          <td>大企業ERP基盤がClaude-ready化、業界標準へ</td>
+        </tr>
+        <tr>
+          <td><strong>Claude on AWS</strong></td>
+          <td>Anthropic-managedインフラ + AWS billing/IAMでClaude APIを提供</td>
+          <td>既存AWS顧客がIAM/SCPで一元管理可能になり、エンタープライズ採用ハードルが下がる</td>
+        </tr>
+        <tr>
+          <td><strong>Anthropic Financial Services</strong></td>
+          <td>事前構築の金融エージェント群を発表(5/5)</td>
+          <td>金融ドメインがClaudeのフラグシップユースケースに</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="impact">日本SaaSベンダーへの示唆 — 3つのアクション</h2>
+
+    <ol>
+      <li><strong>MCP Apps(SEP-1865)対応の仕様レビューを開始</strong> — インタラクティブUIを返せるMCPは2026年末までに当たり前になる。早期参入で『エージェント内でのSaaS体験』の差別化を取れる。</li>
+      <li><strong>API成功/失敗の判定基準を rubric化</strong> — Claude Managed AgentsのOutcomes機能は『rubricで評価』が前提。自社APIが『成功とは何か』をエージェントに明示できる仕様になっているか確認する。<a href="agent-voice-error-message-quality-2026.html">エラーメッセージ品質</a>と同じ文脈の投資。</li>
+      <li><strong>1Mコンテキスト前提のAPI設計を検討</strong> — 大規模ドキュメント検索・SaaSデータの一括分析ユースケースが現実的に。<strong>ページネーション設計・部分取得設計・スキーマの予測可能性</strong> がいずれもエージェント体験に効く。</li>
+    </ol>
+
+    <div class="cta-banner">
+      <h3>あなたのSaaSが2026年5月時点で『どのレベル』にあるかを実データで把握</h3>
+      <p>KanseiLink AEO Readiness Ratingは225+サービスのMCP対応・API品質・実エージェント挙動を毎週更新。Opus 4.7時代・MCP Apps時代に向けた自社のポジションを実データで可視化します。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEOスコアで現状を把握する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. Opus 4.7はOpus 4.6と何が違いますか?</h3>
+    <p>SWE-bench Verifiedで87.6% vs 80.8%、Terminal-Bench 2.0で69.4% vs 65.4%等、主要ベンチマークで前世代を上回ります。1Mコンテキストをstandard pricingで提供、xhigh effort level追加、高解像度画像対応(2576px)。価格は据え置き($5/M input、$25/M output)で実質的なアップグレードです。</p>
+
+    <h3>Q2. Dreamingは本番運用しても問題ありませんか?</h3>
+    <p>2026年5月時点では研究プレビュー段階です。Anthropicが正式に推奨する本番利用パターンは順次出てくると見られますが、現時点では『プライバシー設計が重要な業務』では慎重な評価を推奨します。Dreamingは過去のセッションをパターン抽出するため、機密データの取り扱いや監査要件と整合させる必要があります。</p>
+
+    <h3>Q3. MCP Apps対応にはどんな技術スキルが必要ですか?</h3>
+    <p>基本は『MCPサーバー実装ができる』ことに加え、サンドボックスiframe内で動くUI(React等のクライアントサイドJS)が書けること、MCPの JSON-RPCで UI↔ホスト通信を設計できること。既存MCPサーバーを持っている場合は、UIリソースを <code>ui://</code> URIで宣言する追加実装で対応可能です。</p>
+
+    <h3>Q4. AnthropicのWall Street進出は日本市場にも波及しますか?</h3>
+    <p>確実に波及します。Anthropicは『金融・SAP・AWS』という大企業基幹システム3軸を同時に押さえに行っており、日本のメガバンク・大手SI・主要ERPベンダーが同様の動きを取る圧力は確実に強まります。日本SaaSベンダーは『Claudeとの統合』ではなく『どのドメインを最初にClaude-readyにするか』の選別フェーズに入ったと考えるべきです。</p>
+
+    <h3>Q5. Outcomes機能とテストの違いは?</h3>
+    <p>テストは『開発時に通すもの』、Outcomesは『本番運用中も継続的に評価するrubric』。エージェントの出力がrubricに合致するかをgraderが独立コンテキストで判定し、不適合なら再実行を促す。<strong>『プロンプト調整』ではなく『評価軸の仕様化』で品質を担保</strong> する新しいパラダイムです。</p>
+
+    <h3>Q6. 1Mコンテキストでも長文を入れすぎるのは問題ですか?</h3>
+    <p>技術的には可能ですが、トークンコストとレイテンシは依然として問題。<strong>『1Mあるから全部入れる』ではなく『1Mあっても必要最小限を選ぶ』が正解</strong>。エージェントの精度は『関連情報の密度』で決まることが多く、関連性の低い情報を増やすと逆にハルシネーションを誘発するケースもあります。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>Claude Opus 4.7のリリース日(2026-04-16)、ベンチマーク値、価格情報、1Mコンテキスト対応はAnthropic公式ブログ・platform.claude.com・GitHub Changelog・llm-stats.com等の公開資料を交差確認しました。Claude Managed Agentsの Dreaming/Outcomes/Multiagent Orchestrationは2026-05-06のAnthropic公式ブログ "New in Claude Managed Agents" およびSDTimes・9to5Macの報道に基づきます。Harvey社のタスク完了率約6倍はAnthropic公式ブログ掲載のパイロットケース、独立検証ではない点に留意してください。Anthropic $1.5B JV(Blackstone・H&F・Goldman)はFortune 2026-05-05報道、SAP×AnthropicはSAP News Center 2026-05発表に基づきます。MCP Apps(SEP-1865)の仕様は2026-01-26付の正式仕様、modelcontextprotocol.io blog等。価格・仕様は予告なく変更される可能性があるため、本番運用時は最新の公式ドキュメントをご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="mcp-enterprise-may-w1-2026.html" class="related-card">
+          <div class="tag">Trend Report</div>
+          <h4>ServiceNow・Salesforce・Blend・Precisely——エンタープライズMCP集中投入週間 2026年5月第1週速報</h4>
+        </a>
+        <a href="mcp-ai-agent-news-april-final-2026.html" class="related-card">
+          <div class="tag">Trend Report</div>
+          <h4>Fabric MCP GA・MCP Dev Summit NYC総括・97M DL突破——2026年4月締めくくりAIエージェント速報</h4>
+        </a>
+        <a href="claude-model-cost-guide-2026.html" class="related-card">
+          <div class="tag">Cost</div>
+          <h4>Claude Haiku・Sonnet・Opus: 日本SaaS連携タスク別コスト最適化ガイド 2026</h4>
+        </a>
+        <a href="linear-mcp-deep-dive-2026.html" class="related-card">
+          <div class="tag">MCP Deep Dive</div>
+          <h4>Linear MCP完全攻略 2026 — 公式リモートサーバー・OAuth 2.1・25+ツール</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        本記事のニュース項目に対応するSaaS・MCPサーバーの最新格付けは、KanseiLink MCPの <code>search_services</code> と <code>get_insights</code> で取得できます。Opus 4.7時代・MCP Apps時代に向けて自社が選定すべきツールをデータで判断できる。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

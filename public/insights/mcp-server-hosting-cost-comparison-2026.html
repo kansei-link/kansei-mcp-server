@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCPサーバーホスティングコスト徹底比較 2026 — Cloudflare Workers・AWS Lambda・Vercel・Railway・Fly.io | KanseiLink</title>
+  <meta name="description" content="リモートMCPサーバーをどこにデプロイすると安く速く動くか。Cloudflare Workers・AWS Lambda(ARM)・Vercel Functions・Railway・Fly.ioの5プラットフォームを、無料枠/従量課金/コールドスタート/エージェント特有のワークロードという軸で比較。100万呼び出しと1000万呼び出しのシナリオ別月額試算付き。">
+  <meta name="keywords" content="MCPサーバー ホスティング, Cloudflare Workers 料金, AWS Lambda 料金 2026, Vercel Functions 料金, Railway 料金, Fly.io 料金, AIエージェント インフラ, KanseiLink, コスト最適化">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-server-hosting-cost-comparison-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-server-hosting-cost-comparison-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-server-hosting-cost-comparison-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-server-hosting-cost-comparison-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCPサーバーホスティングコスト徹底比較 2026 — Cloudflare Workers・AWS Lambda・Vercel・Railway・Fly.io">
+  <meta property="og:description" content="リモートMCPサーバーのインフラ選定。5プラットフォームのコスト・コールドスタート・エージェントワークロード適合性を、100万/1000万呼び出しシナリオで横並び比較。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-server-hosting-cost-comparison-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-11">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="コスト分析">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCPサーバーホスティングコスト徹底比較 2026">
+  <meta name="twitter:description" content="Cloudflare Workers・AWS Lambda・Vercel・Railway・Fly.ioの月額試算と選定基準。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCPサーバーホスティングコスト徹底比較 2026 — Cloudflare Workers・AWS Lambda・Vercel・Railway・Fly.io",
+    "description": "リモートMCPサーバーをどこにデプロイすると安く速く動くか。5プラットフォームを無料枠/従量課金/コールドスタートの観点で比較し、100万/1000万呼び出しの月額試算を提示する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-11",
+    "dateModified": "2026-05-11",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-server-hosting-cost-comparison-2026",
+    "keywords": ["MCP Server Hosting", "Cloudflare Workers Pricing", "AWS Lambda Pricing", "Vercel Functions Pricing", "Railway Pricing", "Fly.io Pricing", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "MCPサーバーを最も安く運用できるプラットフォームはどれですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ワークロードによります。月100万呼び出しまでなら、Cloudflare Workers Paid($5/月固定、1000万呼び出しまで込み)が最安。月1000万呼び出しまでなら、AWS Lambda(無料枠100万req+400,000 GB-sec毎月永続、ARM Graviton2で実行コスト20%引き)も競争力があります。月1000万呼び出しを超える大量・低遅延ワークロードでは、Cloudflare Workers($5基本料金+$0.50/100万追加req、egress無料)が依然優位。Vercel Functionsは無料枠1M req(Hobby)〜1M req(Pro)で開発体験は最高ですが、追加$0.60/100万reqとやや高め。永続接続が必要なワークロードはコンテナ系(Railway/Fly.io)を選びます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPサーバーのコールドスタートはどのプラットフォームが速いですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cloudflare WorkersがV8 Isolatesにより5ms未満で群を抜いて速い(報告値ではsub-millisecondも)。AWS Lambdaはus-east-1で平均280ms、長時間アイドル後は500msに跳ねることがあります(2026年初頭のプロダクション計測ベース)。Vercel Functionsはus-east-1で約100-200msのコールドスタート。Railway/Fly.ioは常駐コンテナのため『コールドスタート』概念は実質ありませんが、scale-to-zero設定時は再起動に数秒。エージェントが頻繁にMCPを呼ぶ用途では、Workersのコールドスタート優位がユーザー体験に直接効きます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Fly.ioの無料枠はまだありますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Fly.ioは2024年に無料枠を廃止しました。新規アカウントには$5の試用クレジットが付与されますが、その後はクレジットカード必須で、すべてのMachineとストレージが課金対象です。常時稼働の最小構成(shared-cpu-1x、256MB RAM)で約$1.94/月。実務的な最小コストは小規模アプリで約$5/月。価格モデルはfixed planではなく、Machineの秒単位、ストレージ$0.15/GB/月、egress$0.02/GB〜の従量課金です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "AWS Lambda ARM Graviton2は本当に安いですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "はい、x86比でGB秒単価が20%引き($0.0000133334 vs $0.0000166667)になり、ワークロードによっては最大34%のprice-performance改善が報告されています。リクエスト単価は$0.20/100万reqでアーキ問わず同額です。MCPサーバーの多くはNode.js/Pythonで動き、ARM対応はほぼランタイム側の依存関係(ネイティブモジュール)次第。Node.js + 純TypeScriptのMCPサーバーなら、無条件でARM64を選んで問題ないケースが多いです。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Cloudflare Workersの無料プランでMCPサーバーを本番運用できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "個人開発・小規模PoCなら可能です。無料プランは1日100,000リクエスト・1呼び出しあたりCPU 10msまで。MCPサーバーの典型的なtool callはCPU 10ms以内に収まることが多いですが、外部APIへのfan-outが入ると壁時間(wall time)で長引きやすいので、durable connection / waitUntil()設計が前提です。実稼働のリモートMCPサーバーは$5/月のPaidに上げるのが標準解。1000万reqまで$5固定、追加$0.50/100万reqで、egress無料は他プラットフォーム比で大きな優位性です。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCPサーバーホスティングコスト徹底比較 2026", "item": "https://kansei-link.com/insights/mcp-server-hosting-cost-comparison-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-server-hosting-cost-comparison-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCPサーバーホスティングコスト徹底比較 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">コスト分析 / Cost ROI</span>
+      <h1>MCPサーバーホスティングコスト徹底比較 2026 — Cloudflare Workers・AWS Lambda・Vercel・Railway・Fly.io</h1>
+      <p class="subtitle">リモートMCPサーバーを「どこに」「いくらで」「どれだけ速く」動かすか。5プラットフォームの2026年最新料金・コールドスタート・エージェントワークロード適合性を、月100万呼び出しと月1000万呼び出しのシナリオで横並びに試算する。</p>
+      <div class="article-meta">
+        <span>2026-05-11</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約11分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜ今「MCPホスティングコスト」を比較するのか</a></li>
+        <li><a href="#scenarios">2つのシナリオ — 月100万呼び出しと月1000万呼び出し</a></li>
+        <li><a href="#cloudflare">Cloudflare Workers — $5固定+egress無料のコスト最強</a></li>
+        <li><a href="#lambda">AWS Lambda — 永続無料枠 + ARM Graviton2で20%引き</a></li>
+        <li><a href="#vercel">Vercel Functions — 開発体験と「3軸課金」のトレードオフ</a></li>
+        <li><a href="#railway">Railway — Dockerコンテナ系の安心と従量制</a></li>
+        <li><a href="#flyio">Fly.io — エッジコンテナ、無料枠廃止後の現実</a></li>
+        <li><a href="#decision">用途別の選定フロー</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜ今「MCPホスティングコスト」を比較するのか</h2>
+
+    <p>2026年に入って <strong>リモートMCPサーバー</strong>(クライアント側にローカルランタイムを置かず、HTTPSで叩く形態)が一気に主流化した。Dropbox、Box、Microsoft 365、Cloudflare、AWS、Pipedreamと、主要ベンダーが「自社プラットフォーム上にホストしたMCPサーバー」を立て続けに公開している。同時に、これからMCPサーバーを<strong>自社で構築・提供する</strong>SaaS企業も増え、選択肢としての「どこにデプロイするか」が現実問題になってきた。</p>
+
+    <p>本記事はMCPサーバー特有のワークロード — 短時間・高頻度・I/Oバウンド・コールドスタートが体感に直結 — を念頭に、2026年5月時点の各プラットフォーム料金を5つ並べて比較する。</p>
+
+    <div class="insight-box">
+      <div class="label">2026年5月の編集視点</div>
+      <p>「とりあえず安いところ」という選び方は危ない。MCPサーバーは <strong>呼ばれない時はゼロ円、呼ばれる時は数十msで返さないとエージェントの体感が落ちる</strong> という特殊な負荷プロファイルを持つ。サーバーレス(Workers / Lambda / Vercel)が原則的に有利だが、 <strong>永続接続・長時間処理</strong> ならコンテナ系(Railway / Fly.io)が必要になる。</p>
+    </div>
+
+    <h2 id="scenarios">2つのシナリオ — 月100万呼び出しと月1000万呼び出し</h2>
+
+    <p>比較を具体化するため、以下の2つのワークロードを置く。MCPサーバーの典型として、1呼び出しあたりCPU 50ms / メモリ128MBを仮定する。</p>
+
+    <ul>
+      <li><strong>シナリオA</strong>: 月100万呼び出し(平均0.4req/秒、エージェント30人〜100人規模)</li>
+      <li><strong>シナリオB</strong>: 月1000万呼び出し(平均4req/秒、エージェント500人〜1000人規模)</li>
+    </ul>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>プラットフォーム</th>
+          <th>無料枠</th>
+          <th>シナリオA 月額</th>
+          <th>シナリオB 月額</th>
+          <th>コールドスタート</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Cloudflare Workers Paid</strong></td><td>—($5最低)</td><td class="success-high">$5</td><td class="success-high">$5</td><td class="success-high">&lt;5ms</td></tr>
+        <tr><td><strong>AWS Lambda (ARM Graviton2)</strong></td><td>1M req + 400k GB-sec/月 永続</td><td class="success-high">$0(無料枠内)</td><td class="success-mid">$1.80〜$2.50</td><td class="success-mid">280ms平均</td></tr>
+        <tr><td><strong>Vercel Functions (Pro)</strong></td><td>1M invocations(Hobby)</td><td>$20(Pro基本)</td><td>$20+$5.40追加</td><td>100〜200ms</td></tr>
+        <tr><td><strong>Railway (Hobby/Pro)</strong></td><td>$5/$20分の使用クレジット込み</td><td>$5(常駐最小)</td><td>$20〜$50</td><td>常駐(scale-to-zeroで数秒)</td></tr>
+        <tr><td><strong>Fly.io</strong></td><td>新規$5試用クレジットのみ</td><td>$2〜$5(shared-cpu-1x)</td><td>$10〜$30(複数Machine)</td><td>常駐</td></tr>
+      </tbody>
+    </table>
+
+    <p>※ AWS Lambdaのシナリオ B試算: 1000万req − 100万無料枠 = 900万req × $0.20/1M = $1.80。GB秒は1000万 × 50ms × 0.125GB = 62,500 GB秒、永続無料枠400,000 GB秒に収まるためコンピュート無料。ARM選択時の単価で計算。</p>
+    <p>※ Cloudflare Workers Paidは$5/月で1000万reqまで込み。シナリオBちょうど。</p>
+
+    <h2 id="cloudflare">Cloudflare Workers — $5固定+egress無料のコスト最強</h2>
+
+    <p>2026年5月時点で、リモートMCPサーバーのコストパフォーマンスを最も支配しているのが <strong>Cloudflare Workers</strong>。料金体系はシンプルだ。</p>
+
+    <ul>
+      <li><strong>Free</strong>: 1日100,000リクエスト、CPU 10ms/invocation</li>
+      <li><strong>Workers Paid</strong>: $5/月最低、1000万リクエスト込み、追加$0.50/100万req、<strong>egress(下り通信)無料</strong></li>
+    </ul>
+
+    <p>シナリオAでもシナリオBでも、Workers Paidなら<strong>月$5固定</strong>で収まる。<strong>コールドスタートがV8 Isolatesで5ms未満</strong>(報告ではsub-millisecondも)という性能は、エージェントが連続的にMCPを叩く用途で体感差として現れる。AWS Lambda(us-east-1で平均280ms、長時間アイドル後500ms)と比較すると、約100倍速い。</p>
+
+    <div class="success-box">
+      <div class="label">✅ Cloudflare Workersを選ぶべきケース</div>
+      <p>・短時間・高頻度のMCP tool call主体(エージェントの「呼ぶ→返る」が頻発)<br>・<strong>egress(レスポンスサイズ)が大きい</strong>(ファイル取得・ベクトル検索結果など)<br>・グローバル分散・低レイテンシをデフォルトで欲しい<br>・固定$5で予算管理を確定したい</p>
+    </div>
+
+    <div class="warning-box">
+      <div class="label">⚠️ Workersの制約</div>
+      <p>1呼び出しあたりCPU時間に上限(FreeはCPU 10ms、PaidはCPU 30秒まで)。<strong>長時間のLLM呼び出しや重い計算</strong>を内部で同期的に走らせる設計は向かない。waitUntil() / Durable Objectsを正しく使い、外部APIへのI/Oは <code>fetch</code> の壁時間に流す設計が前提。</p>
+    </div>
+
+    <h2 id="lambda">AWS Lambda — 永続無料枠 + ARM Graviton2で20%引き</h2>
+
+    <p>AWS Lambdaは <strong>1M requests + 400,000 GB-seconds/月の永続無料枠</strong>(新規アカウント限定ではなく恒久)を持つ点が他と一線を画す。シナリオAは無料枠内に完全に収まり、純粋にAWS他リソース(API Gateway等)のみが課金対象。</p>
+
+    <p>2026年の重要なオプションが <strong>ARM Graviton2</strong>。GB秒単価が$0.0000133334(x86の$0.0000166667比で20%引き)。報告ベースではワークロードによって最大34%のprice-performance改善。リクエスト単価は$0.20/100万reqでアーキ問わず同額。MCPサーバーは多くがNode.js/Pythonで動くため、純TypeScriptなら無条件でARM64を選んで問題ない。</p>
+
+    <p>シナリオBの試算: (1000万 − 100万) × $0.20/1M = $1.80 + コンピュート分(無料枠内)で<strong>合計約$2.50/月</strong>に落ち着く。Workers Paid($5固定)よりさらに安いケースが多い。ただし<strong>コールドスタート平均280ms</strong>はMCPユーザー体験では明確に体感できる差で、これを許容できるかが選定軸になる。</p>
+
+    <pre><code># AWS SAM template抜粋(ARM64 + 永続無料枠最大化)
+Resources:
+  McpServer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs20.x
+      Architectures: [arm64]   # ← 20%引き
+      MemorySize: 256
+      Timeout: 30
+      Handler: dist/handler.mcp</code></pre>
+
+    <h2 id="vercel">Vercel Functions — 開発体験と「3軸課金」のトレードオフ</h2>
+
+    <p>Vercel Functionsは <strong>3軸同時課金</strong> という独特な料金体系を持つ。$0.60/100万invocations + $0.128/CPU時間 + $0.0106/GB時間のメモリ。Hobbyプランの無料枠は100,000 invocations(後述: 1M invocationsとの記載もありplan依存)、Proプランは$20/月で1M invocations込み。</p>
+
+    <p>シナリオAはPro $20/月の範囲内、シナリオBは1000万 − 1M = 900万 × $0.60/1M = $5.40追加 + CPU/メモリ加算。<strong>同じ呼び出し量でWorkers Paidの3〜4倍</strong>になる傾向だが、Next.js統合・プレビューデプロイ・Edge Network・チーム機能などの開発体験を取りに行く価値があるかで判断する。</p>
+
+    <p>2026年4月以降に話題になった「実際の請求が$286になった」事例(2026 Deploywiseレポート)は、Pro $20の固定額ではなく <strong>3軸×超過分</strong> が積み上がった結果で、MCPサーバーのトラフィックが想定より大きい場合に発生し得る。on-demand usage budget(デフォルト$200)の設定は必須。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ Vercelの請求が膨らむ典型パターン</div>
+      <p>(1) <strong>メモリ大きめ</strong>のFunctionをデフォルトのまま運用 → GB時間が積み上がる。(2) <strong>ストリーミング応答</strong>でCPU時間がカウントされる。(3) bandwidth超過(MCPがファイル系を返す場合)。usage budgetを設定し、毎週請求アラートをチェック。</p>
+    </div>
+
+    <h2 id="railway">Railway — Dockerコンテナ系の安心と従量制</h2>
+
+    <p>Railwayは <strong>サブスクリプション+使用クレジット込み</strong> という料金モデル。HobbyプランはサブスクリプションのみでOK(月$5、$5分使用クレジット込み)、Proプランは月$20で$20分の使用クレジット込み。超過分はvCPU $20/月、RAM $10/GB/月の従量で課金される。秒単位でCPU/メモリ使用量を計測するため <strong>アイドル時は実質ほぼゼロ</strong>。</p>
+
+    <p>MCPサーバーをDockerで動かしたい・既存のWebSocket/SSE永続接続を活かしたい・OSSのMCPサーバー(MongoDB MCP等)を改修せずそのまま動かしたいケースでは、サーバーレスより<strong>コンテナ系のRailway</strong>が現実的だ。Postgres・MySQL・Redisのマネージドが組み込まれ、永続ボリュームとオブジェクトストレージも含まれる。</p>
+
+    <p>シナリオA(月100万呼び出し)では shared CPU 0.5 vCPU + 512MB RAMが概ねHobby枠($5/月)内。シナリオBでは1〜2 vCPU + 1〜2GB RAMでProプラン$20の使用クレジット内に収まることが多い。<strong>scale-to-zero未対応</strong>の構成だと、深夜の無トラフィック時間もコストが発生する点には注意。</p>
+
+    <h2 id="flyio">Fly.io — エッジコンテナ、無料枠廃止後の現実</h2>
+
+    <p>Fly.ioは2024年に <strong>無料枠を廃止</strong>。新規アカウントには$5の試用クレジットが付与されるが、その後はクレジットカード必須で、すべてのMachineとストレージが課金対象となった。</p>
+
+    <p>料金構造はfixed planではなく完全従量制。shared-cpu-1x、256MB RAMのMachineを常時稼働で約<strong>$1.94/月</strong>、ストレージ$0.15/GB/月、egress $0.02/GB〜。最小現実コストは小規模アプリで約$5/月。</p>
+
+    <p>Fly.ioの強みは <strong>シングルバイナリでマルチリージョン</strong> にMachineを撒けること(複数地域でMCPサーバーをミラー)。Cloudflare Workersほどのグローバル分散ではないが、Lambdaが原則us-east-1中心になるのに対し、東京・大阪・シンガポール・フランクフルトに同じコンテナを置いて低レイテンシ提供する設計がしやすい。<strong>長時間タスク・WebSocket常時接続・カスタムランタイム</strong>(Go、Rust、Bun等)を使うMCPサーバーで真価を発揮する。</p>
+
+    <h2 id="decision">用途別の選定フロー</h2>
+
+    <p>「迷ったらこれ」という万能解は存在しない。以下のフローで多くのケースをカバーできる。</p>
+
+    <ul class="checklist">
+      <li><strong>短時間・高頻度・コールドスタート最小化</strong> → Cloudflare Workers Paid($5固定)</li>
+      <li><strong>AWSエコシステム内・既存IAM活用</strong> → AWS Lambda (ARM64) + API Gateway</li>
+      <li><strong>Next.js統合・チーム開発・プレビュー環境を最大限活用</strong> → Vercel Functions(usage budget設定必須)</li>
+      <li><strong>Dockerコンテナでそのまま動かしたい・WebSocket永続接続</strong> → Railway($5〜$20)</li>
+      <li><strong>マルチリージョン・カスタムランタイム・長時間タスク</strong> → Fly.io(複数Machine構成)</li>
+      <li><strong>個人開発・PoCで完全無料に抑えたい</strong> → Cloudflare Workers Free(1日10万req) または AWS Lambda(永続無料枠)</li>
+      <li><strong>egressサイズが大きい(ファイル/ベクトル結果)</strong> → Cloudflare Workers + R2(egress無料)</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>MCPサーバーの本番運用前に、AEO実測データを確認しませんか</h3>
+      <p>KanseiLinkは225+のSaaSについて、成功率・レイテンシ・エラー類型・既知ワークアラウンドの実測データをMCP経由で提供。ホスティング選定の前に、エージェントが実際にどう叩いているかを把握できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">MCPサーバー設計を相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>MCPサーバーを最も安く運用できるのは？</h3>
+    <p>ワークロード次第。月100万呼び出しまで→AWS Lambda(永続無料枠で実質$0)。月1000万呼び出しまで→Cloudflare Workers Paid($5固定、egress無料)。1000万超え→Workers Paidが追加$0.50/100万req+egress無料で依然優位。永続接続が必要ならRailway($5〜$20、scale-to-zero次第)。</p>
+
+    <h3>コールドスタートはどれが速い？</h3>
+    <p>Cloudflare Workers(V8 Isolates、&lt;5ms、報告ではsub-msも)が圧勝。AWS Lambdaはus-east-1で平均280ms。Vercel Functionsは100-200ms。Railway/Fly.ioは常駐コンテナのためコールドスタート概念は実質なし(scale-to-zero時は再起動に数秒)。</p>
+
+    <h3>Fly.ioの無料枠はまだありますか？</h3>
+    <p>2024年に廃止されました。新規アカウントには$5試用クレジットのみ。最小常時稼働(shared-cpu-1x、256MB RAM)で約$1.94/月、実務最小コストは約$5/月です。</p>
+
+    <h3>AWS Lambda ARMは本当に20%引きですか？</h3>
+    <p>はい、GB秒単価が$0.0000133334(x86の$0.0000166667比で20%引き)になります。リクエスト単価は$0.20/100万reqでアーキ問わず同額。MCPサーバーがNode.js + 純TypeScriptならARM64を無条件で選んで問題ないケースが多いです。</p>
+
+    <h3>Cloudflare Workers無料プランで本番運用できますか？</h3>
+    <p>個人開発・小規模PoCなら可能ですが、本番は$5/月のPaidが標準解です。Freeは1日10万req・CPU 10ms/invocationの上限があり、エンタープライズ向けMCPサーバーには厳しい。Paidなら1000万reqまで$5、追加$0.50/100万reqでegress無料。</p>
+
+    <h3>シナリオに当てはまらない大量ワークロード(月1億呼び出し以上)は？</h3>
+    <p>その規模では <strong>専用契約・コミット割引</strong> の領域。Cloudflare Workers for Platformsのエンタープライズプラン、AWS Compute Savings Plans(Lambdaも対象)、Vercel Enterpriseなど。月100M req以上ならVercelで$200のon-demand budget上限を超えるリスクがあり、Workers Paid or Workers Enterprise一択になりがちです。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の料金・性能数値は2026年5月時点の各社公式ドキュメントとサードパーティレポートに基づきます: Cloudflare Workers Paid($5/月、1000万req込み、egress無料)は <code>developers.cloudflare.com/workers/platform/pricing/</code>、AWS Lambda(永続無料枠1M req + 400k GB-sec、ARM Graviton2 20%引き)は <code>aws.amazon.com/lambda/pricing/</code>、Vercel Functions(3軸課金、Hobby/Pro $20)は <code>vercel.com/docs/functions/usage-and-pricing</code>、Railway(Hobby $5/Pro $20、$20/vCPU/月、$10/GB RAM/月)は <code>railway.com/pricing</code>、Fly.io(2024年無料枠廃止、$5試用クレジット、shared-cpu-1x ≈ $1.94/月)は <code>fly.io/docs/about/pricing/</code>。コールドスタート数値はCloudflare公式blog(V8 Isolates &lt;5ms)、Rebal AI Blog 2026年3月レポート(Lambda 280ms平均)に基づきます。Vercel $286請求事例はDeploywise 2026年レポート。サンプル試算は1呼び出しCPU 50ms / メモリ128MBを仮定したMCPサーバー典型値で、実際のワークロードに応じて変動します。本番運用前は最新の各公式ドキュメントを必ずご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="cloudflare-workers-mcp-deployment-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>Cloudflare Workers MCPサーバー本番デプロイ実装ガイド 2026 — 30分構築から「52%死亡」を回避する運用パターンまで</h4>
+        </a>
+        <a href="mcp-build-vs-buy-tco-2026.html" class="related-card">
+          <div class="tag">コスト分析</div>
+          <h4>MCPサーバー Build vs Buy 2026 — 自社構築・公式利用・サードパーティの3年TCO比較</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー実装完全ガイド 2026 — 認証・レート制限・エラーハンドリングの実践パターン</h4>
+        </a>
+        <a href="mcp-server-health-52-percent-dead-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>「MCPサーバーの52%は死んでいる」は本当か？— 2,181エンドポイント調査の真相と日本SaaSへの示唆</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        MCPサーバーのレイテンシ・成功率の実測値はKanseiLink MCP経由で取得できます。
+        <code>get_insights</code> で対象サービスのavg_latency_msとsuccess_rateを確認することで、ホスティング選定の妥当性を裏取りできます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
