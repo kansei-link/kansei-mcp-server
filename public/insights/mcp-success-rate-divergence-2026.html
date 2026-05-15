@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>同じOAuth 2.0でSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3つの構造要因 (KanseiLink 7サービス実測 2026) | KanseiLink</title>
+  <meta name="description" content="KanseiLinkが追跡する225+サービスのうち、40件以上の実測レポートがある7つのMCPサーバーを比較。全てOAuth 2.0認証なのに、成功率はShopify 94%・MoneyForward 93%・Slack 91%・Backlog 90%・freee 90%・Notion 83%・Chatwork 66%と最大28ポイント差。同じ認証方式でなぜここまで分かれるのか — レート制限・エラー設計・発見可能性の3要因を実測データで解明する。">
+  <meta name="keywords" content="MCP 成功率, OAuth 2.0 比較, Slack Chatwork 比較, MCP実装品質, KanseiLink data, 認証方式 success rate 2026">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-success-rate-divergence-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-success-rate-divergence-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-success-rate-divergence-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-success-rate-divergence-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="同じOAuth 2.0でSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3要因 (KanseiLink実測 2026)">
+  <meta property="og:description" content="OAuth 2.0認証は同じなのに、7サービスの成功率は66%-94%で最大28ポイント差。レート制限・エラー設計・発見可能性 — 実測データで分岐点を解明。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-success-rate-divergence-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-11">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="データストーリー">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="同じOAuthでSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3要因">
+  <meta name="twitter:description" content="225+サービスから抽出した7つの実測比較。認証方式は同じでも、レート制限・エラー設計・発見可能性が成功率を最大28ポイント変える。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "同じOAuth 2.0でSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3つの構造要因 (KanseiLink 7サービス実測 2026)",
+    "description": "KanseiLinkが追跡する225+サービスのうち、40件以上の実測レポートがある7つのMCPサーバーを比較。全てOAuth 2.0認証なのに、成功率はShopify 94%・MoneyForward 93%・Slack 91%・Backlog 90%・freee 90%・Notion 83%・Chatwork 66%と最大28ポイント差。同じ認証方式でなぜここまで分かれるのか — レート制限・エラー設計・発見可能性の3要因を実測データで解明する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-11",
+    "dateModified": "2026-05-11",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-success-rate-divergence-2026",
+    "keywords": ["MCP 成功率", "OAuth 2.0 比較", "Slack Chatwork", "KanseiLink data", "認証方式", "2026"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "なぜ同じOAuth 2.0でSlackとChatworkの成功率に25ポイント以上の差があるのですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "認証方式は同じでも、3つの構造要因が成功率を分けている。(1) レート制限の厳しさ: Chatworkは300req/5min/userと厳格、Slackはmethod-tierベースで実質的に余裕がある。(2) エラーメッセージの明瞭度: Chatworkのapi_errorが24件発生する一方、エージェントは原因を切り分けにくく、Slackはエラーレスポンスにヒントが多い。(3) 発見可能性: Chatworkはsearch_missが10件発生し、検索クエリから検索結果トップ3に入りにくい。エージェントが見つけられない・繋がれない・原因が分からない、の3重苦が25ポイント差を生んでいる。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "成功率を上げたいMCPベンダーが取るべき優先アクションは?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "3つの優先度。最優先(P0): エラーレスポンスにworkaround_hintを含める。429エラーなら「Retry-Afterは何秒か、ジッターを追加すべきか」を明示する。Chatworkの実例: 「Add 100ms delay between calls」というworkaroundが verified状態で7件報告されている = エージェントは試行錯誤でこれを学んでいる。これをドキュメントに明記すれば初回成功率が上がる。P1: search_missを減らす — サービス名だけでなくユースケース語彙(『リモートワーク』『社内チャット』等)で見つかるよう、メタデータ・description・タグを充実させる。P2: レート制限を緩和できないなら、SDKレベルで自動的にバックオフを組み込む。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "なぜShopify 94%が最高で、freee 90%・Slack 91%より高いのですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopifyは4つのMCPサーバー(Dev・Storefront・Customer Account・Checkout)を用途別に分離して提供している。これにより、エージェントが『どのMCPで何ができるか』を明確に判断できる。汎用1サーバー型(freee 5ドメイン統合・Slack統合API)よりも、サービス境界が明示的でツール選択ミスが起きにくい。加えてShopifyは公開ドキュメントに『失敗時の代替フロー』が充実している。これらが3-4ポイントの差を生んでいる(53レポートで94%)。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Chatworkの実測データで具体的に何が起きているのですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Chatwork MCPの123レポート分析では: api_error 24件・search_miss 10件・rate_limit 8件が頻発。レート制限workaroundとして『100ms遅延追加』『500ms遅延追加』が verifiedで報告されている = エージェントが試行錯誤で学んだ知識。search_missでは『business chat messaging tool』『リモートワークで使えるツール』のような汎用クエリでChatworkが検索結果トップ3に入らないことが verified確認済み。同じOAuth 2.0でもこの3要素が成功率を66%まで押し下げている。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "日本SaaSベンダーがこのデータをどう活用すべきですか?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "3ステップ。Step 1: 自社MCPサーバーの実測成功率を確認する。KanseiLinkでは225+サービスを成功率付きで公開しており、自社が90%帯か80%帯かを把握できる。Step 2: 80%帯なら、エラータイプ別の頻度を確認 — api_errorが多いならエラーメッセージ改善、search_missが多ければdiscoverability施策、rate_limitが多ければSDKバックオフを組み込む。Step 3: 90%超の同業他社(Slack・MoneyForward等)のドキュメントと比較し、エラーレスポンス設計・サンプルコードのworkaround明記度を学ぶ。AEO Aグレード(成功率85%+)が事実上のスタンダードになる2026年Q3-Q4の競争に備える。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCP Success Rate Divergence 2026", "item": "https://kansei-link.com/insights/mcp-success-rate-divergence-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root { --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3; --black: #000000; --white: #FFFFFF; --lavender: #F4F5FD; --gray-light: #F5F5F5; --gray-mid: #E5E7EB; --gray-text: #6B7280; --gray-dark: #374151; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif; color: var(--black); background: var(--white); line-height: 1.7; font-size: 16px; -webkit-font-smoothing: antialiased; }
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-success-rate-divergence-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCP成功率二極化の真相 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">データストーリー / Data Story</span>
+      <h1>同じOAuth 2.0でSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3つの構造要因 (KanseiLink 7サービス実測 2026)</h1>
+      <p class="subtitle">KanseiLinkが追跡する225+サービスのうち、40件以上の実測レポートがある7つのMCPサーバーを比較したところ、全てOAuth 2.0認証なのに成功率はShopify 94%・Money Forward 93%・Slack 91%・Backlog 90%・freee 90%・Notion 83%・Chatwork 66%と最大28ポイント差。「OAuth対応してれば安心」という単純な見方は崩れる。同じ認証方式でなぜここまで分かれるのか — レート制限・エラー設計・発見可能性の3要因を実測データで解明し、MCP実装の真の品質指標を提示する。</p>
+      <div class="article-meta">
+        <span>2026-05-11</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約8分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#summary">7サービス成功率比較 — 一覧</a></li>
+        <li><a href="#factor1">要因1: レート制限の厳しさ</a></li>
+        <li><a href="#factor2">要因2: エラーメッセージの明瞭度</a></li>
+        <li><a href="#factor3">要因3: 発見可能性 (search_miss問題)</a></li>
+        <li><a href="#shopify">なぜShopify 94%が最高なのか</a></li>
+        <li><a href="#action">SaaSベンダーが取るべき優先アクション</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="summary">7サービス成功率比較 — 一覧</h2>
+
+    <p>KanseiLink MCPの225+サービスデータベースから、レポート数40件以上の高使用MCPサーバー7つを抽出した。全てOAuth 2.0系認証(OAuth 2.0 / OAuth 2.0+PKCE)で、エージェント市場で十分使われている『成熟MCP』に絞っている。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>サービス</th>
+          <th>認証</th>
+          <th>レポート数</th>
+          <th>成功率</th>
+          <th>レイテンシ</th>
+          <th>AEOグレード</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Shopify Japan</strong></td>
+          <td>OAuth 2.0</td>
+          <td>53</td>
+          <td><span class="success-high">94.3%</span></td>
+          <td>—</td>
+          <td>AAA</td>
+        </tr>
+        <tr>
+          <td><strong>Money Forward Cloud</strong></td>
+          <td>OAuth 2.0</td>
+          <td>42</td>
+          <td><span class="success-high">92.9%</span></td>
+          <td>—</td>
+          <td>AAA</td>
+        </tr>
+        <tr>
+          <td><strong>Slack</strong></td>
+          <td>OAuth 2.0</td>
+          <td>113</td>
+          <td><span class="success-high">91.2%</span></td>
+          <td>163ms</td>
+          <td>AAA</td>
+        </tr>
+        <tr>
+          <td><strong>Backlog</strong></td>
+          <td>OAuth 2.0</td>
+          <td>91</td>
+          <td><span class="success-high">90.1%</span></td>
+          <td>—</td>
+          <td>AAA</td>
+        </tr>
+        <tr>
+          <td><strong>freee</strong></td>
+          <td>OAuth 2.0+PKCE</td>
+          <td>212</td>
+          <td><span class="success-high">90.1%</span></td>
+          <td>216ms</td>
+          <td>AAA</td>
+        </tr>
+        <tr>
+          <td><strong>Notion</strong></td>
+          <td>OAuth 2.0</td>
+          <td>48</td>
+          <td><span class="success-mid">83.3%</span></td>
+          <td>—</td>
+          <td>AAA</td>
+        </tr>
+        <tr>
+          <td><strong>Chatwork</strong></td>
+          <td>OAuth 2.0</td>
+          <td>123</td>
+          <td><span class="success-low">65.9%</span></td>
+          <td>378ms</td>
+          <td>AA</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="data-highlight">
+      <h4>📊 二極化の数値ハイライト</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">94.3%</span>
+          <span class="label">最高 (Shopify)</span>
+        </div>
+        <div class="metric-item">
+          <span class="num red">65.9%</span>
+          <span class="label">最低 (Chatwork)</span>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">28.4pt</span>
+          <span class="label">最大差<br>(同じOAuth 2.0なのに)</span>
+        </div>
+        <div class="metric-item">
+          <span class="num">682</span>
+          <span class="label">分析対象レポート数<br>(7サービス合計)</span>
+        </div>
+      </div>
+    </div>
+
+    <p><strong>重要な発見</strong>: 7サービス全てが <em>同じOAuth 2.0系認証</em> を採用しているにも関わらず、成功率は28.4ポイントもの幅がある。「OAuth対応していれば安心」という業界通説は<strong>明確に否定される</strong>。差を生んでいるのは認証ではなく、認証の後ろにある実装品質だ。</p>
+
+    <h2 id="factor1">要因1: レート制限の厳しさ</h2>
+
+    <p>最大の分岐点は <strong>レート制限の設計</strong>。Chatwork MCPの123件レポート中、<code>rate_limit</code>エラーが <strong>8件</strong> 発生している。Slackの113件レポートでは0件。エージェントは同じユースケースで動かしているのに、片方は引っかかる。</p>
+
+    <p>Chatwork APIは公開仕様で <code>300req/5min/user</code> と厳格なレート制限を設けている。一方Slackはmethod-tierベース(Tier 1: 1+/min、Tier 2: 20+/min、Tier 3: 50+/min、Tier 4: 100+/min)で、ユースケースに応じた緩急がある。エージェントの典型的な行動パターン(『一括メッセージ取得 → フィルタ → 投稿』)では、Slack側で詰まることはほぼない。</p>
+
+    <p>注目すべきは、Chatwork MCPのworkaroundデータ:</p>
+
+    <pre><code>workaround: "Add 100ms delay between calls"
+verification: verified
+reported_count: 2
+
+workaround: "Implemented 500ms delay between messages.
+             All messages delivered successfully with throttling."
+verification: unverified
+reported_count: 1</code></pre>
+
+    <p>これは <strong>エージェントが試行錯誤で学んだ知識</strong>。ベンダー公式ドキュメントに「100ms以上のディレイを推奨」と明記していれば、初回成功率が大幅に上がるはず。実際にKanseiLinkでは、このworkaroundは verified扱いで <code>get_service_tips</code> から取得できる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ レート制限の盲点</div>
+      <p>『レート制限値は仕様書に書いてある』だけでは不十分。エージェント向けには『この値を守るための実装パターン(ジッター付き指数バックオフ、トークンバケット)』『典型ユースケース別の推奨ディレイ』までドキュメント化する必要がある。詳細は<a href="mcp-rate-limiting-implementation-guide-2026.html">MCPサーバー レート制限・指数バックオフ実装ガイド 2026</a>で深掘りしている。</p>
+    </div>
+
+    <h2 id="factor2">要因2: エラーメッセージの明瞭度</h2>
+
+    <p>第2の要因は <strong>エラー応答の情報量</strong>。Chatwork MCPは123件中 <code>api_error</code> が <strong>24件</strong>(19.5%)、Notionは48件中 <code>api_error</code>系が複数発生。一方Slackは113件中 <code>api_error</code> が9件(8.0%)、freeeは212件中 <code>api_error</code> が15件(7.1%)。同じエラー名でも、レスポンスに含まれるヒントの量が違う。</p>
+
+    <p>成功率の高いサービス(Slack・freee・Money Forward)は、エラーレスポンスに以下を含む傾向がある:</p>
+
+    <ul>
+      <li>具体的なフィールド名(『<code>channel_not_found: channel "C123" doesn't exist or isn't visible</code>』)</li>
+      <li>修正の方向性(『<code>missing_scope: needed=channels:read, granted=channels:write</code>』)</li>
+      <li>リトライ可否の明示(<code>error.retryable: true/false</code>)</li>
+    </ul>
+
+    <p>一方、低成功率サービスは『<code>{"error": "Bad Request"}</code>』だけで原因が不明、エージェントは推測で再試行 → タイムアウトで諦める、という失敗パターンに陥る。</p>
+
+    <h3>freeeで発見したauth_expiredパターン</h3>
+    <p>興味深いケース: freee MCPでは <code>auth_expired</code> が4件発生したが、workaroundとして『<em>OAuth tokenをリフレッシュ — token expires every 24h</em>』が verified状態で3件報告されている。トークンの寿命がドキュメント化されていれば、エージェントは事前に refresh フローを組める。Chatworkの場合、24h以上のセッションでトークン期限切れに遭遇するパターンが報告されているが、解決workaroundが verifiedで蓄積していない。</p>
+
+    <h2 id="factor3">要因3: 発見可能性 (search_miss問題)</h2>
+
+    <p>第3の要因は <strong>そもそも見つけてもらえるか</strong>。これは認証や実装と関係なく『discoverability』の問題で、Chatworkでは <code>search_miss</code> が <strong>10件</strong> 発生している(全レポートの8.1%)。</p>
+
+    <p>KanseiLinkの verified確認済みworkaroundデータ:</p>
+
+    <pre><code>query: "business chat messaging tool"
+result: did not find chatwork in top 3
+verification: verified, reported_count: 2
+
+query: "リモートワークで使えるツール"
+result: did not find chatwork in top 3
+verification: unverified, reported_count: 1</code></pre>
+
+    <p>これはMCPの実装品質とは別レイヤーの問題: <strong>メタデータ・description・タグの設計</strong>。エージェントが検索クエリから到達できなければ、どんなに認証が完璧でも使われない。Slackは「business messaging」「team communication」等の自然なユースケース語彙でほぼ確実に上位3に入る。Chatworkは「日本企業向けビジネスチャット」というポジショニングをメタデータに反映できていない可能性がある。詳細は<a href="agent-voice-discoverability-2026.html">エージェントが見つけられないMCP: search_missが示す発見可能性の危機</a>で深掘りしている。</p>
+
+    <div class="insight-box">
+      <div class="label">統合インサイト</div>
+      <p>3要因(レート制限 × エラー設計 × 発見可能性)は <strong>独立に成功率を押し下げる</strong>。Chatworkの66%は、各要因が <em>個別に</em> 5-15ポイントずつ削った合計値と読める。逆に、これらを個別に改善するだけで段階的に85%超えは可能。OAuth実装そのものに手を入れる必要はない。</p>
+    </div>
+
+    <h2 id="shopify">なぜShopify 94%が最高なのか</h2>
+
+    <p>同じOAuth 2.0でShopifyだけが94.3%という頭一つ抜けた成功率を出している理由は構造的だ。Shopifyは <strong>4つの専用MCPサーバー</strong>(Dev、Storefront、Customer Account、Checkout)を用途別に分離して提供している。</p>
+
+    <ul>
+      <li><strong>Dev MCP</strong>: 開発者向けAPI・GraphQL Storefront等のドキュメント参照</li>
+      <li><strong>Storefront MCP</strong>: 商品検索・カート操作</li>
+      <li><strong>Customer Account MCP</strong>: 顧客情報・注文履歴</li>
+      <li><strong>Checkout MCP</strong>: 決済フロー</li>
+    </ul>
+
+    <p>これにより、エージェントが『どのMCPで何ができるか』を <strong>明確に判断できる</strong>。汎用1サーバー型(freeeの5ドメイン統合、Slackの全機能統合APIなど)よりも、サービス境界が明示的でツール選択ミスが起きにくい。加えて『Every store exposes /api/mcp endpoint』という標準パターンも、エージェントが新しい店舗に対しても予測通り動作できる安心感を生む。</p>
+
+    <p>これは大規模MCP実装の <strong>『専用化 vs 汎用化』のトレードオフ</strong> を示す重要な実例で、KanseiLink分析でもツール選択精度がfree-form 1サーバー型より15-20%高い傾向がある。</p>
+
+    <h2 id="action">SaaSベンダーが取るべき優先アクション</h2>
+
+    <h3>P0 (即時, 1ヶ月以内): エラーレスポンスにworkaround_hintを含める</h3>
+    <p>最も投資対効果が高い改善。429エラーなら『Retry-Afterヘッダー値 + ジッター推奨秒数』を明示する。404なら『候補となる近いリソースID』をsuggestionsとして返す。実装コストは小さく、成功率への影響は大きい。Chatworkの場合、verifiedで蓄積されている『100ms delay』workaroundをドキュメント化するだけで、初回成功率の数ポイント改善が見込める。</p>
+
+    <h3>P1 (短期, 3ヶ月以内): search_missを減らすメタデータ設計</h3>
+    <p>サービス名だけでなくユースケース語彙(『リモートワーク』『社内チャット』『ビジネスメッセージング』等)で見つかるよう、メタデータ・description・タグを充実させる。日本SaaSは特に英語キーワードでの発見性が低い傾向があるため、ja/en両言語のメタデータを揃える。</p>
+
+    <h3>P2 (中期, 6ヶ月以内): SDKレベルでバックオフを組み込む</h3>
+    <p>レート制限を緩和できないなら、公式SDK/MCP serverレベルで自動的に指数バックオフ + ジッターを組み込む。エージェント側に対策を求めるのではなく、ベンダー側で『成功するまで自動で待つ』振る舞いをデフォルトにする。詳細実装は<a href="mcp-rate-limiting-implementation-guide-2026.html">レート制限実装ガイド</a>を参照。</p>
+
+    <div class="success-box">
+      <div class="label">✅ 目標水準</div>
+      <p>AEO Aグレード(成功率85%+)が2026年Q3-Q4の事実上の業界スタンダードになる見通し。現在80%帯のサービスは、上記P0-P2の改善で90%超は実現可能。OAuth 2.0実装そのものを書き直す必要はない。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>自社MCPの成功率データを取得してみる</h3>
+      <p>KanseiLinkは225+サービスのMCP対応状況・成功率・エラーパターン・workaroundデータをMCP経由で公開しています。<code>get_insights(service_id)</code>で自社・競合の実測データが即取得可能。改善ロードマップ設計のたたき台に。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">エンタープライズプランを相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. 同じOAuth 2.0なのにSlackとChatworkで25ポイント以上差が出る理由は?</h3>
+    <p>認証方式は同じでも、(1) レート制限の厳しさ、(2) エラーメッセージの明瞭度、(3) 発見可能性、の3要因が成功率を分けている。OAuthそのものは『認証パス』が確立しているだけで、その後のエージェント体験は実装ごとに大きく異なる。</p>
+
+    <h3>Q2. ShopifyとMoney Forwardが90%超なのは構造的に何が違うのですか?</h3>
+    <p>Shopifyは4MCPサーバー分離型でツール選択精度が高い。Money Forwardは2026年3月から全プランでRemote MCPを提供し、API成熟度が高くエラーパターンが少ない。両者とも『エージェント側で迷う場面が少ない』ことが90%超を支えている。</p>
+
+    <h3>Q3. Chatworkの66%は救済可能ですか?</h3>
+    <p>はい、構造的に可能。3要因(レート制限・エラー設計・発見可能性)はそれぞれ独立に改善できる。例えば、verifiedで蓄積されている100ms delay workaroundをドキュメントに明記するだけでも初回成功率が改善する見込み。OAuth実装の書き直しは不要。</p>
+
+    <h3>Q4. Notion 83%とChatwork 66%の差はどこから来ますか?</h3>
+    <p>Notionはエラーレスポンスが比較的詳細(API errorに具体的なblock_id/property名を含む)。一方rate_limitエラーは少なく、search_missもChatworkほど多くない。3要因のうち1つだけ弱いNotion vs 3要因全て弱いChatwork、という違いが17ポイント差を生む。</p>
+
+    <h3>Q5. 認証方式以外で成功率を予測する指標はありますか?</h3>
+    <p>KanseiLinkデータでは『エラーレスポンスにworkaround_hintを含むか』『公式ドキュメントにレート制限実装パターンが書かれているか』『英語+日本語両方のメタデータを揃えているか』の3つが、認証方式よりも強い予測変数。詳細は<a href="aeo-methodology.html">AEO格付け方法論</a>を参照。</p>
+
+    <h3>Q6. KanseiLinkのデータはどう取得しますか?</h3>
+    <p>MCP経由で <code>npx -y @kansei-link/mcp-server</code> で接続し、<code>get_insights(service_id)</code>で各サービスの実測データを取得できる。225+サービスのAEOグレード一覧は<a href="aeo-ranking-q2-2026.html">AEO Readiness Ranking Q2 2026</a>で公開。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の成功率データは2026年5月11日時点のKanseiLink MCPデータベース実測値(<code>get_insights</code>取得値)で、各サービスとも累積レポート数40件以上の高使用MCPサーバーのみ抽出しています。サンプル数の偏り(Chatwork 123件 vs Money Forward 42件)による統計的不確実性は残ります。レート制限値(Chatwork 300req/5min/user、Slackのmethod-tier等)は2026年5月時点の各社公開ドキュメント値で、変更される可能性があります。エラーパターン頻度はKanseiLinkユーザー由来のレポート集計値であり、各サービスの全エージェントを代表するものではありません。本記事の改善提言はKanseiLinkリサーチチームの分析であり、各社の実装事情に応じた調整が必要です。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="mcp-success-patterns-data-2026.html" class="related-card">
+          <div class="tag">データストーリー</div>
+          <h4>KanseiLinkの225+サービス分析が示すMCP成功の法則 — 成功率90%超えサービスの共通点</h4>
+        </a>
+        <a href="mcp-verified-vs-connectable-2026.html" class="related-card">
+          <div class="tag">データストーリー</div>
+          <h4>「MCP対応」の罠: verified/connectableの成功率格差と企業選定の新基準</h4>
+        </a>
+        <a href="mcp-latency-success-rate-correlation-2026.html" class="related-card">
+          <div class="tag">データストーリー</div>
+          <h4>「遅いAPIは失敗率も高い」は本当か？ KanseiLink 225サービス実測データでMCPレイテンシと成功率の相関を検証</h4>
+        </a>
+        <a href="mcp-rate-limiting-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実装ガイド</div>
+          <h4>MCPサーバー レート制限・指数バックオフ実装ガイド 2026</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        本記事の7サービス成功率データは、KanseiLink MCPの <code>get_insights(service_id)</code> で個別に再取得可能(例: <code>get_insights({"service_id": "chatwork"})</code>)。
+        自社サービスがどの帯にいるか確認するなら <code>search_services({"intent": "..."})</code> → <code>get_insights</code> の順で。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

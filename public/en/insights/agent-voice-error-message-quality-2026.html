@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Voice: 6 API Error Patterns That Make AI Agents Give Up — The Hidden Cost of Returning "400 Bad Request" 2026 | KanseiLink</title>
+  <meta name="description" content="15 of freee's 212 reports stalled on a generic 'api_error', and SmartHR couldn't surface a reproducible fix for expired auth — leaving agents to retry blindly. KanseiLink data identifies six API error-message anti-patterns that frustrate AI agents, and a prescription for LLM-friendly error envelope design.">
+  <meta name="keywords" content="API error message, AI agent error handling, LLM-friendly error, retryable error, KanseiLink agent voice, MCP error design, 422 perpetual retry">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/agent-voice-error-message-quality-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/agent-voice-error-message-quality-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/agent-voice-error-message-quality-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/agent-voice-error-message-quality-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Agent Voice: 6 API Error Patterns That Make AI Agents Give Up 2026">
+  <meta property="og:description" content="15 of freee's 212 reports stalled on a generic 'api_error', and SmartHR couldn't surface a reproducible fix for expired auth — KanseiLink data on the six anti-patterns that frustrate AI agents and how to fix them.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/agent-voice-error-message-quality-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-12">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Agent Voice">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agent Voice: 6 API Error Patterns That Make AI Agents Give Up 2026">
+  <meta name="twitter:description" content="freee's 15 generic api_errors, SmartHR's auth loops — KanseiLink data on six error-message anti-patterns and a fix for LLM-friendly error envelopes.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Agent Voice: 6 API Error Patterns That Make AI Agents Give Up — The Hidden Cost of Returning \"400 Bad Request\" 2026",
+    "description": "15 of freee's 212 reports stalled on a generic 'api_error', and SmartHR couldn't surface a reproducible fix for expired auth — leaving agents to retry blindly. KanseiLink data identifies six API error-message anti-patterns that frustrate AI agents, and a prescription for LLM-friendly error envelope design.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-12",
+    "dateModified": "2026-05-12",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/agent-voice-error-message-quality-2026",
+    "keywords": ["API error message", "AI agent error handling", "LLM-friendly error", "retryable error", "KanseiLink agent voice", "MCP error design"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does error-message quality matter so much for agent-era APIs?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Agents cannot Google a problem or ask a coworker — the error response is the only signal they have to recover from. A vague error sends them into pointless retry loops that burn tokens and time, and they eventually give up and tell the user 'it failed'. A specific error like 'expiry_date must be in YYYY-MM-DD format' lets the agent fix and retry in a single round trip. In 2026, error messages are the hidden UI of an API — and a worthwhile UX investment."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What error type shows up most often in KanseiLink data?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For freee MCP (212 reports), 'api_error' tops the list at 15 occurrences, followed by 'auth_expired' at 4. The auth_expired entries carry a documented, reproducible fix ('refresh the OAuth token; lifetime is 24h'), so agents can self-recover next time. The 'api_error' entries don't, so agents can't tell what to fix. That's the textbook symptom of overly coarse error categories — 429, 422, 404, and 500 all collapsed into a single 'api_error' bucket."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does adding a 'retryable' field save tokens?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Agents default to retrying on failure, which works fine for 429 / 503 but burns tokens forever on 422 (validation) errors that will never succeed without an input change. Adding 'retryable: false' to the error envelope lets the agent immediately switch to higher-level recovery (ask the user, try a different tool). Industry reports describe teams that 'saw token consumption visibly drop in the first week after introducing the retryable boolean' — a tiny implementation cost for a measurable agent-cost reduction."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do agents understand error messages in non-English (e.g. Japanese)?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "They understand the meaning, but mixed-language fields make machine routing harder. Claude / GPT / Gemini all comprehend Japanese, but if 'error.code' contains Japanese strings, programmatic switch logic on the client side becomes brittle. The recommended pattern is a hybrid: 'error.code' and 'error.field' in stable English (machine-routable), 'error.message' and 'error.user_message' in localised text (LLM- and human-readable). Separate the parts that get switch-cased from the parts that get spoken aloud."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What's the minimum bar for an MCP server's error responses?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Five fields. (1) error.code — a stable machine-readable string like 'amount_must_be_positive'. (2) error.message — one or two sentences an LLM can read. (3) error.field — which input failed. (4) error.retryable — boolean. (5) error.suggested_fix — one short remediation hint when possible. Add refresh_url for auth errors and retry_after_seconds for rate limits. Implementation cost is small; the success-rate impact is large."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/en/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Agent Voice: API Error Message Quality 2026", "item": "https://kansei-link.com/en/insights/agent-voice-error-message-quality-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/agent-voice-error-message-quality-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      Agent Voice: API Error Message Quality 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Agent Voice</span>
+      <h1>Agent Voice: 6 API Error Patterns That Make AI Agents Give Up — The Hidden Cost of Returning "400 Bad Request" 2026</h1>
+      <p class="subtitle">15 of freee's 212 reports stalled on a generic 'api_error', and SmartHR couldn't surface a reproducible fix for expired auth — leaving agents to retry blindly. KanseiLink data identifies six API error-message anti-patterns that frustrate AI agents, and a prescription for LLM-friendly error envelope design.</p>
+      <div class="article-meta">
+        <span>2026-05-12</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>9 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#why">Error messages are 2026's hidden API UI</a></li>
+        <li><a href="#data">KanseiLink data — where agents actually get stuck</a></li>
+        <li><a href="#top6">The six anti-patterns</a></li>
+        <li><a href="#envelope">The fix: an LLM-friendly error envelope</a></li>
+        <li><a href="#impl">Implementation example — Before/After</a></li>
+        <li><a href="#checklist">Provider-side checklist</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">Error messages are 2026's hidden API UI</h2>
+
+    <p>Until 2025, API error messages were "for human developers." Stuck? Ask in Slack, open the docs, search Stack Overflow — there were always escape hatches.</p>
+
+    <p>2026 inverted this. <strong>The primary consumer of an API is no longer a human; it's an AI agent</strong>, and an agent can't Google the problem or ping a coworker. The error response is its <strong>only signal</strong> for how to recover.</p>
+
+    <p>One widely cited industry write-up describes a team whose <strong>agent perpetually retried a 422 response that arrived with no body</strong>. Adding the explicit message <code>"missing required field 'first_name'"</code> let the agent self-correct on the next try. <strong>Error messages are the hidden UI of an agent-era API</strong> — and they deserve UX investment.</p>
+
+    <div class="insight-box">
+      <div class="label">The agent-era rule</div>
+      <p>"A vague error is, to an agent, an absent error." An API that returns nothing more than <code>400 Bad Request</code> looks to the agent like an opaque wall. Zero-information errors are functionally identical to a downed service.</p>
+    </div>
+
+    <h2 id="data">KanseiLink data — where agents actually get stuck</h2>
+
+    <p>The KanseiLink MCP collects live agent-behaviour reports. Slicing the error-related fields shows a clear pattern.</p>
+
+    <div class="data-highlight">
+      <h4>freee MCP — measured (April 2026, 212 reports)</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num red">15</span>
+          <div class="label">api_error<br>(top error)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">4</span>
+          <div class="label">auth_expired<br>(2nd)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">90%</span>
+          <div class="label">overall success rate</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">216ms</span>
+          <div class="label">avg latency</div>
+        </div>
+      </div>
+    </div>
+
+    <p>What stands out is that <strong>'api_error' has no breakdown</strong>. An implementation that lumps 429, 422, 404, and 500 into one bucket leaves the agent unable to tell whose problem it is or whether retrying is worthwhile. Meanwhile, <code>auth_expired</code> has a <strong>verified, reproducible workaround on file</strong> ("Refresh the OAuth token; lifetime is 24h"), so agents can self-recover next time.</p>
+
+    <p>That contrast is the core message of this piece: <strong>error granularity and an explicit fix determine success rates</strong>.</p>
+
+    <h2 id="top6">The six anti-patterns</h2>
+
+    <p>From KanseiLink data and industry reporting, six error-message patterns reliably make agents give up.</p>
+
+    <h3>❌ #1: 4xx with no body</h3>
+
+    <p>"<code>422 Unprocessable Entity</code>" with an empty body — or worse, <code>{"error": "validation failed"}</code>. The agent can't tell which field failed or why, so <strong>it retries the same request indefinitely, burning tokens</strong>. The widely cited fix — adding "missing required field 'first_name'" — shows that simply naming the field is the minimum bar.</p>
+
+    <h3>❌ #2: Error codes too coarse to act on</h3>
+
+    <p>Generic codes like <code>{"error": "api_error"}</code> or <code>{"code": "ERR_001"}</code> that can't be machine-routed. KanseiLink's 15 freee <code>api_error</code> events are exactly this: the breakdown isn't visible, so neither agents nor operators know where to start. <strong>An error code should uniquely determine what the agent does next</strong>; stable, verb-noun strings like <code>amount_must_be_positive</code> or <code>quota_exceeded_for_period</code> work; opaque IDs do not.</p>
+
+    <h3>❌ #3: No retryable hint</h3>
+
+    <p>Agents perpetually retrying a 422 disappear with one new field: <code>retryable: false</code>. Conversely, 429 / 503 should ship <code>retryable: true</code> with <code>retry_after_seconds</code>. <strong>That single boolean cuts wasted token spend dramatically</strong>, by industry accounts. The cost-to-benefit ratio is one of the best available — make this change first.</p>
+
+    <h3>❌ #4: Stack traces and internals leaking</h3>
+
+    <p>Returning <code>NullPointerException at com.example.UserService.findById:142</code> verbatim. Beyond the security risk, <strong>agents get distracted by irrelevant internal state</strong> and miss the actual issue. There are documented cases of implementation-side JavaScript errors like "Cannot read property 'id' of undefined" surfacing all the way to end users via agent transcripts.</p>
+
+    <h3>❌ #5: Mixed languages and inconsistent style</h3>
+
+    <p>Field names in English (<code>"validation_error"</code>) but messages in mixed Japanese — and tone shifts between polite and imperative across endpoints. Agents understand the languages, but if <strong>"machine-readable" and "human/LLM-readable" parts aren't separated</strong>, switch-case logic breaks. The hybrid pattern: <code>error.code</code> and <code>error.field</code> in stable English; <code>error.message</code> and <code>error.user_message</code> localised.</p>
+
+    <h3>❌ #6: Inconsistent envelope across endpoints</h3>
+
+    <p>Auth errors as <code>{"err": "..."}</code>, validation errors as <code>{"errors": [{"msg": "..."}]}</code>, server errors as raw HTML — all in the same API. Agents can't ship <strong>one shared error parser across all tools</strong>; they need a per-endpoint adapter. For MCP servers wrapping legacy upstream APIs, the 2026 best practice is to <strong>normalise to a single envelope at the MCP boundary</strong> — that's a signature MCP win.</p>
+
+    <h2 id="envelope">The fix: an LLM-friendly error envelope</h2>
+
+    <p>An envelope shape that absorbs all six anti-patterns. Field names follow industry convention (Stripe, GitHub, Anthropic SDK), extended for the agent use case.</p>
+
+    <pre><code>{
+  "error": {
+    "code": "amount_must_be_positive",          // stable, machine-readable
+    "message": "The 'amount' field must be a positive integer. Received: -100.",
+    "field": "amount",                          // which input failed
+    "retryable": false,                         // can a retry succeed?
+    "suggested_fix": "Pass an integer >= 1 (in JPY).",
+    "doc_url": "https://api.example.com/docs/errors#amount_must_be_positive",
+    "request_id": "req_01HQ8K3...",
+    "user_message": "Please enter a positive integer for the amount."  // optional
+  }
+}</code></pre>
+
+    <p>Specific categories benefit from extra fields.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Add these fields</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>auth_expired</strong></td>
+          <td><code>refresh_url</code>, <code>token_lifetime_seconds</code></td>
+          <td>Lets the agent jump straight into a refresh flow</td>
+        </tr>
+        <tr>
+          <td><strong>rate_limited</strong></td>
+          <td><code>retry_after_seconds</code>, <code>scope</code> (global/tool)</td>
+          <td>Drives backoff and tells the agent the blast radius</td>
+        </tr>
+        <tr>
+          <td><strong>not_found</strong></td>
+          <td><code>resource_type</code>, <code>searched_id</code></td>
+          <td>Stops the agent re-searching for an ID that won't exist</td>
+        </tr>
+        <tr>
+          <td><strong>conflict</strong></td>
+          <td><code>conflicting_resource_id</code>, <code>resolution_hint</code></td>
+          <td>Lets the agent handle duplicates without round-tripping the user</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="impl">Implementation example — Before/After</h2>
+
+    <h3>Before (the agent gets stuck)</h3>
+
+    <pre><code>HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+
+{
+  "error": "validation failed"
+}</code></pre>
+
+    <p>Agent behaviour: "Something failed but I don't know what." → resends the same request → same error → after a few round trips, gives up and tells the user "it failed." <strong>Ten or twenty wasted retries before the user even hears back</strong>.</p>
+
+    <h3>After (the agent recovers)</h3>
+
+    <pre><code>HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+
+{
+  "error": {
+    "code": "missing_required_field",
+    "message": "Required field 'client_email' is missing in the request body.",
+    "field": "client_email",
+    "retryable": false,
+    "suggested_fix": "Add 'client_email' as a string (RFC 5322 email format) to the request body.",
+    "doc_url": "https://api.example.com/docs/invoices#create",
+    "request_id": "req_01HQ8K3..."
+  }
+}</code></pre>
+
+    <p>Agent behaviour: parses "<code>client_email</code> is missing" instantly → extracts (or asks for) the email → succeeds on the first retry. <strong>Latency and token spend drop by an order of magnitude</strong>.</p>
+
+    <div class="success-box">
+      <div class="label">✅ The design principle</div>
+      <p>An error is incomplete unless it answers both "what went wrong" and "what should I do next." The four-field minimum is <code>code</code> (machine-routable), <code>field</code> (target), <code>retryable</code> (can a retry help), and <code>suggested_fix</code> (one short remediation hint).</p>
+    </div>
+
+    <h2 id="checklist">Provider-side checklist</h2>
+
+    <p>Ten checks for whether your API or MCP server is "agent-friendly."</p>
+
+    <ul class="checklist">
+      <li>Every 4xx response includes a JSON body (no empty bodies)</li>
+      <li><code>error.code</code> is a stable, documented, machine-readable English string</li>
+      <li><code>error.field</code> identifies which input failed</li>
+      <li><code>error.retryable</code> is a boolean</li>
+      <li><code>error.suggested_fix</code> tells the agent what to do next in 1–2 sentences</li>
+      <li><code>auth_expired</code> includes <code>refresh_url</code> or a hint to the auth flow</li>
+      <li><code>rate_limited</code> includes <code>retry_after_seconds</code> and <code>scope</code></li>
+      <li>The envelope shape is identical across every endpoint</li>
+      <li>No stack traces or internal paths leak in production responses</li>
+      <li><code>request_id</code> is included for support traceability</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>See your API's errors through an agent's eyes</h3>
+      <p>KanseiLink aggregates real agent behaviour across 225+ services — error patterns, success rates, and known fixes. Get a measurement of whether your SaaS clears the agent-era error-design bar.</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Audit your API's error quality</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. Why do error messages matter so much for agent-era APIs?</h3>
+    <p>The primary consumer is now an agent, not a human. Agents can't Google or ask a coworker — the error response is the only recovery signal. Vague errors trigger pointless retry loops, burn tokens, and erode UX.</p>
+
+    <h3>Q2. What's the most common error in KanseiLink data?</h3>
+    <p>For freee MCP (212 reports): 15 'api_error' (no breakdown — agents can't act), 4 'auth_expired' (with a verified workaround — agents self-recover). The contrast is the textbook lesson.</p>
+
+    <h3>Q3. Why does adding 'retryable' save tokens?</h3>
+    <p>Agents default to retrying on failure and burn tokens forever on 422-class errors. <code>retryable: false</code> lets them switch immediately to higher-level recovery. Industry reports describe a visible drop in token spend within a week of introduction.</p>
+
+    <h3>Q4. Do localised error messages work for agents?</h3>
+    <p>Comprehension is fine; machine routing isn't. Recommended hybrid: <code>error.code</code> and <code>error.field</code> in stable English; <code>error.message</code> and <code>error.user_message</code> localised. Separate switch-cased fields from spoken-aloud fields.</p>
+
+    <h3>Q5. What's the minimum bar for an MCP server's error responses?</h3>
+    <p>Five fields: error.code (stable string), error.message (LLM-readable, 1–2 sentences), error.field, error.retryable (boolean), error.suggested_fix. Small implementation cost, high success-rate impact.</p>
+
+    <h3>Q6. Does this apply to MCP servers wrapping legacy upstream APIs?</h3>
+    <p>Yes — and it's a signature MCP win. Even if the upstream returns inconsistent shapes, normalise everything to a single envelope at the MCP boundary so agents see one clean error vocabulary across tools.</p>
+
+    <div class="disclosure-box">
+      <div class="label">Disclosures and notes</div>
+      <p>The freee MCP figures ("212 reports, 15 api_error, 4 auth_expired") come from KanseiLink MCP's <code>get_insights</code> tool as of 2026-04-13; <code>confidence_score</code> is 0.61 (medium), and the distribution may shift as samples grow. The "perpetual 422 retry" and "missing first_name fix" examples come from publicly available industry write-ups including DEV.to ("Your API Wasn't Designed for AI Agents. Here Are 5 Fixes.") and Medium ("Handling HTTP Errors in AI Agents: Lessons from the Field"). The recommended envelope structure is a synthesis of Stripe, GitHub, and Anthropic SDK conventions extended for agent use cases — it is not a formal standard. Pricing and specifications may change without notice; please check the latest official documentation before relying on these figures in production.</p>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Articles</h2>
+      <div class="related-grid">
+        <a href="agent-voice-api-antipatterns-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>Three API Design Anti-Patterns That Frustrate Agents — freee, kintone, Notion</h4>
+        </a>
+        <a href="agent-voice-doc-quality-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>Agent Voice: The Documentation Quality Problem 2026</h4>
+        </a>
+        <a href="agent-voice-timeout-giveup-patterns-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>When Agents Give Up — Timeout & Long-task Failure Patterns Across MCP/APIs 2026</h4>
+        </a>
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">How-to</div>
+          <h4>MCP Server Implementation Guide 2026 — Auth, Rate Limiting, Error Handling</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        Live error-type, success-rate, and known-workaround data for target SaaS is available via KanseiLink MCP.
+        Use <code>get_insights</code> to read <code>common_errors</code> and <code>known_workarounds</code> when validating envelope designs or planning error handling for production.
+        Connection: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="../../insights/aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

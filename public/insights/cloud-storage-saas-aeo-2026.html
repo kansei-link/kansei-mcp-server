@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クラウドストレージSaaS AEO比較 2026 — Google Drive・Dropbox・Box・OneDrive・S3・R2のエージェント対応格付け | KanseiLink</title>
+  <meta name="description" content="エージェント時代のファイル基盤はどこを選ぶか。Google Drive・Dropbox・Box・OneDrive/SharePoint・AWS S3・Cloudflare R2・Google Workspaceの7サービスをKanseiLink AEO格付けと公式MCPサーバー対応で横並び比較。読み取り中心/書き込み運用/エンタープライズガバナンスの使い分けを整理。">
+  <meta name="keywords" content="クラウドストレージ MCP, Google Drive MCP, Dropbox MCP, Box MCP, OneDrive MCP, S3 MCP, R2 MCP, AEO比較, KanseiLink, AIエージェント ストレージ">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/cloud-storage-saas-aeo-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/cloud-storage-saas-aeo-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/cloud-storage-saas-aeo-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/cloud-storage-saas-aeo-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="クラウドストレージSaaS AEO比較 2026 — Google Drive・Dropbox・Box・OneDriveのエージェント対応格付け">
+  <meta property="og:description" content="ファイル基盤7サービスをKanseiLink AEO格付けで比較。公式MCPサーバー対応・OAuth設定・読み取り/書き込み運用の判断材料を提示。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/cloud-storage-saas-aeo-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-11">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="業界比較">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="クラウドストレージSaaS AEO比較 2026 — エージェント時代のファイル基盤選定">
+  <meta name="twitter:description" content="Google Drive・Dropbox・Box・OneDrive・S3・R2の7サービスをKanseiLink格付けで横並び比較。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "クラウドストレージSaaS AEO比較 2026 — Google Drive・Dropbox・Box・OneDrive・S3・R2のエージェント対応格付け",
+    "description": "エージェント時代のファイル基盤はどこを選ぶか。Google Drive・Dropbox・Box・OneDrive/SharePoint・AWS S3・Cloudflare R2・Google Workspaceの7サービスをKanseiLink AEO格付けと公式MCPサーバー対応で横並び比較。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-11",
+    "dateModified": "2026-05-11",
+    "mainEntityOfPage": "https://kansei-link.com/insights/cloud-storage-saas-aeo-2026",
+    "keywords": ["Cloud Storage MCP", "Google Drive MCP", "Dropbox MCP", "Box MCP", "OneDrive MCP", "S3 MCP", "R2 MCP", "AEO比較", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "AIエージェント向けに最初に選ぶべきクラウドストレージは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "用途で分かれます。社内ナレッジ参照中心・Google Workspaceを既に使っているならGoogle Drive MCP(modelcontextprotocol/server-gdrive、第三者実装ながらリファレンスとして整備)が出発点。エンタープライズの厳格な権限管理と監査が条件ならBox公式MCPサーバー(box-community/mcp-server-box、リモート版も公開)。Microsoft 365テナント上ならMicrosoft公式のWork IQ SharePoint/OneDrive MCPサーバー(2026年3月13日に旧版deprecated、新版へ移行)。S3互換のオブジェクトストレージとしてエージェントから直接読み書きするならCloudflare R2 MCPまたはAWS MCP Server(2026年5月6日 GA)。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Dropbox MCPサーバーは2026年に公式版が出ましたか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "はい。Dropbox公式のremote MCPサーバーが2026年3月18日にβ公開され、help.dropbox.comの公式ガイドで案内されています。Dynamic Client Registrationに対応し、Claude・ChatGPT・Cursorなど主要MCPクライアントから直接接続できます。ファイルのアップロード、フォルダ検索、共有リンク作成、ドキュメント管理を自然言語で操作可能。なおDropbox Dash(Dropbox自身のAIサーチ製品)用の別MCPサーバーも別途公開されており、用途で使い分けます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "OneDrive・SharePointのMCPは『deprecated』と聞きました。どう対応すべきですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Microsoftは2026年3月13日に旧『SharePoint and OneDrive MCP server』(odspremoteserver)をdeprecated扱いとし、新たに『Work IQ SharePoint MCP』と『Work IQ OneDrive MCP』(両方ともpreview)に分割しました。既存接続は引き続きサポートされますが、新規セットアップは新版を使う必要があります。新版はMicrosoft 365テナントのファイル一覧・メタデータ取得・検索・アップロードに対応し、Agent 365のtooling gateway経由で監査可能なツール群として提供されます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Box MCPサーバーの『公式』はどこですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Boxは2026年に『Box MCP server』を公式提供しています。box.com/mcp-serverで紹介されており、リモートホスト版(github.com/box/mcp-server-box-remote)とセルフホスト版(github.com/box-community/mcp-server-box、Pythonプロジェクト)の2系統があります。Anthropic Claude、Microsoft Copilot Studio、Microsoft Azure API Center、Mistral Le Chatに対応し、Salesforce Agentforce・GitHub Copilotへの対応も予定。Boxのネイティブ権限・ガバナンスを尊重した形で、多ファイル分析・メタデータ抽出・高度検索をエージェントに開放します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "S3互換ストレージ(AWS S3・Cloudflare R2)もエージェント連携できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "可能です。AWSは2026年5月6日にAWS MCP Server(Agent Toolkit for AWSの一部)をGAし、SQL対応のS3 Tablesクエリ、CSV→テーブル変換、メタデータ探索ツール、サーバーサイドで走るrun_scriptツールを提供。Cloudflare R2はS3互換APIを持ち、335+データセンターのCloudflare Workersから直接呼び出せるほか、Cloudflare API MCP(2,500+エンドポイントをsearch()とexecute()の2ツールで操作)からアクセス可能です。R2はegress無料が大きな利点で、エージェントが頻繁にファイルを読み出すワークロードでコストメリットが出ます。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "クラウドストレージSaaS AEO比較 2026", "item": "https://kansei-link.com/insights/cloud-storage-saas-aeo-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/cloud-storage-saas-aeo-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      クラウドストレージSaaS AEO比較 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">業界比較 / Industry Report</span>
+      <h1>クラウドストレージSaaS AEO比較 2026 — Google Drive・Dropbox・Box・OneDrive・S3・R2のエージェント対応格付け</h1>
+      <p class="subtitle">エージェント時代のファイル基盤はどこを選ぶか。Google Drive・Dropbox・Box・OneDrive/SharePoint・AWS S3・Cloudflare R2・Google Workspaceの7サービスを、KanseiLink AEO格付けと2026年に確定した公式MCPサーバー対応で横並びに整理する。</p>
+      <div class="article-meta">
+        <span>2026-05-11</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約10分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜ今「ストレージ × エージェント」を比較するのか</a></li>
+        <li><a href="#ranking">AEO格付け一覧 — ファイル基盤7サービスのランキング</a></li>
+        <li><a href="#dropbox">Dropbox — 2026年3月公開のremote MCPサーバー</a></li>
+        <li><a href="#box">Box — エンタープライズ向け公式MCPの本命</a></li>
+        <li><a href="#gdrive">Google Drive・Workspace — 公式統合と第三者MCPの併存</a></li>
+        <li><a href="#m365">Microsoft 365 / OneDrive — 旧MCP deprecated、新Work IQへ移行</a></li>
+        <li><a href="#object">S3・R2 — オブジェクトストレージのエージェント連携</a></li>
+        <li><a href="#decision">用途別の選定フロー</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜ今「ストレージ × エージェント」を比較するのか</h2>
+
+    <p>2026年に入り、エージェント開発の主戦場は「ツール呼び出し」から「コンテンツアクセス」に移った。社内ドキュメント・契約書・設計書・顧客資料といったアンストラクチャード・データに、エージェントから安全に・監査可能に・必要十分な権限で触れることが、エンタープライズ導入の前提になっている。</p>
+
+    <p>KanseiLinkは225+のサービスについてエージェント自己報告データを集約しており、ファイル系は <code>category: storage</code> および隣接する <code>category: productivity</code>(Google Workspaceなど)に分類される。本記事ではエージェントから直接ファイルを読み書きする用途で出現頻度の高い7サービスをピックアップし、AEO格付け・公式MCPサーバー対応・主要な制約を横並びで整理する。</p>
+
+    <div class="insight-box">
+      <div class="label">2026年5月の編集視点</div>
+      <p>2026年は<strong>「公式MCPサーバーがストレージベンダー側から提供される」</strong>方向に揃った。Box・Dropbox・Microsoft(OneDrive/SharePoint)が立て続けに公式サーバーをリリースし、Google Driveだけが <code>modelcontextprotocol/server-gdrive</code> の第三者実装+Anthropic公式Google Workspaceコネクター(2026年2月24日追加)の組み合わせという特殊な立ち位置にいる。</p>
+    </div>
+
+    <h2 id="ranking">AEO格付け一覧 — ファイル基盤7サービスのランキング</h2>
+
+    <p>KanseiLinkの <code>search_services</code> 値(2026年4月時点、<code>category: storage</code> および隣接カテゴリ)を、AEO格付けの高い順に並べた。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>サービス</th>
+          <th>カテゴリ</th>
+          <th>MCP状態</th>
+          <th>AEO</th>
+          <th>使用報告数</th>
+          <th>成功率</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Dropbox Business</strong></td><td>Storage</td><td>公式remote MCP (2026-03-18 β公開)</td><td class="success-mid">BBB</td><td>3</td><td class="success-mid">67%</td></tr>
+        <tr><td><strong>Google Drive</strong></td><td>Storage</td><td>第三者 (modelcontextprotocol/server-gdrive)</td><td class="success-mid">BBB</td><td>0</td><td>n/a</td></tr>
+        <tr><td><strong>Box Japan</strong></td><td>Storage</td><td>公式 (box/mcp-server-box-remote)</td><td class="success-mid">BBB</td><td>12</td><td class="success-mid">67%</td></tr>
+        <tr><td><strong>Google Workspace</strong></td><td>Productivity</td><td>第三者+Claudeネイティブコネクター</td><td class="success-mid">BBB</td><td>2</td><td class="success-high">100%</td></tr>
+        <tr><td><strong>Microsoft 365 (OneDrive/SharePoint)</strong></td><td>Productivity</td><td>公式Work IQ MCP (preview)</td><td class="success-mid">BBB</td><td>—</td><td>—</td></tr>
+        <tr><td><strong>Amazon S3</strong></td><td>Storage</td><td>AWS MCP Server (2026-05-06 GA)</td><td class="success-mid">BB</td><td>0</td><td>n/a</td></tr>
+        <tr><td><strong>Cloudflare R2</strong></td><td>Storage</td><td>Cloudflare API MCP + R2専用MCP</td><td class="success-mid">BB</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <p>「—」「n/a」はKanseiLinkにエージェント自己報告データが十分集まっていないことを示す。connectableステータスとして列挙はするが、本番投入前に小規模PoCでメトリクスを集めるのが望ましい。</p>
+
+    <h2 id="dropbox">Dropbox — 2026年3月公開のremote MCPサーバー</h2>
+
+    <p>2026年で最も状況が動いたのがDropboxだ。Dropbox公式の<strong>remote MCPサーバーが2026年3月18日にβ公開</strong>され、 <code>help.dropbox.com/integrations/connect-dropbox-mcp-server</code> の公式ガイドで案内されている。Dynamic Client Registrationに対応し、Claude・ChatGPT・Cursor等の主要MCPクライアントから直接接続できる。</p>
+
+    <p>KanseiLinkのDropbox Business実測は <strong>3件報告 / 成功率67% / BBB</strong>。報告数はまだ少ないが、ファイルのアップロード・フォルダ検索・共有リンク作成・ドキュメント管理といった基本操作を自然言語で実行可能だ。なおDropbox自身のAIサーチ製品「Dropbox Dash」向けには別のMCPサーバーが提供されており、用途で使い分ける必要がある。</p>
+
+    <div class="success-box">
+      <div class="label">✅ Dropbox MCPを選ぶべきケース</div>
+      <p>・既にDropbox Businessを社内ファイルサーバーとして使っている<br>・<strong>remote MCP(ホスト型)</strong>で運用負荷を最小化したい<br>・Claude・ChatGPT・Cursorなど複数のMCPクライアントから同じファイルにアクセスしたい</p>
+    </div>
+
+    <h2 id="box">Box — エンタープライズ向け公式MCPの本命</h2>
+
+    <p>エンタープライズコンテンツ管理(ECM)の文脈で2026年に最も整備が進んだのが <strong>Box公式MCPサーバー</strong>。 <code>box.com/mcp-server</code> で紹介されており、<strong>リモートホスト版</strong>( <code>github.com/box/mcp-server-box-remote</code>)と<strong>セルフホスト版</strong>( <code>github.com/box-community/mcp-server-box</code>、Pythonプロジェクト)の2系統が公開されている。</p>
+
+    <p>Boxの強みは<strong>ネイティブ権限モデル・ガバナンスを尊重した形でAIエージェントへ開放する設計</strong>。多ファイル分析、メタデータ抽出、高度検索といったエンタープライズ用途の機能をMCPツールとして提供する。Anthropic Claude、Microsoft Copilot Studio、Microsoft Azure API Center、Mistral Le Chatに既に対応し、Salesforce Agentforce・GitHub Copilotへの対応も発表されている。</p>
+
+    <p>KanseiLink実測は<strong>12件報告 / 成功率67% / BBB</strong>。OAuth 2.0認証で、Box Developer Console経由でアプリ登録する。日本市場(Box Japan)では金融・製造・公共セクターのコンプライアンス要件を満たせる「No.1エンタープライズファイルストレージ」として位置付けられており、規制業界のAIエージェント導入で第一候補になる。</p>
+
+    <div class="insight-box">
+      <div class="label">Box MCPサーバーのデプロイ選択</div>
+      <p><strong>リモート版</strong>(box/mcp-server-box-remote): Boxがホスト、AWS Marketplaceでも提供。自社で運用したくない場合の標準解。<br><strong>セルフホスト版</strong>(box-community/mcp-server-box、Python): 自社環境でVPC内に閉じたい/独自拡張をしたい場合。ガバナンス要件が厳しい業界向け。</p>
+    </div>
+
+    <h2 id="gdrive">Google Drive・Workspace — 公式統合と第三者MCPの併存</h2>
+
+    <p>Google Driveは2026年も「<strong>公式MCPサーバーは未提供</strong>、ただしClaudeのGoogle Workspaceコネクター(2026年2月24日追加)と第三者MCPサーバーの組み合わせで実質的に整備済み」という特殊な立ち位置にある。</p>
+
+    <p>第三者MCPは Anthropic公開の <code>modelcontextprotocol/server-gdrive</code>(npxで起動) が事実上のリファレンス。ファイルとフォルダの検索、読み取りに対応する。書き込みや高度な操作には、 <code>isaacphi/mcp-gdrive</code>(Google Sheetsの編集まで対応)や <code>piotr-agier/google-drive-mcp</code>(Drive・Docs・Sheets・Slides・Calendarの統合操作)などコミュニティ実装を選ぶのが2026年の現実解。</p>
+
+    <p>Claudeに2026年2月24日追加された<strong>Google Workspaceネイティブコネクター</strong>は、テキスト抽出ベースで動く。Driveのファイル内容は読めるが、「Claudeにフォルダ整理を頼む」「ファイル移動・コピーを自動実行する」といったファイルシステム制御はできない。<strong>自律的にファイル管理させるならMCPサーバー、引用・検索目的ならネイティブコネクター</strong>という使い分けになる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ Workspace共有ドライブの既知問題</div>
+      <p>GitHub Issue (anthropics/claude-code #53442) で「Cowork Google Drive MCP cannot see content in any Workspace Shared Drive」が報告されている。<strong>個人ドライブ(My Drive)は問題なく見える一方、Shared Drives内のファイルが見えないケース</strong>がある。エンタープライズ利用ではShared Drives配下のファイルにアクセスする前提でPoCを組み、見えないファイルがあればOAuth scope設定(<code>drive.readonly</code> ではなく <code>drive</code>)を確認するのが定石。</p>
+    </div>
+
+    <h2 id="m365">Microsoft 365 / OneDrive — 旧MCP deprecated、新Work IQへ移行</h2>
+
+    <p>Microsoftは2026年3月13日に旧 <code>SharePoint and OneDrive MCP server</code>(odspremoteserver)を<strong>deprecated扱い</strong>とし、新たに <strong>Work IQ SharePoint MCP</strong> と <strong>Work IQ OneDrive MCP</strong>(両方ともpreview)の2系統に分割した。既存接続は引き続きサポートされるが、新規セットアップは新版を使う必要がある。</p>
+
+    <p>新版は <strong>Agent 365 tooling gateway</strong> 経由で監査可能なツール群として提供される。Work IQ SharePointはファイル一覧・メタデータ取得・検索・アップロード・リスト管理、Work IQ OneDriveは個人OneDriveのファイル/フォルダ管理に対応。Anthropic ClaudeのMicrosoft 365コネクターは、OAuth 2.0(暗号化トークン保管)経由でSharePoint・Teams・Outlook・OneDriveを統合し、ドキュメント分析・メール洞察・会議要約など8種のワークフローを自動化できる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ Microsoft 365 MCP移行の落とし穴</div>
+      <p>2026年3月13日以降に新規構築するエージェントは <strong>必ずWork IQ系の新MCPを使う</strong>。旧odspremoteserverを使ったチュートリアルやサンプルコードがまだ大量にネット上に残っており、「動いた」と思って本番に持っていくと数ヶ月後にdeprecation終了で動かなくなるリスクがある。</p>
+    </div>
+
+    <h2 id="object">S3・R2 — オブジェクトストレージのエージェント連携</h2>
+
+    <p>「ファイル共有SaaS」ではなく <strong>オブジェクトストレージ</strong> をエージェントから直接叩く構成も2026年に整備が進んだ。</p>
+
+    <p><strong>AWS S3</strong>は2026年5月6日に <strong>AWS MCP Server</strong>(Agent Toolkit for AWSの一部)がGA。US East (N. Virginia)とEurope (Frankfurt)で提供、APIコールは全リージョン可。S3 Tables(SQL対応)、CSV→テーブル変換、メタデータ探索、サンドボックス内Pythonを実行する <code>run_script</code> ツールを備え、IAM context keys対応・認証なしでのドキュメント取得・トークン削減といった改善が入った。Claude Code、Kiro、Cursor、その他MCP互換クライアントから利用可能。<strong>AWS MCP Server自体の追加料金は不要</strong>で、AWSリソースとデータ転送料金のみが課金される。</p>
+
+    <p><strong>Cloudflare R2</strong>はS3互換APIを持ち、335+データセンターから低レイテンシで読み出せる。エージェント連携は2系統あり、(1) Cloudflare API MCPサーバー(2,500+エンドポイントを <code>search()</code> と <code>execute()</code> の2ツールで操作)、(2) Pipedreamの <code>Cloudflare R2 MCP Server</code> など第三者経由でアクセスする。<strong>egress(下り通信)が無料</strong>という料金構造は、エージェントが頻繁にファイルを読み出すワークロード(RAGのソース置き場、ログ分析、定期スクレイピング結果のアーカイブ等)で大きなコストメリットになる。</p>
+
+    <h2 id="decision">用途別の選定フロー</h2>
+
+    <p>「迷ったらこれ」という単純な答えは存在しないが、以下のフローで多くのケースをカバーできる。</p>
+
+    <ul class="checklist">
+      <li><strong>エンタープライズ・規制業界・厳格な権限管理</strong> → Box公式MCP(リモート版またはセルフホスト版)</li>
+      <li><strong>Microsoft 365テナント・SharePoint資産を活用</strong> → Work IQ SharePoint/OneDrive MCP(新版)</li>
+      <li><strong>Google Workspaceで運用済み・引用と検索が主目的</strong> → ClaudeのGoogle Workspaceネイティブコネクター</li>
+      <li><strong>Google Driveに自律的にファイル操作させたい</strong> → modelcontextprotocol/server-gdrive または isaacphi/mcp-gdrive</li>
+      <li><strong>Dropbox Business資産・remote MCPで運用負荷を抑えたい</strong> → Dropbox公式remote MCP(β)</li>
+      <li><strong>RAGソース置き場・egressコスト最小化</strong> → Cloudflare R2 + Cloudflare API MCP</li>
+      <li><strong>AWSエコシステム内で完結・S3 Tables/SQL活用</strong> → AWS MCP Server(2026-05-06 GA)</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>クラウドストレージSaaSのAEO格付けを社内導入したい方へ</h3>
+      <p>KanseiLinkは225+のSaaSについて、成功率・レイテンシ・エラー類型・既知ワークアラウンドの実測データをMCP経由で提供します。ストレージ層の選定もエージェント実測ベースで判断できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO格付けデータの活用を相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>AIエージェント向けに最初に選ぶべきクラウドストレージは？</h3>
+    <p>用途で分かれます。社内ナレッジ参照中心・Google Workspaceを既に使っているならGoogle Drive MCP(modelcontextprotocol/server-gdrive)。エンタープライズの厳格な権限管理ならBox公式MCP。Microsoft 365テナント上ならWork IQ SharePoint/OneDrive MCP。S3互換オブジェクトストレージならCloudflare R2 MCPまたはAWS MCP Server(2026-05-06 GA)。</p>
+
+    <h3>Dropbox MCPサーバーは2026年に公式版が出ましたか？</h3>
+    <p>はい。Dropbox公式remote MCPサーバーが2026年3月18日にβ公開されました。Dynamic Client Registration対応で、Claude・ChatGPT・Cursorなどから直接接続できます。help.dropbox.comの公式ガイドで案内されています。</p>
+
+    <h3>OneDrive・SharePointのMCPは『deprecated』と聞きました。</h3>
+    <p>Microsoftは2026年3月13日に旧『SharePoint and OneDrive MCP server』をdeprecatedとし、新たに『Work IQ SharePoint MCP』と『Work IQ OneDrive MCP』(両方ともpreview)に分割しました。既存接続は引き続きサポートされますが、新規セットアップは新版を使ってください。</p>
+
+    <h3>Box MCPサーバーの『公式』はどこですか？</h3>
+    <p>Box公式リポジトリは2系統あります: <code>box/mcp-server-box-remote</code>(リモートホスト版、AWS Marketplaceでも提供)と <code>box-community/mcp-server-box</code>(セルフホスト版、Pythonプロジェクト)。Anthropic Claude、Microsoft Copilot Studio、Mistral Le Chatなどに対応。</p>
+
+    <h3>S3互換ストレージもエージェント連携できますか？</h3>
+    <p>可能です。AWS MCP Serverが2026年5月6日にGAし、S3 Tables/SQL対応・CSV→テーブル変換・メタデータ探索ツールを提供。Cloudflare R2はS3互換APIを持ち、Cloudflare API MCPまたは第三者MCP経由でアクセス可能。R2はegress無料が大きなコストメリットです。</p>
+
+    <h3>「データなし」の項目はどう解釈すればよいですか？</h3>
+    <p>「—」「n/a」表示はKanseiLinkにエージェント自己報告データが十分集まっていないことを示します。サービス自体の品質を否定するものではなく、本番投入前に小規模PoCでメトリクスを集めることを推奨します。<code>report_outcome</code> ツールでKanseiLinkに実測値を寄稿いただけると、業界全体の選定精度が上がります。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の数値はKanseiLink MCP <code>search_services</code> / <code>get_insights</code> ツールの2026年4月時点データに基づきます: Dropbox Business (n=3, 67%, BBB)、Box Japan (n=12, 67%, BBB)、Google Workspace (n=2, 100%, BBB)、Google Drive (n=0, BBB)、Microsoft 365 (n=0)、Amazon S3 (n=0, BB)、Cloudflare R2 (n=0, BB)。Dropbox remote MCPの2026年3月18日β公開は <code>help.dropbox.com/integrations/connect-dropbox-mcp-server</code>、Box MCP公式提供は <code>box.com/mcp-server</code>、Microsoft 365 MCPのdeprecation(2026年3月13日)は <code>learn.microsoft.com/en-us/microsoft-agent-365/mcp-server-reference/odspremoteserver</code>、AWS MCP Server GA(2026年5月6日)は <code>aws.amazon.com/blogs/aws/the-aws-mcp-server-is-now-generally-available/</code>、Claude Google Workspaceコネクター(2026年2月24日追加)は <code>fast.io/resources/connect-claude-google-drive/</code> を参照。サンプル数が少ない項目は今後のデータ蓄積で値が変動する可能性があるため、本番運用時は最新の各公式ドキュメントを必ずご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="database-saas-aeo-2026.html" class="related-card">
+          <div class="tag">業界比較</div>
+          <h4>データベースSaaS AEO比較 2026 — Postgres・Qdrant・Chroma・Redis・Turso・Supabaseのエージェント対応格付け</h4>
+        </a>
+        <a href="groupware-saas-aeo-2026.html" class="related-card">
+          <div class="tag">業界比較</div>
+          <h4>グループウェア SaaS AEO対応比較 2026 — Garoon・Notion・Confluence・rakumoのエージェント連携格付け</h4>
+        </a>
+        <a href="cloudflare-workers-mcp-deployment-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>Cloudflare Workers MCPサーバー本番デプロイ実装ガイド 2026 — 30分構築から「52%死亡」を回避する運用パターンまで</h4>
+        </a>
+        <a href="mcp-verified-vs-connectable-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>「MCP対応」の罠: verified/connectableの成功率格差と企業選定の新基準</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        クラウドストレージ系MCPの実測メトリクス(成功率・レイテンシ・MCP状態)はKanseiLink MCP経由で取得できます。
+        <code>search_services</code> に <code>category: "storage"</code> または <code>category: "productivity"</code> を指定すると、Dropbox / Google Drive / Box / Google Workspace / Amazon S3 などのファイル系サービスがランク付けされて返ります。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

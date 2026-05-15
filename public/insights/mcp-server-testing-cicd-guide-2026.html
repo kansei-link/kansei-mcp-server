@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCPサーバーCI/CDテスト構築完全ガイド 2026 — FastMCP Client・mcp-testing-framework・契約テストで本番事故を防ぐ | KanseiLink</title>
+  <meta name="description" content="MCPサーバーは『動いているように見えて壊れている』ことが多い。LLMの非決定性、スキーマドリフト、プロトコル更新——3つの落とし穴を吸収するCI/CDテスト戦略を、FastMCP Client / mcp-testing-framework / GitHub Actions ワークフローまで実装コード付きで解説する。">
+  <meta name="keywords" content="MCP testing, MCPサーバー テスト, CI/CD, FastMCP Client, mcp-testing-framework, 契約テスト, GitHub Actions, MCPテスト戦略, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-server-testing-cicd-guide-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-server-testing-cicd-guide-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-server-testing-cicd-guide-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-server-testing-cicd-guide-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCPサーバーCI/CDテスト構築完全ガイド 2026 — FastMCP Client・mcp-testing-framework・契約テストで本番事故を防ぐ">
+  <meta property="og:description" content="LLMの非決定性、スキーマドリフト、プロトコル更新——3つの落とし穴を吸収するCI/CDテスト戦略をFastMCP Client / mcp-testing-framework / GitHub Actionsで解説。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-server-testing-cicd-guide-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-12">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="実践ガイド">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCPサーバーCI/CDテスト構築完全ガイド 2026">
+  <meta name="twitter:description" content="LLMの非決定性、スキーマドリフト、プロトコル更新を吸収するMCPテスト戦略をFastMCP Client / mcp-testing-framework / GitHub Actionsで実装コード付き解説。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCPサーバーCI/CDテスト構築完全ガイド 2026 — FastMCP Client・mcp-testing-framework・契約テストで本番事故を防ぐ",
+    "description": "MCPサーバーは『動いているように見えて壊れている』ことが多い。LLMの非決定性、スキーマドリフト、プロトコル更新——3つの落とし穴を吸収するCI/CDテスト戦略を、FastMCP Client / mcp-testing-framework / GitHub Actions ワークフローまで実装コード付きで解説する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-12",
+    "dateModified": "2026-05-12",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-server-testing-cicd-guide-2026",
+    "keywords": ["MCP testing", "MCPサーバー テスト", "CI/CD", "FastMCP Client", "mcp-testing-framework", "契約テスト", "GitHub Actions", "MCPテスト戦略", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "なぜMCPサーバーのテストは通常のWeb APIより難しいのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "3つの非対称性があります。(1) 呼び出し側がLLMで非決定的——同じ意図でも引数の渡し方が毎回変わる、(2) ツールスキーマがLLMのプロンプト的役割を持つ——descriptionの一語修正でツール選択率が大きく変わる、(3) MCP仕様自体が高頻度で更新される——2024年→2025年→2026年でTransport追加、メタデータ拡張、認証フロー変更があった。通常のWeb APIテストの『リクエスト→レスポンス』だけでは捕まえきれない領域が大きいため、ユニット/契約/E2Eの3層を組み合わせる必要があります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "FastMCP Clientとmcp-testing-framework、どちらを使うべきですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "用途で使い分けます。FastMCP Clientは『ネットワーク不要・プロセス不要のメモリ内テスト』に最適で、CI/CDのユニットテスト層に向きます(各テスト数十ms)。mcp-testing-framework(Python・PyPI公開)は実プロトコル経由でMCPサーバー実装を検証するフレームワークで、契約テスト層(MCP仕様準拠の検証)に向きます。本番品質を担保するには両方併用が現実解で、ユニットでロジックを高速回帰、契約テストで仕様準拠を担保します。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "ツールスキーマの『descriptionだけ変えた』PRをCIで検出できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "可能ですが意図的な仕組みが必要です。MCPサーバーのlist_toolsレスポンスをスナップショットとしてリポジトリに保存し、PRごとに差分検出するのが定石。さらに『descriptionの語彙を変えるとツール選択率が変わる』ため、A/B評価用のリグレッションテスト(代表クエリ10〜20件で『正しいツールが選ばれたか』を検証)を併用するのが2026年のベストプラクティスです。Claude/GPT/Geminiの選択率がモデル横断で安定しているかを定点観測する仕組みは、KanseiLinkのAgent Voiceデータでも有効性が示されています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "実LLMを呼ぶE2Eテストはコストがかかりすぎませんか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "全PRで実LLMを呼ぶ必要はありません。推奨パターンは『ユニットと契約テストはmainブランチ全PRで実行(無料)、E2Eは(a) リリースタグ時、(b) ナイトリー、(c) スキーマ変更PRのみ』の3トリガー。Anthropic Claude Haiku 4.5なら1回のE2E実行(代表クエリ20件・1クエリ平均2,000トークン)でも数十円〜100円台に収まる試算で、ナイトリー実行のコストは月数千円規模に抑えられます。本番事故1回(数時間のダウンタイム+顧客影響)と比較すれば桁違いに安い投資です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "GitHub ActionsでMCPサーバーをテストする際の落とし穴は？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "4つの典型的な落とし穴があります。(1) シークレット——OAuth/APIキーをActions Secretsに置き、PRからのfork buildでは公開しないgated環境を別途用意、(2) フレーキー対策——LLM呼び出しは指数バックオフ+ジッター必須、リトライ回数上限を設けて無限ループを防ぐ、(3) アーティファクト保存——失敗時のリクエスト/レスポンスをartifact uploadで残して再現性を確保、(4) 並列実行の競合——OAuth refresh tokenの並列リフレッシュは多くのSaaSで競合するため、テストごとに別アカウントを用意するか直列化する必要があります。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCP Server Testing CI/CD Guide 2026", "item": "https://kansei-link.com/insights/mcp-server-testing-cicd-guide-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-server-testing-cicd-guide-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCPサーバーCI/CDテスト構築完全ガイド 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">実践ガイド / How-to</span>
+      <h1>MCPサーバーCI/CDテスト構築完全ガイド 2026 — FastMCP Client・mcp-testing-framework・契約テストで本番事故を防ぐ</h1>
+      <p class="subtitle">MCPサーバーは「動いているように見えて壊れている」ことが多い。LLMの非決定性、ツールスキーマのドリフト、プロトコル仕様の継続的な更新——3つの落とし穴を吸収するCI/CDテスト戦略を、FastMCP Client / mcp-testing-framework / GitHub Actions ワークフローまで実装コード付きで解説する。</p>
+      <div class="article-meta">
+        <span>2026-05-12</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約11分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜMCPテストはWeb APIテストより難しいのか</a></li>
+        <li><a href="#pyramid">MCPテストピラミッド — 4層構成</a></li>
+        <li><a href="#unit">レイヤー1: ユニットテスト(FastMCP Client)</a></li>
+        <li><a href="#contract">レイヤー2: 契約テスト(mcp-testing-framework)</a></li>
+        <li><a href="#schema-drift">レイヤー3: スキーマドリフト検出</a></li>
+        <li><a href="#e2e">レイヤー4: 実LLMでのE2Eテスト</a></li>
+        <li><a href="#github-actions">GitHub Actionsワークフロー実装例</a></li>
+        <li><a href="#checklist">本番チェックリスト</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜMCPテストはWeb APIテストより難しいのか</h2>
+
+    <p>「MCPサーバーは普通のWeb APIと同じくユニットテストとE2Eを書けばいい」——この理解で本番投入したチームの大半が、リリース後数週間以内にエージェント挙動の劣化に気づいて慌てる。理由は <strong>3つの非対称性</strong> にある。</p>
+
+    <h3>非対称性1: 呼び出し側がLLM(非決定的)</h3>
+
+    <p>通常のWeb APIテストでは「同じ入力なら同じ出力」が前提。一方MCPでは、呼び出し側がClaudeやGPTのようなLLMで、<strong>同じユーザー意図でも引数の渡し方が毎回変わる</strong>。「今月の請求書を作って」という指示で、あるときは <code>{date: "2026-05"}</code>、あるときは <code>{from: "2026-05-01", to: "2026-05-31"}</code> が渡る。両方を受けられるかをテストしていないと、本番で散発的に失敗する。</p>
+
+    <h3>非対称性2: ツールスキーマがLLMのプロンプト的役割を持つ</h3>
+
+    <p>MCPのツール <code>description</code> は単なるドキュメントではなく、<strong>LLMがどのツールを呼ぶかを決める判断材料</strong>。「Send a message to Slack」を「Post to Slack channel」に書き換えただけで、エージェントのツール選択率が大きく変わる事例が業界で報告されている。コードロジックは無傷でも、<strong>説明文のリファクタリングが本番劣化を引き起こす</strong>のがMCP特有の罠だ。</p>
+
+    <h3>非対称性3: プロトコル仕様が高頻度で更新される</h3>
+
+    <p>MCP仕様は2024年〜2026年にかけてStreamable HTTP追加、メタデータ拡張、認証フロー(OAuth 2.1ベース)導入など継続的に更新されてきた。サードパーティライブラリ(SDK・クライアント)は仕様変更に追随するが、<strong>あなたのMCPサーバーが古い仕様準拠のままだと、新しいエージェントから接続できなくなる</strong>。仕様準拠を継続検証する仕組みがCIに必要だ。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ よくある勘違い</div>
+      <p>「ユニットテストが100%パスしているから安全」——これはMCPでは通用しない。LLMがツールを正しく選び、適切な引数を渡し、エラー時に意味のある復帰ができるかは、<strong>サーバー実装の単体テストでは絶対に検証できない</strong>領域だ。</p>
+    </div>
+
+    <h2 id="pyramid">MCPテストピラミッド — 4層構成</h2>
+
+    <p>2026年に本番運用に耐えるMCPサーバーは、以下の4層をCI/CDに組み込んでいる。下層ほど高速・高頻度、上層ほど高コスト・低頻度で実行する。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>レイヤー</th>
+          <th>主な検証対象</th>
+          <th>推奨ツール</th>
+          <th>実行タイミング</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. ユニット</strong></td>
+          <td>個々のツール実装(ロジック)</td>
+          <td>FastMCP Client (in-memory)</td>
+          <td>全PR / 全push</td>
+        </tr>
+        <tr>
+          <td><strong>2. 契約</strong></td>
+          <td>MCP仕様準拠 / プロトコル整合</td>
+          <td>mcp-testing-framework</td>
+          <td>全PR</td>
+        </tr>
+        <tr>
+          <td><strong>3. スキーマドリフト</strong></td>
+          <td>ツール定義のスナップショット</td>
+          <td>独自スナップショット + diff</td>
+          <td>全PR</td>
+        </tr>
+        <tr>
+          <td><strong>4. E2E (実LLM)</strong></td>
+          <td>ツール選択 + 引数生成 + 復帰</td>
+          <td>Anthropic SDK + 評価データセット</td>
+          <td>ナイトリー / リリースタグ</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="unit">レイヤー1: ユニットテスト(FastMCP Client)</h2>
+
+    <p>FastMCP(Python向けMCPフレームワーク)に同梱の <code>Client</code> は、サーバープロセスを立ち上げずに <strong>メモリ内でMCPサーバーを直接呼び出せる</strong>。ネットワーク遅延ゼロ・認証スキップ・並列実行可で、各テスト数十msで終わる。CI/CDのユニットテスト層で第一選択になる。</p>
+
+    <pre><code># tests/test_create_invoice.py
+import pytest
+from fastmcp import FastMCP, Client
+
+# 本番のサーバーインスタンスを直接importして使う
+from my_mcp_server import mcp
+
+@pytest.mark.asyncio
+async def test_create_invoice_success():
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "create_invoice",
+            {"amount": 10000, "client": "Acme Inc"}
+        )
+        assert result.is_error is False
+        assert "invoice_id" in result.content[0].text
+
+@pytest.mark.asyncio
+async def test_create_invoice_invalid_amount():
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "create_invoice",
+            {"amount": -100, "client": "Acme Inc"}
+        )
+        assert result.is_error is True
+        # エラーメッセージにフィールド名が含まれているか
+        assert "amount" in result.content[0].text.lower()</code></pre>
+
+    <p>ポイントは <strong>「ツールが返すエラーがLLMに対して有用か」を検証する</strong>こと。<code>Internal error</code> しか返さないAPIは、エージェントが復帰できず無限リトライに陥る。エラーメッセージにフィールド名・修正方法のヒントが含まれているかを、テストレベルで担保する。</p>
+
+    <h2 id="contract">レイヤー2: 契約テスト(mcp-testing-framework)</h2>
+
+    <p>個々のツール実装が正しくても、<strong>MCPプロトコル全体として仕様準拠か</strong>は別問題。<code>initialize</code>レスポンスにcapabilitiesが正しく含まれるか、<code>tools/list</code>のJSONスキーマが規格に沿っているか、エラーレスポンスがJSON-RPC 2.0仕様を満たすか——これらを毎PRで自動検証するのが契約テスト層だ。</p>
+
+    <p>PyPIで公開されている <code>mcp-testing-framework</code> は、サーバーバイナリを起動して実プロトコル経由で網羅的に検証するフレームワーク。ローカル/CI両方で同じテストが走る。</p>
+
+    <pre><code># pip install mcp-testing-framework
+# tests/test_mcp_contract.py
+from mcp_testing_framework import ContractTester
+
+def test_mcp_protocol_compliance():
+    tester = ContractTester(
+        command=["python", "-m", "my_mcp_server"],
+        transport="stdio",
+    )
+    # MCP仕様準拠を網羅検証
+    report = tester.run_full_compliance_check()
+    assert report.passed, f"Compliance failures: {report.failures}"
+
+def test_tool_schemas_valid():
+    tester = ContractTester(command=["python", "-m", "my_mcp_server"])
+    tools = tester.list_tools()
+    for tool in tools:
+        # JSON Schema Draft 2020-12 準拠か
+        assert tester.validate_input_schema(tool), \
+            f"Invalid inputSchema for tool: {tool.name}"</code></pre>
+
+    <h2 id="schema-drift">レイヤー3: スキーマドリフト検出</h2>
+
+    <p>もっとも見落とされがちな層。<strong>ツールスキーマの「些細な変更」が本番のエージェント挙動を破壊する</strong>のを、コードレビュー段階で気づくための仕組みだ。</p>
+
+    <h3>スナップショット方式</h3>
+
+    <p>サーバーの <code>tools/list</code> レスポンスをJSONとしてリポジトリに保存し、PRごとに差分を検出する。差分があれば必ずレビューを通す——シンプルだが効果的。</p>
+
+    <pre><code># scripts/snapshot_tools.py
+import json
+from fastmcp import Client
+from my_mcp_server import mcp
+
+async def main():
+    async with Client(mcp) as client:
+        tools = await client.list_tools()
+        # 名前順に並べて再現性確保
+        normalized = sorted(
+            [t.model_dump() for t in tools],
+            key=lambda x: x["name"],
+        )
+    with open("tests/snapshots/tools.json", "w") as f:
+        json.dump(normalized, f, indent=2, ensure_ascii=False, sort_keys=True)
+
+# CI上では: python scripts/snapshot_tools.py && git diff --exit-code tests/snapshots/
+</code></pre>
+
+    <p>CIで <code>git diff --exit-code</code> が非ゼロを返せばPRはfailし、レビュアーが <strong>「このdescription変更はツール選択率にどう影響するか」</strong> を意識的に判断する文化が生まれる。</p>
+
+    <h3>選択率回帰テスト(高度)</h3>
+
+    <p>さらに踏み込むなら、代表クエリ10〜20件を用意してClaude/GPT/Geminiが <strong>正しいツールを選ぶ率</strong> を定点観測する。閾値(例: 90%)を下回ったらPRをブロックする仕組みが、ツールsprawlの抑制に効く。KanseiLinkのAgent Voiceデータでも、モデル横断の選択率変動が本番品質と高相関を示している。</p>
+
+    <h2 id="e2e">レイヤー4: 実LLMでのE2Eテスト</h2>
+
+    <p>最後の砦は <strong>実LLMでのエンドツーエンドテスト</strong>。Claude Haiku 4.5など軽量モデルを使い、代表ユーザー意図に対してエージェントが「正しいツールを選び、正しい引数で呼び、結果を解釈し、適切に応答する」を検証する。</p>
+
+    <pre><code>import os
+from anthropic import Anthropic
+
+client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+EVAL_CASES = [
+    {
+        "user": "今月の請求書を全部出して",
+        "expected_tool": "list_invoices",
+        "expected_args_contain": ["2026-05"],
+    },
+    {
+        "user": "Acme社に10,000円の請求書を作って",
+        "expected_tool": "create_invoice",
+        "expected_args_contain": ["10000", "Acme"],
+    },
+]
+
+def test_eval_case(case):
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1024,
+        tools=load_mcp_tools_as_anthropic_format(),
+        messages=[{"role": "user", "content": case["user"]}],
+    )
+    # ツール呼び出しが含まれているか
+    tool_use = next(
+        (b for b in response.content if b.type == "tool_use"),
+        None,
+    )
+    assert tool_use is not None, "No tool was called"
+    assert tool_use.name == case["expected_tool"]
+    args_str = json.dumps(tool_use.input)
+    for needle in case["expected_args_contain"]:
+        assert needle in args_str, f"Missing {needle} in {args_str}"</code></pre>
+
+    <div class="insight-box">
+      <div class="label">コスト試算 — Claude Haiku 4.5でのナイトリーE2E</div>
+      <p>代表クエリ20件 × 平均2,000トークン入出力 × 月30日 = 月1.2Mトークン。Claude Haiku 4.5の料金水準なら月数百円〜数千円規模に収まる。本番事故1回(数時間ダウンタイム + 顧客影響)と比べれば、桁違いに安い投資だ。価格は変動するため運用前に最新公式料金を確認すること。</p>
+    </div>
+
+    <h2 id="github-actions">GitHub Actionsワークフロー実装例</h2>
+
+    <p>4層を統合したGitHub Actionsの最小例。ユニット・契約・スナップショットは全PR、E2Eはナイトリーとリリースタグのみで実行する。</p>
+
+    <pre><code># .github/workflows/mcp-test.yml
+name: MCP Server Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 16 * * *"  # 毎日 01:00 JST (16:00 UTC)
+
+jobs:
+  fast-tests:
+    name: Unit + Contract + Schema Drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - name: Unit tests (FastMCP Client)
+        run: pytest tests/unit -v
+      - name: Contract tests (mcp-testing-framework)
+        run: pytest tests/contract -v
+      - name: Snapshot drift check
+        run: |
+          python scripts/snapshot_tools.py
+          git diff --exit-code tests/snapshots/ \
+            || (echo "::error::Tool schema drift detected. Review and commit snapshot." && exit 1)
+
+  e2e-tests:
+    name: E2E with Real LLM
+    if: github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment: production  # gated environment for secrets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - name: Run E2E evaluation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: pytest tests/e2e -v --json-report
+      - name: Upload artifact on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure-traces
+          path: .pytest_cache/</code></pre>
+
+    <div class="success-box">
+      <div class="label">✅ 4つのコツ</div>
+      <p><strong>(1) シークレット隔離</strong>: API_KEYはgated environmentで管理し、forkからのPRでは公開しない。<strong>(2) フレーキー対策</strong>: LLM呼び出しは指数バックオフ + ジッター + リトライ上限。<strong>(3) アーティファクト保存</strong>: 失敗時のリクエスト/レスポンスをupload-artifactで残す。<strong>(4) 並列の競合</strong>: OAuth refresh tokenの並列更新は多くのSaaSで競合するため、テストごとに別アカウントを用意するか直列化する。</p>
+    </div>
+
+    <h2 id="checklist">本番チェックリスト</h2>
+
+    <p>MCPサーバーをCI/CDに乗せる前の最低限チェックリスト。</p>
+
+    <ul class="checklist">
+      <li>FastMCP Client (or 同等のメモリ内テストランナー) でユニットテストが書かれている</li>
+      <li>mcp-testing-framework または同等の契約テストでMCP仕様準拠を検証している</li>
+      <li>tools/listのスナップショットがリポジトリに保存され、PR diffで差分検出される</li>
+      <li>ツールエラーがLLM消費可能な構造(フィールド名・修正ヒント)を返している</li>
+      <li>実LLM E2Eテストがナイトリー or リリースタグでトリガーされる</li>
+      <li>失敗時のリクエスト/レスポンスがCIのartifactとして残る</li>
+      <li>シークレットがgated environment(forkからのPRでは公開しない)で管理されている</li>
+      <li>テスト用OAuthアカウントが本番アカウントと分離されている</li>
+      <li>並列テストでrefresh token競合が起きない仕組みになっている</li>
+      <li>選択率回帰テスト(任意)でツールsprawlの兆候を監視している</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>225+サービスの実エージェント挙動データを毎週更新</h3>
+      <p>KanseiLinkは日本SaaSと主要グローバルAPIの実測成功率・タイムアウト・選択率データをMCP経由で提供。「あなたのMCPがどのモデルでどう挙動するか」を本番投入前に確認できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">本番品質データで自社MCPを検証する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. なぜMCPテストはWeb APIテストより難しい?</h3>
+    <p>3つの非対称性。(1)呼び出し側がLLMで非決定的、(2)ツールスキーマがプロンプト的役割を持ちdescription一語でツール選択率が変わる、(3)MCP仕様自体が高頻度で更新される。通常の「リクエスト→レスポンス」テストでは捕まえきれない領域が大きい。</p>
+
+    <h3>Q2. FastMCP Clientとmcp-testing-frameworkの違いは?</h3>
+    <p>FastMCP Clientはメモリ内のユニットテスト向け(高速・低コスト)。mcp-testing-frameworkは実プロトコル経由の契約テスト向け(MCP仕様準拠検証)。両方併用が現実解で、ユニットでロジック回帰、契約で仕様準拠を担保する。</p>
+
+    <h3>Q3. ツールdescriptionだけ変えたPRをCIで検出できる?</h3>
+    <p>tools/listスナップショットをリポジトリに保存しPR diffで検出するのが定石。さらに踏み込むなら代表クエリ10〜20件で「正しいツールが選ばれた率」を定点観測する選択率回帰テストを追加する。</p>
+
+    <h3>Q4. 実LLM E2Eテストはコストがかかりすぎる?</h3>
+    <p>全PR必要なし。「ユニット/契約/スナップショットは全PR、E2Eはナイトリー + リリースタグ + スキーマ変更PRのみ」の3トリガー方式が推奨。Claude Haiku 4.5なら月数百〜数千円規模に収まる試算で、本番事故1回より圧倒的に安い。価格は変動するため公式料金を確認のこと。</p>
+
+    <h3>Q5. GitHub Actionsでの落とし穴は?</h3>
+    <p>(1)シークレットはgated environmentで隔離(forkからのPRに漏らさない)、(2)LLM呼び出しは指数バックオフ + リトライ上限でフレーキー対策、(3)失敗時はartifact uploadで再現性確保、(4)並列実行時のOAuth refresh token競合を直列化または別アカウント化で回避。</p>
+
+    <h3>Q6. テスト用のSaaSアカウントはどう用意する?</h3>
+    <p>本番と完全分離する。freee/Slack/kintone等の主要SaaSはサンドボックス環境を提供しているため、CI専用アカウントをサンドボックスに作る。サンドボックス未提供のSaaSは、最小プランの専用アカウントを切り、データを毎週リセットするスクリプトを用意するのが現実解。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の技術的内容は2026年5月時点の公開情報・公式ドキュメントに基づく。<strong>FastMCP Client</strong>(github.com/jlowin/fastmcp)、<strong>mcp-testing-framework</strong>(pypi.org/project/mcp-testing-framework/)はそれぞれ公式リポジトリ/PyPIで2026年5月時点に公開。コード例は実装の概念示唆を目的とした擬似コードで、本番投入時は対象MCP SDKの最新APIに合わせた検証が必要。Anthropic Claude Haiku 4.5の料金は変動するため、運用コスト試算は実行前に最新公式料金で再計算してください。「description変更でツール選択率が変わる」は業界一般に観測される傾向で、具体的な変動幅は対象モデル・ツール構成により異なる。価格・仕様は予告なく変更される可能性があります。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー実装完全ガイド 2026 — 認証・レート制限・エラーハンドリング</h4>
+        </a>
+        <a href="mcp-rate-limiting-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー レート制限・指数バックオフ実装ガイド 2026</h4>
+        </a>
+        <a href="mcp-server-observability-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー可観測性入門ガイド 2026 — ログ・分散トレーシング・アラート設計</h4>
+        </a>
+        <a href="cloudflare-workers-mcp-deployment-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>Cloudflare Workers MCPサーバー本番デプロイ実装ガイド 2026</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        対象MCPサーバーの実測成功率・選択率・エラー率はKanseiLink MCP経由で取得できます。
+        <code>get_insights</code> で「success_rate」「common_errors」「reliability_trend」を確認し、本記事のテストパターンの検証対象選定に使えます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
