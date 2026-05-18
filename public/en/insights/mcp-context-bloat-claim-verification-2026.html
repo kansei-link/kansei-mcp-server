@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Are "MCP Tool Definitions Eat 40-50% of Context" and "MCP Is Dead" Really True? — Fact-Checking the Perplexity Defection 2026 | KanseiLink</title>
+  <meta name="description" content="In March 2026, Perplexity CTO Denis Yarats declared at Ask 2026 that the company was moving away from MCP internally — and X lit up with 'MCP is dead.' But what do the numbers actually say? We verify each major claim against Merge CTO Gil Feig's 40-50% estimate, the GitHub official MCP server's 17,600 tokens, Atlassian's ~10,000, the 43%→14% tool-selection accuracy collapse, and Anthropic's 98.7% reduction with code mode.">
+  <meta name="keywords" content="MCP context bloat, tool definition tokens, Perplexity MCP defection, Denis Yarats, Merge Gil Feig, MCP token overhead, 40-50%, code mode, mcp-compressor, SEP-1576, AEO, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/mcp-context-bloat-claim-verification-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-context-bloat-claim-verification-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-context-bloat-claim-verification-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-context-bloat-claim-verification-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Are 'MCP Tool Definitions Eat 40-50% of Context' and 'MCP Is Dead' Really True? — Fact-Checking the Perplexity Defection 2026">
+  <meta property="og:description" content="We verify each viral claim against Merge's 40-50%, GitHub MCP's 17.6k, Atlassian's 10k, 43%→14% tool selection collapse, and Anthropic's 98.7% code-mode reduction.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/mcp-context-bloat-claim-verification-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-18">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Verification">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Is 'MCP Is Dead' Really True? Fact-Checking the Perplexity Defection 2026">
+  <meta name="twitter:description" content="40-50%, 17.6k, 98.7% reduction — every major MCP context-bloat claim, verified.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Are 'MCP Tool Definitions Eat 40-50% of Context' and 'MCP Is Dead' Really True? — Fact-Checking the Perplexity Defection 2026",
+    "description": "We verify each viral claim sparked by Perplexity's MCP defection against Merge, GitHub, Atlassian, Anthropic, and the official MCP SEP measurements.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-18",
+    "dateModified": "2026-05-18",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/mcp-context-bloat-claim-verification-2026",
+    "keywords": ["MCP context bloat", "Perplexity MCP", "Denis Yarats", "Merge", "tool token overhead", "code mode", "mcp-compressor", "SEP-1576", "AEO"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is 'MCP tool definitions consume 40-50% of context' really true?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "⚠️ Conditionally true. Merge CTO Gil Feig estimates tool metadata at 40-50% of available context for typical multi-server deployments, and multiple independent measurements support the estimate. GitHub's official MCP server exposes 94 tools at roughly 17,600 tokens, and Atlassian's official MCP for Jira plus Confluence runs about 10,000 tokens. Combining several large MCP servers easily reaches 30,000+ tokens of metadata before any work begins. But the figure is configuration-dependent. Curate down to one or two servers and you stay in the low thousands of tokens, well below 40-50%. The number should be read as a range for multi-server setups, not as an absolute property of MCP."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is 'MCP is dead' or 'the standard has died' really true?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "❌ Inaccurate. Perplexity CTO Denis Yarats announced at Ask 2026 on March 11, 2026 that the company is moving away from MCP internally toward APIs and CLIs, but this is one company's decision, not an industry retreat. Since Anthropic open-sourced MCP in November 2024, it has been adopted by OpenAI, Google DeepMind, Microsoft, Cursor, Atlassian, ServiceNow, Salesforce, Linear, GitHub, and many other enterprise platforms. The official MCP repository is actively working on SEP-1576 to reduce schema redundancy and add dynamic tool selection; Atlassian ships mcp-compressor, and Anthropic provides code mode — both attack the bloat problem directly. The protocol is not dying. It is being fixed."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does tool-definition bloat actually hurt agent performance?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "✅ Yes — and it is a different problem from token consumption. Multiple reports observe that tool selection accuracy collapses from about 43% to under 14% when agents face bloated tool sets — roughly a 3x degradation, with the agent picking the wrong tool seven out of eight times when the menu gets too long. This is a cognitive load problem, independent of the context-window size: even if you have plenty of context left, the LLM's selection heuristics break down when the menu is too long. Token compression alone does not solve it; dynamic tool loading does."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do you reduce MCP tool-definition token bloat?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Four levers with measured results: (1) Anthropic code mode — calling tools via generated code instead of direct invocation, reported up to 98.7% context-overhead reduction. (2) Atlassian mcp-compressor — reduces tool description overhead by 70-97% without changing how the agent invokes tools. (3) Server curation — keep only the one or two MCP servers you actually need; everything else is dead weight. (4) Compact modes — KanseiLink and a growing set of MCP servers ship a compact:true mode that returns minimal fields. The problem is not the MCP protocol itself but the 'connect everything just in case' default."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "So how should companies actually use MCP?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The right question is not 'MCP or not MCP' but 'how do we use MCP economically.' Practical guidance: (1) Only connect servers your workload actually needs; remove the rest. (2) For servers with large tool catalogs, evaluate mcp-compressor-style compression or Cloudflare/Anthropic code mode. (3) On the vendor side, reduce tool count, simplify descriptions, and support dynamic tool loading to raise AEO (Agent Engine Optimization) quality. Perplexity's choice to use APIs and CLIs for a specific use case is reasonable, but it is not evidence that 'MCP is dead' — it is evidence that for one workload, an alternative path was more economical."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCP Tool 40-50% and MCP Is Dead — Fact Check 2026", "item": "https://kansei-link.com/en/insights/mcp-context-bloat-claim-verification-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/mcp-context-bloat-claim-verification-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCP 40-50% and "MCP Is Dead" — Fact Check 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Verification / Myth-busting</span>
+      <h1>Are "MCP Tool Definitions Eat 40-50% of Context" and "MCP Is Dead" Really True? — Fact-Checking the Perplexity Defection 2026</h1>
+      <p class="subtitle">In March 2026, Perplexity CTO Denis Yarats announced at Ask 2026 that the company was moving away from MCP internally — and X lit up with "MCP is dead." But what do the numbers actually say? We verify each viral claim against Merge CTO Gil Feig's 40-50% estimate, the GitHub MCP server's 17,600 tokens, Atlassian's ~10,000, the 43%→14% tool-selection accuracy collapse, and Anthropic's 98.7% reduction with code mode.</p>
+      <div class="article-meta">
+        <span>2026-05-18</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>Read time: ~10 min</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#claim">The claims that lit the fire</a></li>
+        <li><a href="#claim1">Claim ①: "Tool definitions eat 40-50%"</a></li>
+        <li><a href="#claim2">Claim ②: "MCP is dead"</a></li>
+        <li><a href="#claim3">Claim ③: "Too many tools breaks accuracy"</a></li>
+        <li><a href="#fix">We know how to fix it — four levers that work</a></li>
+        <li><a href="#jp">What this means for Japanese SaaS</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="claim">The claims that lit the fire</h2>
+
+    <p>On March 11, 2026, at the Ask 2026 conference, Perplexity CTO Denis Yarats announced that the company was internally moving away from Anthropic's MCP toward APIs and CLIs. The reasons he gave were two: <strong>(1) MCP tool definitions consume 40-50% of available context before the agent does any work</strong>, and <strong>(2) authentication flows create friction when connecting to multiple services</strong>. The clip spread on Threads and X within hours, and "MCP is dead" / "the standard has died" reactions piled up.</p>
+
+    <p>Around the same window, Merge CTO Gil Feig independently estimated that "tool metadata accounts for 40-50% of available context in typical deployments." Developer reports surfaced too: one engineer measured <strong>roughly 7,000 tokens already consumed before the first prompt</strong> with just four MCP servers connected; a colleague on a heavier configuration was burning <strong>~66,000 tokens</strong> — nearly a third of Claude Sonnet's 200k context window — before saying anything.</p>
+
+    <p>The viral discourse compresses to three claims. We check each against measured data.</p>
+
+    <h2 id="claim1">Claim ①: "Tool definitions eat 40-50%"</h2>
+
+    <div class="warning-box">
+      <div class="label">Verdict: ⚠️ Conditionally true</div>
+      <p>True for typical multi-server setups. Not true for single-server, curated configurations.</p>
+    </div>
+
+    <p>What is actually consuming tokens? Several independent measurements converge on similar numbers.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>MCP server / configuration</th>
+          <th>Tool count</th>
+          <th>Definition tokens</th>
+          <th>% of 200k window</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>GitHub official MCP</strong></td><td>94</td><td>~17,600</td><td><span class="success-mid">~8.8%</span></td></tr>
+        <tr><td><strong>Atlassian official MCP</strong> (Jira + Confluence)</td><td>—</td><td>~10,000</td><td><span class="success-mid">~5.0%</span></td></tr>
+        <tr><td>Multiple large servers connected</td><td>—</td><td>30,000+</td><td><span class="success-low">~15%+</span></td></tr>
+        <tr><td>4-server lightweight config (typical)</td><td>—</td><td>~7,000</td><td><span class="success-high">~3.5%</span></td></tr>
+        <tr><td>Heavy config (reported extreme)</td><td>—</td><td>~66,000</td><td><span class="success-low">~33%</span></td></tr>
+      </tbody>
+    </table>
+
+    <p>"40-50%" should be read as a <strong>range for a class of configurations</strong>, not an absolute property of MCP. Stack several large servers and you arrive there easily — GitHub alone is 94 tools and ~17.6k tokens, so combining it with Atlassian and Slack will cross 30k. Curate down to one or two servers — or use a server with a compact mode like KanseiLink's <code>compact: true</code> — and you sit in the low thousands.</p>
+
+    <div class="insight-box">
+      <div class="label">How to read this</div>
+      <p>"MCP eats 40-50%" is a <strong>"if you connect everything just in case" truth</strong>. It is not a fundamental property of the protocol; it is a property of the <strong>operating choice</strong>. The same server can consume an order of magnitude fewer tokens depending on what you select and how.</p>
+    </div>
+
+    <h2 id="claim2">Claim ②: "MCP is dead"</h2>
+
+    <div class="warning-box">
+      <div class="label">Verdict: ❌ Inaccurate</div>
+      <p>One company's choice is not an industry retreat. The standard is being patched, not buried.</p>
+    </div>
+
+    <p>The "MCP is dead / standard has died" reaction extrapolates a single company's internal call into an industry trend. The actual situation:</p>
+
+    <ul class="checklist">
+      <li><strong>Adoption keeps spreading</strong> — Since Anthropic open-sourced MCP in November 2024, it has been adopted by OpenAI, Google DeepMind, Microsoft, Cursor, Atlassian, ServiceNow, Salesforce, Linear, GitHub, and a long tail of enterprise platforms. In April 2026 it was donated to the Linux-Foundation-hosted AAIF (AI Agent Interoperability Foundation), moving toward vendor-neutral standardization.</li>
+      <li><strong>The fix is being designed in the open</strong> — The official MCP repo is working on <strong>SEP-1576: Mitigating Token Bloat in MCP — Reducing Schema Redundancy and Optimizing Tool Selection</strong>, standardizing both schema-redundancy reduction and dynamic tool selection.</li>
+      <li><strong>Compression tools already exist</strong> — Atlassian ships <code>mcp-compressor</code> with reported <strong>70-97%</strong> tool-description compression without changing how the agent calls tools. Anthropic's MCP guidance includes <strong>code mode</strong>, which has been measured to cut context overhead by up to <strong>98.7%</strong>.</li>
+      <li><strong>The defection is one company, one use case</strong> — Perplexity's choice reflects a specific product context (search) where API + CLI was a more economical path. That is a workload-level optimization, not a verdict on the protocol.</li>
+    </ul>
+
+    <p>The accurate framing is not "the protocol is dying" but <strong>"the 'connect everything' default has shown its costs, and the ecosystem is responding"</strong>.</p>
+
+    <h2 id="claim3">Claim ③: "Too many tools breaks accuracy"</h2>
+
+    <div class="success-box">
+      <div class="label">Verdict: ✅ True — and it is a separate problem</div>
+      <p>This is a cognitive-load issue independent of context-window size. Compression alone does not solve it.</p>
+    </div>
+
+    <p>Beneath the token-cost discussion, there is a deeper problem. Multiple measurements observe that tool selection accuracy collapses when the menu of tools gets long:</p>
+
+    <div class="data-highlight">
+      <h4>The cognitive cost of menu bloat</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">43%</span>
+          <div class="label">Tool selection accuracy on small-to-mid sets</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">14%</span>
+          <div class="label">Accuracy on bloated sets (same conditions)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">3x</span>
+          <div class="label">Degradation — wrong tool 7 of 8 times</div>
+        </div>
+      </div>
+    </div>
+
+    <p>That is, you can compress tool definitions to save tokens and <strong>still pick the wrong tool</strong>. Even if 90% of your 200k window is empty, a long menu breaks the LLM's selection heuristics. This is not a context-window problem.</p>
+
+    <p>The direction is clear: <strong>load only the tools you need, dynamically</strong>. That is exactly what SEP-1576 addresses.</p>
+
+    <h2 id="fix">We know how to fix it — four levers that work</h2>
+
+    <p>The right question is not "use MCP or drop MCP" but "<strong>how do we use MCP economically</strong>." Four levers have measured effects:</p>
+
+    <ul class="checklist">
+      <li><strong>① Anthropic code mode</strong> — Call tools via generated code rather than direct invocation. Reported up to <strong>98.7%</strong> context-overhead reduction. See KanseiLink's prior verification of Cloudflare's code-mode numbers for more.</li>
+      <li><strong>② mcp-compressor family</strong> — Atlassian's <code>mcp-compressor</code> reduces tool description overhead by <strong>70-97%</strong> without changing call semantics. Retrofits to existing servers.</li>
+      <li><strong>③ Server curation</strong> — Connect only the one or two servers you actually need. The single biggest gain is usually just removing servers that are along for the ride.</li>
+      <li><strong>④ Compact modes</strong> — Use minimal-field response modes such as KanseiLink's <code>search_services({compact: true})</code>. A growing number of MCP servers ship a similar option.</li>
+    </ul>
+
+    <div class="insight-box">
+      <div class="label">Editor's view, May 2026</div>
+      <p>The debate is shifting from "MCP vs API" to "<strong>MCP used wisely vs MCP used naively</strong>." Three layers each have work to do: the protocol (SEP-1576), the servers (compact modes, dynamic loading), and the operators (curation). Together they can shrink the 40-50% down to single-digit percentages.</p>
+    </div>
+
+    <h2 id="jp">What this means for Japanese SaaS</h2>
+
+    <p>For Japanese SaaS vendors designing or maintaining MCP servers, the takeaways from the Perplexity moment are concrete:</p>
+
+    <ul class="checklist">
+      <li><strong>Cut tool count</strong> — Do not expose "one tool per API endpoint." Aggregate to the granularity an agent actually needs. GitHub's 94-tool surface is the cautionary example.</li>
+      <li><strong>Tighten tool descriptions</strong> — Strip markdown noise, repetition, and decorative formatting. Every word lives in the agent's context.</li>
+      <li><strong>Offer compact modes</strong> — Provide full/compact options on list-type tools. KanseiLink itself does this — <code>compact: true</code> drops fields and we have measured 91-96% token savings versus web-fetching docs.</li>
+      <li><strong>Prepare for dynamic loading</strong> — Track SEP-1576 and design your server so subsets of tools can be loaded by use-case context, not the entire catalog at boot.</li>
+    </ul>
+
+    <p>Before claiming "MCP-ready," measure how your server <strong>looks economically</strong> from the agent's side. In the AEO (Agent Engine Optimization) era, that measurement is the new vendor responsibility.</p>
+
+    <div class="cta-banner">
+      <h3>How many tokens is your MCP server actually eating?</h3>
+      <p>KanseiLink surfaces tool-definition token counts, compact-mode support, success rates, and agent voices for 225+ Japanese SaaS MCP servers — so you can see whether your server lives on the "heavy" or "light" side of the agent's context window.</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Get an AEO diagnostic</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Is "MCP tool definitions consume 40-50% of context" really true?</h3>
+    <p>⚠️ True for typical multi-server setups, not for curated single-server use. GitHub official MCP is ~17,600 tokens for 94 tools; Atlassian (Jira + Confluence) is ~10,000; combining large servers easily exceeds 30,000+. Heavy configurations reach ~66,000 tokens (~33% of a 200k window) before any work. Drop to one or two servers and you sit in the low thousands.</p>
+
+    <h3>Is "MCP is dead" / "the standard has died" really true?</h3>
+    <p>❌ Inaccurate. Perplexity's defection is one company's decision. Since November 2024, MCP has been adopted by OpenAI, Google DeepMind, Microsoft, Cursor, Atlassian, ServiceNow, Salesforce, Linear, GitHub, and many others; in April 2026 it was donated to Linux-Foundation-hosted AAIF. The MCP repo itself is fixing the bloat problem via SEP-1576.</p>
+
+    <h3>Does tool-definition bloat actually hurt agent performance?</h3>
+    <p>✅ Yes — independently of the token-cost issue. Reports observe tool-selection accuracy collapsing from ~43% to under 14% on bloated sets (3x degradation, wrong tool 7 of 8 times). Compression alone does not solve this; dynamic tool loading does.</p>
+
+    <h3>How do you reduce MCP tool-definition token bloat?</h3>
+    <p>Four levers: (1) Anthropic code mode — up to 98.7% reduction. (2) Atlassian mcp-compressor — 70-97% tool-description compression. (3) Server curation — keep only the one or two servers you actually need. (4) Compact modes — KanseiLink and other servers offer <code>compact: true</code> to return minimal fields.</p>
+
+    <h3>So how should companies actually use MCP?</h3>
+    <p>The right question is "how to use MCP economically," not "use or drop." (1) Connect only needed servers; remove the rest. (2) For large catalogs, evaluate mcp-compressor or code mode. (3) Vendors should reduce tool count and support dynamic loading. Perplexity's choice is reasonable for its workload — but it is not evidence that "MCP is dead."</p>
+
+    <div class="disclosure-box">
+      <div class="label">Sources, Data Disclosure &amp; Disclaimer</div>
+      <p>Claims and figures in this article are based on primary and secondary sources available as of 2026-05-18. Principal sources: Perplexity CTO Denis Yarats's remarks at Ask 2026 (2026-03-11, reported via Threads and multiple outlets); Merge CTO Gil Feig's "40-50%" tool-metadata estimate; the GitHub official MCP server's 94 tools / ~17,600-token measurement; the Atlassian official MCP (Jira + Confluence) ~10,000-token measurement; the ~66,000-token heavy-config developer report; the 43%→14% tool-selection accuracy degradation observation; Anthropic's code-mode "up to 98.7% reduction" report; Atlassian <code>mcp-compressor</code>'s 70-97% reduction claim; and the official MCP repository's SEP-1576 issue. All measurements are snapshots and shift with server versions and connection configurations. "40-50%" is an estimated range for typical multi-server setups, not an absolute property of MCP. Our verdict on the "MCP is dead" claim is an analytical judgment based on publicly observable signals (adoption, SEP progress, compressor availability) as of May 2026 and is not a forward-looking guarantee about market dynamics.</p>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Reads</h2>
+      <div class="related-grid">
+        <a href="cloudflare-code-mode-token-verification-2026.html" class="related-card">
+          <div class="tag">Verification</div>
+          <h4>Cloudflare Code Mode's "99.9% Token Reduction" — Is It Real? Untangling the 81% and 99.9% Numbers</h4>
+        </a>
+        <a href="agent-token-cost-optimization-2026.html" class="related-card">
+          <div class="tag">Cost Optimization</div>
+          <h4>96% Agent Token Cost Reduction, Proven — KanseiLink Optimization Data 2026</h4>
+        </a>
+        <a href="mcp-integration-claims-verification-2026.html" class="related-card">
+          <div class="tag">Verification</div>
+          <h4>"$150K Integration Savings", "92% Token Cut" — Are MCP's Big Claims Real? KanseiLink Verifies</h4>
+        </a>
+        <a href="../../insights/what-is-mcp.html" class="related-card">
+          <div class="tag">Foundations</div>
+          <h4>What is MCP? — How Model Context Protocol Transforms SaaS Integration in the AI Era</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        To keep your context window light, call KanseiLink MCP's <code>search_services</code> with <code>compact: true</code> — it returns a minimal field set.
+        After selecting a service, use <code>get_service_tips</code> to fetch only what you need; we measure 91-96% token savings versus web-fetching docs.
+        Connect: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="../../insights/aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="../../insights/what-is-aeo.html">What is AEO?</a>
+          <a href="../../insights/what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

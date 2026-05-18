@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>「MCPツール定義がコンテキストの40-50%を食う」「MCPはもう終わり」は本当か？— Perplexity離脱騒動を検証 2026 | KanseiLink</title>
+  <meta name="description" content="2026年3月、Perplexity CTO Denis YaratsがAsk 2026でMCPからの離脱を表明し、SNSは『MCPはもう終わり』で沸騰した。だが数字は何を示しているのか。Merge CTO Gil Feigの『40-50%』、GitHub MCP公式の17,600トークン、Atlassian約10,000トークン、tool selection精度43%→14%の実測、そしてAnthropic code mode 98.7%削減——主要クレームを一つずつ検証する。">
+  <meta name="keywords" content="MCP context bloat, ツール定義 トークン, Perplexity MCP離脱, Denis Yarats, Merge Gil Feig, MCP token overhead, 40-50%, code mode, mcp-compressor, AEO, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-context-bloat-claim-verification-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-context-bloat-claim-verification-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-context-bloat-claim-verification-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-context-bloat-claim-verification-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="「MCPツール定義がコンテキストの40-50%を食う」「MCPはもう終わり」は本当か？— Perplexity離脱騒動を検証 2026">
+  <meta property="og:description" content="Perplexity CTOがMCP離脱を表明。SNSは『MCPはもう終わり』で沸騰した。数字は何を示すのか。Merge 40-50%、GitHub 17.6k、Atlassian 10k、ツール選択精度43%→14%、code mode 98.7%削減——主要クレームを一つずつ検証。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-context-bloat-claim-verification-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-18">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="検証">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="「MCPはもう終わり」は本当か？ Perplexity離脱騒動を検証 2026">
+  <meta name="twitter:description" content="40-50%・17.6k・98.7%削減——MCP context bloatの主要クレームを一つずつ検証。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "「MCPツール定義がコンテキストの40-50%を食う」「MCPはもう終わり」は本当か？— Perplexity離脱騒動を検証 2026",
+    "description": "Perplexity離脱を起点に拡散した『MCPはコンテキストを食い潰す』『MCPはもう終わり』というクレームを、Merge・GitHub・Atlassian・Anthropic・MCP公式SEPの実測値で一つずつ検証する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-18",
+    "dateModified": "2026-05-18",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-context-bloat-claim-verification-2026",
+    "keywords": ["MCP context bloat", "Perplexity MCP", "Denis Yarats", "Merge", "tool token overhead", "code mode", "mcp-compressor", "SEP-1576", "AEO"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "「MCPツール定義がコンテキストの40-50%を食う」は本当ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "⚠️ 条件付きで本当です。Merge CTO Gil Feigは典型的なマルチサーバー構成で『ツールメタデータが利用可能コンテキストの40-50%』と推計しており、複数の独立した実測がこの推計を裏づけています。GitHub公式MCPサーバーは94ツールで約17,600トークン、Atlassian公式は Jira + Confluence で約10,000トークン。複数の大型MCPサーバーを接続すれば容易に30,000+トークンに達します。ただし数字は構成依存です。1サーバー・少数ツールに絞れば数千トークン台に収まり、40-50%にはなりません。『絶対値』ではなく『マルチサーバー前提のレンジ』として読むべき数字です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "「MCPはもう終わり」「標準が死んだ」は本当ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "❌ 不正確です。Perplexity CTO Denis Yaratsは2026年3月11日のAsk 2026で社内的にMCPからAPI・CLIへ移行することを表明しましたが、これは1社の判断であり業界からの撤退ではありません。MCPは2024年11月にAnthropicがオープンソース化して以来、OpenAI、Google DeepMind、Microsoft、Cursor、その他多数のエンタープライズプラットフォームに採用されています。MCP公式リポジトリでは SEP-1576 でツール定義のスキーマ冗長性削減と動的ツール選択が議論されており、Atlassianは mcp-compressor を、Anthropicは code mode を提供して問題そのものを縮めにいっています。プロトコルは死んでいるどころか、欠点を直しながら標準として広がっています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "ツール定義の肥大化は実際にエージェントの性能を落としますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "✅ 落とします。複数の報告で、メニューが肥大化するとエージェントのツール選択精度が劇的に低下することが観測されています。具体的には『ツール選択精度がツールセット肥大時に43%から14%以下に崩壊』『3倍の劣化、メニューが長くなるとエージェントは8回中7回間違ったツールを選ぶ』という測定があります。これは『コンテキストを食う』とは別の問題で、ツールが多すぎると LLM の選択ヒューリスティクスそのものが乱れることを意味します。コンテキスト窓の制約とは独立した、認知負荷の問題です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "ツール定義のトークン肥大はどう減らせますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "実証された削減手法が4つあります。(1) Anthropic code mode: ツールを直接呼ぶのではなくコード経由で呼ぶことで、報告ベースで最大98.7%のコンテキストオーバーヘッド削減。(2) Atlassian mcp-compressor: 呼び出し方法を変えずにツール記述オーバーヘッドを70-97%削減。(3) サーバーをキュレーション: 必要な1-2サーバーに絞れば、定義は数千トークンに収まります。(4) コンパクトモード: KanseiLinkを含む多くのMCPサーバーが <code>compact: true</code> 等の最小フィールド返却モードを提供します。問題はMCPプロトコルではなく『何でも全部入りで接続する設計』にあり、運用工夫で大幅に縮められます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "結局、企業はMCPをどう使うべきですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "『MCPを使うか/捨てるか』の二択ではなく、『MCPをどう絞り込んで使うか』が正しい問いです。実務上の指針: (1) 業務に必要なサーバーだけを接続し、未使用サーバーは外す。(2) 接続するサーバーが大量のツールを持つ場合、mcp-compressorのような圧縮や、Cloudflare/Anthropic style code modeを評価する。(3) ベンダー側は、ツール数の絞り込み、説明の簡潔化、動的ツールロードのサポートでAEO（Agent Engine Optimization）品質を上げる。Perplexityのように特殊用途で別経路（API・CLI）を併用する判断はありえますが、それは『MCPが終わった』からではなく『1ユースケースで別経路の方が経済的だった』だけです。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCPツール定義40-50%・MCPはもう終わりは本当か 2026", "item": "https://kansei-link.com/insights/mcp-context-bloat-claim-verification-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-context-bloat-claim-verification-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCPツール定義40-50%・MCPはもう終わりは本当か 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">検証記事 / Myth-busting</span>
+      <h1>「MCPツール定義がコンテキストの40-50%を食う」「MCPはもう終わり」は本当か？— Perplexity離脱騒動を検証 2026</h1>
+      <p class="subtitle">2026年3月、Perplexity CTO Denis YaratsがAsk 2026でMCPからの社内離脱を表明し、SNSは『MCPはもう終わり』で沸騰した。だが数字は何を示しているのか。Merge CTOの『40-50%』、GitHub MCP公式の17,600トークン、Atlassian約10,000、tool selection精度43%→14%、Anthropic code mode 98.7%削減——主要クレームを一つずつ検証する。</p>
+      <div class="article-meta">
+        <span>2026-05-18</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約10分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#claim">炎上したクレームの中身</a></li>
+        <li><a href="#claim1">クレーム①「ツール定義は40-50%を食う」</a></li>
+        <li><a href="#claim2">クレーム②「MCPはもう終わり」</a></li>
+        <li><a href="#claim3">クレーム③「ツールが多いと精度が崩壊する」</a></li>
+        <li><a href="#fix">減らし方は分かっている — 4つの実証済み手段</a></li>
+        <li><a href="#jp">日本SaaSへの含意</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="claim">炎上したクレームの中身</h2>
+
+    <p>2026年3月11日、Ask 2026カンファレンスでPerplexity CTO Denis Yaratsが「社内的にAnthropicのMCPからAPI・CLIへ移行している」と表明した。理由は2つ——<strong>(1) MCPツール定義がエージェントが仕事を始める前にコンテキスト窓の40-50%を消費すること</strong>、<strong>(2) 複数サービス接続時の認証フローの摩擦</strong>。発言はThreadsとSNSで急速に拡散し、「MCPはもう終わり」「標準が死んだ」というハッシュタグ的な反応が連鎖した。</p>
+
+    <p>同じ時期、Merge CTO Gil Feigも独立に「典型的なデプロイ構成ではツールメタデータが利用可能コンテキストの<strong>40-50%</strong>を占める」と推計を公表。さらに「ある開発者は4 MCPサーバー接続済みでプロンプト入力前に約7,000トークン、ヘビーな構成では<strong>66,000トークン</strong>(Claude Sonnetの200kコンテキスト窓の約1/3)を会話開始前に消費していた」という実測も観測された。</p>
+
+    <p>クレームは3つに整理できる。一つずつ、利用可能な実測値で検証する。</p>
+
+    <h2 id="claim1">クレーム①「ツール定義は40-50%を食う」</h2>
+
+    <div class="warning-box">
+      <div class="label">検証結果: ⚠️ 条件付きで本当</div>
+      <p>マルチサーバー前提の典型構成では正しい。シングルサーバー・キュレーションされた構成では当てはまらない。</p>
+    </div>
+
+    <p>実測ベースで何がトークンを食っているのか。複数の独立した報告が、似た数字に収束している。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>MCPサーバー / 構成</th>
+          <th>ツール数</th>
+          <th>定義トークン</th>
+          <th>200kコンテキスト比</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>GitHub 公式MCP</strong></td><td>94</td><td>~17,600</td><td><span class="success-mid">~8.8%</span></td></tr>
+        <tr><td><strong>Atlassian 公式MCP</strong>(Jira + Confluence)</td><td>—</td><td>~10,000</td><td><span class="success-mid">~5.0%</span></td></tr>
+        <tr><td>大型サーバー複数接続</td><td>—</td><td>30,000+</td><td><span class="success-low">~15%以上</span></td></tr>
+        <tr><td>4サーバー軽量構成(典型例)</td><td>—</td><td>~7,000</td><td><span class="success-high">~3.5%</span></td></tr>
+        <tr><td>ヘビー構成(報告された極端例)</td><td>—</td><td>~66,000</td><td><span class="success-low">~33%</span></td></tr>
+      </tbody>
+    </table>
+
+    <p>40-50%という数字は<strong>絶対値ではなくレンジ</strong>として読むべきだ。大型サーバーを複数接続すれば容易にそこへ届く。GitHub MCPだけで94ツール・17.6kトークン消費するため、AtlassianやSlackと並べれば30k+に達する。一方、KanseiLink MCPのように<code>compact: true</code>モードを提供しているサーバーや、サーバーを1-2個に絞った構成なら数千トークン台に収まる。</p>
+
+    <div class="insight-box">
+      <div class="label">読み解き方</div>
+      <p>「MCPは40-50%食う」は<strong>『何でも全部入りで接続するとそうなる』</strong>という条件付きの真実だ。プロトコルの本質的な欠陥ではなく、<strong>運用設計の問題</strong>。同じMCPサーバーでも、サーバー選定とツールキュレーション次第で消費トークンは1桁変わる。</p>
+    </div>
+
+    <h2 id="claim2">クレーム②「MCPはもう終わり」</h2>
+
+    <div class="warning-box">
+      <div class="label">検証結果: ❌ 不正確</div>
+      <p>Perplexity 1社の判断は業界の撤退ではない。むしろ標準は欠点を直しながら広がっている。</p>
+    </div>
+
+    <p>「MCPはもう終わり」「標準が死んだ」というSNSの反応は、Perplexity 1社の社内判断を業界全体の傾向に拡大解釈している。事実関係を整理する。</p>
+
+    <ul class="checklist">
+      <li><strong>採用は広がり続けている</strong> — MCPは2024年11月にAnthropicがオープンソース化して以来、OpenAI、Google DeepMind、Microsoft、Cursor、Atlassian、ServiceNow、Salesforce、Linear、GitHubなど多数のエンタープライズプラットフォームに採用されている。2026年4月にはLinux Foundation傘下のAAIF(AI Agent Interoperability Foundation)に寄贈され、ベンダー中立のオープン標準化が進んだ。</li>
+      <li><strong>欠点を直す動きが進行中</strong> — MCP公式リポジトリで <strong>SEP-1576: Mitigating Token Bloat in MCP — Reducing Schema Redundancy and Optimizing Tool Selection</strong> が議論されており、スキーマ冗長性削減と動的ツール選択の標準化が進んでいる。</li>
+      <li><strong>圧縮ツールが既に存在</strong> — Atlassianの <code>mcp-compressor</code> は呼び出し方法を変えずにツール記述オーバーヘッドを70-97%削減すると報告されている。AnthropicのMCP公式ガイダンスにある<strong>code mode</strong>は、ツールを直接呼ぶのではなくコード経由で呼ぶことで最大98.7%のコンテキストオーバーヘッド削減を測定している。</li>
+      <li><strong>離脱は1社・1ユースケース</strong> — Perplexityの離脱は、検索プロダクトという特定ユースケースで API + CLI の方が経済的だったという判断であり、「MCPが構造的に終わった」とは別の話だ。</li>
+    </ul>
+
+    <p>プロトコルが死んでいるのではなく、<strong>『何でも全部入りで接続したらコンテキストが破裂する』という運用上の欠点が顕在化し、エコシステム全体でその修正が進んでいる</strong>——というのが現在地に近い。</p>
+
+    <h2 id="claim3">クレーム③「ツールが多いと精度が崩壊する」</h2>
+
+    <div class="success-box">
+      <div class="label">検証結果: ✅ 本当（しかも別の問題）</div>
+      <p>これはコンテキスト窓の問題とは独立した、認知負荷の問題。ツール数が多すぎるとLLMの選択ヒューリスティクス自体が乱れる。</p>
+    </div>
+
+    <p>「ツール定義がトークンを食う」とは別の、より深い問題がある。複数の実測で、ツールセットが肥大するとエージェントのツール選択精度が劇的に低下することが観測されている:</p>
+
+    <div class="data-highlight">
+      <h4>ツールメニュー肥大化の認知コスト</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">43%</span>
+          <div class="label">小〜中規模ツールセットでのツール選択精度</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">14%</span>
+          <div class="label">肥大化ツールセットでの精度(同条件)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">3x</span>
+          <div class="label">劣化倍率 — 8回中7回間違うレベル</div>
+        </div>
+      </div>
+    </div>
+
+    <p>つまり、ツール定義を圧縮してトークンだけ減らしても、<strong>『そもそも何を呼ぶか』の判断が壊れる</strong>。たとえ200kコンテキストの大半が空いていても、メニューが長いと正しいツールが選ばれない。これは「コンテキスト窓のサイズで解ける問題ではない」ことを意味する。</p>
+
+    <p>解決の方向性は明確だ: <strong>必要なツールだけを動的にロード</strong>する設計に切り替える。MCP公式のSEP-1576はまさにここを扱っている。</p>
+
+    <h2 id="fix">減らし方は分かっている — 4つの実証済み手段</h2>
+
+    <p>「MCPを使うか/捨てるか」の二択ではなく、「<strong>どう絞り込んで使うか</strong>」が正しい問いだ。実測で効果が確認されている手段は4つある。</p>
+
+    <ul class="checklist">
+      <li><strong>① Anthropic code mode</strong> — ツールを直接呼ぶのではなくコード経由で呼ぶ。報告ベースで最大<strong>98.7%</strong>のコンテキストオーバーヘッド削減。Cloudflareの code mode 検証記事も参照(KanseiLink内連載)。</li>
+      <li><strong>② mcp-compressor 系</strong> — Atlassianの <code>mcp-compressor</code> は呼び出し方法を変えずにツール記述を<strong>70-97%</strong>圧縮。既存サーバーへ後付けで適用可能。</li>
+      <li><strong>③ サーバーのキュレーション</strong> — 必要な1-2サーバーに絞れば、定義は数千トークン台に収まる。「全部入り」をやめるだけで効果は大きい。</li>
+      <li><strong>④ コンパクトモード</strong> — KanseiLink MCPの <code>search_services({compact: true})</code> のように、最小フィールド返却モードを使う。多くのMCPサーバーが類似機能を持ち始めている。</li>
+    </ul>
+
+    <div class="insight-box">
+      <div class="label">2026年5月の編集視点</div>
+      <p>議論の焦点は「MCP vs API」ではなく、「<strong>MCPを賢く使うか・愚直に使うか</strong>」に移っている。プロトコルの設計を変えるべき領域(SEP-1576)、ベンダーが提供すべき省トークン機能(compact / 動的ロード)、利用者が選ぶべき構成(キュレーション)——三層で取り組めば、40-50%は数%に縮められる。</p>
+    </div>
+
+    <h2 id="jp">日本SaaSへの含意</h2>
+
+    <p>日本SaaSベンダーがMCPサーバーを設計する際、Perplexity離脱騒動から取り出すべき教訓は明確だ。</p>
+
+    <ul class="checklist">
+      <li><strong>ツール数の絞り込み</strong> — 「APIエンドポイントの数だけツールを出す」設計は避ける。エージェントが実際に使う粒度に集約する。GitHub MCPの94ツールは多すぎる側の例だ。</li>
+      <li><strong>ツール説明の簡潔化</strong> — 1ツールあたりの記述を冗長にしない。マークダウン装飾や繰り返しは削る。</li>
+      <li><strong>コンパクトモードの提供</strong> — 一覧系ツールにはfull/compact両モードを用意する。KanseiLink自身がこのパターンを採用しており、<code>compact: true</code>でフィールド数を絞り、Web fetchと比べ91-96%のトークン削減を実測している。</li>
+      <li><strong>動的ツールロード対応</strong> — SEP-1576の進展を追い、ユースケース文脈に応じてサブセットだけを露出できる設計に備える。</li>
+    </ul>
+
+    <p>「MCP対応」を看板にする前に、<strong>『どう接続されたときにエージェントから経済的に見えるか』</strong>を測ることが、AEO(Agent Engine Optimization)時代のSaaS提供者の責務になる。</p>
+
+    <div class="cta-banner">
+      <h3>あなたのMCPサーバーは、何トークン食っていますか？</h3>
+      <p>KanseiLinkは225+の日本SaaS MCPサーバーについて、ツール定義トークン数・コンパクトモード対応・成功率・Agent Voiceを可視化します。自社MCPがエージェントの「重い」「軽い」のどちら側にいるかを診断できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO診断を相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>「MCPツール定義がコンテキストの40-50%を食う」は本当ですか？</h3>
+    <p>⚠️ マルチサーバー前提では本当、シングル/キュレーション構成では当てはまりません。GitHub公式MCPは94ツールで~17,600トークン、Atlassian公式はJira+Confluenceで~10,000、複数大型サーバー接続で30,000+。極端例では66,000トークン(200kコンテキストの~33%)が会話開始前に消費されました。一方、1-2サーバーに絞れば数千トークン台です。</p>
+
+    <h3>「MCPはもう終わり」「標準が死んだ」は本当ですか？</h3>
+    <p>❌ 不正確です。Perplexity離脱は1社の判断で、業界からの撤退ではありません。MCPは2024年11月のオープンソース化以来、OpenAI・Google DeepMind・Microsoft・Cursor・Atlassian・ServiceNow・Salesforce・Linear・GitHubに採用され、2026年4月にはLinux Foundation傘下AAIFに寄贈されました。MCP公式リポでも SEP-1576 で欠点を直す動きが進行中です。</p>
+
+    <h3>ツール定義の肥大化はエージェントの性能を落としますか？</h3>
+    <p>✅ 落とします。複数の報告で、ツールセット肥大時にツール選択精度が43%から14%以下に崩壊することが観測されています(3倍の劣化)。これはコンテキスト窓の問題とは独立した認知負荷の問題で、トークン圧縮だけでなく動的ツールロードが必要です。</p>
+
+    <h3>ツール定義のトークン肥大はどう減らせますか？</h3>
+    <p>4つの実証済み手段があります。(1) Anthropic code mode: 最大98.7%削減。(2) Atlassian mcp-compressor: 70-97%圧縮。(3) サーバーをキュレーション: 必要な1-2サーバーに絞る。(4) コンパクトモード: KanseiLink等の <code>compact: true</code> モードを使う。</p>
+
+    <h3>結局、企業はMCPをどう使うべきですか？</h3>
+    <p>「使うか/捨てるか」ではなく「どう絞るか」が正しい問いです。(1) 業務に必要なサーバーだけ接続、未使用は外す。(2) 大量ツールサーバーには圧縮 or code modeを評価。(3) ベンダー側はツール絞り込みと動的ロード対応でAEO品質を上げる。Perplexityのように特殊用途で別経路を併用するのは合理的ですが、「MCPが終わった」からではなく「1ユースケースで別経路の方が経済的だった」だけです。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・出典・免責事項</div>
+      <p>本記事のクレームと数値は2026年5月18日時点で公開された一次・二次情報に基づきます。主な出典: Perplexity CTO Denis YaratsのAsk 2026(2026-03-11)発言(Threadsおよび複数の報道で確認)、Merge CTO Gil Feigによる「ツールメタデータが40-50%」推計、GitHub公式MCPサーバーの94ツール/~17,600トークン実測、Atlassian公式MCP(Jira+Confluence)~10,000トークン実測、ヘビー構成での66,000トークン消費報告、ツール選択精度43%→14%の劣化観測、Anthropic code modeの最大98.7%削減レポート、Atlassian <code>mcp-compressor</code> の70-97%圧縮、MCP公式リポジトリ Issue SEP-1576。これらは公開時点のスナップショットであり、実測値はサーバーバージョンや接続構成により継続的に変動します。「40-50%」は典型的なマルチサーバー構成での推計レンジであり、すべての構成に当てはまる絶対値ではありません。「MCPはもう終わり」というSNS上のクレームに対する評価は、2026年5月時点の公開情報(採用事例・SEP進行・圧縮ツール存在)に基づく分析的判断であり、将来の市場動向を保証するものではありません。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="cloudflare-code-mode-token-verification-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>Cloudflare Code Modeの「トークン99.9%削減」は本当か？— 81%と99.9%、2つの数字の謎を解明する</h4>
+        </a>
+        <a href="agent-token-cost-optimization-2026.html" class="related-card">
+          <div class="tag">コスト最適化</div>
+          <h4>AIエージェント運用コスト96%削減の実証 — KanseiLinkトークン最適化データ2026</h4>
+        </a>
+        <a href="mcp-integration-claims-verification-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>「MCP導入で統合コスト$15万節約」「トークン92%削減」は本当か？ 2026年の主要クレームをKanseiLinkが検証</h4>
+        </a>
+        <a href="what-is-mcp.html" class="related-card">
+          <div class="tag">基礎</div>
+          <h4>MCPとは？ — Model Context Protocol がAI時代のSaaS連携を変える</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        コンテキスト窓を圧迫しないため、KanseiLink MCPの <code>search_services</code> は <code>compact: true</code> モードでフィールド数を絞った最小レスポンスを返します。
+        ツール選定後は <code>get_service_tips</code> で必要情報だけを取得し、Web fetchより91-96%のトークン削減を実測しています。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
