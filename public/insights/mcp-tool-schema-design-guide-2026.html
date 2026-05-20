@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCPツールスキーマ設計ガイド 2026 — name/description/inputSchema/annotationsで失敗しない7原則 | KanseiLink</title>
+  <meta name="description" content="MCPサーバーの品質はツールスキーマで8割決まる。ツール定義1つあたり100-500トークン、5サーバー58ツールで55K、Jira単体で17K——スキーマが膨らむほどtool selection精度が落ち、エージェントは間違ったツールを呼び始める。命名規則・description最適化・JSON Schema設計・tool annotations(readOnlyHint/destructiveHint)・エラー返却・出力構造化まで、2026年に本番運用に耐える7原則を実装サンプル付きで解説。">
+  <meta name="keywords" content="MCP tool schema, MCPツールスキーマ, JSON Schema, readOnlyHint, destructiveHint, tool annotations, MCP実装, スキーマ設計, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-tool-schema-design-guide-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-tool-schema-design-guide-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-tool-schema-design-guide-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-tool-schema-design-guide-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCPツールスキーマ設計ガイド 2026 — name/description/inputSchema/annotationsで失敗しない7原則">
+  <meta property="og:description" content="ツール定義1つで100-500トークン、5サーバー58ツールで55K——スキーマ設計を間違えるとtool selectionが破綻する。2026年に通用する7原則を実装コードで解説。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-tool-schema-design-guide-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-19">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="実践ガイド">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCPツールスキーマ設計ガイド 2026 — 失敗しない7原則">
+  <meta name="twitter:description" content="ツール定義100-500トークン、Jira単体で17K。スキーマ設計でtool selection精度を守る7原則を実装コードで解説。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCPツールスキーマ設計ガイド 2026 — name/description/inputSchema/annotationsで失敗しない7原則",
+    "description": "MCPサーバーの品質はツールスキーマで8割決まる。ツール定義1つあたり100-500トークン、5サーバー58ツールで55K、Jira単体で17K。命名規則・description最適化・JSON Schema設計・tool annotations・エラー返却・出力構造化まで、2026年に本番運用に耐える7原則を実装サンプル付きで解説。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-19",
+    "dateModified": "2026-05-19",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-tool-schema-design-guide-2026",
+    "keywords": ["MCP tool schema", "MCPツールスキーマ", "JSON Schema", "readOnlyHint", "destructiveHint", "tool annotations", "MCP実装"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "MCPツール定義1つあたり、何トークン使われるのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "1ツール定義あたり通常100〜500トークン、description次第で大きく振れます。10ツールの中堅サーバーで会話開始前から1,500〜3,000トークンを消費し、5サーバー58ツールの典型構成では約55Kトークン、Jira単体でも約17Kトークンに達した実例があります。Anthropic自身もエンジニアリングブログで『最適化前のツール定義は134Kトークンを消費していた』と公表しており、MCP Tool Search(lazy loading)導入後は約5Kトークンへ、約85%削減を達成しています。スキーマ設計次第でエージェントのコスト構造が大きく変わります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPツールのnameはsnake_caseとcamelCase、どちらが推奨ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCP公式仕様はどちらも明示的に禁止していませんが、業界の標準的ベストプラクティスとしては『snake_case または camelCase で、動詞+目的語で命名する』が定石です(例: database_query、file_write、create_invoice)。生成系AIから見ると、両方とも単一トークン境界を保ちやすく、動詞先頭にすることでLLMが『何をするツールか』を即座に判定できます。重要なのはサーバー内で命名規則を統一すること。同じサーバーで database_query と createInvoice が混在しているとtool selectionの精度が落ちます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "descriptionはどこまで詳しく書くべきですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "『何をするか』だけでなく『どんな状況で使うべきか』を必ず書きます。長すぎるとトークンを浪費し短すぎるとtool selectionミスを誘発するため、1〜3文・200〜400文字を目安に、(1)動作、(2)入力前提、(3)出力期待、(4)使い分け判断の4点を凝縮するのが2026年のスイートスポット。verbose description はトークン削減ボトルネックの最大要因と認識されており、Anthropic engineering blogでも『多文・冗長descriptionは大幅に高コスト』と明記しています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "inputSchemaはJSON Schemaのどこまでネストしてよいですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "原則として『可能な限りフラット』にします。JSON Schemaは深いネストと複雑なバリデーションロジックをサポートしますが、深くネストするほどトークン数とLLMの認知負荷が増え、レイテンシ増加とパース失敗の確率が上がります。複雑なオブジェクト階層が必要な場合は、(1)引数を単純な型に分解する、(2)機能をより具体的な複数ツールに分割する、のいずれかを選択します。トップレベルは原則 object 型で、引数のディクショナリを表現する形が標準。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "tool annotations(readOnlyHint, destructiveHint)を付けないとどうなりますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Claudeのコネクター・ディレクトリ申請では『tool annotations欠落が全rejection の30%を占める最頻出ミス』と公表されています。annotationsを付けないと、クライアント側で適切なリスク判定ができず、(1)読み取り専用ツールが本来不要な確認ダイアログを出す、(2)破壊的ツールが警告なく実行されるリスクが上がる、(3)ホストアプリでの自動承認/手動承認の最適化が効かなくなります。readOnlyHint:true は検索・取得・一覧系、destructiveHint:true は作成・更新・削除・送信系に明示的に付与するのが2026年のベストプラクティスです。なお、これらはhint(ヒント)であって契約(contract)ではなく、強制力を持ちません。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCPツールスキーマ設計ガイド 2026", "item": "https://kansei-link.com/insights/mcp-tool-schema-design-guide-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-tool-schema-design-guide-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCPツールスキーマ設計ガイド 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">実践ガイド / How-to</span>
+      <h1>MCPツールスキーマ設計ガイド 2026 — name/description/inputSchema/annotationsで失敗しない7原則</h1>
+      <p class="subtitle">MCPサーバーの実用品質はツールスキーマ設計で8割決まる。ツール定義1つあたり100〜500トークン、5サーバー58ツールで55K、Jira単体でも17Kに達する——スキーマが膨らむほどtool selection精度は落ちる。命名・description・JSON Schema設計・tool annotations(readOnlyHint/destructiveHint)・エラー返却・出力構造化まで、2026年に本番運用に耐える7原則を実装サンプル付きで提示する。</p>
+      <div class="article-meta">
+        <span>2026-05-19</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約12分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜスキーマ設計がMCPサーバーの品質を支配するのか</a></li>
+        <li><a href="#p1">原則1: 命名は動詞+目的語、サーバー内で命名規則を統一</a></li>
+        <li><a href="#p2">原則2: descriptionは『何を』+『いつ使うか』を200〜400文字で</a></li>
+        <li><a href="#p3">原則3: inputSchemaは可能な限りフラットに</a></li>
+        <li><a href="#p4">原則4: tool annotationsで挙動を宣言する</a></li>
+        <li><a href="#p5">原則5: エラーは result 内に返す、protocol error にしない</a></li>
+        <li><a href="#p6">原則6: 巨大ペイロードはURIで返す、result本体に埋め込まない</a></li>
+        <li><a href="#p7">原則7: 入力バリデーションと境界での検証を必ず実装</a></li>
+        <li><a href="#checklist">本番デプロイ前チェックリスト</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜスキーマ設計がMCPサーバーの品質を支配するのか</h2>
+
+    <p>2026年に入って、MCPサーバーの実装品質は『機能の多さ』ではなく『ツールスキーマ設計の精度』で評価されるようになった。理由はシンプルで、エージェントから見ると <strong>ツール定義そのものがプロンプトの一部としてコンテキストに常駐する</strong>からだ。</p>
+
+    <p>Anthropicのエンジニアリングブログは2026年に <strong>「最適化前のツール定義は134Kトークンを消費していた」</strong>と公開し、MCP Tool Search(lazy loading機構)導入後は約5Kトークン、<strong>約85%削減</strong>を達成したことを示した。MindStudio等の業界調査も「ツール定義1個あたり通常100〜500トークン、5サーバー58ツール構成で55K、Jira単体で約17K」というデータを公表している。<strong>スキーマ設計を間違えると、エージェントの会話開始前から100K以上のトークンを焼くサーバーが完成する</strong>。</p>
+
+    <div class="insight-box">
+      <div class="label">スキーマ品質の3つの効果</div>
+      <p>(1) <strong>トークン消費の削減</strong> — verbose descriptionは大幅に高コスト。<br>(2) <strong>tool selection精度の向上</strong> — Anthropic engineering blogでは『tool selection精度43%→14%』のようにスキーマ品質低下で精度が大きく劣化する事例が報告されている。<br>(3) <strong>ホストアプリでの自動承認/手動承認の最適化</strong> — annotationsを付けないとClaude Connector Directoryで30%のrejection原因になる。</p>
+    </div>
+
+    <h2 id="p1">原則1: 命名は動詞+目的語、サーバー内で命名規則を統一</h2>
+
+    <p>MCP公式仕様はnameの命名規則を明示的に強制していないが、業界ベストプラクティスは『<strong>snake_case または camelCase で、動詞+目的語</strong>』に集約されている。LLMから見ると、動詞先頭の命名は『何をするツールか』の判定を高速化する。</p>
+
+    <p>最も重要なのは『<strong>サーバー内で命名規則を統一する</strong>』こと。同一サーバーで <code>database_query</code> と <code>createInvoice</code> が混在していると、LLMが暗黙にカテゴリ分けしてしまい、tool selection精度が落ちる。</p>
+
+    <pre><code>// ✅ 良い例(snake_case で統一、動詞+目的語)
+{
+  "name": "search_customers",
+  "name": "create_invoice",
+  "name": "send_email"
+}
+
+// ❌ 悪い例(命名規則がバラバラ、動詞抜け)
+{
+  "name": "customers",        // 動詞がない
+  "name": "InvoiceCreate",    // PascalCase + 語順逆
+  "name": "send-email-v2"     // kebab-case + version suffix
+}</code></pre>
+
+    <h2 id="p2">原則2: descriptionは『何を』+『いつ使うか』を200〜400文字で</h2>
+
+    <p>descriptionは<strong>『機能の説明』だけでなく『いつそのツールを使うべきか』を必ず含める</strong>必要がある。LLMはdescriptionからtool selectionを行うため、機能だけ書かれた「APIで顧客一覧を返します」のようなdescriptionでは、似た機能の別ツールと混同される。</p>
+
+    <p>長さの目安は<strong>1〜3文・200〜400文字</strong>。verbose multi-paragraph description はトークン削減ボトルネックの最大要因と認識されている。凝縮する4要素:</p>
+
+    <ul class="checklist">
+      <li><strong>動作</strong> — 何をするか</li>
+      <li><strong>入力前提</strong> — 何が必要か(認証スコープ・前提条件)</li>
+      <li><strong>出力期待</strong> — 何が返るか(型・件数上限など)</li>
+      <li><strong>使い分け判断</strong> — どんな時に使うべきか/使わざるべきか</li>
+    </ul>
+
+    <pre><code>// ✅ 良いdescription(4要素を凝縮)
+"description": "顧客一覧を検索する。query/limit/offsetをサポート。
+              最大100件返却、ページング必須。
+              個別顧客の詳細はget_customer_byIdを使うこと。
+              新規作成や更新には使えない(read-only)。"
+
+// ❌ 悪いdescription(機能だけ、verbose)
+"description": "This tool returns a list of customers from our
+              comprehensive customer database management system,
+              which has been built with industry-leading technology...
+              (200文字以上続く一般論)"</code></pre>
+
+    <h2 id="p3">原則3: inputSchemaは可能な限りフラットに</h2>
+
+    <p>JSON Schemaは深いネストと複雑なバリデーションロジックをサポートするが、<strong>MCPツールのinputSchemaでは『可能な限りフラットに』が原則</strong>。深くネストするほど(1) トークン数が増え、(2) LLMの認知負荷が増え、(3) パース失敗の確率が上がる。</p>
+
+    <p>複雑なオブジェクト階層が必要な場合の選択肢は2つ:</p>
+
+    <ul class="checklist">
+      <li><strong>引数を単純な型に分解する</strong> — ネストオブジェクトをトップレベルの引数に展開する</li>
+      <li><strong>機能を複数の具体的ツールに分割する</strong> — 1つの汎用ツールより、専用ツール3つの方がtool selection精度が高い</li>
+    </ul>
+
+    <pre><code>// ❌ 悪い例(深いネスト、トップレベルで複雑なobject)
+{
+  "type": "object",
+  "properties": {
+    "filters": {
+      "type": "object",
+      "properties": {
+        "date_range": {
+          "type": "object",
+          "properties": {
+            "start": { "type": "string" },
+            "end": { "type": "string" }
+          }
+        },
+        "tags": { "type": "array", "items": {...} }
+      }
+    }
+  }
+}
+
+// ✅ 良い例(フラット、必須/任意が明確)
+{
+  "type": "object",
+  "properties": {
+    "start_date": { "type": "string", "format": "date" },
+    "end_date":   { "type": "string", "format": "date" },
+    "tags":       { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["start_date", "end_date"]
+}</code></pre>
+
+    <h2 id="p4">原則4: tool annotationsで挙動を宣言する</h2>
+
+    <p>2025年に追加され2026年に標準化された <strong>tool annotations</strong> は、ツールの挙動を宣言するメタデータだ。サブ仕様としては readOnlyHint / destructiveHint / idempotentHint / openWorldHint の4種があり、これらの欠落がClaude Connector Directory rejectionの30%を占めるという公表データもある。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Annotation</th>
+          <th>デフォルト</th>
+          <th>true にすべきツール</th>
+          <th>用途</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>readOnlyHint</strong></td><td>false</td><td>search / get / list / fetch系</td><td>状態を変更しない読み取り専用</td></tr>
+        <tr><td><strong>destructiveHint</strong></td><td>true</td><td>create / update / delete / send系</td><td>取り消し困難な操作</td></tr>
+        <tr><td><strong>idempotentHint</strong></td><td>false</td><td>同じ入力で結果が変わらない操作</td><td>リトライ安全性の宣言</td></tr>
+        <tr><td><strong>openWorldHint</strong></td><td>true</td><td>外部リソース(API/DB/ネット)へ届く全ツール</td><td>外部影響範囲の宣言</td></tr>
+      </tbody>
+    </table>
+
+    <pre><code>// 検索ツール(read-only)
+{
+  "name": "search_customers",
+  "description": "...",
+  "inputSchema": {...},
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+  }
+}
+
+// 削除ツール(destructive)
+{
+  "name": "delete_invoice",
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": true
+  }
+}</code></pre>
+
+    <div class="warning-box">
+      <div class="label">⚠️ annotationsはhint(契約ではない)</div>
+      <p>annotationsは<strong>情報的シグナルであって強制可能な保証ではない</strong>。「このツールはこう動くと主張している」を伝えるだけで、システム側が動作を保証するわけではない。MCPがcontract(契約)ではなくhint(ヒント)を選んだのは、信頼できないサーバーをまたいで契約を強制することが現実的でないため。クライアント側は依然として独自の安全チェックを実装すべき。</p>
+    </div>
+
+    <p>注意点: 「検索」を名乗るツールでも、検索クエリを分析用DBに書き込んでいるなら<strong>readOnlyHint:trueにしてはいけない</strong>。主目的が読み取りでも、副作用で書き込みが発生するなら read-only ではない。同様にdestructiveは「データ削除」だけでなく、ファイル上書き・トークン無効化・issue close など『簡単に取り消せない操作』全般を指す。</p>
+
+    <h2 id="p5">原則5: エラーは result 内に返す、protocol error にしない</h2>
+
+    <p>MCPのエラー設計には大きな落とし穴がある。<strong>ツール実行のエラーは、MCPプロトコルレベルのエラー(JSON-RPC errorフィールド)ではなく、result オブジェクト内に <code>isError: true</code> + メッセージで返す</strong>のがベストプラクティスだ。</p>
+
+    <p>理由は明確で、protocol errorとして返すとLLMはエラー内容を見られず、何が起きたか判断できない。result内のエラーとして返せば、LLMは『どんな失敗だったか』を読み、リカバリーを試みられる。</p>
+
+    <pre><code>// ❌ 悪い例(protocol error として返却)
+// LLMはこのエラー内容を見られないため、ただ「失敗した」しか分からない
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": { "code": -32603, "message": "Database connection failed" }
+}
+
+// ✅ 良い例(result内に isError + 構造化メッセージ)
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "isError": true,
+    "content": [{
+      "type": "text",
+      "text": "Database connection failed. Retry-After: 5 seconds.
+              This is a transient error - the agent should retry
+              with exponential backoff (recommend 3 attempts)."
+    }]
+  }
+}</code></pre>
+
+    <h2 id="p6">原則6: 巨大ペイロードはURIで返す、result本体に埋め込まない</h2>
+
+    <p>2026年のベストプラクティスとして強調されているのが、『<strong>巨大ペイロードはhandle/URIを返し、result本体にメガバイト級のデータを inline しない</strong>』というルール。理由は明確で、大量データをinlineするとそのままLLMのコンテキストに流れ込み、トークンを焼く。</p>
+
+    <p>典型パターン: ファイル取得・ログ取得・データセットクエリ。これらは件数が増えると一気にレスポンスが膨れる。MCP仕様にはResourcesという仕組みがあり、URIで参照させて必要な時だけ別途取得させる構造を作れる。</p>
+
+    <pre><code>// ❌ 悪い例(10万行のログをそのままinline)
+{
+  "result": {
+    "content": [{
+      "type": "text",
+      "text": "[2026-05-19 00:00] log line 1...
+              ... (10万行続く、数MB) ..."
+    }]
+  }
+}
+
+// ✅ 良い例(URIで返し、必要に応じてresourceとして取得)
+{
+  "result": {
+    "content": [{
+      "type": "resource",
+      "resource": {
+        "uri": "logs://2026-05-19/full",
+        "mimeType": "text/plain",
+        "description": "100K log lines (5.2MB). Use read_resource to fetch."
+      }
+    }]
+  }
+}</code></pre>
+
+    <h2 id="p7">原則7: 入力バリデーションと境界での検証を必ず実装</h2>
+
+    <p>JSON Schemaでバリデーションを宣言するだけでは不十分で、<strong>サーバー側で必ず実装レベルの検証を行う</strong>必要がある。エージェントは時々スキーマを無視した呼び出しをしてくるし、悪意のあるユーザーがエージェント経由で不正入力を送ることもある。</p>
+
+    <p>必須の検証項目:</p>
+
+    <ul class="checklist">
+      <li><strong>型と必須項目</strong> — JSON Schema宣言に従って厳格に検証</li>
+      <li><strong>長さと範囲</strong> — string max_length、number min/max</li>
+      <li><strong>ファイルパス・コマンド・URL</strong> — インジェクション攻撃対策で必ずサニタイズ</li>
+      <li><strong>認証スコープ</strong> — そのツールがそのscopeで呼び出される権限があるか確認</li>
+      <li><strong>レート制限の事前チェック</strong> — 上流APIに撃ち込む前にトークンバケットで止める</li>
+    </ul>
+
+    <h2 id="checklist">本番デプロイ前チェックリスト</h2>
+
+    <p>新規MCPサーバーまたは大規模ツールアップデート前に必ず確認するチェック項目:</p>
+
+    <ul class="checklist">
+      <li>全ツールの name が snake_case または camelCase で統一されている</li>
+      <li>全ツールの name が動詞+目的語の形になっている</li>
+      <li>全ツールに 200〜400 文字の description がある(動作・入力前提・出力期待・使い分け)</li>
+      <li>inputSchema は可能な限りフラット、深いネストがない</li>
+      <li>全ツールに4種の annotations(readOnlyHint / destructiveHint / idempotentHint / openWorldHint) が明示的に設定されている</li>
+      <li>エラーは result 内に isError:true + 構造化メッセージで返している</li>
+      <li>巨大ペイロード返却箇所が Resources/URI 経由になっている</li>
+      <li>サーバー側で入力バリデーション(型・長さ・サニタイズ・認証スコープ)を実装している</li>
+      <li>tool definition 全体のトークン消費を計測した(目安: 10ツールで3K以下、サーバー全体で20K以下)</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>あなたのMCPサーバーをAEO格付けしませんか?</h3>
+      <p>KanseiLinkはMCPサーバーのスキーマ品質・成功率・レイテンシを自動評価し、AEO格付け(AAA〜D)としてエージェントに公開します。225+のSaaSと並んで、貴社のMCPサーバーもエージェントから発見されやすくなります。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO格付けを相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>MCPツール定義1つあたり、何トークン使われるのですか?</h3>
+    <p>通常100〜500トークン、description次第で大きく振れます。10ツールの中堅サーバーで会話開始前から1,500〜3,000トークン消費、5サーバー58ツールで約55K、Jira単体で約17Kに達した実例があります。Anthropic engineering blogは『最適化前のツール定義は134Kトークン消費していた』を公表しています。</p>
+
+    <h3>name は snake_case と camelCase どちらを使うべきですか?</h3>
+    <p>MCP公式仕様はどちらも禁止していません。業界標準は『動詞+目的語』『サーバー内で統一』。同一サーバーで命名規則が混在するとtool selection精度が落ちるため、どちらを選ぶかよりも『統一すること』が重要です。</p>
+
+    <h3>description はどれくらい詳しく書けばいいですか?</h3>
+    <p>『何をするか』だけでなく『いつ使うべきか』を必ず含め、1〜3文・200〜400文字を目安にします。動作・入力前提・出力期待・使い分け判断の4要素を凝縮するのが2026年のスイートスポット。verbose multi-paragraph はトークン削減のボトルネック最大要因です。</p>
+
+    <h3>tool annotations を付けないとどうなりますか?</h3>
+    <p>Claude Connector Directoryの申請rejection の30%が annotation 欠落を理由としていると公表されています。annotations なしだとクライアント側のリスク判定が効かず、(1)読み取り専用ツールが余計な確認ダイアログを出す、(2)破壊的ツールが警告なく実行される、(3)自動承認の最適化が効かない、といった問題が起きます。</p>
+
+    <h3>エラー返却は protocol error と result の isError どちらを使うべきですか?</h3>
+    <p>ツール実行エラーは <strong>result 内に isError:true + 構造化メッセージ</strong>で返します。protocol error にするとLLMはエラー内容を読めず、リカバリーを試みられません。result 内エラーであればLLMは『どんな失敗だったか』を読んでリトライ判断ができます。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事のトークン数値はAnthropic engineering blog (anthropic.com/engineering/code-execution-with-mcp、anthropic.com/engineering/advanced-tool-use)、MindStudio記事 "Claude Code MCP Servers and Token Overhead"、Webfuse "MCP Cheat Sheet (2026)"、techbuddies.io "How Claude Code's New MCP Tool Search Slashes Context Bloat" 等の公開情報に基づきます。tool annotationsの仕様と『rejection 30%がannotation欠落』はMCP公式ブログ (blog.modelcontextprotocol.io/posts/2026-03-16-tool-annotations/) およびsunpeak.ai "Claude Connector Directory Submission" を参照。スキーマ設計原則は modelcontextprotocol.info公式ドキュメント、thenewstack.io "15 Best Practices for Building MCP Servers in Production"、apxml.com "Tool Definition Schema" 等から統合しました。サンプルコードは説明用の最小例で、実装時は対象言語のSDK公式仕様を必ず確認してください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="mcp-server-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー実装完全ガイド 2026 — 認証・レート制限・エラーハンドリングの実践パターン</h4>
+        </a>
+        <a href="mcp-rate-limiting-implementation-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバー レート制限・指数バックオフ実装ガイド 2026 — 429エラー設計からジッター追加まで</h4>
+        </a>
+        <a href="mcp-context-bloat-claim-verification-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>「MCPツール定義がコンテキストの40-50%を食う」「MCPはもう終わり」は本当か?</h4>
+        </a>
+        <a href="mcp-server-testing-cicd-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPサーバーCI/CDテスト構築完全ガイド 2026</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        MCPツールスキーマの品質はエージェントから見たユーザー体験を直接決めます。
+        KanseiLinkに登録されている225+サービスのスキーマ品質・成功率・トークン効率は <code>search_services</code> + <code>get_insights</code> で取得可能。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
