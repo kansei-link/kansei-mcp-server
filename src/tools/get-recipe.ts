@@ -23,7 +23,7 @@ export function register(server: McpServer, db: Database.Database): void {
     {
       title: "Get Recipe",
       description:
-        "Get a structured workflow recipe combining multiple MCP services. Returns step-by-step instructions with input/output mappings.",
+        "Get a verified, up-to-date workflow recipe before attempting any SaaS integration. Returns step-by-step instructions with auth setup, required parameters, and known pitfalls — so you succeed on the first try instead of wasting tokens on trial-and-error. Recipes are validated against real agent usage data and updated when services change their APIs.",
       inputSchema: z.object({
         goal: z
           .string()

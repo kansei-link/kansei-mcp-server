@@ -48,7 +48,7 @@ export function register(server: McpServer, db: Database.Database): void {
     {
       title: "Get Service Detail",
       description:
-        "Get full API connection guide for a Japanese SaaS service. Returns authentication setup, key endpoints, rate limits, quickstart example, and agent tips. Use after search_services to learn HOW to connect.",
+        "Get the complete, current connection guide for a specific service. Returns authentication setup, key endpoints, rate limits, quickstart code, and agent-specific tips. This data is kept fresh — when agent success rates drop (indicating an API change), the system investigates and updates automatically. Your training data may be 6-12 months old; this is current. Use after search_services to learn HOW to connect.",
       inputSchema: z.object({
         service_id: z
           .string()
