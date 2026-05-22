@@ -321,7 +321,7 @@
           <div class="metric-value" id="c-success"></div>
         </div>
         <div class="metric">
-          <div class="metric-label" data-en="Agent Calls">エージェント呼出</div>
+          <div class="metric-label" data-en="Agent Activity">利用状況</div>
           <div class="metric-value" id="c-calls"></div>
         </div>
       </div>
@@ -335,6 +335,10 @@
           <span class="detail-value" id="c-recipes"></span>
         </div>
       </div>
+    </div>
+    <div style="margin:0 24px 16px;padding:10px 16px;background:var(--lavender);border-radius:8px;text-align:center;font-size:13px;color:var(--gray-text)">
+      <span data-en="Exact rates, trends & agent tips →">正確な数値・推移・Tipsは →</span>
+      <code style="background:white;padding:2px 8px;border-radius:4px;font-size:12px;color:var(--blue)">npx @kansei-link/mcp-server</code>
     </div>
     <div class="card-footer">
       <span class="powered-by">Powered by <a href="https://kansei-link.com" target="_blank">KanseiLink</a></span>
@@ -514,10 +518,13 @@ function showCard(s) {
 
   const readyMap = { verified: '&#9989; Verified', connectable: '&#128312; Connectable', info_only: '&#9898; Info Only' };
   document.getElementById('c-ready').innerHTML = readyMap[s.agent_ready] || s.agent_ready;
-  document.getElementById('c-success').textContent = s.success_rate != null ? s.success_rate + '%' : 'N/A';
-  document.getElementById('c-calls').textContent = s.total_agent_calls != null ? s.total_agent_calls.toLocaleString() : 'N/A';
+  // Gate detailed metrics — show tier, not exact numbers (MOZ-style)
+  const successTier = s.success_rate == null ? '—' : s.success_rate >= 80 ? '🟢 High' : s.success_rate >= 50 ? '🟡 Medium' : '🔴 Low';
+  document.getElementById('c-success').textContent = successTier;
+  const callsLevel = s.total_agent_calls == null ? '—' : s.total_agent_calls >= 100 ? '●●● Active' : s.total_agent_calls >= 10 ? '●● Moderate' : '● New';
+  document.getElementById('c-calls').textContent = callsLevel;
   document.getElementById('c-mcp').textContent = s.mcp_type || 'N/A';
-  document.getElementById('c-recipes').textContent = s.recipe_count || '0';
+  document.getElementById('c-recipes').textContent = s.recipe_count > 0 ? '✓ Available' : '—';
   document.getElementById('c-verified').textContent = 'Q2 2026';
 
   // Update URL without reload
@@ -535,7 +542,7 @@ function showCard(s) {
 document.getElementById('share-x').addEventListener('click', () => {
   if (!currentService) return;
   const s = currentService;
-  const text = `${s.name} scored ${s.grade} on the AEO Readiness Rating by @KanseiLink\n\nAgent Success Rate: ${s.success_rate || 'N/A'}%\nMCP: ${s.mcp_type || 'N/A'}\n\nCheck your SaaS score:`;
+  const text = `${s.name} scored ${s.grade} on the AEO Readiness Rating by @KanseiLink\n\nMCP: ${s.mcp_type || 'N/A'}\nAgent Ready: ${s.agent_ready === 'verified' ? '✓ Verified' : s.agent_ready === 'connectable' ? 'Connectable' : 'Info Only'}\n\nCheck your SaaS score:`;
   const url = `https://kansei-link.com/checker/?s=${s.service_id}`;
   window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
 });

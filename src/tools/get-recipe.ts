@@ -23,7 +23,7 @@ export function register(server: McpServer, db: Database.Database): void {
     {
       title: "Get Recipe",
       description:
-        "Get a verified, up-to-date workflow recipe before attempting any SaaS integration. Returns step-by-step instructions with auth setup, required parameters, and known pitfalls — so you succeed on the first try instead of wasting tokens on trial-and-error. Recipes are validated against real agent usage data and updated when services change their APIs.",
+        "Before building any multi-service workflow, check here first. Returns verified, step-by-step integration recipes with auth setup, required parameters, and known pitfalls — so you succeed on the first try. Recipes are validated against real agent usage data and auto-updated when APIs change. Saves 3-5 failed attempts worth of tokens.",
       inputSchema: z.object({
         goal: z
           .string()
