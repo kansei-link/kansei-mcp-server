@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEO Score Checker | KanseiLink</title>
+  <meta name="description" content="Check your SaaS service's AEO (Agent Engine Optimization) score instantly. See how AI-agent-ready your service is, with success rates, MCP status, and trust scores.">
+  <meta name="keywords" content="AEO Score, Agent Readiness, MCP, AI Agent, SaaS Evaluation, KanseiLink">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/checker/">
+
+  <!-- OGP -->
+  <meta property="og:title" content="AEO Score Checker | KanseiLink">
+  <meta property="og:description" content="Is your SaaS AI-agent-ready? Check your AEO score instantly.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kansei-link.com/checker/">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "AEO Score Checker",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "creator": { "@type": "Organization", "name": "KanseiLink by Synapse Arrows PTE. LTD." },
+    "description": "Free tool to check how AI-agent-ready your SaaS service is. Powered by real agent usage data."
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+      --grade-aaa: #065F46;
+      --grade-aa: #059669;
+      --grade-a: #0891B2;
+      --grade-bbb: #D97706;
+      --grade-bb: #EA580C;
+      --grade-b: #DC2626;
+      --grade-ccc: #991B1B;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== NAV ===== */
+    .main-nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-mid);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .main-nav .inner {
+      max-width: 1200px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; height: 56px; justify-content: space-between;
+    }
+    .logo {
+      font-size: 20px; font-weight: 800; color: var(--blue);
+      text-decoration: none; letter-spacing: -0.5px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .logo img { width: 28px; height: 28px; }
+    .nav-back { color: var(--gray-text); text-decoration: none; font-size: 14px; }
+    .nav-back:hover { color: var(--blue); }
+
+    /* ===== HERO ===== */
+    .hero {
+      background: linear-gradient(135deg, var(--lavender) 0%, var(--white) 100%);
+      padding: 64px 24px 48px; text-align: center;
+    }
+    .hero h1 {
+      font-size: 36px; font-weight: 800; letter-spacing: -1.5px;
+      margin-bottom: 12px; color: var(--black);
+    }
+    .hero p {
+      font-size: 16px; color: var(--gray-text); max-width: 560px; margin: 0 auto 32px;
+    }
+
+    /* ===== SEARCH ===== */
+    .search-wrap {
+      max-width: 560px; margin: 0 auto; position: relative;
+    }
+    .search-input {
+      width: 100%; padding: 16px 20px 16px 48px;
+      font-size: 17px; border: 2px solid var(--gray-mid);
+      border-radius: 12px; outline: none; font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--white);
+    }
+    .search-input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(26, 63, 214, 0.1);
+    }
+    .search-icon {
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      font-size: 20px; color: var(--gray-text); pointer-events: none;
+    }
+    .suggestions {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--white); border: 1px solid var(--gray-mid);
+      border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      max-height: 320px; overflow-y: auto; display: none; z-index: 50;
+    }
+    .suggestions.active { display: block; }
+    .suggestion-item {
+      padding: 12px 20px; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--gray-light);
+    }
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-item:hover { background: var(--lavender); }
+    .suggestion-item .name { font-weight: 500; }
+    .suggestion-item .cat { font-size: 13px; color: var(--gray-text); }
+    .suggestion-item .grade-pill {
+      font-size: 12px; font-weight: 700; padding: 2px 8px;
+      border-radius: 4px; color: var(--white);
+    }
+
+    /* ===== SCORE CARD ===== */
+    .card-section {
+      max-width: 640px; margin: 0 auto; padding: 0 24px 64px;
+      display: none;
+    }
+    .card-section.active { display: block; }
+    .score-card {
+      border: 1px solid var(--gray-mid); border-radius: 16px;
+      overflow: hidden; background: var(--white);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+    .card-header {
+      padding: 32px 32px 24px; display: flex;
+      justify-content: space-between; align-items: flex-start;
+    }
+    .card-service-name { font-size: 24px; font-weight: 700; }
+    .card-category { font-size: 14px; color: var(--gray-text); margin-top: 4px; text-transform: capitalize; }
+    .card-grade {
+      font-size: 48px; font-weight: 800; line-height: 1;
+    }
+    .card-score-num { font-size: 14px; color: var(--gray-text); text-align: right; margin-top: 4px; }
+
+    .card-body { padding: 0 32px 28px; }
+    .card-metrics {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+    .metric {
+      background: var(--gray-light); border-radius: 10px; padding: 16px;
+    }
+    .metric-label { font-size: 12px; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .metric-value { font-size: 22px; font-weight: 700; }
+    .metric-sub { font-size: 12px; color: var(--gray-text); margin-top: 2px; }
+
+    .card-details {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--gray-mid);
+    }
+    .detail-item { display: flex; justify-content: space-between; font-size: 14px; }
+    .detail-label { color: var(--gray-text); }
+    .detail-value { font-weight: 500; }
+
+    .card-footer {
+      background: var(--gray-light); padding: 20px 32px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 1px solid var(--gray-mid);
+    }
+    .powered-by { font-size: 12px; color: var(--gray-text); }
+    .powered-by a { color: var(--blue); text-decoration: none; font-weight: 600; }
+    .verified-date { font-size: 12px; color: var(--gray-text); }
+
+    /* ===== SHARE BUTTONS ===== */
+    .share-bar {
+      display: flex; gap: 10px; margin-top: 20px; justify-content: center; flex-wrap: wrap;
+    }
+    .share-btn {
+      padding: 10px 20px; border-radius: 8px; border: 1px solid var(--gray-mid);
+      background: var(--white); cursor: pointer; font-family: inherit;
+      font-size: 14px; font-weight: 500; color: var(--gray-dark);
+      transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .share-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--lavender); }
+    .share-btn.x-btn { background: #000; color: #fff; border-color: #000; }
+    .share-btn.x-btn:hover { background: #333; }
+    .share-btn .icon { font-size: 16px; }
+    .copied-toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--black); color: var(--white); padding: 12px 24px;
+      border-radius: 8px; font-size: 14px; font-weight: 500;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999;
+    }
+    .copied-toast.show { opacity: 1; }
+
+    /* ===== NOT FOUND ===== */
+    .not-found {
+      text-align: center; padding: 48px 24px;
+      max-width: 480px; margin: 0 auto; display: none;
+    }
+    .not-found.active { display: block; }
+    .not-found h3 { font-size: 20px; margin-bottom: 8px; }
+    .not-found p { color: var(--gray-text); font-size: 15px; margin-bottom: 20px; }
+    .not-found a {
+      color: var(--blue); text-decoration: none; font-weight: 500;
+    }
+
+    /* ===== CTA ===== */
+    .cta-section {
+      background: var(--blue); color: var(--white); text-align: center; padding: 56px 24px;
+    }
+    .cta-section h2 { font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+    .cta-section p { font-size: 16px; opacity: 0.85; margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .cta-btn {
+      display: inline-block; padding: 14px 32px; background: var(--white);
+      color: var(--blue); font-weight: 700; font-size: 16px;
+      border-radius: 8px; text-decoration: none; transition: transform 0.2s;
+    }
+    .cta-btn:hover { transform: translateY(-2px); }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      background: var(--black); color: rgba(255,255,255,0.6); padding: 40px 24px; text-align: center;
+      font-size: 13px;
+    }
+    .footer a { color: rgba(255,255,255,0.6); text-decoration: none; }
+    .footer a:hover { color: var(--white); }
+
+    /* ===== GRADE COLORS ===== */
+    .g-aaa { color: var(--grade-aaa); }
+    .g-aa { color: var(--grade-aa); }
+    .g-a { color: var(--grade-a); }
+    .g-bbb { color: var(--grade-bbb); }
+    .g-bb { color: var(--grade-bb); }
+    .g-b { color: var(--grade-b); }
+    .g-ccc { color: var(--grade-ccc); }
+    .bg-aaa { background: var(--grade-aaa); }
+    .bg-aa { background: var(--grade-aa); }
+    .bg-a { background: var(--grade-a); }
+    .bg-bbb { background: var(--grade-bbb); }
+    .bg-bb { background: var(--grade-bb); }
+    .bg-b { background: var(--grade-b); }
+    .bg-ccc { background: var(--grade-ccc); }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 26px; }
+      .card-header { flex-direction: column; gap: 16px; }
+      .card-grade { font-size: 40px; }
+      .card-metrics { grid-template-columns: 1fr; }
+      .card-details { grid-template-columns: 1fr; }
+      .card-header, .card-body, .card-footer { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="main-nav">
+  <div class="inner">
+    <a href="../index.html" class="logo">
+      <img src="../img/kansei-logo.png" alt="KanseiLink">
+      KanseiLink
+    </a>
+    <a href="../index.html" class="nav-back" data-en="&larr; Back to Ratings">&larr; AEO Ratingsに戻る</a>
+  </div>
+</nav>
+
+<!-- Hero + Search -->
+<section class="hero">
+  <h1 data-en="AEO Score Checker">AEO スコアチェッカー</h1>
+  <p data-en="Is your SaaS AI-agent-ready? Check your AEO score instantly. Free, powered by real agent usage data.">あなたのSaaSはAIエージェント対応できている？ AEOスコアを即座にチェック。無料。</p>
+  <div class="search-wrap">
+    <span class="search-icon">&#128269;</span>
+    <input type="text" id="search" class="search-input"
+           placeholder="サービス名を入力 (例: freee, Slack, kintone)"
+           data-en-placeholder="Type a service name (e.g. freee, Slack, kintone)"
+           autocomplete="off">
+    <div class="suggestions" id="suggestions"></div>
+  </div>
+</section>
+
+<!-- Score Card -->
+<div class="card-section" id="card-section">
+  <div class="score-card" id="score-card">
+    <div class="card-header">
+      <div>
+        <div class="card-service-name" id="c-name"></div>
+        <div class="card-category" id="c-category"></div>
+      </div>
+      <div style="text-align:right">
+        <div class="card-grade" id="c-grade"></div>
+        <div class="card-score-num" id="c-score"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-metrics">
+        <div class="metric">
+          <div class="metric-label" data-en="Agent Ready">エージェント対応</div>
+          <div class="metric-value" id="c-ready"></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label" data-en="Success Rate">成功率</div>
+          <div class="metric-value" id="c-success"></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label" data-en="Agent Calls">エージェント呼出</div>
+          <div class="metric-value" id="c-calls"></div>
+        </div>
+      </div>
+      <div class="card-details">
+        <div class="detail-item">
+          <span class="detail-label" data-en="MCP Type">MCP種別</span>
+          <span class="detail-value" id="c-mcp"></span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label" data-en="Recipes">レシピ数</span>
+          <span class="detail-value" id="c-recipes"></span>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <span class="powered-by">Powered by <a href="https://kansei-link.com" target="_blank">KanseiLink</a></span>
+      <span class="verified-date" id="c-verified"></span>
+    </div>
+  </div>
+
+  <!-- Share -->
+  <div class="share-bar">
+    <button class="share-btn x-btn" id="share-x" title="Share on X">
+      <span class="icon">&#120143;</span> Share on X
+    </button>
+    <button class="share-btn" id="share-link" title="Copy link">
+      <span class="icon">&#128279;</span> <span data-en="Copy Link">リンクをコピー</span>
+    </button>
+    <button class="share-btn" id="share-badge" title="Copy embed badge">
+      <span class="icon">&#9734;</span> <span data-en="Embed Badge">バッジ埋め込み</span>
+    </button>
+  </div>
+</div>
+
+<!-- Not Found -->
+<div class="not-found" id="not-found">
+  <h3 data-en="Service Not Yet Evaluated">まだ評価されていないサービスです</h3>
+  <p data-en="This service hasn't been evaluated by KanseiLink yet. Want to see it added? Let us know.">このサービスはまだKanseiLinkで評価されていません。追加をリクエストできます。</p>
+  <a href="mailto:contact@synapse-arrows.com?subject=AEO%20Score%20Request" data-en="Request evaluation &rarr;">評価をリクエスト &rarr;</a>
+</div>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2 data-en="Want to improve your AEO score?">AEOスコアを改善したいですか？</h2>
+  <p data-en="KanseiLink provides actionable insights to make your SaaS more AI-agent-friendly.">KanseiLinkが、あなたのSaaSをAIエージェント対応にするための具体的なアクションを提供します。</p>
+  <a href="mailto:contact@synapse-arrows.com" class="cta-btn" data-en="Get in touch">お問い合わせ</a>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <p>&copy; 2026 KanseiLink by Synapse Arrows PTE. LTD. &mdash;
+    <a href="../index.html">AEO Ratings</a> &middot;
+    <a href="../insights/index.html">Insights</a> &middot;
+    <a href="../about.html">About</a>
+  </p>
+</footer>
+
+<div class="copied-toast" id="toast"></div>
+
+<script>
+// ========================================
+// DATA LOADING
+// ========================================
+let allServices = [];
+
+async function loadData() {
+  try {
+    const res = await fetch('../aeo-data.json');
+    const data = await res.json();
+
+    // Flatten: overall_top + all category rankings into one deduplicated list
+    const seen = new Map();
+    function add(s) {
+      if (!seen.has(s.service_id) || s.aeo_score > seen.get(s.service_id).aeo_score) {
+        seen.set(s.service_id, s);
+      }
+    }
+    (data.overall_top || []).forEach(add);
+    for (const cat of Object.values(data.category_rankings || {})) {
+      (cat.rankings || []).forEach(add);
+    }
+    allServices = Array.from(seen.values()).sort((a, b) => b.aeo_score - a.aeo_score);
+
+    // Check URL param
+    const params = new URLSearchParams(window.location.search);
+    const sParam = params.get('s');
+    if (sParam) {
+      const match = allServices.find(s =>
+        s.service_id === sParam.toLowerCase() ||
+        s.name.toLowerCase().includes(sParam.toLowerCase())
+      );
+      if (match) {
+        showCard(match);
+        searchInput.value = match.name;
+      } else {
+        document.getElementById('not-found').classList.add('active');
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load AEO data:', e);
+  }
+}
+
+// ========================================
+// SEARCH
+// ========================================
+const searchInput = document.getElementById('search');
+const suggestionsEl = document.getElementById('suggestions');
+
+searchInput.addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  if (q.length < 1) {
+    suggestionsEl.classList.remove('active');
+    return;
+  }
+
+  const matches = allServices.filter(s =>
+    s.name.toLowerCase().includes(q) ||
+    s.service_id.toLowerCase().includes(q) ||
+    (s.category || '').toLowerCase().includes(q)
+  ).slice(0, 8);
+
+  if (matches.length === 0) {
+    suggestionsEl.innerHTML = '<div class="suggestion-item" style="justify-content:center;color:var(--gray-text);cursor:default">No matches found</div>';
+    suggestionsEl.classList.add('active');
+    return;
+  }
+
+  suggestionsEl.innerHTML = matches.map(s => `
+    <div class="suggestion-item" data-id="${s.service_id}">
+      <div>
+        <span class="name">${s.name}</span>
+        <span class="cat">${formatCategory(s.category)}</span>
+      </div>
+      <span class="grade-pill bg-${s.grade.toLowerCase()}">${s.grade}</span>
+    </div>
+  `).join('');
+  suggestionsEl.classList.add('active');
+
+  suggestionsEl.querySelectorAll('.suggestion-item[data-id]').forEach(item => {
+    item.addEventListener('click', () => {
+      const svc = allServices.find(s => s.service_id === item.dataset.id);
+      if (svc) {
+        showCard(svc);
+        searchInput.value = svc.name;
+        suggestionsEl.classList.remove('active');
+      }
+    });
+  });
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) suggestionsEl.classList.remove('active');
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const q = searchInput.value.trim().toLowerCase();
+    const match = allServices.find(s =>
+      s.name.toLowerCase().includes(q) || s.service_id === q
+    );
+    if (match) {
+      showCard(match);
+      searchInput.value = match.name;
+      suggestionsEl.classList.remove('active');
+    }
+  }
+});
+
+// ========================================
+// SCORE CARD
+// ========================================
+let currentService = null;
+
+function showCard(s) {
+  currentService = s;
+  const cardSection = document.getElementById('card-section');
+  const notFound = document.getElementById('not-found');
+  notFound.classList.remove('active');
+  cardSection.classList.add('active');
+
+  document.getElementById('c-name').textContent = s.name;
+  document.getElementById('c-category').textContent = formatCategory(s.category);
+
+  const gradeEl = document.getElementById('c-grade');
+  gradeEl.textContent = s.grade;
+  gradeEl.className = 'card-grade g-' + s.grade.toLowerCase();
+
+  document.getElementById('c-score').textContent = 'Score: ' + s.aeo_score.toFixed(2);
+
+  const readyMap = { verified: '&#9989; Verified', connectable: '&#128312; Connectable', info_only: '&#9898; Info Only' };
+  document.getElementById('c-ready').innerHTML = readyMap[s.agent_ready] || s.agent_ready;
+  document.getElementById('c-success').textContent = s.success_rate != null ? s.success_rate + '%' : 'N/A';
+  document.getElementById('c-calls').textContent = s.total_agent_calls != null ? s.total_agent_calls.toLocaleString() : 'N/A';
+  document.getElementById('c-mcp').textContent = s.mcp_type || 'N/A';
+  document.getElementById('c-recipes').textContent = s.recipe_count || '0';
+  document.getElementById('c-verified').textContent = 'Q2 2026';
+
+  // Update URL without reload
+  const url = new URL(window.location);
+  url.searchParams.set('s', s.service_id);
+  history.replaceState(null, '', url);
+
+  // Scroll to card
+  cardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ========================================
+// SHARE
+// ========================================
+document.getElementById('share-x').addEventListener('click', () => {
+  if (!currentService) return;
+  const s = currentService;
+  const text = `${s.name} scored ${s.grade} on the AEO Readiness Rating by @KanseiLink\n\nAgent Success Rate: ${s.success_rate || 'N/A'}%\nMCP: ${s.mcp_type || 'N/A'}\n\nCheck your SaaS score:`;
+  const url = `https://kansei-link.com/checker/?s=${s.service_id}`;
+  window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+});
+
+document.getElementById('share-link').addEventListener('click', () => {
+  if (!currentService) return;
+  const url = `https://kansei-link.com/checker/?s=${currentService.service_id}`;
+  navigator.clipboard.writeText(url).then(() => showToast('Link copied!'));
+});
+
+document.getElementById('share-badge').addEventListener('click', () => {
+  if (!currentService) return;
+  const s = currentService;
+  const badge = `<a href="https://kansei-link.com/checker/?s=${s.service_id}" title="${s.name} AEO Score"><img src="https://img.shields.io/badge/AEO_Score-${s.grade}-${gradeHex(s.grade)}?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHRleHQgeD0iNCIgeT0iMTgiIGZvbnQtc2l6ZT0iMTYiPuKaoTwvdGV4dD48L3N2Zz4=&labelColor=1A3FD6" alt="${s.name} AEO Score: ${s.grade}"></a>`;
+  navigator.clipboard.writeText(badge).then(() => showToast('Badge HTML copied!'));
+});
+
+function gradeHex(grade) {
+  const map = { AAA: '065F46', AA: '059669', A: '0891B2', BBB: 'D97706', BB: 'EA580C', B: 'DC2626', CCC: '991B1B' };
+  return map[grade] || '6B7280';
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ========================================
+// HELPERS
+// ========================================
+const CATEGORY_LABELS = {
+  accounting: 'Accounting', hr: 'HR', communication: 'Communication',
+  crm: 'CRM', project_management: 'Project Management', ecommerce: 'E-Commerce',
+  legal: 'Legal', marketing: 'Marketing', groupware: 'Groupware',
+  productivity: 'Productivity', storage: 'Storage', support: 'Support',
+  payment: 'Payment', logistics: 'Logistics', reservation: 'Reservation',
+  data_integration: 'Data Integration', bi_analytics: 'BI & Analytics',
+  security: 'Security', developer_tools: 'Developer Tools', ai_ml: 'AI / ML',
+  database: 'Database', devops: 'DevOps', design: 'Design'
+};
+
+function formatCategory(cat) {
+  return CATEGORY_LABELS[cat] || (cat || '').replace(/_/g, ' ');
+}
+
+// ========================================
+// LANGUAGE TOGGLE
+// ========================================
+let lang = localStorage.getItem('kl-lang') || 'ja';
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-en]').forEach(el => {
+    if (!el._ja) el._ja = el.innerHTML;
+    el.innerHTML = lang === 'en' ? el.getAttribute('data-en') : el._ja;
+  });
+  document.querySelectorAll('[data-en-placeholder]').forEach(el => {
+    if (!el._jaP) el._jaP = el.placeholder;
+    el.placeholder = lang === 'en' ? el.getAttribute('data-en-placeholder') : el._jaP;
+  });
+}
+if (lang === 'en') applyLang();
+
+// ========================================
+// INIT
+// ========================================
+loadData();
+</script>
+</body>
+</html>
