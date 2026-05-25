@@ -18,6 +18,39 @@ interface ServiceRow {
   total_calls: number | null;
   success_rate: number | null;
   axr_grade: string | null;
+  last_refreshed_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Data freshness — lets consuming agents know how current our data is.
+// 30+ days unverified → confidence "low", 7-30 days → "medium", <7 → "high".
+// ---------------------------------------------------------------------------
+type FreshnessConfidence = "high" | "medium" | "low";
+
+interface FreshnessMeta {
+  data_age_days: number | null;
+  last_refreshed: string | null;
+  confidence: FreshnessConfidence;
+}
+
+function computeFreshness(lastRefreshedAt: string | null): FreshnessMeta {
+  if (!lastRefreshedAt) {
+    return { data_age_days: null, last_refreshed: null, confidence: "low" };
+  }
+  const refreshDate = new Date(lastRefreshedAt);
+  const now = new Date();
+  const ageDays = Math.floor(
+    (now.getTime() - refreshDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  let confidence: FreshnessConfidence;
+  if (ageDays <= 7) confidence = "high";
+  else if (ageDays <= 30) confidence = "medium";
+  else confidence = "low";
+  return {
+    data_age_days: ageDays,
+    last_refreshed: lastRefreshedAt,
+    confidence,
+  };
 }
 
 interface FtsRow {
@@ -71,6 +104,8 @@ export function register(server: McpServer, db: Database.Database): void {
             success: r.success_rate != null ? Math.round(r.success_rate * 100) / 100 : null,
             cmd: r.mcp_endpoint || null,
             ready: r.agent_ready,
+            fresh: r.freshness.confidence,
+            age_d: r.freshness.data_age_days,
           }))
         : results;
 
@@ -746,6 +781,7 @@ interface ScoredResult {
   success_rate: number | null;
   axr_grade: string | null;
   relevance_score: number;
+  freshness: FreshnessMeta;
 }
 
 /** Bonus when the user's intent mentions a service by name */
@@ -888,6 +924,7 @@ function formatResult(
     axr_grade: s.axr_grade ?? null,
     relevance_score:
       Math.round((score + nameBonus + tagBonus + catAdj + jpBonus) * 100) / 100,
+    freshness: computeFreshness(s.last_refreshed_at),
   };
 }
 

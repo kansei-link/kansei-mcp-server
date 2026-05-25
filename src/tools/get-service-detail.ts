@@ -14,6 +14,38 @@ interface ServiceRow {
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
+  last_refreshed_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Data freshness — mirrors the same logic in search-services.ts.
+// ---------------------------------------------------------------------------
+type FreshnessConfidence = "high" | "medium" | "low";
+
+interface FreshnessMeta {
+  data_age_days: number | null;
+  last_refreshed: string | null;
+  confidence: FreshnessConfidence;
+}
+
+function computeFreshness(lastRefreshedAt: string | null): FreshnessMeta {
+  if (!lastRefreshedAt) {
+    return { data_age_days: null, last_refreshed: null, confidence: "low" };
+  }
+  const refreshDate = new Date(lastRefreshedAt);
+  const now = new Date();
+  const ageDays = Math.floor(
+    (now.getTime() - refreshDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  let confidence: FreshnessConfidence;
+  if (ageDays <= 7) confidence = "high";
+  else if (ageDays <= 30) confidence = "medium";
+  else confidence = "low";
+  return {
+    data_age_days: ageDays,
+    last_refreshed: lastRefreshedAt,
+    confidence,
+  };
 }
 
 interface GuideRow {
@@ -122,6 +154,8 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     )
     .all(serviceId) as ChangelogRow[];
 
+  const freshness = computeFreshness(service.last_refreshed_at);
+
   if (!guide) {
     return {
       service_id: service.id,
@@ -133,6 +167,7 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
       api_url: service.api_url,
       api_auth_method: service.api_auth_method,
       trust_score: service.trust_score,
+      freshness,
       connection_guide: null,
       message:
         "No detailed API connection guide available yet. Use api_url and api_auth_method as starting points.",
@@ -148,6 +183,7 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     mcp_endpoint: service.mcp_endpoint || null,
     mcp_status: service.mcp_status ?? "official",
     trust_score: service.trust_score,
+    freshness,
     connection_guide: {
       base_url: guide.base_url,
       api_version: guide.api_version,
