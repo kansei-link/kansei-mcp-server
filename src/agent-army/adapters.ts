@@ -31,8 +31,8 @@ export class AnthropicAdapter implements ModelAdapter {
       },
       body: JSON.stringify({
         model: this.modelId === "claude-haiku-3.5"
-          ? "claude-haiku-4-20250414"
-          : "claude-sonnet-4-20250514",
+          ? "claude-haiku-4-5-20251001"
+          : "claude-sonnet-4-6",
         max_tokens: 1024,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
