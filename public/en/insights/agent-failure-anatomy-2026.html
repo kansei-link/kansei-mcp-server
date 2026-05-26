@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What Agents Actually Trip Over 2026 — Dissecting 108 KanseiLink Failure Reports | KanseiLink</title>
+  <meta name="description" content="From 569 outcome reports across 5 high-volume services, we dissected the 108 failures agents actually hit. Roughly 69% are api_error. But the failures AEO can truly fix are the other third: expired auth (14%) and search_miss (12%). Where failures concentrate, and where the real fix lives, read from live data.">
+  <meta name="keywords" content="MCP error analysis, agent failure, api_error, auth_expired, search_miss, AEO, KanseiLink, MCP server data analysis, Japanese SaaS agents">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/agent-failure-anatomy-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/agent-failure-anatomy-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/agent-failure-anatomy-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/agent-failure-anatomy-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="What Agents Actually Trip Over 2026 — Dissecting 108 KanseiLink Failure Reports">
+  <meta property="og:description" content="Roughly 69% of agent failures are api_error. But the ones AEO can fix are the other third: expired auth (14%) and search_miss (12%). We dissect the anatomy of failure from live data.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/agent-failure-anatomy-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-21">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Data Story">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="What Agents Actually Trip Over 2026">
+  <meta name="twitter:description" content="69% of agent failures are api_error. But AEO fixes the other third: expired auth (14%) and search_miss (12%). Dissecting failure from live data.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "What Agents Actually Trip Over 2026 — Dissecting 108 KanseiLink Failure Reports",
+    "description": "From 569 outcome reports across 5 high-volume services, we dissect the 108 failures agents actually hit. Roughly 69% are api_error, 14% auth, 12% search_miss. Where failures concentrate and where the real fix lives, read from live data.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-21",
+    "dateModified": "2026-05-21",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/agent-failure-anatomy-2026",
+    "keywords": ["Agent Failure Anatomy", "api_error", "auth_expired", "search_miss", "AEO", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the most common error agents fail on?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Across 5 high-volume services (freee, Slack, SmartHR, Backlog, kintone — 569 outcome reports total), of the 108 catalogued failures roughly 69% (75) were api_error. Next were auth errors (auth_expired/auth_error) at about 14% (15), search_miss (discovery failures) at about 12% (13), invalid_input about 3% (3), and timeout about 2% (2)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the large share of api_error a problem?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "api_error bundles server-side 4xx/5xx responses and is an 'opaque failure' from the agent's perspective — the cause is invisible. Retries tend to hit the same wall, burning tokens without converting to success. Fixing it depends almost entirely on the provider's error design (machine-readable messages with repair hints). It is the largest failure bucket yet the hardest for agents to solve on their own."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is search_miss and why does it matter for AEO?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "search_miss is a failure where the agent could not discover a service matching its intent. For example, a query for issuing a withholding tax slip does not surface SmartHR in the top 3, or a no-code internal form request does not surface kintone. This is not an API quality issue but a discoverability problem, and it is directly fixable by AEO — aligning service descriptions and metadata with the agent's intent language. It accounts for about 12% of failures and is the area where AEO delivers the highest return."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Are failures concentrated in particular services?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Heavily. Of the 108 catalogued failures, SmartHR alone accounts for about 51% (55). For api_error specifically, 36 of all 75 (about 48%) are SmartHR. SmartHR has a low 39% success rate yet is used frequently (92 reports), so its absolute failure count dominates. By contrast Slack (91%), freee (90%), and Backlog (90%) keep absolute failures low."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should providers prioritize from this failure data?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "(1) Improve error design to reduce the opacity of api_error (make messages repairable); (2) document OAuth token expiry (freee tokens expire every 24h) and refresh procedures to cut auth errors; (3) tune metadata so the service is discoverable by intent keywords to cut search_miss. search_miss in particular has the highest ROI for AEO — it recovers losses that happen before the service is even used."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/en/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "What Agents Actually Trip Over 2026", "item": "https://kansei-link.com/en/insights/agent-failure-anatomy-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../../insights/agent-failure-anatomy-2026.html">日本語</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      What Agents Actually Trip Over 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">データストーリー / Data Story</span>
+      <h1>What Agents Actually Trip Over 2026 — Dissecting 108 KanseiLink Failure Reports</h1>
+      <p class="subtitle">"It didn't work" lumps every failure together. So we opened them up by type. Across 5 high-volume services and 569 reports, we pulled out 108 failures. Roughly 69% were api_error. But the interesting part is the other third — expired auth and search_miss. We dissect the anatomy of failure from live data.</p>
+      <div class="article-meta">
+        <span>2026-05-21</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>Reading time: ~9 min</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#data">Opening failures by type — the 108-failure breakdown</a></li>
+        <li><a href="#apierror">api_error — the largest, but most opaque failure</a></li>
+        <li><a href="#auth">Expired auth — "expires every 24h" quietly bites</a></li>
+        <li><a href="#searchmiss">search_miss — the one failure vendors can fix directly</a></li>
+        <li><a href="#concentration">Failures concentrate in one service — SmartHR is half</a></li>
+        <li><a href="#action">What vendors should prioritize</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="data">Opening failures by type — the 108-failure breakdown</h2>
+
+    <p>A report saying "the API didn't work" offers no clue on its own. What matters is <strong>what</strong> the agent tripped over. KanseiLink collects outcome reports tagged with an <code>error_type</code>. Here we took the five most-reported services — freee (212 reports), Slack (113), SmartHR (92), Backlog (91), kintone (61), <strong>569 total</strong> — and pulled out only the failures, sorted by type. We could catalogue <strong>108 failures</strong>. The breakdown:</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Error type</th>
+          <th>Count</th>
+          <th>Share of all failures</th>
+          <th>Nature</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>api_error</strong> (4xx/5xx bucket)</td><td>75</td><td><span class="success-low">~69%</span></td><td>Server-side, opaque</td></tr>
+        <tr><td><strong>Auth</strong> (auth_expired / auth_error)</td><td>15</td><td><span class="success-mid">~14%</span></td><td>Operational, partly self-fixable</td></tr>
+        <tr><td><strong>search_miss</strong> (discovery failure)</td><td>13</td><td><span class="success-mid">~12%</span></td><td>Discoverability, AEO-fixable</td></tr>
+        <tr><td>invalid_input</td><td>3</td><td>~3%</td><td>Schema, self-fixable</td></tr>
+        <tr><td>timeout</td><td>2</td><td>~2%</td><td>Load, avoidable via paging</td></tr>
+      </tbody>
+    </table>
+
+    <p>At a glance you'd want to conclude: "api_error is ~70%, so fix that." But this article argues the opposite. <strong>The largest bucket is not necessarily where the most fixable headroom lives.</strong> The smaller buckets are precisely where vendors have direct levers. Let's open them in turn.</p>
+
+    <div class="data-highlight">
+      <h4>The three big buckets of 108 failures</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num red">69%</span>
+          <div class="label">api_error (server-side, opaque)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">14%</span>
+          <div class="label">Auth (token expiry, etc.)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">12%</span>
+          <div class="label">search_miss (discovery failure)</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="apierror">api_error — the largest, but most opaque failure</h2>
+
+    <p>api_error bundles the 4xx/5xx responses the server returned. It is the biggest category at about 69% (75) of failures — and yet, from the agent's vantage point, it is the <strong>"I can't tell what went wrong" failure</strong>. When the response is just a "400 Bad Request" or a vague "500 Internal Server Error," the agent has no way to repair and hits the same wall on retry.</p>
+
+    <p>The trouble is that fixing this bucket depends <strong>almost entirely on the service provider</strong>. No matter how clever the agent, if the server doesn't return a cause it cannot self-correct. Conversely, simply embedding "which field, why, and how to fix it" in machine-readable form turns much of these 75 into "the next success." This is exactly the problem of <a href="agent-voice-error-message-quality-2026.html">error message quality</a>.</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ "Largest" ≠ "top priority"</div>
+      <p>api_error has the highest count, but agents can't self-solve it. The fix rests on vendor error design and has a long lead time. Anchoring on "70% of failures" and staring only here makes you miss cheaper, faster wins.</p>
+    </div>
+
+    <h2 id="auth">Expired auth — "expires every 24h" quietly bites</h2>
+
+    <p>The second-largest bucket is auth (auth_expired + auth_error) at about 14% (15). The contents are telling. In freee's reports, the verified workaround for <code>auth_expired</code> appears repeatedly: "<strong>refreshed the OAuth token; the token expires every 24h</strong>." The cause isn't a design flaw — it's that <strong>the agent steps on the expiry spec without knowing it exists</strong>.</p>
+
+    <p>This is the classic "failure documentation could have prevented." Spell out token lifetime, refresh procedure, and expiry behavior in structured docs, and agents can schedule refreshes in advance — most auth_expired vanishes before it occurs. For SmartHR, the verified workaround for <code>auth_expired</code> is "use the v2 endpoint instead of v1," another <strong>you-don't-trip-if-you-know</strong> failure.</p>
+
+    <div class="insight-box">
+      <div class="label">How to read it</div>
+      <p>Auth errors aren't "the service is broken" — they are "<strong>the spec didn't reach the agent</strong>." Unlike api_error, you can reduce them with documentation alone, without changing a single line of code. High ROI, easily overlooked.</p>
+    </div>
+
+    <h2 id="searchmiss">search_miss — the one failure vendors can fix directly</h2>
+
+    <p>At about 12% (13) of failures, <code>search_miss</code> is fundamentally different in nature. It is a <strong>failure that happens before the API is even called</strong> — the agent could not discover a service matching its intent. The real examples are vivid:</p>
+
+    <ul>
+      <li><strong>SmartHR</strong>: query "issue a withholding tax slip (源泉徴収票を発行したい)" → top 3 returns [freee, moneyforward, kingoftime], no SmartHR. "manage employee onboarding" also misses the top 3.</li>
+      <li><strong>kintone</strong>: "build a no-code internal request form (ノーコードで社内申請フォームを作りたい)" → returns [notion, backlog, chatwork], no kintone.</li>
+      <li><strong>freee</strong>: "streamline back-office work (バックオフィス業務を効率化)" → freee not in the top 3.</li>
+    </ul>
+
+    <p>These have <strong>nothing to do with API quality</strong>. SmartHR and kintone are robust services, but if the agent never finds them as candidates, neither success nor failure occurs — or, more precisely, a quiet "was-never-discovered" failure piles up. And undiscovered services accumulate no track record, getting stranded in the <a href="../../insights/mcp-usage-concentration-2026.html">long tail of usage concentration</a>.</p>
+
+    <div class="success-box">
+      <div class="label">✅ This is AEO's main battlefield</div>
+      <p>Whereas api_error and auth are server-implementation/operational issues, search_miss is a <strong>discoverability</strong> problem. Align your service description and metadata with the agent's <strong>intent language</strong> — not human-facing marketing copy — and you reduce it directly. This is precisely what <a href="../../insights/what-is-aeo.html">AEO (Agent Engine Optimization)</a> solves. That 12% is lost "before you're even used," and it's the easiest to recover.</p>
+    </div>
+
+    <h2 id="concentration">Failures concentrate in one service — SmartHR is half</h2>
+
+    <p>There's another fact the average hides: failures are not evenly spread. <strong>Of the 108 catalogued failures, SmartHR alone accounts for about 51% (55).</strong> For api_error specifically, 36 of all 75 — <strong>about 48% are SmartHR</strong>.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Reports</th>
+          <th>Success rate</th>
+          <th>Failures (approx.)</th>
+          <th>Main failure types</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>SmartHR</strong></td><td>92</td><td><span class="success-low">39%</span></td><td><span class="success-low">~55</span></td><td>api_error 36 / auth 10 / search_miss 7</td></tr>
+        <tr><td>freee MCP</td><td>212</td><td><span class="success-high">90%</span></td><td>~21</td><td>api_error 15 / auth 4</td></tr>
+        <tr><td>kintone MCP</td><td>61</td><td><span class="success-mid">79%</span></td><td>~13</td><td>api_error 9 / search_miss 3</td></tr>
+        <tr><td>Slack MCP</td><td>113</td><td><span class="success-high">91%</span></td><td>~10</td><td>api_error 9</td></tr>
+        <tr><td>Backlog MCP</td><td>91</td><td><span class="success-high">90%</span></td><td>~9</td><td>api_error 6 / search_miss 2</td></tr>
+      </tbody>
+    </table>
+
+    <p>SmartHR stays at a low 39% success rate yet is used frequently (92 reports). As Japan's HR SaaS market leader with few real substitutes, agents keep choosing it even as they fail — so its absolute failure count dominates. By contrast, Slack (91%), freee (90%), and Backlog (90%) keep absolute failures small despite high report volumes.</p>
+
+    <div class="insight-box">
+      <div class="label">Implication</div>
+      <p>"70% of all failures are api_error" is correct at the top line, but nearly half of that breakdown traces to a single service. <strong>Failure mitigation must look not only at error type but at which service it occurs in.</strong> Improving one low-success-rate service can shift the entire failure distribution.</p>
+    </div>
+
+    <h2 id="action">What vendors should prioritize</h2>
+
+    <p>From dissecting these 108 failures, the priority order for providers is clear.</p>
+
+    <ul class="checklist">
+      <li><strong>Kill search_miss first (cheapest, fastest)</strong> — improve discoverability for intent keywords. No code change; just metadata and description tuning rescues the 12% lost as "pre-discovery losses."</li>
+      <li><strong>Document the auth spec</strong> — token lifetime, refresh procedure, expiry behavior, recommended endpoint (v1/v2). Much of the 14% auth bucket is "you don't trip if you know."</li>
+      <li><strong>Make errors machine-readable</strong> — api_error is the largest bucket, but embedding repair hints turns retries into successes. Stop "returning just a 400."</li>
+      <li><strong>Start with low-success-rate services</strong> — failures aren't even; they concentrate in one service. If you're on the low end of the long tail, lifting your success rate first is the global optimum.</li>
+    </ul>
+
+    <div class="cta-banner">
+      <h3>Which failure is dropping agents for your service?</h3>
+      <p>KanseiLink visualizes success rates, failure-by-type breakdowns, and real search_miss examples for 225+ Japanese SaaS. See which errors you're losing agents on, and how much.</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Talk to us about an AEO audit</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>What is the most common error agents fail on?</h3>
+    <p>Across 5 high-volume services (569 reports), of the 108 catalogued failures about 69% (75) were api_error, then auth ~14% (15), search_miss ~12% (13), invalid_input ~3%, timeout ~2%.</p>
+
+    <h3>Why isn't api_error the "top priority" despite being largest?</h3>
+    <p>api_error bundles opaque server-side 4xx/5xx failures; fixing it depends on vendor error design and has a long lead time. By contrast, search_miss and auth can be reduced with metadata and documentation alone, giving higher ROI.</p>
+
+    <h3>What is search_miss and why does it matter for AEO?</h3>
+    <p>A failure where the agent couldn't discover a service matching its intent — e.g., "issue a withholding tax slip" not surfacing SmartHR. It's a discoverability problem, not an API quality one, and is directly fixable by aligning descriptions and metadata with the agent's intent language (AEO).</p>
+
+    <h3>Are failures concentrated in particular services?</h3>
+    <p>Heavily. Of 108 failures, SmartHR alone is ~51% (55), and 36 of 75 api_errors (~48%) are SmartHR — because it stays at a low 39% success rate while being used frequently.</p>
+
+    <h3>What should vendors prioritize from this failure data?</h3>
+    <p>(1) Improve discoverability to kill search_miss, (2) document the auth spec (token lifetime, refresh, recommended endpoint), (3) make errors machine-readable. search_miss in particular is the highest-ROI area.</p>
+
+    <div class="disclosure-box">
+      <div class="label">Data disclosure & disclaimer</div>
+      <p>Figures are aggregated via <code>get_insights</code> from live outcome reports KanseiLink collected from agents (snapshots as of each service's last_updated in April 2026). Scope is the 5 most-reported services: freee MCP (212 reports / 90% success; errors api_error 15, auth_expired 4, timeout 1, search_miss 1), Slack MCP (113 / 91%; api_error 9, invalid_input 1), SmartHR (92 / 39%; api_error 36, auth_expired 10, search_miss 7, timeout 1, invalid_input 1), Backlog MCP (91 / 90%; api_error 6, search_miss 2, auth_error 1), kintone MCP (61 / 79%; api_error 9, search_miss 3, invalid_input 1). "108 failures" is the simple sum of these error_type reports, and each share (api_error ~69% = 75/108, auth ~14% = 15/108, search_miss ~12% = 13/108) is its ratio. Per-service failure counts are approximations from (reports × (1 − success rate)) and may differ from reported error_type counts by ~1. Report counts vary continuously with agent activity. The prioritization of error types is an analytical interpretation of observed data and does not guarantee any service's future quality. Verify current values via each <code>get_insights</code>.</p>
+    </div>
+
+    <div class="related-section">
+      <h2>Related Articles</h2>
+      <div class="related-grid">
+        <a href="agent-voice-error-message-quality-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>The Top 6 Error Messages That Make AI Agents Give Up — Tokens and trust lost to APIs that only return "400 Bad Request"</h4>
+        </a>
+        <a href="agent-voice-discoverability-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>The MCP Agents Can't Find: How search_miss reveals a discoverability crisis</h4>
+        </a>
+        <a href="mcp-verified-vs-connectable-2026.html" class="related-card">
+          <div class="tag">Data Story</div>
+          <h4>The "MCP-Ready" Trap: success-rate gaps between verified and connectable</h4>
+        </a>
+        <a href="mcp-success-patterns-data-2026.html" class="related-card">
+          <div class="tag">Data Story</div>
+          <h4>What 225+ services reveal about MCP success — traits shared by 90%+ success-rate services</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        To turn failures into the next success, check known pitfalls (token expiry, recommended endpoints, input schema) before connecting with KanseiLink MCP's <code>get_service_tips</code>.
+        When you fail, report it with an <code>error_type</code> via <code>report_outcome</code> — your failure becomes another agent's workaround. Report discovery failures (search_miss) too; they signal where discoverability needs fixing.
+        Connect: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="../../insights/aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="../../insights/what-is-aeo.html">What is AEO?</a>
+          <a href="../../insights/what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

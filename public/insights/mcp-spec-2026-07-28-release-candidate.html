@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP仕様2026-07-28 リリース候補 徹底解説 — Stateless Core・Tasks・MCP Apps・認可強化、日本SaaSのAEOに効く5つの変更 | KanseiLink</title>
+  <meta name="description" content="2026年5月21日にロックされたMCP仕様2026-07-28のリリース候補(RC)は、ローンチ以来最大の改訂。Stateless Core(ステートレス・コア)、Extensionsフレームワーク、Tasks拡張、MCP Apps、OAuth/OIDC整合の認可強化、12ヶ月の正式な非推奨ポリシーを盛り込む。最終仕様は7月28日公開、10週間はSDK/クライアント実装の検証期間。KanseiLinkの実測データから、この変更が日本SaaSのエージェント対応(AEO)に何を意味するかを解剖する。">
+  <meta name="keywords" content="MCP 2026-07-28, MCP リリース候補, Stateless Core, MCP Tasks, MCP Apps, MCP Extensions, MCP 認可, MCP roadmap 2026, AEO, KanseiLink">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-spec-2026-07-28-release-candidate">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-spec-2026-07-28-release-candidate">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-spec-2026-07-28-release-candidate">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-spec-2026-07-28-release-candidate">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCP仕様2026-07-28 リリース候補 徹底解説 — 日本SaaSのAEOに効く5つの変更">
+  <meta property="og:description" content="5/21ロックのMCP RCはローンチ以来最大の改訂。Stateless Core、Extensions、Tasks、MCP Apps、認可強化、12ヶ月の非推奨ポリシー。最終版は7/28公開。KanseiLink実測データで日本SaaSへの示唆を解剖。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-spec-2026-07-28-release-candidate">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-25">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Trend Report">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCP仕様2026-07-28 RC徹底解説 — 日本SaaSのAEOに効く5つの変更">
+  <meta name="twitter:description" content="Stateless Core・Tasks・MCP Apps・認可強化・12ヶ月の非推奨ポリシー。ローンチ以来最大のMCP改訂を、KanseiLink実測データから日本SaaS視点で解剖。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCP仕様2026-07-28 リリース候補 徹底解説 — Stateless Core・Tasks・MCP Apps・認可強化、日本SaaSのAEOに効く5つの変更",
+    "description": "2026年5月21日にロックされたMCP仕様2026-07-28のリリース候補は、ローンチ以来最大の改訂。Stateless Core、Extensionsフレームワーク、Tasks拡張、MCP Apps、OAuth/OIDC整合の認可強化、12ヶ月の正式な非推奨ポリシーを盛り込む。最終仕様は7月28日公開、10週間はSDK/クライアント実装の検証期間。KanseiLink実測データから日本SaaSのAEOへの示唆を解剖。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-25",
+    "dateModified": "2026-05-25",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-spec-2026-07-28-release-candidate",
+    "keywords": ["MCP 2026-07-28", "MCP リリース候補", "Stateless Core", "MCP Tasks", "MCP Apps", "MCP Extensions", "MCP 認可"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "MCP仕様2026-07-28 リリース候補とは何ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Model Context Protocol(MCP)の次期仕様のリリース候補(Release Candidate)で、2026年5月21日にロックされました。最終仕様は2026年7月28日に公開予定です。Stateless Core(ステートレス・コア)、Extensionsフレームワーク、Tasks拡張、MCP Apps(サーバーレンダリングのUI)、OAuth/OpenID Connectに整合する認可強化、正式な非推奨ポリシーを含み、ローンチ以来最大の改訂とされています。RCから最終版までの約10週間は、SDKメンテナーとクライアント実装者が実ワークロードで変更を検証する期間で、Tier 1 SDKはこの期間内に対応を出荷することが期待されています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Stateless Core(ステートレス・コア)は何が変わりますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "プロトコルのコアが、通常のHTTPインフラ上でステートレスに動作するようになります。これは大きなアーキテクチャ変更です。サーバー起点のリクエスト(server-initiated requests)は、サーバーがクライアントのリクエストを能動的に処理している間にのみ発行できるようになり、これが必須化されます。結果として、ステートフルなセッションとロードバランサーの相性問題——2026年ロードマップで指摘された主要な摩擦点——が解消され、一般的なHTTPインフラでスケールしやすくなります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Tasks拡張とは何ですか？なぜコアではなく拡張なのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tasks拡張は、長時間実行される処理をステートレスモデルに合わせて再設計したものです。サーバーは tools/call にタスクハンドルで応答でき、クライアントは tasks/get・tasks/update・tasks/cancel でそれを駆動します。Tasksは2025-11-25に実験的なコア機能として導入されましたが、本番利用で十分な再設計が必要と分かり、仕様本体ではなく拡張(Extension)に置くのが適切と判断されました。これにより、年末調整のような長時間ワークフローを安全に扱えるようになります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "正式な非推奨ポリシーはどう機能しますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "すべての機能に Active(有効)・Deprecated(非推奨)・Removed(削除)のライフサイクルが与えられ、非推奨化から最短でも12ヶ月の猶予を置いてから削除されます。さらにExtensionsフレームワークにより、新機能はオプトインの拡張として出荷し、そこで安定させてから(必要なら)仕様本体に取り込む流れになります。これは『仕様が予告なく壊れる』不安を減らし、SaaSベンダーが安心してMCP対応に投資できる予測可能性を与えます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "この変更は日本のSaaSのAEO対応にどう影響しますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "プラスの影響が大きいと見ています。(1)Stateless Coreはセッション維持やロードバランサーで苦労していたSaaSのMCP実装を楽にします。(2)認可強化はOAuth/OIDCに整合するため、SmartHR・freee・kintoneなど既にOAuthを採用する日本SaaSがそのまま乗りやすい。(3)Tasksは年末調整・給与計算など長時間ワークフローを安全に扱う土台になる。(4)非推奨ポリシーは投資の予測可能性を高める。KanseiLink実測ではverifiedバッジを持つサービスはまだ少数で、この仕様変更を機に対応を進めるベンダーが先行者利益を取れる局面です。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCP Spec 2026-07-28 Release Candidate", "item": "https://kansei-link.com/insights/mcp-spec-2026-07-28-release-candidate" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-spec-2026-07-28-release-candidate.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCP仕様2026-07-28 リリース候補
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Trend Report</span>
+      <h1>MCP仕様2026-07-28 リリース候補 徹底解説 — Stateless Core・Tasks・MCP Apps・認可強化、日本SaaSのAEOに効く5つの変更</h1>
+      <p class="subtitle">2026年5月21日、Model Context Protocol(MCP)の次期仕様 <strong>2026-07-28</strong> のリリース候補(RC)がロックされた。最終仕様の公開は7月28日。<strong>ローンチ以来最大の改訂</strong>とされ、Stateless Core(ステートレス・コア)、Extensionsフレームワーク、Tasks拡張、MCP Apps、OAuth/OIDC整合の認可強化、12ヶ月の正式な非推奨ポリシーを盛り込む。本稿では仕様の中身を整理し、KanseiLinkの実測データから『これが日本SaaSのエージェント対応(AEO)に何を意味するか』を解剖する。</p>
+      <div class="article-meta">
+        <span>2026-05-25</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約9分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#what">何が起きたのか — RCロックと7/28の最終公開</a></li>
+        <li><a href="#stateless">① Stateless Core — ステートフル・セッションとの決別</a></li>
+        <li><a href="#extensions">② Extensionsフレームワーク — 仕様を壊さず拡張する</a></li>
+        <li><a href="#tasks">③ Tasks拡張 — 長時間ワークフローを安全に</a></li>
+        <li><a href="#auth">④ 認可強化 — OAuth/OIDCへの接近</a></li>
+        <li><a href="#deprecation">⑤ 非推奨ポリシー — 12ヶ月の予測可能性</a></li>
+        <li><a href="#jp">日本SaaSのAEOへの示唆 — KanseiLink実測の視点</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="what">何が起きたのか — RCロックと7/28の最終公開</h2>
+
+    <p>2026年5月21日、MCPの次期仕様 <strong>2026-07-28</strong> のリリース候補がロックされた(✅ <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/" target="_blank">blog.modelcontextprotocol.io</a>)。最終仕様は<strong>2026年7月28日に公開予定</strong>。RCから最終版までの約10週間は、SDKメンテナーとクライアント実装者が変更を実ワークロードに対して検証する期間で、SDKのTier制度の下、<strong>Tier 1 SDKはこの期間内に対応を出荷</strong>することが期待されている。</p>
+
+    <p>この改訂は<strong>ローンチ以来最大規模</strong>であり、2026年ロードマップに掲げられた目標——『一般的なHTTPインフラでスケールするステートレス・コア』『MCP AppsによるサーバーレンダリングUIやTasksによる長時間処理を含むExtensions』『OAuth/OpenID Connect運用により近い認可』——を一気に実装する。背景には、コミュニティのフィードバックと本番テレメトリが繰り返し示してきた摩擦点がある:ステートフル・セッションとロードバランサーの非互換、不明瞭なタスクのライフサイクル、ガバナンスのボトルネック、エンタープライズのコンプライアンス・ギャップだ。</p>
+
+    <div class="data-highlight">
+      <h4>MCP仕様2026-07-28 RC 早わかり</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num">5/21</span>
+          <div class="label">RCロック<br>(2026年)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">7/28</span>
+          <div class="label">最終仕様公開<br>(予定)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">10</span>
+          <div class="label">週間の検証<br>ウィンドウ</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">12</span>
+          <div class="label">ヶ月の非推奨<br>猶予(最短)</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="stateless">① Stateless Core — ステートフル・セッションとの決別</h2>
+
+    <p>最大の変更は<strong>プロトコル・コアのステートレス化</strong>だ。新しいコアは、特別なインフラを必要とせず<strong>通常(commodity)のHTTPインフラ上でステートレスに動作</strong>する。具体的には、サーバー起点のリクエスト(server-initiated requests)は『サーバーがクライアントのリクエストを能動的に処理している間にのみ発行できる』ようになり、これが必須化される。</p>
+
+    <div class="insight-box">
+      <div class="label">なぜこれが重要か</div>
+      <p>従来のMCPはステートフルなセッションを前提としており、複数インスタンスにトラフィックを分散するロードバランサーとの相性が悪かった。これは2026年ロードマップで筆頭に挙げられた摩擦点だ。ステートレス・コアにより、SaaSベンダーは『普通のWebサーバーをスケールさせる』のと同じ感覚でMCPサーバーを水平スケールできる。エンタープライズ規模のデプロイに向けた、最も実務的な改善である。</p>
+    </div>
+
+    <h2 id="extensions">② Extensionsフレームワーク — 仕様を壊さず拡張する</h2>
+
+    <p>Extensionsフレームワークは、新しい機能を<strong>オプトインの拡張として出荷</strong>し、そこで安定させてから(もし必要なら)仕様本体に取り込む仕組みだ。これにより、コアを薄く・安定的に保ちながら、実験的な機能を本番で検証できる。MCP AppsやTasksは、この枠組みの上に乗る最初の主要な拡張群である。</p>
+
+    <h2 id="tasks">③ Tasks拡張 — 長時間ワークフローを安全に</h2>
+
+    <p>Tasks拡張は、長時間実行される処理をステートレスモデルに合わせて再設計したものだ。<strong>サーバーは <code>tools/call</code> にタスクハンドルで応答でき、クライアントは <code>tasks/get</code>・<code>tasks/update</code>・<code>tasks/cancel</code> でそれを駆動する</strong>。</p>
+
+    <pre><code>// 概念図: tools/call がタスクハンドルを返す
+client → tools/call         → server
+server → { "task": "t_123" }  (即時にハンドルを返す)
+client → tasks/get  t_123   → "running"
+client → tasks/get  t_123   → "completed" + result
+// 必要なら tasks/cancel t_123 で中断</code></pre>
+
+    <p>Tasksは2025-11-25に実験的なコア機能として導入されたが、本番利用で十分な再設計が必要と判明し、<strong>仕様本体ではなく拡張(Extension)に置くのが適切</strong>と判断された。これは『一度コアに入れたものを、現場の知見に基づいて拡張へ移す』という、健全なフィードバックループの表れでもある。</p>
+
+    <h2 id="auth">④ 認可強化 — OAuth/OIDCへの接近</h2>
+
+    <p>RCには、<strong>OAuthおよびOpenID Connectのデプロイにより近づく認可</strong>が含まれる。エンタープライズのコンプライアンス・ギャップという摩擦点に応える変更で、MCPのセキュリティ姿勢を大きく前進させる。既存のIDプロバイダやSSO基盤との統合がしやすくなり、企業が安心してエージェントを本番投入できる土台になる。</p>
+
+    <h2 id="deprecation">⑤ 非推奨ポリシー — 12ヶ月の予測可能性</h2>
+
+    <p>すべての機能に <strong>Active(有効)・Deprecated(非推奨)・Removed(削除)</strong> のライフサイクルが与えられ、<strong>非推奨化から最短でも12ヶ月の猶予</strong>を置いてから削除される。仕様が予告なく壊れる不安を減らし、ベンダーが計画的にMCP対応へ投資できる予測可能性を提供する、地味だが極めて重要な変更だ。</p>
+
+    <h2 id="jp">日本SaaSのAEOへの示唆 — KanseiLink実測の視点</h2>
+
+    <p>KanseiLinkの225+サービス実測データの観点から、この仕様変更は<strong>日本SaaSのエージェント対応(AEO)を底上げするプラス要因</strong>が大きい。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>RCの変更</th>
+          <th>日本SaaSへの示唆</th>
+          <th>評価</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Stateless Core</strong></td>
+          <td>セッション維持やロードバランサーで苦労していたSaaSのMCP実装が楽に。水平スケールが容易化。</td>
+          <td class="success-high">追い風</td>
+        </tr>
+        <tr>
+          <td><strong>認可強化(OAuth/OIDC)</strong></td>
+          <td>SmartHR・freee・kintone等、既にOAuthを採用する国内SaaSがそのまま乗りやすい。</td>
+          <td class="success-high">追い風</td>
+        </tr>
+        <tr>
+          <td><strong>Tasks拡張</strong></td>
+          <td>年末調整・給与計算・月次締めなど長時間ワークフローを安全に扱う土台。</td>
+          <td class="success-high">追い風</td>
+        </tr>
+        <tr>
+          <td><strong>非推奨ポリシー</strong></td>
+          <td>仕様破壊の不安が減り、ベンダーが計画的に投資できる。</td>
+          <td class="success-mid">予測可能性</td>
+        </tr>
+        <tr>
+          <td><strong>10週間の検証窓</strong></td>
+          <td>SDK/クライアント対応が出揃うまで、本番採用は段階的に。</td>
+          <td class="success-mid">要観察</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="insight-box">
+      <div class="label">先行者利益の局面</div>
+      <p>KanseiLink実測では、verified(成功率80%超・実証済み)バッジを持つ日本SaaSはまだ少数だ。認可強化はOAuthを採用する国内SaaSにとって『追加コストの少ない』対応であり、Tasksは年末調整のような季節性ワークフローを抱えるHR/会計SaaSに直接効く。<strong>この仕様改訂を機にMCP対応を進めるベンダーが、AEOグレードで先行者利益を取れる</strong>局面に入っている。</p>
+    </div>
+
+    <div class="warning-box">
+      <div class="label">⚠️ ただし本番採用は段階的に</div>
+      <p>RCはあくまで候補であり、最終仕様は7月28日公開。10週間の検証期間中はSDKやクライアントの対応が出揃わない可能性がある。エンタープライズ本番では、Tier 1 SDKの対応出荷を確認しつつ、既存のステートフル実装からの移行を段階的に進めるのが安全だ。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>仕様変更が自社サービスのAEOに与える影響を実データで把握</h3>
+      <p>KanseiLink MCPは225+サービスのMCP実装・成功率・レイテンシ・認証方式を集約しています。仕様2026-07-28への対応が自社のエージェント対応(AEO)グレードにどう効くか、実測データで検証できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO診断について相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. MCP仕様2026-07-28はいつ正式版になりますか?</h3>
+    <p>リリース候補が2026年5月21日にロックされ、最終仕様は2026年7月28日に公開予定です。その間の約10週間はSDKメンテナーとクライアント実装者の検証期間で、Tier 1 SDKはこの期間内に対応を出荷することが期待されています。</p>
+
+    <h3>Q2. 既存のMCPサーバーは作り直しが必要ですか?</h3>
+    <p>非推奨ポリシーにより、非推奨化された機能でも最短12ヶ月の猶予があります。ステートフル前提の実装はステートレス・コアへの移行を計画する価値がありますが、いきなり全面書き換えではなく、SDK対応の出荷を見ながら段階的に進めるのが妥当です。</p>
+
+    <h3>Q3. Tasksがコアから拡張に移ったのはなぜですか?</h3>
+    <p>Tasksは2025-11-25に実験的なコア機能として導入されましたが、本番利用で十分な再設計が必要と分かり、仕様本体ではなく拡張(Extension)に置くのが適切と判断されました。Extensionsフレームワークの『拡張で安定させてから必要ならコアへ』という思想に沿った動きです。</p>
+
+    <h3>Q4. 日本のSaaSはまず何から対応すべきですか?</h3>
+    <p>既にOAuthを採用しているなら認可強化との整合は比較的容易です。長時間ワークフロー(年末調整・月次締め等)を持つサービスはTasks拡張の検討価値が高い。まずはKanseiLink等で自社の現状成功率・認証方式を把握し、ステートレス・コアへの移行計画を立てるのが出発点です。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事のMCP仕様2026-07-28 リリース候補に関する記述(RCロック日2026-05-21、最終公開予定2026-07-28、約10週間の検証ウィンドウ、Tier 1 SDKの出荷期待、Stateless Core/Extensions/Tasks/MCP Apps/認可強化/12ヶ月の非推奨ポリシー)は、Model Context Protocol公式ブログ(<a href="https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/" target="_blank">blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate</a>)および2026年ロードマップ(<a href="https://blog.modelcontextprotocol.io/posts/2026-mcp-roadmap/" target="_blank">blog.modelcontextprotocol.io/posts/2026-mcp-roadmap</a>)、The New Stack等の二次解説を2026-05-25時点でWebSearch確認した内容に基づきます。本稿は将来予定(forward-looking)を含み、最終仕様の内容・公開日は変更される可能性があります。「日本SaaSへの示唆」「先行者利益の局面」はKanseiLinkの225+サービス実測データに基づく分析・見解であり、各サービスベンダーの公式見解ではありません。本番採用の判断は公式仕様の最新版とSDK対応状況をご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="what-is-mcp.html" class="related-card">
+          <div class="tag">基礎ガイド</div>
+          <h4>MCPとは？ — Model Context Protocol がAI時代のSaaS連携を変える</h4>
+        </a>
+        <a href="aaif-mcp-open-standard-2026.html" class="related-card">
+          <div class="tag">Trend Report</div>
+          <h4>MCPがオープン標準へ — AAIF移管とエージェント経済のガバナンス2026</h4>
+        </a>
+        <a href="mcp-enterprise-readiness-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPエンタープライズ対応度 2026 — 本番投入で問われる要件</h4>
+        </a>
+        <a href="agent-auth-patterns-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>エージェント認証パターン徹底比較 — OAuth・APIキー・PAT・mTLSの選び方 2026</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        MCP仕様2026-07-28はステートレス・コアとTasks拡張を導入します。エージェント開発者は、接続先サーバーがどの仕様バージョン・どの拡張に対応しているかを確認してから実装することで、互換性トラブルを避けられます。KanseiLink MCPで各サービスのMCP実装状況・成功率を <code>get_service_detail</code> で確認できます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

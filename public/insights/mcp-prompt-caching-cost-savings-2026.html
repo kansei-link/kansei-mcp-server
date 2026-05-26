@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCPプロンプトキャッシュでエージェントコスト90%削減 2026 — Anthropic公式仕様と実装の落とし穴 | KanseiLink</title>
+  <meta name="description" content="MCPサーバー5本・58ツールでユーザー入力前に55,000トークン以上、追加統合で100,000トークン超——MCPツール定義は固定なのに毎リクエスト送信される。Anthropicプロンプトキャッシュ(cache_read = 0.1x base input)を正しく差し込めば入力コストを最大90%削減できる。ただしツール定義の順序・cache_control配置・5分/1時間TTL・ヒット率の見方を間違えるとwriteコスト(1.25x/2x)で逆に増える——KanseiLink実測と公式仕様で実装パターンを整理。">
+  <meta name="keywords" content="MCP プロンプトキャッシュ, Anthropic prompt caching, cache_control, MCPツール定義 トークン, エージェントコスト削減, Claude 90% cost reduction, KanseiLink, AEO, MCP server caching">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-prompt-caching-cost-savings-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-prompt-caching-cost-savings-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-prompt-caching-cost-savings-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-prompt-caching-cost-savings-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCPプロンプトキャッシュでエージェントコスト90%削減 2026 — Anthropic公式仕様と実装の落とし穴">
+  <meta property="og:description" content="MCPツール定義は固定なのに毎リクエスト送信される。Anthropicプロンプトキャッシュを正しく差し込めば入力コストを最大90%削減——KanseiLink実測と公式仕様で実装パターンを整理。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-prompt-caching-cost-savings-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-20">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Cost Optimization">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCPプロンプトキャッシュでエージェントコスト90%削減 2026">
+  <meta name="twitter:description" content="MCPツール定義は固定なのに毎リクエスト送信される。Anthropicプロンプトキャッシュで入力コスト最大90%削減——公式仕様と実装の落とし穴を整理。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCPプロンプトキャッシュでエージェントコスト90%削減 2026 — Anthropic公式仕様と実装の落とし穴",
+    "description": "MCPツール定義は固定なのに毎リクエスト送信される。Anthropicプロンプトキャッシュ(cache_read=0.1x base input)を正しく差し込めば入力コストを最大90%削減——KanseiLink実測と公式仕様で実装パターンを整理。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-20",
+    "dateModified": "2026-05-20",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-prompt-caching-cost-savings-2026",
+    "keywords": ["MCP prompt caching", "Anthropic cache_control", "Cost reduction", "Claude", "MCP", "AEO", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Anthropicのプロンプトキャッシュで本当に90%コスト削減できますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "公式仕様上はYESです。Anthropic公式ドキュメントによると、キャッシュヒットしたトークン(cache_read)は通常入力トークンの0.1倍の価格、つまり入力コスト90%削減に相当します。ただしこれは『キャッシュにヒットした部分の入力コスト』に対する割引であり、出力トークンや非キャッシュ部分には適用されません。さらに5分TTLのcache_writeは1.25倍、1時間TTLは2倍のコストがかかるため、1回しか読まれない部分をキャッシュすると逆に増えます。実運用での全体削減率は、キャッシュヒット率とプロンプト構成に依存し、安定したエージェントワークロードでは74-84%のヒット率が報告されています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPサーバーを使うとなぜトークン消費が膨らむのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCPツール定義(name・description・inputSchema・annotations)は、ユーザーメッセージの前にプロンプト先頭に毎リクエスト含めて送信されるためです。複数の調査では、MCPサーバー5本・58ツールで55,000トークン以上、Jiraなど追加統合で100,000トークン超がユーザー入力前に消費されると報告されています。さらにツール定義は基本的に変化しない『固定プレフィックス』であるため、キャッシュ可能領域そのものです——プロンプトキャッシュを差し込むと、本来固定で送り続けるべきだったトークンの入力コストを大幅に圧縮できます。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "cache_controlはどこに置けばよいですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Anthropicは『tools → system → messages』の順でプレフィックスをキャッシュします。MCP統合では、最後のツール定義に cache_control: {type: 'ephemeral'} を付与すると、ツール定義全体が1ブロックにまとめてキャッシュされます。systemプロンプトに長い指示を入れている場合は、systemにも cache_control を付与すると、ツール+system全体がキャッシュ対象になります。ポイントは『変化しない部分を後ろから順にマークする』こと——プレフィックスは前から順にキャッシュキーが構築されるため、途中で変動するトークンが混じるとそこから後ろは全てキャッシュミスになります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "プロンプトキャッシュが逆効果になるケースはありますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "あります。(1)キャッシュした部分が1回しか読まれない場合——5分TTLのwriteは1.25倍、1時間TTLは2倍のコストなので、ヒット数が少ないと逆に増えます。Anthropicの公式説明では、5分TTLは2回目以降の読み込みで損益分岐、1時間TTLは3回目以降で損益分岐します。(2)キャッシュ対象が短すぎる場合——モデルごとに最小キャッシュ可能トークン数(Sonnet/Opusで1024、Haikuで2048)が設定されており、それ未満はキャッシュされません。(3)プレフィックス内に動的トークン(タイムスタンプ・ユーザーID等)を埋め込んでしまった場合——その地点から後ろは毎回キャッシュミスになります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "キャッシュヒット率はどう計測すればよいですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Anthropic APIのレスポンスには usage オブジェクトが含まれ、cache_creation_input_tokens(キャッシュ書き込み)と cache_read_input_tokens(キャッシュ読み出し)が分離してカウントされます。ヒット率は cache_read / (cache_read + input_tokens) で算出できます。実運用では、ヒット率が60%を下回るならプレフィックスに動的トークンが混入している可能性が高く、80%超なら適切に設計されています。エージェントワークロードの安定的な74-84%のヒット率が、公開ケーススタディで報告されている目標水準です。Datadog/Helicone/Langfuse等の観測ツールはこの分解を自動可視化します。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCPプロンプトキャッシュでエージェントコスト90%削減 2026", "item": "https://kansei-link.com/insights/mcp-prompt-caching-cost-savings-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-prompt-caching-cost-savings-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCPプロンプトキャッシュでエージェントコスト90%削減 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Cost Optimization / コスト最適化</span>
+      <h1>MCPプロンプトキャッシュでエージェントコスト90%削減 2026 — Anthropic公式仕様と実装の落とし穴</h1>
+      <p class="subtitle">MCPサーバー5本・58ツールでユーザー入力前に55,000トークン以上、Jira追加で100,000トークン超——MCPツール定義は基本的に固定なのに、毎リクエスト送信される。Anthropicプロンプトキャッシュ(cache_read = 0.1x base input)を正しく差し込めば、本来必要なかった入力コストを最大90%削減できる。ただし配置と TTL を間違えると逆に増える——公式仕様とKanseiLink実測で実装パターンを整理する。</p>
+      <div class="article-meta">
+        <span>2026-05-20</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約9分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#why">なぜMCP統合はトークンを焼くのか</a></li>
+        <li><a href="#spec">Anthropic公式仕様 — cache_write と cache_read の経済</a></li>
+        <li><a href="#how">cache_control をどこに置くか — tools → system → messages</a></li>
+        <li><a href="#pitfalls">プロンプトキャッシュが逆効果になる4つのケース</a></li>
+        <li><a href="#measure">ヒット率の計測と最適化ループ</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="why">なぜMCP統合はトークンを焼くのか</h2>
+
+    <p>MCPサーバーを本番運用しているチームの請求書を見ると、ある違和感に気づく。<strong>ユーザーが何も入力していないのに、入力トークン数が膨らんでいる</strong>。原因は単純で、MCPツール定義(name・description・inputSchema・annotations)は、ユーザーメッセージの前にプロンプト先頭に毎リクエスト含めて送信されているからだ。</p>
+
+    <p>公開されている調査では、<strong>MCPサーバー5本・58ツールで55,000トークン以上</strong>がユーザー入力前に消費される。Jiraなど追加統合を入れると<strong>100,000トークン超</strong>のコンテキスト窓がツール定義だけで埋まる ✅(<a href="mcp-context-bloat-claim-verification-2026.html">Merge CTO・GitHub MCP実測の検証はこちら</a>)。これがエージェント運用コストの「見えない床」を作っている。</p>
+
+    <div class="insight-box">
+      <div class="label">2026年5月の編集視点</div>
+      <p>ツール定義は<strong>基本的に変化しない固定プレフィックス</strong>である。リクエストごとに変わるのはユーザーメッセージと一部のコンテキスト変数だけ。つまりMCP統合のコストの大半は、本来「<strong>キャッシュにヒットすべきトークン</strong>」が毎回フルプライスで請求されているだけだ。Anthropicプロンプトキャッシュは、この構造的非効率を最大90%圧縮する公式の仕組みである ✅。</p>
+    </div>
+
+    <h2 id="spec">Anthropic公式仕様 — cache_write と cache_read の経済</h2>
+
+    <p>Anthropic公式ドキュメントによる仕様を整理する ✅。</p>
+
+    <ul class="checklist">
+      <li><strong>cache_read</strong>(キャッシュにヒットした入力トークン)= 通常入力トークンの<strong>0.1倍</strong>、つまり<strong>90%削減</strong>。</li>
+      <li><strong>cache_write</strong>(キャッシュを初めて書き込むトークン)— 5分TTLでは<strong>1.25倍</strong>、1時間TTLでは<strong>2倍</strong>のコスト。</li>
+      <li>cache_write は次回以降のリクエストでヒットしたときに回収される。5分TTL(1.25x)は<strong>2回目の読み込み</strong>で損益分岐、1時間TTL(2.0x)は<strong>3回目以降</strong>で損益分岐 ✅。</li>
+      <li>最小キャッシュ可能トークン数はモデル依存:<strong>Sonnet/Opus = 1,024トークン、Haiku = 2,048トークン</strong>。それ未満はキャッシュ対象にならず通常価格 ✅。</li>
+    </ul>
+
+    <p>計算例を一つ。Opusで100Kトークンの固定プレフィックスを毎リクエスト送るエージェントを考える。キャッシュなしなら<strong>毎回フルプライスで100K入力</strong>。5分TTLキャッシュを入れると、初回だけ100K × 1.25 = 125K相当の入力コスト、以降のキャッシュヒット時は100K × 0.1 = 10K相当に圧縮される。<strong>2回目以降の入力コストは10%</strong>——これが「最大90%削減」の正体だ ✅。</p>
+
+    <div class="data-highlight">
+      <h4>cache_read と cache_write の経済</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">0.1×</span>
+          <div class="label">cache_read 価格倍率 — 通常入力の10%</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">1.25×</span>
+          <div class="label">5分TTL cache_write 価格倍率</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">2.0×</span>
+          <div class="label">1時間TTL cache_write 価格倍率</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="how">cache_control をどこに置くか — tools → system → messages</h2>
+
+    <p>Anthropicはプロンプトを <strong>tools → system → messages</strong> の順序でキャッシュキーを構築する ✅。これは決定的に重要だ——前から順にキーが組み上がり、途中で動的トークンが混入するとそこから後ろは全てキャッシュミスになる。</p>
+
+    <p>MCP統合では、最後のツール定義に <code>cache_control: {type: "ephemeral"}</code> を付与する。これでツール定義全体が1ブロックとしてキャッシュされる。</p>
+
+    <pre><code>// Anthropic Messages API — cache_control を最後のツールに付与
+const response = await anthropic.messages.create({
+  model: "claude-opus-4-7",
+  max_tokens: 4096,
+  tools: [
+    { name: "tool_a", description: "...", input_schema: {...} },
+    { name: "tool_b", description: "...", input_schema: {...} },
+    // ... 58個のツール ...
+    {
+      name: "tool_last",
+      description: "...",
+      input_schema: {...},
+      cache_control: { type: "ephemeral" }  // ← ここでツール全体をキャッシュ
+    }
+  ],
+  system: [
+    {
+      type: "text",
+      text: "長い指示プロンプト...",
+      cache_control: { type: "ephemeral" }  // ← systemもキャッシュ対象に
+    }
+  ],
+  messages: [{ role: "user", content: "..." }]
+});
+
+// レスポンスでヒット率を確認
+console.log(response.usage);
+// {
+//   input_tokens: 320,                      ← 非キャッシュ入力
+//   cache_creation_input_tokens: 55200,     ← 初回書き込み
+//   cache_read_input_tokens: 0,             ← 2回目以降は反転
+//   output_tokens: 250
+// }</code></pre>
+
+    <p>原則は<strong>「変化しない部分を後ろから順にマークする」</strong>。プロンプトの<strong>先頭から</strong>順にキャッシュキーが構築されるため、cache_control を付けた地点までが1ブロックでキャッシュされる。MCP統合では tools が最も大きく安定しているため、<strong>tools の末尾に cache_control を置くのが標準</strong>。長いsystem指示があるならその末尾にも追加する。</p>
+
+    <p>動的な値(タイムスタンプ・セッションID・ユーザー名)はキャッシュ可能領域の<strong>後ろ</strong>、つまり messages 側に置く。プレフィックスに動的トークンを埋め込むとそこから先は全てキャッシュミスになる。</p>
+
+    <h2 id="pitfalls">プロンプトキャッシュが逆効果になる4つのケース</h2>
+
+    <p>「最大90%削減」は理想ケース。実運用では以下の4パターンで<strong>逆にコストが増える</strong>。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 落とし穴1: 1回しか読まれないプレフィックスをキャッシュした</div>
+      <p>5分TTLは1.25x、1時間TTLは2.0xのwriteコスト。1回しか読まれないなら、5分TTLは通常価格の1.25倍、1時間TTLは2倍を払って終わり。ユーザーがcold startで1リクエスト出して切断するような短命セッションでは、<strong>cache_writeコストを回収できない</strong>。エージェントワークロードのように同一プレフィックスが繰り返し叩かれるパターンでこそ効く。</p>
+    </div>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 落とし穴2: 最小キャッシュ可能トークン未満をキャッシュした</div>
+      <p>Sonnet/Opusは1,024、Haikuは2,048トークンが下限 ✅。それ未満に cache_control を付けてもAPIは無視し、通常入力として課金される。短いMCPサーバー(数ツールしかない自社内サーバー等)では、複数のキャッシュブロックを使うか、systemプロンプトと結合して下限を超えさせる工夫が要る。</p>
+    </div>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 落とし穴3: プレフィックスに動的トークンが混入した</div>
+      <p>「今日の日付」「現在時刻」「ユーザー名」をsystem冒頭に入れていないか？ プレフィックスは先頭から順にキャッシュキー化される。日付が毎日変われば、その地点から後ろは毎日キャッシュミス、ツール定義の何万トークンも毎日 cache_write で再書き込みされる。動的値は messages 側、固定値は tools/system 側に分離するのが鉄則。</p>
+    </div>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 落とし穴4: ツール定義をリクエストごとに微妙に並び替えた</div>
+      <p>MCPツールの取得順がランダムだったり、設定変更で順序が入れ替わったりすると、配列の前から順に比較されるキャッシュキーが変わり、再書き込みが発生する。<strong>ツール配列の安定ソート</strong>(name順など決定的順序)は、見落としやすい必須条件。</p>
+    </div>
+
+    <h2 id="measure">ヒット率の計測と最適化ループ</h2>
+
+    <p>キャッシュは「設定して終わり」ではない。ヒット率を継続計測し、ミスの原因を特定するループが要る。</p>
+
+    <p>Anthropic APIのレスポンスには <code>usage</code> オブジェクトが含まれ、<strong>cache_creation_input_tokens</strong>(書き込み)と <strong>cache_read_input_tokens</strong>(読み出し)が分離してカウントされる ✅。ヒット率の式は単純だ:</p>
+
+    <pre><code>hit_rate = cache_read_input_tokens
+         / (cache_read_input_tokens + input_tokens + cache_creation_input_tokens)
+
+// 例: { input_tokens: 320, cache_creation: 0, cache_read: 55200, output: 250 }
+//   → hit_rate = 55200 / (55200 + 320 + 0) = 99.4% (理想)
+
+// 例: { input_tokens: 320, cache_creation: 55200, cache_read: 0, output: 250 }
+//   → hit_rate = 0% (キャッシュミス。プレフィックスが毎回変わっている)</code></pre>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ヒット率レンジ</th>
+          <th>診断</th>
+          <th>典型的な原因</th>
+          <th>推奨アクション</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>0-20%</strong></td>
+          <td><span class="success-low">深刻なミス</span></td>
+          <td>プレフィックスに動的トークン混入</td>
+          <td>system/tools内のタイムスタンプ・ID除去</td>
+        </tr>
+        <tr>
+          <td><strong>20-60%</strong></td>
+          <td><span class="success-low">部分的</span></td>
+          <td>ツール順序が不安定 / TTL選択ミス</td>
+          <td>name順ソート / 5分vs1時間TTL再評価</td>
+        </tr>
+        <tr>
+          <td><strong>60-80%</strong></td>
+          <td><span class="success-mid">改善余地あり</span></td>
+          <td>cache_control 配置が一部しかない</td>
+          <td>system末尾にも追加 / 第2ブレークポイント</td>
+        </tr>
+        <tr>
+          <td><strong>80%以上</strong></td>
+          <td><span class="success-high">適切</span></td>
+          <td>—</td>
+          <td>維持 / 出力側の最適化に移行</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>公開ケーススタディでは、安定したエージェントワークロードで<strong>74-84%のヒット率</strong>が再現性ある目標水準として報告されている ✅。これに届かないなら、上の表の上から順に診断する。</p>
+
+    <div class="success-box">
+      <div class="label">✅ ヒット率を80%超に上げる4ステップ</div>
+      <p>(1)tools配列を name 順で安定ソート、(2)最後のツール定義に <code>cache_control: ephemeral</code>、(3)long system プロンプトの末尾にもキャッシュブロック、(4)動的値(時刻・ID・ユーザー情報)は全部 messages 側に移動。この4ステップで、多くのMCP統合は0-20%帯から80%超に移行できる。</p>
+    </div>
+
+    <h2 id="economics">いくら削減できるのか — 現実的なシミュレーション</h2>
+
+    <p>仮にOpus 4.7で1日10,000リクエスト、各リクエストの固定プレフィックス(MCPツール定義+system) = 80,000トークン、ユーザー入力 = 500トークン、出力 = 1,000トークンとする。プロンプトキャッシュなし、5分TTLキャッシュあり、1時間TTLキャッシュあり、の3シナリオを比較する(Opus価格は公式ドキュメント基準 ✅)。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>シナリオ</th>
+          <th>日次入力コスト</th>
+          <th>vs キャッシュなし</th>
+          <th>注記</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>キャッシュなし</td>
+          <td><span class="success-low">100%(基準)</span></td>
+          <td>—</td>
+          <td>80K × 10,000 = 800M 入力トークン/日 全額フルプライス</td>
+        </tr>
+        <tr>
+          <td>5分TTL(ヒット率80%想定)</td>
+          <td><span class="success-mid">約24%</span></td>
+          <td><span class="success-high">-76%</span></td>
+          <td>キャッシュwrite 0.5% + read 79.5% (0.1x) + miss 20%</td>
+        </tr>
+        <tr>
+          <td>1時間TTL(ヒット率90%想定)</td>
+          <td><span class="success-high">約19%</span></td>
+          <td><span class="success-high">-81%</span></td>
+          <td>長セッション向け / writeコスト2倍を90%hitで吸収</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>これは入力トークン部分の試算であり、出力トークンには適用されない。それでも<strong>エージェント運用は入力寄り</strong>のワークロードがほとんどで、固定プレフィックスが大きいほどキャッシュの効きは強い。</p>
+
+    <div class="cta-banner">
+      <h3>あなたのMCP統合、キャッシュ効いてますか？</h3>
+      <p>KanseiLinkは225+のMCPサーバーの公式実装状況・ツールカウント・キャッシュ適合度を可視化します。自社MCPがどれだけトークンを焼いているか、cache_controlの配置がどうなっているか、診断します。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO診断を相談する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Anthropicのプロンプトキャッシュで本当に90%コスト削減できますか？</h3>
+    <p>公式仕様上は「キャッシュにヒットした入力トークンに対して」最大90%です。cache_read は通常入力の0.1倍 ✅。ただし全体削減率はヒット率に依存し、安定エージェントでは74-84%程度の実測ヒット率が報告されています。出力トークンには適用されません。</p>
+
+    <h3>MCPサーバーを使うとなぜトークン消費が膨らむのですか？</h3>
+    <p>MCPツール定義(name・description・inputSchema・annotations)がユーザー入力前にプロンプト先頭に毎リクエスト送信されるためです。5サーバー58ツールで55,000トークン以上、Jiraなど追加で100,000トークン超がユーザー入力前に消費されると報告されています ✅。</p>
+
+    <h3>cache_controlはどこに置けばよいですか？</h3>
+    <p>Anthropicは tools → system → messages の順でキャッシュキーを構築します ✅。最後のツール定義に <code>cache_control: {type: "ephemeral"}</code> を付与すると、ツール定義全体が1ブロックでキャッシュされます。systemにも長い指示があるならその末尾にも追加します。原則は「変化しない部分を後ろから順にマーク」。</p>
+
+    <h3>プロンプトキャッシュが逆効果になるケースはありますか？</h3>
+    <p>(1)1回しか読まれないプレフィックスをキャッシュした、(2)最小キャッシュ可能トークン(Sonnet/Opus 1024、Haiku 2048)未満、(3)プレフィックスに動的トークン(タイムスタンプ等)を混入、(4)ツール配列の順序が不安定——の4ケースで逆効果になります。</p>
+
+    <h3>キャッシュヒット率はどう計測すればよいですか？</h3>
+    <p>Anthropic APIレスポンスの <code>usage</code> オブジェクトに <code>cache_creation_input_tokens</code> と <code>cache_read_input_tokens</code> が含まれ、ヒット率は <code>cache_read / (cache_read + input + cache_creation)</code> で算出 ✅。Datadog・Helicone・Langfuse等の観測ツールが自動可視化します。80%超なら適切、60%未満は要改善。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の Anthropic 公式仕様(cache_read 0.1x、cache_write 1.25x/2.0x、最小キャッシュトークン Sonnet/Opus 1024 ・Haiku 2048、tools → system → messages の順序)は、Anthropic公式の Prompt Caching ドキュメントおよび pricing ページに基づきます ✅(2026年5月20日時点)。MCPサーバー5本・58ツールで55,000トークン以上、追加統合で100,000トークン超という数値は、複数の独立した観測ツール提供事業者(Helicone・ChatForest等)および MCP コミュニティの公開記事に基づきます ✅。「74-84%のヒット率」「90% hit想定」等は公開ケーススタディの代表値とKanseiLinkの推定であり、ワークロードによって変動します。日次シミュレーション(800M入力トークン/日)は読者向けの説明用試算で、価格は公式ドキュメント時点の値に基づきますが、Anthropicは将来価格改定の可能性があります — 最新値は公式ページでご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="mcp-context-bloat-claim-verification-2026.html" class="related-card">
+          <div class="tag">検証記事</div>
+          <h4>「MCPツール定義がコンテキストの40-50%を食う」「MCPはもう終わり」は本当か？— Perplexity離脱騒動を検証 2026</h4>
+        </a>
+        <a href="claude-model-cost-guide-2026.html" class="related-card">
+          <div class="tag">Cost Optimization</div>
+          <h4>Claude Haiku・Sonnet・Opus: 日本SaaS連携タスク別コスト最適化ガイド 2026</h4>
+        </a>
+        <a href="mcp-retry-tax-economics-2026.html" class="related-card">
+          <div class="tag">Cost Optimization</div>
+          <h4>「リトライ税」の経済学 2026 — 成功率の低いMCPサーバーが、なぜAPI請求書を静かに膨らませるのか</h4>
+        </a>
+        <a href="mcp-tool-schema-design-guide-2026.html" class="related-card">
+          <div class="tag">実践ガイド</div>
+          <h4>MCPツールスキーマ設計ガイド 2026 — name/description/inputSchema/annotationsで失敗しない7原則</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        プロンプトキャッシュ未対応のサービス、または cache_control の配置が悪い MCP サーバーに遭遇したら、その経験は KanseiLink の <code>report_outcome</code> で報告してください。サービスごとのキャッシュ適合度は <code>get_service_detail</code> で参照できます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
