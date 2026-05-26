@@ -314,7 +314,8 @@
     "gotchas": [
       "GitHub PR diffs can exceed 100KB for large refactors — the Anthropic API will reject inputs over the model's context window. Truncate the diff to changed hunks only (skip lockfiles, generated code) and cap at ~8000 tokens.",
       "Posting a review comment via the GitHub Issues Comments API has a 65,536-character body limit — if the Anthropic response is very long, split it into multiple comments or use the Pull Request Reviews API for inline comments.",
-      "The Anthropic API requires an explicit max_tokens parameter — omitting it returns an error, unlike OpenAI which defaults to model max. Always set max_tokens in the request."
+      "The Anthropic API requires an explicit max_tokens parameter — omitting it returns an error, unlike OpenAI which defaults to model max. Always set max_tokens in the request.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -2073,7 +2074,8 @@
     "gotchas": [
       "Vercel deploy hooks return immediately with a deployment ID — you must poll the deployment status endpoint until state is READY or ERROR before posting to Discord, or you will notify with an incomplete status.",
       "Discord bot tokens require the MESSAGE_CONTENT privileged intent only for reading messages; sending to a channel requires the bot to have Send Messages permission AND be present in the server — a missing guild membership returns a 403 that looks like a permissions error.",
-      "GitHub push webhooks for monorepos fire on every push regardless of path — if you only want main-branch production deploys, filter on ref === 'refs/heads/main' in your handler or you will trigger deploys from feature branches."
+      "GitHub push webhooks for monorepos fire on every push regardless of path — if you only want main-branch production deploys, filter on ref === 'refs/heads/main' in your handler or you will trigger deploys from feature branches.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -2245,7 +2247,8 @@
       "Figma webhooks only fire for the FILE_VERSION_UPDATE event when a file version is explicitly published (not on every auto-save) — instruct designers to use File > Save to Version History to trigger the workflow.",
       "GitHub label creation is a separate API call from issue creation — if 'design-handoff' label does not exist in the repo, adding it to the issue will fail silently (the issue is created without the label, no error returned).",
       "Linear team_id and label resolution require separate GraphQL queries — the API does not accept human-readable team names or label names directly. Cache these UUIDs in config rather than querying on every webhook.",
-      "Discord embed URLs must be HTTPS — Figma file URLs (https://figma.com/file/...) work, but if you construct URLs with http:// by mistake, Discord will not render the embed preview."
+      "Discord embed URLs must be HTTPS — Figma file URLs (https://figma.com/file/...) work, but if you construct URLs with http:// by mistake, Discord will not render the embed preview.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -2668,7 +2671,8 @@
       "Figma webhooks must be registered via the Figma REST API (POST /v2/webhooks) — there is no UI for this. The webhook secret is returned only once at creation time; store it immediately for signature verification.",
       "Vercel preview deployments require a branch ref, not a commit SHA — if the GitHub issue creation step does not also create a branch, the Vercel deploy step has no ref to build. Automate branch creation from the issue.",
       "Figma file_key is extracted from the URL (figma.com/file/{file_key}/...) and is case-sensitive — passing a malformed key returns a 404 from the Figma API with no helpful error message.",
-      "Vercel preview URLs are ephemeral and change with every deploy — do not store them as permanent links. Use the deployment's inspect URL or alias for stable references."
+      "Vercel preview URLs are ephemeral and change with every deploy — do not store them as permanent links. Use the deployment's inspect URL or alias for stable references.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -3249,7 +3253,8 @@
       "SmartHR is API-only and the payroll endpoint requires the 'payroll' OAuth scope. Verify the OAuth token has this scope or the export will return 403.",
       "freee OAuth token expires every 24 hours and requires company_id on every call. Refresh token and confirm company_id before creating journal entries.",
       "SmartHR deduction categories (法定福利費, 給与手当) must be mapped to freee account codes. If target accounts don't exist in freee's chart of accounts, journal creation will fail.",
-      "Payroll data is highly sensitive PII. The Slack notification should only include employee count and totals — never individual salary amounts or names."
+      "Payroll data is highly sensitive PII. The Slack notification should only include employee count and totals — never individual salary amounts or names.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -3565,7 +3570,8 @@
     ],
     "gotchas": [
       "GitHub Actions workflow must complete before deploy — poll status, don't fire-and-forget",
-      "Fly.io Machines API is at api.machines.dev (not fly.io/api) — different domain"
+      "Fly.io Machines API is at api.machines.dev (not fly.io/api) — different domain",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -3709,7 +3715,8 @@
     ],
     "gotchas": [
       "CircleCI project slug format is specific: gh/{org}/{repo} — not just the repo name",
-      "Render deploy is async — poll for completion before declaring success"
+      "Render deploy is async — poll for completion before declaring success",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -3770,7 +3777,8 @@
     "gotchas": [
       "Linear issue linking depends on the branch name containing the issue ID (e.g., 'ENG-123-fix-bug') — if developers use non-standard branch names, the PR-to-issue lookup fails. Document the naming convention or parse from PR body.",
       "Linear's GraphQL API uses cursor-based pagination (Relay style) — if you query issues by identifier and get no result, check that you are using the correct team prefix (e.g., ENG, not ENGINEERING).",
-      "GitHub pull_request webhooks fire for multiple actions (opened, synchronize, review_requested, closed) — map each action to the correct Linear status transition, or status will only update on open, not on merge."
+      "GitHub pull_request webhooks fire for multiple actions (opened, synchronize, review_requested, closed) — map each action to the correct Linear status transition, or status will only update on open, not on merge.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -5159,7 +5167,8 @@
       "Kaonavi API rate limit is strict at 30 req/min. Use the bulk export endpoint for large evaluation datasets instead of per-employee calls.",
       "SmartHR custom field groups must be pre-created in the SmartHR admin console. The API will return 422 if the target field group ID does not exist.",
       "Employee ID formats differ between Kaonavi and SmartHR. Establish a shared unique key (email or employee number) in your mapping configuration.",
-      "Evaluation data contains sensitive performance information classified as PII under Japanese privacy law. Ensure API calls use HTTPS and never cache scores in plain text."
+      "Evaluation data contains sensitive performance information classified as PII under Japanese privacy law. Ensure API calls use HTTPS and never cache scores in plain text.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -5263,7 +5272,8 @@
       "KING OF TIME is API-only; overtime hours come in decimal format (e.g., 2.5 = 2h30m). Convert to the format SmartHR custom fields expect before updating.",
       "SmartHR custom field for overtime must be number type. If the field group ID or field code is wrong, the API returns a generic 422 with no helpful message.",
       "36 Agreement (三六協定) limits are 45h/month and 360h/year by default. Your alert threshold should trigger before hitting the legal limit (e.g., at 40h/month, 320h/year).",
-      "Both KING OF TIME and SmartHR are API-only with no MCP. Build retry logic for both APIs as neither provides webhook delivery guarantees."
+      "Both KING OF TIME and SmartHR are API-only with no MCP. Build retry logic for both APIs as neither provides webhook delivery guarantees.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -6678,7 +6688,8 @@
       "Vercel and Netlify deploy hooks both return immediately and require polling for completion — if you notify Discord before both are done, the status will be 'building' not 'ready'. Poll both with independent timeouts (Vercel ~10min, Netlify ~5min).",
       "Vercel environment variables are scoped per-project and per-environment (production/preview/development) — if the frontend deploy fails with missing env vars, check that production-scoped variables are set, not just preview.",
       "Discord message embeds have a 6000-character total limit across all fields — if both deploy logs are included, truncate build output to essential lines only.",
-      "GitHub push webhooks include a 'modified_files' list only for the head commit — for force-pushes or squash merges, the list may be incomplete. Use the Compare API to get the full diff between before/after SHAs."
+      "GitHub push webhooks include a 'modified_files' list only for the head commit — for force-pushes or squash merges, the list may be incomplete. Use the Compare API to get the full diff between before/after SHAs.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -6799,7 +6810,8 @@
       "SmartHR is API-only (no MCP) — employee data contains PII (My Number, address); never log or forward raw payloads to Chatwork messages.",
       "KING OF TIME shift_pattern IDs are opaque integers that vary per tenant; hard-code a lookup or fetch via /shift_patterns before assigning.",
       "Chatwork rate limit is 300 req/5 min and messages are plain text only — no Markdown or rich formatting. Use [info][title]...[/title]...[/info] tags for visual structure.",
-      "SmartHR webhook payloads differ between create and update events; always check the event type before mapping fields to KING OF TIME registration."
+      "SmartHR webhook payloads differ between create and update events; always check the event type before mapping fields to KING OF TIME registration.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -6951,7 +6963,8 @@
       "SmartHR webhooks may fire before all related fields are updated. Add a short delay (5+ seconds) before fetching employee details to ensure data consistency.",
       "OfficeStation form fields must match e-Gov format exactly — My Number (マイナンバー) handling requires encryption in transit and must never appear in Chatwork notifications.",
       "SmartHR webhook payloads differ between create and update events. Map change_type to the correct OfficeStation form type (取得届 for hire, 喪失届 for termination, 変更届 for changes).",
-      "Chatwork rate limit is 300 req/5 min and only supports plain text. Never include employee PII (My Number, insurance numbers) in notification messages."
+      "Chatwork rate limit is 300 req/5 min and only supports plain text. Never include employee PII (My Number, insurance numbers) in notification messages.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -7036,7 +7049,8 @@
       "Anthropic API JSON mode is not guaranteed to return valid JSON — always wrap the response parse in try-catch. Use a system prompt with explicit JSON schema and few-shot examples to improve reliability.",
       "GitHub label application requires the labels to already exist in the repository — if the AI suggests a label like 'performance' that does not exist, the API returns 422. Pre-create expected labels or create them via API before applying.",
       "GitHub API rate limit is 5000 requests/hour with a token, but popular open-source repos can receive hundreds of issues per day — batch webhook processing and use conditional requests (If-None-Match) to conserve quota.",
-      "Discord role mentions (@maintainers) require the bot to have the Mention Everyone permission or the role to be set as mentionable — otherwise the mention renders as plain text with no notification."
+      "Discord role mentions (@maintainers) require the bot to have the Mention Everyone permission or the role to be set as mentionable — otherwise the mention renders as plain text with no notification.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -7729,7 +7743,8 @@
     "gotchas": [
       "GitHub pull_request webhooks fire for opened, synchronize, reopened, closed, and more — filter on action === 'opened' only, or every force-push will re-trigger the notification and create duplicate Linear tasks.",
       "Linear labels are identified by name within a team scope, but the API requires the label UUID — query the team's labels first to resolve 'code-review' to its ID, or issue creation will fail silently with a null label.",
-      "GitHub's secondary rate limit on the Search API is 30 requests/minute — if this recipe runs alongside other GitHub automations, the webhook diff-stats fetch can get throttled and return a 403 with a Retry-After header."
+      "GitHub's secondary rate limit on the Search API is 30 requests/minute — if this recipe runs alongside other GitHub automations, the webhook diff-stats fetch can get throttled and return a 403 with a Retry-After header.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -7853,7 +7868,8 @@
       "The Qdrant collection must be created with the correct vector dimension BEFORE upserting — text-embedding-3-small produces 1536-dimensional vectors. A dimension mismatch returns an error that does not clearly state the cause.",
       "GitHub's /contents API returns Base64-encoded file content and has a 1MB file size limit — for larger docs, use the Git Blobs API. Also, the API paginates directory listings at 1000 files; use the Git Trees API for larger doc sets.",
       "OpenAI embedding API accepts up to 2048 inputs per batch call — but total tokens across all inputs must stay under 8191 tokens per input. Chunk documents before batching, not after.",
-      "Qdrant distance metric (Cosine, Euclid, Dot) is set at collection creation and cannot be changed — OpenAI embeddings are normalized, so Cosine and Dot produce identical rankings, but Euclid does not. Use Cosine for OpenAI embeddings."
+      "Qdrant distance metric (Cosine, Euclid, Dot) is set at collection creation and cannot be changed — OpenAI embeddings are normalized, so Cosine and Dot produce identical rankings, but Euclid does not. Use Cosine for OpenAI embeddings.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -8789,7 +8805,8 @@
       "Dependabot severity levels (critical, high, medium, low) do not directly map to Linear priority numbers (1=urgent, 2=high, 3=medium, 4=low) — build an explicit mapping or critical alerts will be created with the wrong priority.",
       "GitHub Dependabot webhooks require the repository to have Dependabot alerts enabled AND the webhook must subscribe to the 'dependabot_alert' event type — this is a separate event from 'security_advisory'.",
       "Linear's GraphQL API uses UUIDs for team_id and label IDs, not human-readable names — resolve 'security' label name to its UUID via the labels query before creating the issue, or the mutation will fail.",
-      "Notion select properties must use pre-defined options — if you pass a Severity value that does not exist as a select option in the database, the API returns a validation error. Pre-create all four severity options."
+      "Notion select properties must use pre-defined options — if you pass a Severity value that does not exist as a select option in the database, the API returns a validation error. Pre-create all four severity options.",
+      "⚠️ Auto-detected drift (2026-05-26): GitHub success rate dropped 83pp over last 14d (baseline 100% → recent 17%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -9308,7 +9325,8 @@
       "SmartHR is API-only with cursor-based pagination — always follow the 'next' link in response headers or you will miss employees beyond the first page.",
       "freee OAuth token expires every 24 hours. Schedule syncs to refresh the token first, or the upsert step will return 401.",
       "Employee number formats differ between SmartHR and freee HR. Use email as a secondary match key to avoid creating duplicates when IDs don't align.",
-      "SmartHR employee data is PII-heavy — the Chatwork sync report should only include counts and error summaries, never names or personal details."
+      "SmartHR employee data is PII-heavy — the Chatwork sync report should only include counts and error summaries, never names or personal details.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -9352,7 +9370,8 @@
       "SmartHR is API-only; the employee list may include inactive/terminated employees. Filter by employment_status = 'employed' before syncing to Garoon.",
       "Garoon address book API requires cybozu.com admin privileges. For on-premises Garoon versions, the XML-based API must be used instead of the REST API.",
       "SmartHR employee data is PII-heavy (phone, address, email). Only sync fields that belong in a corporate directory — omit salary, My Number, and personal details.",
-      "Garoon does not support upsert natively. Query existing entries by employee ID first, then decide whether to create or update to avoid duplicate directory entries."
+      "Garoon does not support upsert natively. Query existing entries by employee ID first, then decide whether to create or update to avoid duplicate directory entries.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -9419,7 +9438,8 @@
       "SmartHR is API-only and webhook payloads differ between create/update — filter by employment status '入社予定' to avoid processing existing employee updates.",
       "kintone field codes are workspace-specific; the onboarding app field codes in staging will differ from production. Externalize field code mapping in config.",
       "kintone lookup fields cannot be set directly via API — if your checklist template uses lookups, set the source field value instead and let kintone resolve the lookup.",
-      "Slack channel names max 80 characters, must be lowercase with no spaces or Japanese characters. Sanitize employee name to romaji before creating the channel."
+      "Slack channel names max 80 characters, must be lowercase with no spaces or Japanese characters. Sanitize employee name to romaji before creating the channel.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -9467,7 +9487,8 @@
       "SmartHR is API-only; the announcements API may require SmartHR Plus (add-on) and custom webhook setup. Verify your plan includes this feature.",
       "LINE WORKS Bot API v2 has rate limits per bot — distribute messages to department groups sequentially with a delay between each to avoid throttling.",
       "SmartHR department IDs must be mapped to LINE WORKS group IDs in configuration. Keep this mapping updated when organization restructures occur.",
-      "LINE WORKS message API has a 5000 character limit per message. Truncate long HR announcements and include a link to the full text in SmartHR."
+      "LINE WORKS message API has a 5000 character limit per message. Truncate long HR announcements and include a link to the full text in SmartHR.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -9529,7 +9550,8 @@
       "SmartHR is API-only; the webhook fires on employee status change to 在籍. Check employment_type to differentiate part-time vs full-time checklist templates.",
       "Slack channel names max 80 characters, must be lowercase with no spaces. Japanese characters in employee names must be converted to romaji or initials.",
       "Slack conversations.invite requires the bot to already be a member of the channel. Call conversations.join first, then invite HR team, manager, and buddy.",
-      "SmartHR webhook payloads differ between create and update events. Deduplicate to avoid creating multiple onboarding channels for the same employee."
+      "SmartHR webhook payloads differ between create and update events. Deduplicate to avoid creating multiple onboarding channels for the same employee.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -10218,7 +10240,8 @@
       "SmartHR is API-only; employee list endpoint paginates via cursor — follow the 'next' link in response headers or you will silently miss employees.",
       "Kaonavi API rate limit is strict at 30 req/min. For bulk evaluation updates, use the batch export endpoint and throttle writes.",
       "Employee IDs between SmartHR and Kaonavi are not guaranteed to match. Establish a shared key (e.g., email) in your field mapping before syncing.",
-      "Kaonavi evaluation data may contain private performance scores — redact or summarize before posting to Chatwork to avoid PII leaks."
+      "Kaonavi evaluation data may contain private performance scores — redact or summarize before posting to Chatwork to avoid PII leaks.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
@@ -11114,7 +11137,8 @@
       "SmartHR is API-only; year-end adjustment document types (扶養控除申告書, 保険料控除申告書) use specific API endpoints — the generic employee endpoint won't return them.",
       "freee HR fiscal year setting determines which tax year endpoints return data. Verify fiscal_year parameter matches the target 年末調整 year.",
       "Housing loan deduction (住宅ローン控除) requires special handling: first-year submissions go to the tax office directly, not through year-end adjustment.",
-      "Chatwork rate limit is 300 req/5 min — if processing hundreds of employees, batch the completion report into a single message rather than per-employee notifications."
+      "Chatwork rate limit is 300 req/5 min — if processing hundreds of employees, batch the completion report into a single message rather than per-employee notifications.",
+      "⚠️ Auto-detected drift (2026-05-26): SmartHR success rate dropped 39pp over last 14d (baseline 39% → recent 0%). Investigate auth/rate-limit changes before running this recipe at scale."
     ]
   },
   {
