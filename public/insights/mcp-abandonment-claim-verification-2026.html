@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>検証: 「MCPはもう終わり、大手はCLIに戻っている」は本当か？ — Perplexity 72%問題の事実確認 2026 | KanseiLink</title>
+  <meta name="description" content="『PerplexityがMCPを捨ててCLIに戻った』『MCPは死につつある』というXの主張を事実確認。72%コンテキスト浪費は本当か、大手の離脱は何を意味するのか、一方で月間9,700万SDKダウンロード・登録サーバー9,400超という採用加速をどう読むか。✅⚠️❌で1件ずつ検証する。">
+  <meta name="keywords" content="MCP abandoned, Perplexity MCP, model context protocol criticism, MCP is dead, CLI vs MCP, 72% context waste, Garry Tan CLI, MCP adoption 2026, KanseiLink verification">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/mcp-abandonment-claim-verification-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-abandonment-claim-verification-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-abandonment-claim-verification-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-abandonment-claim-verification-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="検証: 「MCPはもう終わり、大手はCLIに戻っている」は本当か？ — Perplexity 72%問題の事実確認 2026">
+  <meta property="og:description" content="『MCPは死につつある』という主張を事実確認。72%コンテキスト浪費は本当か、大手離脱は何を意味するか、採用加速データとどう両立するか。✅⚠️❌で検証。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/mcp-abandonment-claim-verification-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-26">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="検証">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="検証: 「MCPはもう終わり」は本当か？ 2026">
+  <meta name="twitter:description" content="Perplexity離脱・72%コンテキスト浪費・大手CLI回帰の主張を、採用加速データと突き合わせて✅⚠️❌で検証。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "検証: 「MCPはもう終わり、大手はCLIに戻っている」は本当か？ — Perplexity 72%問題の事実確認 2026",
+    "description": "『PerplexityがMCPを捨ててCLIに戻った』『MCPは死につつある』というXの主張を事実確認。72%コンテキスト浪費は本当か、大手の離脱は何を意味するのか、採用加速データとどう両立するかを✅⚠️❌で検証する。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-26",
+    "dateModified": "2026-05-26",
+    "mainEntityOfPage": "https://kansei-link.com/insights/mcp-abandonment-claim-verification-2026",
+    "keywords": ["MCP abandoned", "Perplexity MCP", "MCP is dead", "CLI vs MCP", "72% context waste", "MCP adoption 2026", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "PerplexityはMCPを完全に捨てたのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "完全な放棄ではなく『社内での主力からの転換』です。Perplexity CTOのDenis Yaratsは2026年3月11日のAsk 2026カンファレンスで、社内ではMCPから従来型APIとCLIへ軸足を移すと表明しました。理由はコンテキストウィンドウの消費過多と認証フローの煩雑さの2点。同社は2026年2月にAgent APIを一般提供しており、これが代替の中核です。ただしこれは『MCPという標準が死んだ』ことを意味せず、特定ワークロード（高頻度・低レイテンシ・単一ベンダー）での自社最適化の選択です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "「MCPがコンテキストの72%を消費する」は本当ですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "条件付きで本当です。Yaratsは『エージェントがユーザーメッセージを処理する前に、MCPが利用可能コンテキストの最大72%を消費しうる』と述べています。多数のMCPサーバーを同時接続し、各ツールの説明・パラメータスキーマ・レスポンス形式をすべてコンテキストに展開した場合の数字で、ある開発者は200Kトークン中143K（72%）使用、うちツールメタデータが82Kという報告もしています。一方、接続するサーバーを絞り、ツール定義を最適化すれば大幅に下がるため、『MCP固有の不可避なコスト』ではなく『運用設計の問題』という側面が強いです。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "他の大手もMCPから離れているのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "個別の事例はあります。Y CombinatorのGarry Tan氏がMCPではなくCLIを自作したと報じられています。しかし業界全体ではむしろ採用が加速しており、2026年3月にはMCP SDKの月間ダウンロードが9,700万件（ローンチ時10万件から約970倍）、公開レジストリの登録サーバーは9,400超に達しています。さらにAnthropicがMCPをLinux Foundationに寄贈し、OpenAI・Google・Microsoftが共同スポンサーに加わったことで『Anthropicのプロトコル』から業界インフラへ移行しました。離脱の事例と採用の加速は同時に起きています。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "結局、MCPを使うべきですか、CLIを使うべきですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "二者択一ではなくワークロード適合の問題です。単一ベンダーに対する高頻度・低レイテンシの定型処理（Perplexityの自社用途のような）では、CLIや専用APIのほうがコンテキスト効率で勝ることがあります。一方、多数の異なるSaaSを横断し、ツールの発見可能性・標準化された認証・エコシステム互換性が必要なケースではMCPが優位です。KanseiLinkの実測でも、接続サーバーを絞り高成功率を維持する『verified』サービスと、放置されて動かない『dead』サーバーが併存しており、問題は『MCPか否か』ではなく『どのワークロードに何を選ぶか』です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "MCPのコンテキスト問題は将来解決されますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "仕様レベルで対処が進んでいます。2026年のMCPロードマップはスケーラビリティ・エンタープライズ認証・ガバナンスを重点に置き、ツール定義の遅延ロードやコンテキスト効率の改善が議論されています。本サイトでも別記事でMCP仕様のリリース候補（2026-07-28）を扱っており、批判が指摘した『メタデータのコンテキスト浪費』はまさに次世代仕様の主要な改善対象です。批判は的を射ており、それゆえ標準が進化しているという構図です。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCP Abandonment Claim Verification 2026", "item": "https://kansei-link.com/insights/mcp-abandonment-claim-verification-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .verdict-box { border-radius: 12px; padding: 24px 28px; margin: 24px 0; }
+    .verdict-true { background: #D1FAE5; border-left: 4px solid #059669; }
+    .verdict-mixed { background: #FEF3C7; border-left: 4px solid #D97706; }
+    .verdict-false { background: #FEF2F2; border-left: 4px solid #DC2626; }
+    .verdict-box .verdict-label { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .verdict-true .verdict-label { color: #065F46; }
+    .verdict-mixed .verdict-label { color: #92400E; }
+    .verdict-false .verdict-label { color: #991B1B; }
+    .verdict-box .claim { font-weight: 700; color: var(--black); margin-bottom: 8px; font-size: 16px; }
+    .verdict-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/mcp-abandonment-claim-verification-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      検証: 「MCPはもう終わり」は本当か 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">検証 / Myth-busting</span>
+      <h1>検証: 「MCPはもう終わり、大手はCLIに戻っている」は本当か？ — Perplexity 72%問題の事実確認</h1>
+      <p class="subtitle">「PerplexityがMCPを捨てた」「MCPは死につつある」——2026年3月以降、Xやテック系メディアで急速に広がったこの主張を、一次情報と採用データで1件ずつ事実確認する。✅本当・⚠️条件付き・❌誇張の3段階で判定し、SaaS/エージェント開発者が今すべき判断を整理した。</p>
+      <div class="article-meta">
+        <span>2026-05-26</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約9分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#claim">拡散している主張</a></li>
+        <li><a href="#c1">検証1: Perplexityは本当にMCPを捨てたか</a></li>
+        <li><a href="#c2">検証2: 「72%コンテキスト浪費」は本当か</a></li>
+        <li><a href="#c3">検証3: 大手は軒並みCLIに戻っているか</a></li>
+        <li><a href="#c4">検証4: MCPは死につつあるか</a></li>
+        <li><a href="#verdict">総合判定とSaaS/開発者への示唆</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="claim">拡散している主張</h2>
+
+    <p>2026年3月、Perplexityの動きをきっかけに、X・Medium・DEV.toなどで次のような主張が一気に拡散した。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 検証対象の主張</div>
+      <p>「PerplexityがMCPを捨ててAPI/CLIに戻った」「MCPはコンテキストの72%を浪費する」「Garry Tan（YC）もCLIを自作した」「MCPという『標準』はもう死につつある」——だからMCPに賭けるのは間違いだ。</p>
+    </div>
+
+    <p>主張には事実の核がある一方、結論部分には飛躍もある。一次情報と最新データに当たって、構成要素ごとに切り分ける。</p>
+
+    <h2 id="c1">検証1: Perplexityは本当にMCPを捨てたか</h2>
+
+    <div class="verdict-box verdict-true">
+      <div class="verdict-label">✅ ほぼ本当（ただし「社内転換」であって「全面放棄」ではない）</div>
+      <p class="claim">Perplexity CTO Denis Yarats が、社内でMCPから従来型API/CLIへ軸足を移すと表明。</p>
+      <p>Yaratsは2026年3月11日の自社カンファレンス「Ask 2026」で、社内ではMCPから従来型のAPIとCLIツールへ移行すると述べた。理由はコンテキストウィンドウの消費過多と認証フローの煩雑さの2点。代替の中核は2026年2月に一般提供を開始した「Agent API」で、OpenAI互換構文の単一エンドポイントからOpenAI・Anthropic・Google・xAI・NVIDIAのモデルへルーティングする。</p>
+    </div>
+
+    <p>ここで重要なのは <strong>「社内ワークロードでの転換」</strong> であって、MCPを外部に向けて否定したわけでも、業界に「やめろ」と呼びかけたわけでもない点だ。Perplexityのように単一の自社プロダクトに対し高頻度・低レイテンシで叩くユースケースでは、汎用プロトコルより専用APIが効率的になりうる——これは合理的な自社最適化であって、標準の死とは別の話だ。</p>
+
+    <h2 id="c2">検証2: 「72%コンテキスト浪費」は本当か</h2>
+
+    <div class="verdict-box verdict-mixed">
+      <div class="verdict-label">⚠️ 条件付きで本当（最悪条件の数字であり、運用設計で大きく変わる）</div>
+      <p class="claim">MCPはエージェントがユーザーメッセージを処理する前に利用可能コンテキストの最大72%を消費する。</p>
+      <p>Yaratsは「ユーザーメッセージ処理前にMCPが最大72%のコンテキストを消費しうる」と述べた。ある開発者は200Kトークン中143K（72%）使用、うちツールメタデータが82Kという報告もしている。各ツールの説明・パラメータスキーマ・レスポンス形式をすべて常時コンテキストに展開する設計が原因だ。</p>
+    </div>
+
+    <p>この数字は <strong>多数のMCPサーバーを同時接続し、ツール定義を最適化していない場合の上限</strong>に近い。逆に言えば、接続するサーバーを絞る・ツール定義を遅延ロードする・スキーマを簡潔にする、といった運用で大きく下がる。「MCP固有の不可避なコスト」というより「運用設計とサーバー実装の問題」という側面が強い。KanseiLinkでも<a href="mcp-context-bloat-claim-verification-2026.html">コンテキスト肥大化の主張を別途検証</a>しており、メタデータ設計が成功率とトークン効率に直結することを実測で確認している。</p>
+
+    <h2 id="c3">検証3: 大手は軒並みCLIに戻っているか</h2>
+
+    <div class="verdict-box verdict-mixed">
+      <div class="verdict-label">⚠️ 個別事例は本当だが「軒並み」は誇張</div>
+      <p class="claim">Garry Tan（YC）もCLIを自作。大手は軒並みMCPからCLIへ回帰している。</p>
+      <p>Y CombinatorのGarry Tan氏がMCPではなくCLIを自作したと報じられているのは事実だ。しかし「軒並み」と一般化するのは誇張で、同時期に多くのプラットフォームがMCP対応を新規追加している。</p>
+    </div>
+
+    <p>むしろ2026年は大手のMCP採用が加速した年だ。Claude（ネイティブ）、ChatGPT（Apps SDK / Connectors）、<strong>Google Gemini API・Vertex AI Agent Builder（2026年3月対応追加）</strong>、Cursor・Windsurf・Zed・JetBrains AI Assistant、Vercel AI SDK、OpenAI Agents SDKがいずれもMCPをサポートしている。「大手が離れている」と「大手が新規対応している」が同時に観測されているのが実態で、前者だけを切り取ると像を誤る。</p>
+
+    <h2 id="c4">検証4: MCPは死につつあるか</h2>
+
+    <div class="verdict-box verdict-false">
+      <div class="verdict-label">❌ 誇張（採用は加速しており「死」を示すデータはない）</div>
+      <p class="claim">MCPという「標準」はもう死につつある。</p>
+      <p>採用指標はいずれも右肩上がりだ。MCP SDKの月間ダウンロードは2026年3月時点で約9,700万件（ローンチ時10万件から約970倍）。公開レジストリの登録サーバーは9,400超。エンタープライズでは2026年4月時点で78%のAIチームが本番でMCPベースのエージェントを少なくとも1つ運用していると報告されている。</p>
+    </div>
+
+    <div class="data-highlight">
+      <h4>MCP採用指標（2026年）— 「死」とは逆方向</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">9,700万</span>
+          <div class="label">月間SDK<br>ダウンロード(3月)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">9,400+</span>
+          <div class="label">登録MCP<br>サーバー数</div>
+        </div>
+        <div class="metric-item">
+          <span class="num green">78%</span>
+          <div class="label">本番MCPエージェント<br>を持つ企業(4月)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">970x</span>
+          <div class="label">18ヶ月の<br>DL増加倍率</div>
+        </div>
+      </div>
+    </div>
+
+    <p>決定打は <strong>ガバナンスの移行</strong>だ。AnthropicがMCPをLinux Foundationに寄贈し、OpenAI・Google・Microsoftが共同スポンサーに加わったことで、MCPは「Anthropicのプロトコル」から業界中立のインフラへと位置付けが変わった。寄贈と複数大手の共同スポンサー化は、衰退しつつある標準には起こらない動きだ。</p>
+
+    <div class="insight-box">
+      <div class="label">批判が的を射ているからこそ標準が進化する</div>
+      <p>「コンテキスト浪費」という批判は正当で、だからこそ2026年のMCPロードマップはスケーラビリティ・エンタープライズ認証・ガバナンスを重点に据え、ツール定義の効率化が議論されている。本サイトの<a href="mcp-spec-2026-07-28-release-candidate.html">MCP仕様リリース候補（2026-07-28）解説</a>も参照。批判は死の兆候ではなく、進化のドライバーだ。</p>
+    </div>
+
+    <h2 id="verdict">総合判定とSaaS/開発者への示唆</h2>
+
+    <p>4つの構成要素を切り分けた結果はこうだ。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>主張</th>
+          <th>判定</th>
+          <th>根拠の要点</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Perplexityが社内でMCPから転換</td>
+          <td class="success-high">✅ 本当</td>
+          <td>Ask 2026 (3/11)で表明、Agent APIへ</td>
+        </tr>
+        <tr>
+          <td>72%コンテキスト浪費</td>
+          <td class="success-mid">⚠️ 条件付き</td>
+          <td>最悪条件の上限。運用設計で大きく低減</td>
+        </tr>
+        <tr>
+          <td>大手が「軒並み」CLI回帰</td>
+          <td class="success-mid">⚠️ 誇張</td>
+          <td>個別事例は事実だが、新規対応も多数</td>
+        </tr>
+        <tr>
+          <td>MCPは死につつある</td>
+          <td class="success-low">❌ 誇張</td>
+          <td>SDK 9,700万DL、LF寄贈、採用加速</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>総合すると、この主張は <strong>「事実の核を持つが、結論を過剰一般化した『誤解を招く』タイプ」</strong>だ。離脱の事例と技術的批判は本物だが、そこから「MCPは終わり」を導くのはデータと整合しない。正しい問いは「MCPかCLIか」ではなく <strong>「どのワークロードに何を選ぶか」</strong>である。</p>
+
+    <ul class="checklist">
+      <li><strong>単一ベンダー・高頻度・低レイテンシ</strong>の定型処理 → 専用API/CLIがコンテキスト効率で勝ちうる（Perplexityの自社用途型）</li>
+      <li><strong>多数の異種SaaS横断・発見可能性・標準認証・エコシステム互換</strong>が要る → MCPが優位</li>
+      <li><strong>MCPを使うなら</strong>: 接続サーバーを絞る、ツール定義を簡潔に、メタデータ肥大を監視する（72%問題への実務的対処）</li>
+      <li><strong>SaaS提供側</strong>: 「MCP対応した」だけで満足せず、ツール定義のトークン効率と発見可能性を実測で管理する</li>
+    </ul>
+
+    <div class="success-box">
+      <div class="label">✅ 結論</div>
+      <p>MCPは死んでいない。むしろ批判を取り込んで仕様が進化する成熟フェーズに入った。バズった「MCP終焉論」は、技術的に正当な指摘を過剰な結論に膨らませた典型例であり、意思決定はワークロード適合で行うべきだ。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>MCPサーバーの「実際の」健全性をデータで把握する</h3>
+      <p>KanseiLinkは225+サービスの実エージェント挙動から、成功率・コンテキスト効率・信頼性トレンドを集約。「MCP対応済み」のラベルではなく、実測でどのサーバーが本当に機能しているかを可視化します。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">MCPサーバーの実測データを見る</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. PerplexityはMCPを完全に捨てたのか?</h3>
+    <p>完全放棄ではなく社内主力からの転換。CTO Denis YaratsがAsk 2026(2026/3/11)でAPI/CLIへの移行を表明し、Agent API(2月GA)を中核に据えた。理由はコンテキスト消費過多と認証煩雑さ。標準の否定ではなく特定ワークロードの自社最適化。</p>
+
+    <h3>Q2. 「72%コンテキスト浪費」は本当?</h3>
+    <p>条件付きで本当。多数サーバー同時接続・ツール定義未最適化という最悪条件の上限値。ある報告では200K中143K使用(うちメタデータ82K)。接続を絞り定義を最適化すれば大幅に下がるため、不可避コストでなく運用設計の問題という側面が強い。</p>
+
+    <h3>Q3. 大手は軒並みCLIに戻っている?</h3>
+    <p>誇張。Garry Tan(YC)のCLI自作など個別事例は事実だが、同時期にGemini API/Vertex(3月)、ChatGPT、Cursor等が新規対応。離脱と新規採用が並行して起きており「軒並み」ではない。</p>
+
+    <h3>Q4. MCPは死につつある?</h3>
+    <p>誇張。SDK月間DL 9,700万(970倍/18ヶ月)、登録サーバー9,400超、企業78%が本番運用。AnthropicがLinux Foundationへ寄贈しOpenAI/Google/Microsoftが共同スポンサー。衰退する標準には起きない動き。</p>
+
+    <h3>Q5. 結局MCPとCLIどちらを使うべき?</h3>
+    <p>ワークロード適合で判断。単一ベンダー高頻度低レイテンシは専用API/CLI有利、多数SaaS横断・発見可能性・標準認証が要るならMCP有利。二者択一ではない。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事の事実主張はWebSearchで取得した二次情報に基づく。Perplexity CTO Denis Yaratsの発言（Ask 2026、2026年3月11日、コンテキスト消費過多・認証煩雑さ・72%・Agent API）はAwesomeAgents・Repello AI・byteiota・agent-engineering.dev等の報道に基づく。「200K中143K使用・メタデータ82K」は個別開発者の報告例で、全環境を代表する数値ではない。MCP採用指標（SDK月間9,700万DL・970倍・登録サーバー9,400超・企業78%本番運用・Linux Foundation寄贈・Gemini/Vertex 3月対応）はdigitalapplied・effloow・cdata等の集計に基づき、出典により数値の定義・時点が異なる場合がある。Garry Tan氏のCLI自作は報道ベースで一次確認は限定的（⚠️）。判定（✅⚠️❌）は2026年5月26日時点で利用可能な公開情報に基づく編集判断であり、状況は変化しうる。本番判断時は各一次情報の最新版をご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="mcp-context-bloat-claim-verification-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>MCPの「コンテキスト肥大化」は本当か — ツール定義のトークン効率を実測検証</h4>
+        </a>
+        <a href="mcp-vs-cli-reliability-benchmark-2026.html" class="related-card">
+          <div class="tag">検証</div>
+          <h4>MCP vs CLI 信頼性ベンチマーク — どちらがエージェントに安定して使えるか</h4>
+        </a>
+        <a href="mcp-spec-2026-07-28-release-candidate.html" class="related-card">
+          <div class="tag">トレンド速報</div>
+          <h4>MCP仕様 2026-07-28 リリース候補 — 次世代仕様で何が変わるか</h4>
+        </a>
+        <a href="mcp-server-health-52-percent-dead-2026.html" class="related-card">
+          <div class="tag">データストーリー</div>
+          <h4>登録MCPサーバーの52%が「死んでいる」— レジストリ健全性の実態</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        対象MCPサーバーの実測成功率・信頼性トレンド・既知の問題はKanseiLink MCP経由で取得できます。
+        <code>get_insights</code> と <code>search_services</code> で「ラベル上のMCP対応」と「実際に機能するサーバー」を区別し、ワークロードに応じたMCP/API/CLIの選定に活かせます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

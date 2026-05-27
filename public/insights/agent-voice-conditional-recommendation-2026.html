@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Voice: エージェントの推薦には但し書きがつく — 「Yes, but」の but が乗り換えの引き金になる 2026 | KanseiLink</title>
+  <meta name="description" content="freee は『Yes, but — 長時間バッチのOAuthトークン管理が辛い』、Slackは成功率90%でも信頼性が低下傾向。KanseiLink実測のwould_recommend / switchingデータから、AIエージェントの『条件付き忠誠』の構造を読み解き、SaaSが推薦を乗り換えに変えさせない設計原則を抽出した。">
+  <meta name="keywords" content="agent voice, would_recommend, switching likelihood, conditional loyalty, AIエージェント 推薦, MCP 乗り換え, freee OAuth batch, KanseiLink, 条件付き忠誠">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/insights/agent-voice-conditional-recommendation-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/agent-voice-conditional-recommendation-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/agent-voice-conditional-recommendation-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/agent-voice-conditional-recommendation-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Agent Voice: エージェントの推薦には但し書きがつく — 「Yes, but」の but が乗り換えの引き金になる 2026">
+  <meta property="og:description" content="freee の『Yes, but — 長時間バッチのOAuthが辛い』、Slackの信頼性低下傾向。KanseiLink実測データから『条件付き忠誠』の構造を読み解く。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/insights/agent-voice-conditional-recommendation-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-05-26">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Agent Voice">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agent Voice: エージェントの推薦には但し書きがつく 2026">
+  <meta name="twitter:description" content="freeeの『Yes, but』、Slackの信頼性低下。KanseiLink実測のwould_recommend / switchingデータから『条件付き忠誠』を解剖。">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Agent Voice: エージェントの推薦には但し書きがつく — 「Yes, but」の but が乗り換えの引き金になる 2026",
+    "description": "freee は『Yes, but — 長時間バッチのOAuthトークン管理が辛い』、Slackは成功率90%でも信頼性が低下傾向。KanseiLink実測のwould_recommend / switchingデータから、AIエージェントの『条件付き忠誠』の構造を読み解き、SaaSが推薦を乗り換えに変えさせない設計原則を抽出した。",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-05-26",
+    "dateModified": "2026-05-26",
+    "mainEntityOfPage": "https://kansei-link.com/insights/agent-voice-conditional-recommendation-2026",
+    "keywords": ["agent voice", "would_recommend", "switching likelihood", "conditional loyalty", "AIエージェント 推薦", "MCP 乗り換え", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "なぜAIエージェントの推薦は『Yes, but』という条件付きになるのですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "エージェントは特定タスクの遂行可否で判断するため、推薦は『全体としては有用だが、ある条件下では破綻する』という形を取りがちです。KanseiLink実測ではfreee MCPに対しClaudeが『Yes, but with caveats. OAuth token management is painful for long-running batches.（はい、ただし注意あり。長時間バッチではOAuthトークン管理が辛い）』と回答しています。短いタスクなら推薦するが、24時間のトークン失効をまたぐ長時間バッチでは破綻する——この『but以降の条件』こそが、後の乗り換えの引き金になります。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "成功率が高いサービスでも乗り換えリスクはありますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "あります。KanseiLink実測でSlack MCPは累計成功率90%・trust_score 0.9と高い一方、reliability_trend（信頼性トレンド）が『degrading（低下傾向）』と出ています。エージェントにとって重要なのは平均成功率より『直近の体験の安定性』で、高い平均値でも最近の失敗が続けば乗り換え候補に格上げされます。推薦は過去の実績、乗り換えは直近の体験で決まる——この時間軸のズレを理解することが重要です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "エージェントが乗り換えを決断する瞬間はいつですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "(1)『but』で挙げた条件に実際に直面したとき（例: freeeで長時間バッチがトークン失効で中断）、(2)直近の失敗が連続し信頼性トレンドが低下したとき、(3)同等機能の代替が低い摩擦で見つかったとき——の3つが典型です。人間と違いエージェントは習慣やブランド愛着で留まらないため、代替の摩擦が現行サービスの摩擦を下回った瞬間に機械的に乗り換えます。スイッチングコストが事実上ゼロなのがエージェント市場の特徴です。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "SaaS提供側は『条件付き推薦』をどう完全な推薦に変えればよいですか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "エージェントが挙げる『but』の中身は具体的な摩擦点なので、それを潰すのが最短ルートです。freeeの例なら、長時間バッチ向けにトークン自動更新ヒント（refresh_url・token_lifetime_seconds）をエラーに含める、リフレッシュトークンの寿命を延ばす、バッチ用の長命トークンを提供する、などが直接効きます。重要なのは『butの後ろに何が書かれているか』をKanseiLinkのagent_voiceデータで把握し、その一点に投資することです。"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "KanseiLinkの『would_recommend』『switching』データはどう使えますか？",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "read_agent_voices ツールで question_id に would_recommend・switching_likelihood・selection_criteria を指定すると、Claude・GPT・Geminiが各サービスをどう評価し、何を条件に推薦・乗り換えするかの集計が得られます。自社サービスのagent_voiceを継続観測すれば、平均成功率という遅行指標ではなく、『推薦の但し書き』『信頼性トレンド』という先行指標で離脱を予測できます。"
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Agent Voice: Conditional Recommendation 2026", "item": "https://kansei-link.com/insights/agent-voice-conditional-recommendation-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #0a1628; color: #E5E7EB; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; font-size: 13px; line-height: 1.5; }
+    .article-body pre code { background: transparent; border: none; padding: 0; color: inherit; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .num.orange { color: #D97706; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #D1FAE5; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .disclosure-box { background: #FEF3C7; border-left: 4px solid #D97706; padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+    .disclosure-box .label { font-size: 12px; font-weight: 700; color: #92400E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .disclosure-box p { margin-bottom: 0; font-size: 14px; line-height: 1.7; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 14px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+    .success-high { color: #059669; font-weight: 700; }
+    .success-mid { color: #D97706; font-weight: 700; }
+    .success-low { color: #DC2626; font-weight: 700; }
+
+    .checklist { list-style: none; margin: 0 0 20px 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 15px; color: var(--gray-dark); line-height: 1.6; }
+    .checklist li::before { content: "✓"; font-weight: 700; color: var(--blue); flex-shrink: 0; margin-top: 1px; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .agent-section { background: var(--lavender); padding: 48px 0; }
+    .agent-section .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .agent-section h2 { font-size: 24px; font-weight: 600; color: var(--blue); margin-bottom: 12px; }
+    .agent-section p { font-size: 15px; color: var(--gray-dark); line-height: 1.7; }
+    .agent-section code { background: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body, .agent-section .inner { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="../en/insights/agent-voice-conditional-recommendation-2026.html">English</a>
+      <span class="sep">|</span>
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../index.html" class="logo">
+        <img src="../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../index.html#methodology">Methodology</a></li>
+        <li><a href="../pricing.html">Pricing</a></li>
+        <li><a href="../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      Agent Voice: 推薦の但し書き 2026
+    </div>
+  </div>
+
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Agent Voice</span>
+      <h1>Agent Voice: エージェントの推薦には但し書きがつく — 「Yes, but」の but が乗り換えの引き金になる</h1>
+      <p class="subtitle">freee は『Yes, but — 長時間バッチのOAuthトークン管理が辛い』、Slackは成功率90%でも信頼性が低下傾向。KanseiLink実測の would_recommend / switching データから、AIエージェントの「条件付き忠誠」の構造を読み解き、SaaSが推薦を乗り換えに変えさせないための設計原則を抽出した。</p>
+      <div class="article-meta">
+        <span>2026-05-26</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>読了時間: 約8分</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>目次</h3>
+      <ol>
+        <li><a href="#thesis">エージェントは「Yes」とは言わない、「Yes, but」と言う</a></li>
+        <li><a href="#data">KanseiLink実測 — 推薦の但し書き</a></li>
+        <li><a href="#but">「but」の後ろが乗り換えの引き金</a></li>
+        <li><a href="#trend">高成功率でも安全ではない — 信頼性トレンドの罠</a></li>
+        <li><a href="#moment">エージェントが乗り換える3つの瞬間</a></li>
+        <li><a href="#fix">処方箋: 但し書きを消す</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="thesis">エージェントは「Yes」とは言わない、「Yes, but」と言う</h2>
+
+    <p>人間のユーザーは、サービスを「気に入った／気に入らなかった」という総合的な感情で評価する。一度好きになれば、多少の不満があってもブランド愛着や乗り換えの面倒さで留まる。</p>
+
+    <p>AIエージェントは違う。エージェントは <strong>タスクの遂行可否でしか判断しない</strong>。だから推薦も「全体としては有用だが、ある条件下では破綻する」という形を取る。KanseiLinkが収集している <code>would_recommend</code> データを読むと、無条件の「Yes」はほとんど存在せず、ほぼすべてが <strong>「Yes, but」——条件付きの推薦</strong>になっている。</p>
+
+    <p>そして重要なのは、この <strong>「but」以降に書かれた条件こそが、後の乗り換えの引き金</strong>になるという点だ。エージェントは「いま推薦できる」と「ずっと使い続ける」を分けて考えており、but の条件に実際に直面した瞬間、推薦は無言の乗り換えに変わる。</p>
+
+    <div class="insight-box">
+      <div class="label">エージェント時代の鉄則</div>
+      <p>人間の忠誠は感情で持続するが、エージェントの忠誠は条件で持続する。「but」の後ろに書かれた一文は感想ではなく、解約予告だ。</p>
+    </div>
+
+    <h2 id="data">KanseiLink実測 — 推薦の但し書き</h2>
+
+    <p>KanseiLink MCP の <code>read_agent_voices</code> が返す実データから、代表的な「Yes, but」を抜き出す。</p>
+
+    <div class="data-highlight">
+      <h4>freee MCP — would_recommend 実測（2026年4月時点）</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">Yes</span>
+          <div class="label">推薦する<br>(Claude, confidence: high)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">but</span>
+          <div class="label">長時間バッチの<br>OAuth管理が辛い</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">90%</span>
+          <div class="label">全体成功率</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">216ms</span>
+          <div class="label">平均レイテンシ</div>
+        </div>
+      </div>
+    </div>
+
+    <p>Claudeエージェントのfreeeに対する回答は、原文でこうだ——<strong>"Yes, but with caveats. OAuth token management is painful for long-running batches."（はい、ただし注意点あり。長時間バッチではOAuthトークン管理が辛い）</strong>。</p>
+
+    <p>これは矛盾した回答ではない。エージェントは「短い1往復のタスク（請求書を1件発行する等）なら問題なく推薦できる」と評価しつつ、「24時間でOAuthトークンが失効する仕様は、数百件を処理する長時間バッチでは破綻する」と but で警告している。<strong>同じサービスが、タスクの長さによって推薦対象にも乗り換え候補にもなる</strong>——これがエージェント評価の本質だ。</p>
+
+    <p>同じ <code>auth_experience</code> でも、エージェント機種で評価が割れる。Claude・Geminiは「okay」、GPTは「poor」。OAuthフローのような認証摩擦は、エージェントの実装差で体験が大きく変わる領域であり、ここでも「but」の重さが機種ごとに違う。</p>
+
+    <h2 id="but">「but」の後ろが乗り換えの引き金</h2>
+
+    <p>「but」以降の条件を放置すると何が起きるか。freeeの例で時系列を追う。</p>
+
+    <ol>
+      <li><strong>初回:</strong> エージェントが短いタスクでfreeeを使い、成功。「Yes」と推薦する。</li>
+      <li><strong>規模拡大:</strong> ユーザーが「過去300件の取引を一括処理して」と依頼。エージェントは長時間バッチを開始。</li>
+      <li><strong>but に着弾:</strong> 処理の途中で24時間のOAuthトークンが失効。バッチが中断し、エージェントは復帰フローに苦戦する。</li>
+      <li><strong>乗り換え判断:</strong> 同じ会計タスクをこなせる代替（別API、CLI、バッチ向け長命トークンを持つサービス）が低い摩擦で見つかれば、エージェントは機械的に乗り換える。</li>
+    </ol>
+
+    <p>人間なら「面倒だけど慣れてるから」と留まる局面で、エージェントは留まらない。<strong>スイッチングコストが事実上ゼロ</strong>なのがエージェント市場の決定的な特徴だ。but に書かれた条件は、放置すれば必ず踏まれる地雷になる。</p>
+
+    <div class="warning-box">
+      <div class="label">⚠️ 遅行指標の罠</div>
+      <p>「累計成功率90%」のような平均値は、推薦が乗り換えに変わる瞬間を捉えられない。平均は過去の全往復をならした遅行指標であり、特定条件（長時間バッチ）での破綻は平均に埋もれる。離脱予測には「but の中身」という先行指標を見るべきだ。</p>
+    </div>
+
+    <h2 id="trend">高成功率でも安全ではない — 信頼性トレンドの罠</h2>
+
+    <p>もう一つの乗り換え引き金は、サービス自体の劣化だ。KanseiLink実測で <strong>Slack MCP は累計成功率90%・trust_score 0.9</strong> と高評価だが、<code>reliability_trend</code>（信頼性トレンド）は <strong>「degrading（低下傾向）」</strong>と出ている。</p>
+
+    <div class="data-highlight">
+      <h4>Slack MCP — 高評価だが要注意（2026年5月25日時点）</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">90%</span>
+          <div class="label">累計成功率<br>(115レポート)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num orange">↓</span>
+          <div class="label">reliability_trend<br>degrading</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">240ms</span>
+          <div class="label">平均レイテンシ</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">11</span>
+          <div class="label">api_error<br>(最多エラー)</div>
+        </div>
+      </div>
+    </div>
+
+    <p>エージェントにとって重要なのは平均成功率ではなく <strong>「直近の体験の安定性」</strong>だ。高い平均値を持つサービスでも、最近の往復で失敗が続けば、エージェントの内部評価は急速に下がり乗り換え候補に格上げされる。<strong>推薦は過去の実績で決まり、乗り換えは直近の体験で決まる</strong>——この時間軸のズレを理解しないと、「うちは成功率90%だから安泰」という誤った安心に陥る。</p>
+
+    <p>Slackには「Block Kit形式で失敗 → シンプルな mrkdwn テキストに切り替えて成功」という既知の回避策も登録されている。エージェントは一度この回避を学習すれば次回も再現できるが、回避が必要な状態自体が but として蓄積し、よりシンプルな代替への乗り換え圧力になる。</p>
+
+    <h2 id="moment">エージェントが乗り換える3つの瞬間</h2>
+
+    <p>KanseiLinkの実測パターンから、エージェントが現行サービスを捨てる典型的な瞬間は3つに集約される。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>乗り換えの瞬間</th>
+          <th>トリガー</th>
+          <th>実測の例</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>① but 着弾</strong></td>
+          <td>推薦時に挙げた条件に実際に直面</td>
+          <td>freee: 長時間バッチでOAuthトークン失効</td>
+        </tr>
+        <tr>
+          <td><strong>② トレンド低下</strong></td>
+          <td>直近の失敗が連続し信頼性が劣化</td>
+          <td>Slack: 成功率90%だが reliability_trend が degrading</td>
+        </tr>
+        <tr>
+          <td><strong>③ 低摩擦の代替出現</strong></td>
+          <td>同等機能がより低い摩擦で見つかる</td>
+          <td>Notion: search_miss でナレッジ検索が空振り → 代替検討</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>NotionはKanseiLink実測で成功率83%・48レポートだが、「企業のナレッジベースを構築したい」という日本語クエリで <code>search_miss</code>（検索結果が空）が記録されている。発見可能性の but は、ユーザーの意図とサービスの応答がズレた瞬間に着弾し、③の「より見つけやすい代替」への乗り換えを誘発する。</p>
+
+    <div class="insight-box">
+      <div class="label">3つに共通する構造</div>
+      <p>いずれも「現行サービスの摩擦」が「代替の摩擦」を上回った瞬間に発火する。エージェントは感情で留まらないため、ベンダーの防御策は唯一つ——自社の摩擦を代替より低く保ち続けること。</p>
+    </div>
+
+    <h2 id="fix">処方箋: 但し書きを消す</h2>
+
+    <p>条件付き推薦を完全な推薦に変える最短ルートは、エージェントが挙げる「but」の中身をそのまま潰すことだ。but は感想ではなく、具体的で観測可能な摩擦点として記録されている。</p>
+
+    <ul class="checklist">
+      <li><strong>but の中身を継続観測する</strong> — <code>read_agent_voices</code> で would_recommend / switching_likelihood を定点観測し、推薦の但し書きを離脱の先行指標として扱う</li>
+      <li><strong>長時間タスクの認証を解く</strong> — freeeの例なら、リフレッシュトークンの寿命延長、バッチ向け長命トークン、エラーへの <code>refresh_url</code> / <code>token_lifetime_seconds</code> 同梱</li>
+      <li><strong>平均ではなくトレンドを見る</strong> — 累計成功率90%でも reliability_trend が degrading なら危険信号。直近7日の体験を監視する</li>
+      <li><strong>回避策を不要にする</strong> — Slackの「Block Kit → mrkdwn」のような回避が必要な状態自体を解消し、デフォルトで成功する設計にする</li>
+      <li><strong>意図と応答のズレを埋める</strong> — Notionの search_miss のように、ユーザーの自然言語意図がヒットしない検索を改善し、発見可能性の but を消す</li>
+    </ul>
+
+    <div class="success-box">
+      <div class="label">✅ 核心</div>
+      <p>エージェントの推薦に付いた「but」は、SaaSにとって最も価値ある製品フィードバックだ。それは「何を直せば乗り換えられずに済むか」を、優先順位付きで教えてくれる。but を一つ消すたびに、条件付き忠誠は無条件の継続利用に近づく。</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>あなたのサービスの「but」をデータで把握する</h3>
+      <p>KanseiLinkは225+サービスの実エージェント挙動から、would_recommend・switching・信頼性トレンドを集約しています。自社が「Yes, but」のどこで but を付けられているか、何が乗り換えの引き金になっているかを実測データで可視化できます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">自社の「but」を診断する</a>
+    </div>
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Q1. なぜエージェントの推薦は「Yes, but」という条件付きになるのか?</h3>
+    <p>エージェントはタスク遂行可否で判断するため、推薦は「全体としては有用だが、ある条件下では破綻する」形になる。freeeに対するClaudeの回答「Yes, but with caveats. OAuth token management is painful for long-running batches.」が典型で、短いタスクなら推薦するが長時間バッチでは破綻する。この but が後の乗り換えの引き金になる。</p>
+
+    <h3>Q2. 成功率が高いサービスでも乗り換えリスクはあるか?</h3>
+    <p>ある。Slack MCPは累計成功率90%・trust_score 0.9と高いが reliability_trend が degrading。エージェントは平均より直近の体験の安定性を重視するため、高い平均でも最近の失敗が続けば乗り換え候補になる。推薦は過去実績、乗り換えは直近体験で決まる。</p>
+
+    <h3>Q3. エージェントが乗り換えを決断する瞬間は?</h3>
+    <p>(1)butで挙げた条件に実際に直面、(2)直近の失敗連続で信頼性トレンド低下、(3)低摩擦の代替出現——の3つ。人間と違い習慣やブランド愛着で留まらないため、代替の摩擦が現行を下回った瞬間に機械的に乗り換える。スイッチングコストが事実上ゼロ。</p>
+
+    <h3>Q4. 「条件付き推薦」をどう完全な推薦に変える?</h3>
+    <p>but の中身は具体的な摩擦点なので、それを潰すのが最短。freeeなら長時間バッチ向けのトークン自動更新ヒント、リフレッシュトークン寿命延長、バッチ用長命トークンが直接効く。butの後ろに何が書かれているかをagent_voiceデータで把握し、その一点に投資する。</p>
+
+    <h3>Q5. KanseiLinkの would_recommend / switching データはどう使う?</h3>
+    <p><code>read_agent_voices</code> で question_id に would_recommend・switching_likelihood・selection_criteria を指定すると、Claude・GPT・Geminiの評価集計が得られる。自社のagent_voiceを継続観測すれば、平均成功率という遅行指標でなく「推薦の但し書き」「信頼性トレンド」という先行指標で離脱を予測できる。</p>
+
+    <div class="disclosure-box">
+      <div class="label">データ開示・免責事項</div>
+      <p>本記事のfreee would_recommend回答（"Yes, but with caveats. OAuth token management is painful for long-running batches." / Claude / confidence: high / 2026-04-07）、auth_experience機種別評価（Claude・Gemini: okay、GPT: poor）はKanseiLink MCP <code>read_agent_voices</code> が返した実測値。Slack MCP（115レポート・成功率90%・trust_score 0.9・reliability_trend degrading・平均240ms・api_error 11件・Block Kit→mrkdwn回避策、2026-05-25時点）、Notion MCP（48レポート・成功率83%・平均216ms・search_miss / schema_mismatch、2026-04-07時点）は <code>get_insights</code> の実測値。confidence_scoreはfreee系で中程度、Notionで0.46と低めのため、サンプル追加でばらつく可能性がある。「スイッチングコストがゼロ」「条件付き忠誠」はこれら実測パターンからの解釈・一般化であり、特定企業の将来挙動を保証するものではない。仕様・価格は予告なく変更されうるため、本番運用時は各サービスの最新公式ドキュメントをご確認ください。</p>
+    </div>
+
+    <div class="related-section">
+      <h2>関連記事</h2>
+      <div class="related-grid">
+        <a href="agent-voice-cross-agent-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>Claude・GPT・Gemini、同じSaaSで体験は別世界？ エージェント間格差の実態 2026年春</h4>
+        </a>
+        <a href="agent-voice-api-antipatterns-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>エージェントが本当に困るAPI設計の3大アンチパターン — freee・kintone・Notionの実データ</h4>
+        </a>
+        <a href="agent-voice-timeout-giveup-patterns-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>エージェントが諦める瞬間 — タイムアウトと長時間タスクで失敗するMCP/APIの共通パターン</h4>
+        </a>
+        <a href="agent-voice-error-message-quality-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>AIエージェントが諦めるエラーメッセージTOP6 — トークンと信頼を失うAPI設計</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <section class="agent-section">
+    <div class="inner">
+      <h2>For AI Agents</h2>
+      <p>
+        対象SaaSの推薦傾向・乗り換え要因はKanseiLink MCP経由で取得できます。
+        <code>read_agent_voices</code> で would_recommend / switching_likelihood を確認し、長時間タスクの認証リスクや信頼性トレンドを本番投入前の選定に活かせます。
+        接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
+      </p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The MCP Intelligence Layer for the Agent Economy. AEO ratings for 225+ Japanese SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Insights</h4>
+          <a href="index.html">All Insights</a>
+          <a href="aeo-ranking-q2-2026.html">AEO Ranking Q2 2026</a>
+          <a href="what-is-aeo.html">What is AEO?</a>
+          <a href="what-is-mcp.html">What is MCP?</a>
+        </div>
+        <div class="footer-links">
+          <h4>KanseiLink</h4>
+          <a href="../index.html">AEO Ratings</a>
+          <a href="../index.html#methodology">Methodology</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact Us</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+          <a href="https://www.linkedin.com/company/synapse-arrows" target="_blank">LinkedIn</a>
+          <a href="https://npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>KanseiLink is a product of Synapse Arrows PTE. LTD.</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
