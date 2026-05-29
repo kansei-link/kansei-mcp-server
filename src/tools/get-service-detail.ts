@@ -48,6 +48,16 @@ function computeFreshness(lastRefreshedAt: string | null): FreshnessMeta {
   };
 }
 
+/**
+ * P2-8: Return the more recent of two nullable date strings.
+ * Used to reconcile service.last_refreshed_at vs guide.updated_at.
+ */
+function mostRecentDate(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return new Date(a) >= new Date(b) ? a : b;
+}
+
 interface GuideRow {
   service_id: string;
   base_url: string;
@@ -154,7 +164,13 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     )
     .all(serviceId) as ChangelogRow[];
 
-  const freshness = computeFreshness(service.last_refreshed_at);
+  // P2-8: Use the most recent of service.last_refreshed_at and guide.updated_at
+  // These update on separate cycles — guide may be newer (endpoint verified) or
+  // service may be newer (trust score recalculated). Show the most optimistic
+  // freshness but expose both dates for transparency.
+  const guideUpdatedAt = guide?.updated_at ?? null;
+  const effectiveRefreshDate = mostRecentDate(service.last_refreshed_at, guideUpdatedAt);
+  const freshness = computeFreshness(effectiveRefreshDate);
 
   if (!guide) {
     return {
@@ -206,6 +222,8 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
       agent_tips: safeJsonParse<string[]>(guide.agent_tips, []),
       docs_url: guide.docs_url,
       updated_at: guide.updated_at,
+      // P2-8: expose service-level refresh date alongside guide update date
+      service_refreshed_at: service.last_refreshed_at,
     },
     recent_changes: recentChanges,
   };

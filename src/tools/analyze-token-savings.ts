@@ -263,7 +263,15 @@ export function register(server: McpServer, db: Database.Database): void {
             tokens: savingsTokens,
             pct: savingsPct,
           },
-          confidence: guide ? "measured (based on actual guide data)" : "estimated (no guide yet, fallback values)",
+          // Keep backward-compatible string; add detail object alongside
+          confidence: guide ? "measured" : "estimated",
+          confidence_detail: {
+            with_kansei: guide ? "measured" : "estimated",
+            without_kansei: "estimated_by_category",
+            note: guide
+              ? "KanseiLink side measured from actual guide data; baseline estimated from category benchmarks."
+              : "Both sides estimated — no guide exists yet, using category averages.",
+          },
         });
       }
 
@@ -327,12 +335,19 @@ export function register(server: McpServer, db: Database.Database): void {
         methodology: {
           token_conversion: `${CHARS_PER_TOKEN} chars per token (mixed JP/EN conservative estimate)`,
           baseline_source: "Benchmarked against freee (14,900 tokens), kintone (20,000-63,600), smarthr (11,400) on 2026-04-16",
+          measurement_types: {
+            with_kansei: "Measured from actual guide content size when guide exists; estimated from category average otherwise.",
+            without_kansei: "Estimated from 3 real benchmarks (freee/kintone/smarthr), scaled by category. Not individually measured per service.",
+          },
           limitations: [
-            "Actual token counts vary by model tokenizer",
-            "Web-fetch estimates scale by service category — individual services may differ",
+            "Actual token counts vary by model tokenizer (cl100k_base vs o200k_base differ ~15%)",
+            "Web-fetch estimates are category-level extrapolations from 3 benchmarks — individual services may differ significantly",
+            "SPA-heavy doc sites (like kintone) cause 2-5x variance within the same category",
             "Does not measure tool definition overhead (already handled by MCP Tool Search in Claude Code)",
             "Does not include conversation context accumulation costs",
+            "Trial-and-error cost estimates assume 1 retry cycle — complex auth flows may require 2-3x more",
           ],
+          improving_accuracy: "To get measured (not estimated) baselines for a specific service, run the benchmark suite: benchmarks/run-token-benchmark.ts",
           full_benchmark: "C:/Users/HP/KanseiLINK/benchmarks/step1-api-doc-cache.md",
         },
       };

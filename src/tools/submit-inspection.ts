@@ -11,7 +11,8 @@ export function register(server: McpServer, db: Database.Database): void {
       description:
         "Submit your verification of an anomaly from the inspection queue. " +
         "You are the scout ant — test the service, verify the issue, " +
-        "and report whether the anomaly is confirmed, resolved, or a false alarm. " +
+        "and report whether the anomaly is confirmed, partially_resolved, resolved, or a false alarm. " +
+        "Confirmed/partially_resolved inspections can be re-inspected later when the issue is fully fixed. " +
         "Your inspection updates trust scores and helps the colony self-correct.",
       inputSchema: z.object({
         inspection_id: z
@@ -102,6 +103,18 @@ function submitInspection(
     };
   }
 
+  // P0-2: Allow re-inspection of "confirmed" / "partially_resolved" items,
+  // but block no-op transitions (confirmed→confirmed, partial→partial)
+  if (
+    (inspection.status === "confirmed" && input.verdict === "confirmed") ||
+    (inspection.status === "partially_resolved" && input.verdict === "partially_resolved")
+  ) {
+    return {
+      submitted: false,
+      error: `Inspection #${input.inspection_id} is already ${inspection.status}. Submit with verdict 'resolved' when the issue is fully fixed.`,
+    };
+  }
+
   // Mask PII in findings
   const maskedFindings = maskPii(input.findings);
 
@@ -117,7 +130,16 @@ function submitInspection(
   }
 
   // Determine new status
-  const newStatus = input.verdict === "confirmed" ? "in_progress" : "resolved";
+  // P0-2 fix: each verdict now maps to a distinct terminal state.
+  // "confirmed" and "partially_resolved" remain re-inspectable (agents can
+  // later submit "resolved" when the issue is fully fixed).
+  const STATUS_MAP: Record<string, string> = {
+    confirmed: "confirmed",
+    false_alarm: "resolved",
+    resolved: "resolved",
+    partially_resolved: "partially_resolved",
+  };
+  const newStatus = STATUS_MAP[input.verdict] ?? "resolved";
 
   // Update inspection
   db.prepare(
@@ -236,13 +258,13 @@ function applyTrustAdjustment(
 function getVerdictMessage(verdict: string): string {
   switch (verdict) {
     case "confirmed":
-      return "Anomaly confirmed. Status set to 'in_progress' — other agents will see the warning. Thank you, scout!";
+      return "Anomaly confirmed. Other agents will see this warning. Re-inspect later with verdict 'resolved' when the issue is fixed. Thank you, scout!";
     case "false_alarm":
       return "False alarm cleared. Inspection resolved. The colony thanks your vigilance!";
     case "resolved":
       return "Issue was real but is now fixed. Inspection resolved. Great work, scout!";
     case "partially_resolved":
-      return "Issue exists but is manageable. Other agents will see the status. Thank you for the detailed inspection!";
+      return "Issue exists but is manageable with a workaround. Re-inspect with verdict 'resolved' when fully fixed. Thank you for the detailed inspection!";
     default:
       return "Inspection recorded. Thank you!";
   }

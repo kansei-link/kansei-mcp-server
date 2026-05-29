@@ -17,19 +17,21 @@ interface ErrorRow {
   count: number;
 }
 
-interface WorkaroundRow {
-  error_type: string;
-  workaround: string;
-  count: number;
-}
-
 interface TrendRow {
   period: string;
   calls: number;
 }
 
 interface RecentSuccessRow {
-  success_rate: number;
+  success_rate: number | null;
+}
+
+interface WorkaroundAgeRow {
+  error_type: string;
+  workaround: string;
+  count: number;
+  oldest_days: number;
+  newest_days: number;
 }
 
 export function register(server: McpServer, db: Database.Database): void {
@@ -113,24 +115,30 @@ export function getInsights(db: Database.Database, serviceId: string): object {
     )
     .all(serviceId) as ErrorRow[];
 
-  // Workarounds: most reported solutions per error type
+  // Workarounds: most reported solutions per error type (with age for staleness — P1-7)
   const workarounds = db
     .prepare(
-      `SELECT error_type, workaround, count(*) as count
+      `SELECT error_type, workaround, count(*) as count,
+              CAST(julianday('now') - julianday(MIN(created_at)) AS INTEGER) as oldest_days,
+              CAST(julianday('now') - julianday(MAX(created_at)) AS INTEGER) as newest_days
        FROM outcomes
        WHERE service_id = ? AND workaround IS NOT NULL
        GROUP BY error_type, workaround
        ORDER BY count DESC
        LIMIT 10`
     )
-    .all(serviceId) as WorkaroundRow[];
+    .all(serviceId) as WorkaroundAgeRow[];
 
   // Recent success rate (last 7 days) for trend comparison
+  // P0-1 fix: Explicit CASE handles only known values (1=success, 0=failure).
+  // Rows with NULL success are excluded from the average (AVG skips NULLs).
+  // HAVING COUNT(*) > 0 returns no row (→ undefined) when no recent outcomes.
   const recentSuccess = db
     .prepare(
-      `SELECT avg(success) as success_rate
+      `SELECT AVG(CASE WHEN success = 1 THEN 1.0 WHEN success = 0 THEN 0.0 END) as success_rate
        FROM outcomes
-       WHERE service_id = ? AND created_at >= datetime('now', '-7 days')`
+       WHERE service_id = ? AND created_at >= datetime('now', '-7 days')
+       HAVING COUNT(*) > 0`
     )
     .get(serviceId) as RecentSuccessRow | undefined;
 
@@ -163,20 +171,31 @@ export function getInsights(db: Database.Database, serviceId: string): object {
   }
 
   // Build error details with workarounds + verification signals
+  // P1-7: verification now decays with age — workarounds older than 90 days
+  // without re-verification get downgraded to "stale"
   const VERIFICATION_THRESHOLD = 2;
+  const STALENESS_DAYS = 90;
   const errorDetails = errors.map((e) => {
     const fixes = workarounds
       .filter((w) => w.error_type === e.error_type)
       .map((w) => {
-        const verification = w.count >= VERIFICATION_THRESHOLD * 2
-          ? "confirmed"
-          : w.count >= VERIFICATION_THRESHOLD
-            ? "verified"
-            : "unverified";
+        let verification: string;
+        const isStale = w.newest_days > STALENESS_DAYS;
+        if (isStale) {
+          // No recent re-verification — downgrade regardless of count
+          verification = "stale";
+        } else if (w.count >= VERIFICATION_THRESHOLD * 2) {
+          verification = "confirmed";
+        } else if (w.count >= VERIFICATION_THRESHOLD) {
+          verification = "verified";
+        } else {
+          verification = "unverified";
+        }
         return {
           fix: w.workaround,
           reported_count: w.count,
           verification,
+          ...(isStale ? { last_verified_days_ago: w.newest_days } : {}),
         };
       });
     return {
@@ -193,8 +212,8 @@ export function getInsights(db: Database.Database, serviceId: string): object {
     stats.last_updated
   );
 
-  // Determine reliability trend
-  const recentRate = recentSuccess?.success_rate;
+  // Determine reliability trend — P0-1: safely handle null/undefined recentRate
+  const recentRate = recentSuccess?.success_rate ?? null;
   let reliabilityTrend: string;
   if (recentRate == null) {
     reliabilityTrend = "no_recent_data";
@@ -204,6 +223,25 @@ export function getInsights(db: Database.Database, serviceId: string): object {
     reliabilityTrend = "degrading";
   } else {
     reliabilityTrend = "stable";
+  }
+
+  // P0-3: Data quality warnings — flag single-source bias and other concerns
+  const LOW_DIVERSITY_THRESHOLD = 2;
+  const LOW_SAMPLE_THRESHOLD = 5;
+  const dataQualityWarnings: string[] = [];
+  if (stats.unique_agents === 1) {
+    dataQualityWarnings.push(
+      "Single-agent data: all reports are from one agent. Success rate may not generalize."
+    );
+  } else if (stats.unique_agents <= LOW_DIVERSITY_THRESHOLD) {
+    dataQualityWarnings.push(
+      "Low agent diversity: only " + stats.unique_agents + " agents reported. Interpret with caution."
+    );
+  }
+  if (stats.total_calls < LOW_SAMPLE_THRESHOLD) {
+    dataQualityWarnings.push(
+      "Low sample size: only " + stats.total_calls + " total reports. Data may not be representative."
+    );
   }
 
   return {
@@ -222,5 +260,6 @@ export function getInsights(db: Database.Database, serviceId: string): object {
     usage_details: { recent_7d: recentCalls, previous_7d: previousCalls },
     confidence_score: Math.round(confidence * 100) / 100,
     last_updated: stats.last_updated,
+    ...(dataQualityWarnings.length > 0 ? { data_quality_warnings: dataQualityWarnings } : {}),
   };
 }

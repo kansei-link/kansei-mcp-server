@@ -167,6 +167,15 @@ export function getRecipes(
           ? Math.round((coveredCount / requiredServices.length) * 100)
           : null;
 
+      // P1-4: When services param not provided, explain why coverage is null
+      // instead of returning silent nulls that confuse agents
+      const coverageInfo = availableSet.size > 0
+        ? { coverage_percent: coverage }
+        : {
+            coverage_percent: null,
+            coverage_hint: "Pass 'services' parameter with your available service IDs to calculate coverage.",
+          };
+
       return {
         recipe_id: recipe.id,
         goal: recipe.goal,
@@ -177,7 +186,7 @@ export function getRecipes(
           name: getService(id)?.name ?? id,
           available: availableSet.size > 0 ? availableSet.has(id) : null,
         })),
-        coverage_percent: coverage,
+        ...coverageInfo,
         gotchas,
       };
     })

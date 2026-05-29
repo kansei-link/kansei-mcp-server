@@ -524,6 +524,14 @@ const INTENT_CATEGORY_MAP: Record<string, string[]> = {
   "SNS":         ["marketing"],
   "ソーシャル":  ["marketing"],
 
+  // P1-5: Missing CJK intent keywords
+  "データ連携":    ["data_integration"],
+  "システム開発":  ["developer_tools"],
+  "給与計算":      ["accounting", "hr"],
+  "ノーコード開発": ["project_management", "data_integration"],
+  "基幹システム":  ["data_integration", "accounting"],
+  "業務システム":  ["data_integration", "project_management"],
+
   // Ambiguous / cross-domain concepts (曖昧クエリ対応)
   "ペーパーレス":  ["legal", "accounting"],
   "リモートワーク": ["communication", "groupware"],
