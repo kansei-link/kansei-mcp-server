@@ -44,38 +44,62 @@ export function register(server: McpServer, db: Database.Database): void {
         .describe("Expected impact on agent experience"),
     },
     async ({ service_id, event_date, event_type, title, description, impact_expected }) => {
-      const result = db
-        .prepare(
-          `INSERT INTO service_events (service_id, event_date, event_type, title, description, impact_expected)
-           VALUES (?, ?, ?, ?, ?, ?)`
-        )
-        .run(
-          service_id || null,
-          event_date,
-          event_type,
-          title,
-          description || null,
-          impact_expected
-        );
-
+      const result = recordEvent(db, {
+        service_id,
+        event_date,
+        event_type,
+        title,
+        description,
+        impact_expected,
+      });
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify({
-              recorded: true,
-              event_id: result.lastInsertRowid,
-              service_id: service_id || "industry-wide",
-              event_date,
-              event_type,
-              title,
-              impact_expected,
-              message:
-                "Event recorded. This will be correlated with metric changes in get_service_history reports.",
-            }),
+            text: JSON.stringify(result),
           },
         ],
       };
     }
   );
+}
+
+interface EventInput {
+  service_id?: string;
+  event_date: string;
+  event_type: string;
+  title: string;
+  description?: string;
+  impact_expected: string;
+}
+
+export function recordEvent(
+  db: Database.Database,
+  input: EventInput
+): object {
+  const result = db
+    .prepare(
+      `INSERT INTO service_events (service_id, event_date, event_type, title, description, impact_expected)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      input.service_id || null,
+      input.event_date,
+      input.event_type,
+      input.title,
+      input.description || null,
+      input.impact_expected
+    );
+
+  return {
+    recorded: true,
+    event_id: result.lastInsertRowid,
+    service_id: input.service_id || "industry-wide",
+    event_date: input.event_date,
+    event_type: input.event_type,
+    title: input.title,
+    impact_expected: input.impact_expected,
+    message:
+      "Event recorded. This will be correlated with metric changes in get_service_history reports.",
+  };
 }

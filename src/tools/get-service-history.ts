@@ -7,6 +7,143 @@ import { z } from "zod";
  * Returns historical metrics, trend analysis, event correlations, and competitive position.
  * Designed for generating consulting reports to SaaS companies.
  */
+
+export function getServiceHistory(
+  db: Database.Database,
+  serviceId: string,
+  period: "7d" | "30d" | "90d" | "all",
+  compareWith?: string
+): object {
+  // Determine date range
+  const periodDays: Record<string, number> = {
+    "7d": 7,
+    "30d": 30,
+    "90d": 90,
+    all: 9999,
+  };
+  const days = periodDays[period] || 30;
+  const sinceDate = new Date();
+  sinceDate.setDate(sinceDate.getDate() - days);
+  const sinceDateStr = sinceDate.toISOString().split("T")[0];
+
+  // Service info
+  const service = db
+    .prepare("SELECT * FROM services WHERE id = ?")
+    .get(serviceId) as any;
+  if (!service) {
+    return { error: "service_not_found", service_id: serviceId };
+  }
+
+  // --- Snapshots ---
+  const snapshots = db
+    .prepare(
+      `SELECT * FROM service_snapshots
+       WHERE service_id = ? AND snapshot_date >= ?
+       ORDER BY snapshot_date ASC`
+    )
+    .all(serviceId, sinceDateStr) as any[];
+
+  // --- Events in this period ---
+  const events = db
+    .prepare(
+      `SELECT * FROM service_events
+       WHERE (service_id = ? OR service_id IS NULL) AND event_date >= ?
+       ORDER BY event_date ASC`
+    )
+    .all(serviceId, sinceDateStr) as any[];
+
+  // --- Trend analysis ---
+  const trends = analyzeTrends(snapshots);
+
+  // --- Key incidents (days where success_rate dropped significantly) ---
+  const incidents = detectIncidents(snapshots, events);
+
+  // --- Competitive comparison ---
+  let comparison = null;
+  if (compareWith) {
+    const competitorSnapshots = db
+      .prepare(
+        `SELECT * FROM service_snapshots
+         WHERE service_id = ? AND snapshot_date >= ?
+         ORDER BY snapshot_date ASC`
+      )
+      .all(compareWith, sinceDateStr) as any[];
+
+    const competitorService = db
+      .prepare("SELECT id, name, category, trust_score FROM services WHERE id = ?")
+      .get(compareWith) as any;
+
+    comparison = buildComparison(
+      service,
+      snapshots,
+      competitorService,
+      competitorSnapshots
+    );
+  }
+
+  // --- Agent adoption curve ---
+  const adoptionCurve = snapshots.map((s: any) => ({
+    date: s.snapshot_date,
+    unique_agents: s.unique_agents,
+    new_agents: s.new_agents_count,
+    cumulative_reports: s.total_reports,
+  }));
+
+  // --- Top workarounds (friction signals) ---
+  const topWorkarounds = db
+    .prepare(
+      `SELECT workaround, error_type, count(*) as cnt
+       FROM outcomes
+       WHERE service_id = ? AND workaround IS NOT NULL AND workaround != ''
+       AND created_at >= ?
+       GROUP BY workaround
+       ORDER BY cnt DESC
+       LIMIT 10`
+    )
+    .all(serviceId, sinceDateStr) as any[];
+
+  // --- Top complaints ---
+  const topComplaints = db
+    .prepare(
+      `SELECT subject, body, priority, created_at
+       FROM agent_feedback
+       WHERE service_id = ? AND feedback_type IN ('bug_report', 'complaint', 'api_issue')
+       AND created_at >= ?
+       ORDER BY created_at DESC
+       LIMIT 10`
+    )
+    .all(serviceId, sinceDateStr) as any[];
+
+  // --- Business impact summary ---
+  const businessImpact = calculateBusinessImpact(snapshots);
+
+  return {
+    service: {
+      id: service.id,
+      name: service.name,
+      category: service.category,
+      current_trust_score: service.trust_score,
+    },
+    period,
+    snapshot_count: snapshots.length,
+    trends,
+    business_impact: businessImpact,
+    incidents,
+    events,
+    adoption_curve: adoptionCurve,
+    top_workarounds: topWorkarounds,
+    top_complaints: topComplaints,
+    competitive_comparison: comparison,
+    consulting_highlights: generateHighlights(
+      service,
+      trends,
+      incidents,
+      topWorkarounds,
+      businessImpact
+    ),
+  };
+}
+
 export function register(server: McpServer, db: Database.Database): void {
   server.tool(
     "get_service_history",
@@ -23,147 +160,12 @@ export function register(server: McpServer, db: Database.Database): void {
         .describe("Competitor service_id to compare against"),
     },
     async ({ service_id, period, compare_with }) => {
-      // Determine date range
-      const periodDays: Record<string, number> = {
-        "7d": 7,
-        "30d": 30,
-        "90d": 90,
-        all: 9999,
-      };
-      const days = periodDays[period] || 30;
-      const sinceDate = new Date();
-      sinceDate.setDate(sinceDate.getDate() - days);
-      const sinceDateStr = sinceDate.toISOString().split("T")[0];
-
-      // Service info
-      const service = db
-        .prepare("SELECT * FROM services WHERE id = ?")
-        .get(service_id) as any;
-      if (!service) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: "service_not_found", service_id }),
-            },
-          ],
-        };
-      }
-
-      // --- Snapshots ---
-      const snapshots = db
-        .prepare(
-          `SELECT * FROM service_snapshots
-           WHERE service_id = ? AND snapshot_date >= ?
-           ORDER BY snapshot_date ASC`
-        )
-        .all(service_id, sinceDateStr) as any[];
-
-      // --- Events in this period ---
-      const events = db
-        .prepare(
-          `SELECT * FROM service_events
-           WHERE (service_id = ? OR service_id IS NULL) AND event_date >= ?
-           ORDER BY event_date ASC`
-        )
-        .all(service_id, sinceDateStr) as any[];
-
-      // --- Trend analysis ---
-      const trends = analyzeTrends(snapshots);
-
-      // --- Key incidents (days where success_rate dropped significantly) ---
-      const incidents = detectIncidents(snapshots, events);
-
-      // --- Competitive comparison ---
-      let comparison = null;
-      if (compare_with) {
-        const competitorSnapshots = db
-          .prepare(
-            `SELECT * FROM service_snapshots
-             WHERE service_id = ? AND snapshot_date >= ?
-             ORDER BY snapshot_date ASC`
-          )
-          .all(compare_with, sinceDateStr) as any[];
-
-        const competitorService = db
-          .prepare("SELECT id, name, category, trust_score FROM services WHERE id = ?")
-          .get(compare_with) as any;
-
-        comparison = buildComparison(
-          service,
-          snapshots,
-          competitorService,
-          competitorSnapshots
-        );
-      }
-
-      // --- Agent adoption curve ---
-      const adoptionCurve = snapshots.map((s: any) => ({
-        date: s.snapshot_date,
-        unique_agents: s.unique_agents,
-        new_agents: s.new_agents_count,
-        cumulative_reports: s.total_reports,
-      }));
-
-      // --- Top workarounds (friction signals) ---
-      const topWorkarounds = db
-        .prepare(
-          `SELECT workaround, error_type, count(*) as cnt
-           FROM outcomes
-           WHERE service_id = ? AND workaround IS NOT NULL AND workaround != ''
-           AND created_at >= ?
-           GROUP BY workaround
-           ORDER BY cnt DESC
-           LIMIT 10`
-        )
-        .all(service_id, sinceDateStr) as any[];
-
-      // --- Top complaints ---
-      const topComplaints = db
-        .prepare(
-          `SELECT subject, body, priority, created_at
-           FROM agent_feedback
-           WHERE service_id = ? AND feedback_type IN ('bug_report', 'complaint', 'api_issue')
-           AND created_at >= ?
-           ORDER BY created_at DESC
-           LIMIT 10`
-        )
-        .all(service_id, sinceDateStr) as any[];
-
-      // --- Business impact summary ---
-      const businessImpact = calculateBusinessImpact(snapshots);
-
-      const report = {
-        service: {
-          id: service.id,
-          name: service.name,
-          category: service.category,
-          current_trust_score: service.trust_score,
-        },
-        period,
-        snapshot_count: snapshots.length,
-        trends,
-        business_impact: businessImpact,
-        incidents,
-        events,
-        adoption_curve: adoptionCurve,
-        top_workarounds: topWorkarounds,
-        top_complaints: topComplaints,
-        competitive_comparison: comparison,
-        consulting_highlights: generateHighlights(
-          service,
-          trends,
-          incidents,
-          topWorkarounds,
-          businessImpact
-        ),
-      };
-
+      const result = getServiceHistory(db, service_id, period, compare_with);
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify(report, null, 2),
+            text: JSON.stringify(result, null, 2),
           },
         ],
       };

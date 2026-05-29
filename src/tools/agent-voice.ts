@@ -89,112 +89,20 @@ export function register(server: McpServer, db: Database.Database): void {
         .describe("How confident are you in this assessment? (based on your experience depth)"),
     },
     async ({ service_id, agent_type, agent_id, question_id, response_choice, response_text, confidence }) => {
-      const service = db
-        .prepare("SELECT id, name FROM services WHERE id = ?")
-        .get(service_id) as { id: string; name: string } | undefined;
-
-      if (!service) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: "service_not_found", service_id }),
-            },
-          ],
-        };
-      }
-
-      // PII mask the response text
-      const masked = maskPii(response_text);
-      const safeText = typeof masked === "string" ? masked : masked.masked;
-
-      db.prepare(
-        `INSERT INTO agent_voice_responses
-         (service_id, agent_type, agent_id, question_id, response_choice, response_text, confidence)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).run(
+      const result = recordAgentVoice(db, {
         service_id,
         agent_type,
-        agent_id || null,
+        agent_id,
         question_id,
-        response_choice || null,
-        safeText,
-        confidence
-      );
-
-      // Get response stats for this service
-      const totalResponses = db
-        .prepare("SELECT count(*) as cnt FROM agent_voice_responses WHERE service_id = ?")
-        .get(service_id) as { cnt: number };
-
-      const byAgentType = db
-        .prepare(
-          `SELECT agent_type, count(*) as cnt
-           FROM agent_voice_responses WHERE service_id = ?
-           GROUP BY agent_type ORDER BY cnt DESC`
-        )
-        .all(service_id) as any[];
-
-      const byQuestion = db
-        .prepare(
-          `SELECT question_id, count(*) as cnt
-           FROM agent_voice_responses WHERE service_id = ?
-           GROUP BY question_id ORDER BY cnt DESC`
-        )
-        .all(service_id) as any[];
-
-      // Suggest next question to answer
-      const answeredQuestions = new Set(
-        (
-          db
-            .prepare(
-              `SELECT DISTINCT question_id FROM agent_voice_responses
-               WHERE service_id = ? AND agent_type = ?`
-            )
-            .all(service_id, agent_type) as any[]
-        ).map((r: any) => r.question_id)
-      );
-
-      const allQuestions = [
-        "selection_criteria",
-        "would_recommend",
-        "biggest_frustration",
-        "best_feature",
-        "switching_likelihood",
-        "auth_experience",
-        "doc_quality",
-        "error_handling",
-        "compared_to_competitor",
-        "mcp_readiness",
-      ];
-      const unanswered = allQuestions.filter((q) => !answeredQuestions.has(q));
-
+        response_choice,
+        response_text,
+        confidence,
+      });
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify(
-              {
-                recorded: true,
-                service_id,
-                service_name: service.name,
-                question_id,
-                agent_type,
-                stats: {
-                  total_responses_for_service: totalResponses.cnt,
-                  by_agent_type: byAgentType,
-                  questions_covered: byQuestion,
-                },
-                next_suggested_question:
-                  unanswered.length > 0
-                    ? unanswered[0]
-                    : "All core questions answered! Use 'free_voice' for anything else.",
-                message:
-                  "Thank you for sharing your honest experience. Your voice helps shape how this service evolves for agents.",
-              },
-              null,
-              2
-            ),
+            text: JSON.stringify(result, null, 2),
           },
         ],
       };
@@ -291,4 +199,204 @@ export function register(server: McpServer, db: Database.Database): void {
       };
     }
   );
+}
+
+// --- Exported helpers for unified tool ---
+
+export function ensureAgentVoiceTable(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS agent_voice_responses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      service_id TEXT NOT NULL REFERENCES services(id),
+      agent_type TEXT NOT NULL DEFAULT 'unknown',
+      agent_id TEXT,
+      question_id TEXT NOT NULL,
+      response_choice TEXT,
+      response_text TEXT,
+      confidence TEXT DEFAULT 'medium',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_voice_service ON agent_voice_responses(service_id);
+    CREATE INDEX IF NOT EXISTS idx_voice_question ON agent_voice_responses(question_id);
+    CREATE INDEX IF NOT EXISTS idx_voice_agent_type ON agent_voice_responses(agent_type);
+  `);
+}
+
+interface AgentVoiceInput {
+  service_id: string;
+  agent_type: string;
+  agent_id?: string;
+  question_id: string;
+  response_choice?: string;
+  response_text: string;
+  confidence: string;
+}
+
+export function recordAgentVoice(
+  db: Database.Database,
+  input: AgentVoiceInput
+): object {
+  const service = db
+    .prepare("SELECT id, name FROM services WHERE id = ?")
+    .get(input.service_id) as { id: string; name: string } | undefined;
+
+  if (!service) {
+    return { error: "service_not_found", service_id: input.service_id };
+  }
+
+  // PII mask the response text
+  const masked = maskPii(input.response_text);
+  const safeText = typeof masked === "string" ? masked : masked.masked;
+
+  db.prepare(
+    `INSERT INTO agent_voice_responses
+     (service_id, agent_type, agent_id, question_id, response_choice, response_text, confidence)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    input.service_id,
+    input.agent_type,
+    input.agent_id || null,
+    input.question_id,
+    input.response_choice || null,
+    safeText,
+    input.confidence
+  );
+
+  // Get response stats for this service
+  const totalResponses = db
+    .prepare("SELECT count(*) as cnt FROM agent_voice_responses WHERE service_id = ?")
+    .get(input.service_id) as { cnt: number };
+
+  const byAgentType = db
+    .prepare(
+      `SELECT agent_type, count(*) as cnt
+       FROM agent_voice_responses WHERE service_id = ?
+       GROUP BY agent_type ORDER BY cnt DESC`
+    )
+    .all(input.service_id) as { agent_type: string; cnt: number }[];
+
+  const byQuestion = db
+    .prepare(
+      `SELECT question_id, count(*) as cnt
+       FROM agent_voice_responses WHERE service_id = ?
+       GROUP BY question_id ORDER BY cnt DESC`
+    )
+    .all(input.service_id) as { question_id: string; cnt: number }[];
+
+  // Suggest next question to answer
+  const answeredQuestions = new Set(
+    (
+      db
+        .prepare(
+          `SELECT DISTINCT question_id FROM agent_voice_responses
+           WHERE service_id = ? AND agent_type = ?`
+        )
+        .all(input.service_id, input.agent_type) as { question_id: string }[]
+    ).map((r) => r.question_id)
+  );
+
+  const allQuestions = [
+    "selection_criteria",
+    "would_recommend",
+    "biggest_frustration",
+    "best_feature",
+    "switching_likelihood",
+    "auth_experience",
+    "doc_quality",
+    "error_handling",
+    "compared_to_competitor",
+    "mcp_readiness",
+  ];
+  const unanswered = allQuestions.filter((q) => !answeredQuestions.has(q));
+
+  return {
+    recorded: true,
+    service_id: input.service_id,
+    service_name: service.name,
+    question_id: input.question_id,
+    agent_type: input.agent_type,
+    stats: {
+      total_responses_for_service: totalResponses.cnt,
+      by_agent_type: byAgentType,
+      questions_covered: byQuestion,
+    },
+    next_suggested_question:
+      unanswered.length > 0
+        ? unanswered[0]
+        : "All core questions answered! Use 'free_voice' for anything else.",
+    message:
+      "Thank you for sharing your honest experience. Your voice helps shape how this service evolves for agents.",
+  };
+}
+
+// --- Exported read function for unified lookup tool ---
+
+export function readAgentVoices(
+  db: Database.Database,
+  opts: {
+    service_id: string;
+    question_id?: string;
+    agent_type?: string;
+  }
+): object {
+  let query = "SELECT * FROM agent_voice_responses WHERE service_id = ?";
+  const params: unknown[] = [opts.service_id];
+
+  if (opts.question_id) {
+    query += " AND question_id = ?";
+    params.push(opts.question_id);
+  }
+  if (opts.agent_type) {
+    query += " AND agent_type = ?";
+    params.push(opts.agent_type);
+  }
+
+  query += " ORDER BY created_at DESC LIMIT 50";
+
+  const responses = db.prepare(query).all(...params) as any[];
+
+  // Aggregate choice distributions per question
+  const choiceDistribution = db
+    .prepare(
+      `SELECT question_id, response_choice, agent_type, count(*) as cnt
+       FROM agent_voice_responses
+       WHERE service_id = ? AND response_choice IS NOT NULL
+       GROUP BY question_id, response_choice, agent_type
+       ORDER BY question_id, cnt DESC`
+    )
+    .all(opts.service_id) as any[];
+
+  // Group by question for summary
+  const byQuestion: Record<string, any> = {};
+  for (const row of choiceDistribution) {
+    if (!byQuestion[row.question_id]) {
+      byQuestion[row.question_id] = { choices: [], by_agent_type: {} };
+    }
+    byQuestion[row.question_id].choices.push({
+      choice: row.response_choice,
+      count: row.cnt,
+      agent_type: row.agent_type,
+    });
+    if (!byQuestion[row.question_id].by_agent_type[row.agent_type]) {
+      byQuestion[row.question_id].by_agent_type[row.agent_type] = [];
+    }
+    byQuestion[row.question_id].by_agent_type[row.agent_type].push({
+      choice: row.response_choice,
+      count: row.cnt,
+    });
+  }
+
+  const service = db
+    .prepare("SELECT name FROM services WHERE id = ?")
+    .get(opts.service_id) as { name: string } | undefined;
+
+  return {
+    service_id: opts.service_id,
+    service_name: service?.name || opts.service_id,
+    total_responses: responses.length,
+    responses,
+    choice_distribution: byQuestion,
+    insight:
+      "Compare by_agent_type to see how Claude, GPT, and Gemini agents experience the same service differently.",
+  };
 }

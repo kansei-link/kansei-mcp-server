@@ -1302,11 +1302,11 @@ function buildNextToolSuggestion(
 ): NextToolSuggestion {
   if (!top || resultCount === 0) {
     return {
-      tool: "submit_feedback",
+      tool: "report",
       args: {
-        type: "missing_data",
         subject: "service not found for this intent",
         body: "<paste the user's intent here>",
+        feedback_type: "missing_data",
       },
       reason:
         "No results — file a missing_data report so the service gets added to the DB.",
@@ -1315,10 +1315,10 @@ function buildNextToolSuggestion(
   }
 
   return {
-    tool: "get_service_tips",
+    tool: "lookup",
     args: { service_id: top.service_id },
     reason: `Next step: pull ${top.name}'s agent_tips, pitfalls, auth setup, and recent reliability data before calling its API. This saves 91-96% tokens vs web_fetching the docs.`,
     flow_position:
-      "2 of 4 in the standard flow: search_services → get_service_tips → (execute the API) → report_outcome",
+      "2 of 3 in the standard flow: search_services → lookup → (execute the API) → report",
   };
 }
