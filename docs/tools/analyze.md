@@ -17,13 +17,9 @@ This is primarily an admin/operator tool used for business intelligence and cont
 
 Quantify how many tokens agents save by using KanseiLink's pre-verified data versus trial-and-error with raw API docs.
 
-<ParamField path="services" type="string[]">
-  List of service IDs to analyze (e.g., `["freee", "kintone"]`). Omit to analyze the top 10 most-used services.
-</ParamField>
+**`services`** (string[]): List of service IDs to analyze (e.g., `["freee", "kintone"]`). Omit to analyze the top 10 most-used services.
 
-<ParamField path="task" type="string">
-  Optional task context (e.g., `"create invoice in freee"`) to tailor the analysis.
-</ParamField>
+**`task`** (string): Optional task context (e.g., `"create invoice in freee"`) to tailor the analysis.
 
 #### Example
 
@@ -44,21 +40,13 @@ analyze({
 
 Audit agent costs across services. Returns cost breakdowns and optimization recommendations sorted by impact.
 
-<ParamField path="cost_service_id" type="string">
-  Audit a specific service, or omit for all services. Triggers cost mode.
-</ParamField>
+**`cost_service_id`** (string): Audit a specific service, or omit for all services. Triggers cost mode.
 
-<ParamField path="period_days" type="integer" default={30}>
-  Analysis period in days. Default: 30.
-</ParamField>
+**`period_days`** (integer, default: 30): Analysis period in days. Default: 30.
 
-<ParamField path="top_n" type="integer" default={10}>
-  Max recommendations to return (default: 10, max: 50). Sorted by priority (high first) then by `monthly_savings_usd` descending.
-</ParamField>
+**`top_n`** (integer, default: 10): Max recommendations to return (default: 10, max: 50). Sorted by priority (high first) then by `monthly_savings_usd` descending.
 
-<ParamField path="min_priority" type="enum" default="low">
-  Minimum priority level to include: `"high"` returns only impactful recommendations, `"low"` returns everything. Default: `"low"`.
-</ParamField>
+**`min_priority`** (enum, default: "low"): Minimum priority level to include: `"high"` returns only impactful recommendations, `"low"` returns everything. Default: `"low"`.
 
 #### Example
 
@@ -82,21 +70,13 @@ analyze({
 
 Generate an AEO (Agent Experience Optimization) report with scores and rankings for services. Used for consulting deliverables and vendor feedback.
 
-<ParamField path="aeo_service_id" type="string">
-  Filter by service ID. Triggers aeo_report mode when present (without article-specific params).
-</ParamField>
+**`aeo_service_id`** (string): Filter by service ID. Triggers aeo_report mode when present (without article-specific params).
 
-<ParamField path="category" type="string">
-  Filter by category (e.g., `"accounting"`, `"hr"`, `"crm"`). When used alone (without `aeo_service_id`), triggers token_savings mode instead.
-</ParamField>
+**`category`** (string): Filter by category (e.g., `"accounting"`, `"hr"`, `"crm"`). When used alone (without `aeo_service_id`), triggers token_savings mode instead.
 
-<ParamField path="aeo_top_n" type="number" default={20}>
-  Number of top services to return. Default: 20.
-</ParamField>
+**`aeo_top_n`** (number, default: 20): Number of top services to return. Default: 20.
 
-<ParamField path="include_recommendations" type="boolean" default={true}>
-  Include improvement recommendations per service. Default: true.
-</ParamField>
+**`include_recommendations`** (boolean, default: true): Include improvement recommendations per service. Default: true.
 
 #### Example
 
@@ -119,29 +99,17 @@ analyze({
 
 Generate a publishable AEO ranking article with category deep-dives. Outputs in markdown or JSON format.
 
-<ParamField path="article_type" type="string">
-  Article type hint. Triggers aeo_article mode when present.
-</ParamField>
+**`article_type`** (string): Article type hint. Triggers aeo_article mode when present.
 
-<ParamField path="target_keyword" type="string">
-  Target keyword for the article. Triggers aeo_article mode when present.
-</ParamField>
+**`target_keyword`** (string): Target keyword for the article. Triggers aeo_article mode when present.
 
-<ParamField path="quarter" type="string" default="Q2 2026">
-  Report period label (e.g., `"Q2 2026"`, `"2026年上半期"`). Default: `"Q2 2026"`.
-</ParamField>
+**`quarter`** (string, default: "Q2 2026"): Report period label (e.g., `"Q2 2026"`, `"2026年上半期"`). Default: `"Q2 2026"`.
 
-<ParamField path="format" type="enum" default="markdown">
-  Output format: `"markdown"` for blog/press releases, `"json"` for API embedding. Default: `"markdown"`.
-</ParamField>
+**`format`** (enum, default: "markdown"): Output format: `"markdown"` for blog/press releases, `"json"` for API embedding. Default: `"markdown"`.
 
-<ParamField path="article_top_n" type="number" default={20}>
-  Number of services in the overall ranking table. Default: 20.
-</ParamField>
+**`article_top_n`** (number, default: 20): Number of services in the overall ranking table. Default: 20.
 
-<ParamField path="categories" type="string[]">
-  Focus categories for deep-dive sections. Omit for the default set.
-</ParamField>
+**`categories`** (string[]): Focus categories for deep-dive sections. Omit for the default set.
 
 #### Example
 

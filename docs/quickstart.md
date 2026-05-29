@@ -5,9 +5,9 @@ description: "Get up and running with KanseiLink in 2 minutes"
 
 ## Installation
 
-<CodeGroup>
+::: code-group
 
-```json Claude Desktop (claude_desktop_config.json)
+```json [Claude Desktop (claude_desktop_config.json)]
 {
   "mcpServers": {
     "kansei-link": {
@@ -18,7 +18,7 @@ description: "Get up and running with KanseiLink in 2 minutes"
 }
 ```
 
-```json Cursor (.cursor/mcp.json)
+```json [Cursor (.cursor/mcp.json)]
 {
   "mcpServers": {
     "kansei-link": {
@@ -29,7 +29,7 @@ description: "Get up and running with KanseiLink in 2 minutes"
 }
 ```
 
-```json Claude Code (.mcp.json)
+```json [Claude Code (.mcp.json)]
 {
   "mcpServers": {
     "kansei-link": {
@@ -40,7 +40,7 @@ description: "Get up and running with KanseiLink in 2 minutes"
 }
 ```
 
-</CodeGroup>
+:::
 
 ## Your First Call
 
@@ -101,6 +101,4 @@ lookup({ "service_id": "freee", "period": "30d" })
 
 All through a single tool. Mode is auto-detected from your parameters.
 
-<Card title="Standard Flow Guide" icon="route" href="/guides/standard-flow">
-  Deep dive into the search-lookup-report workflow
-</Card>
+> **[Standard Flow Guide](/guides/standard-flow)** — Deep dive into the search-lookup-report workflow

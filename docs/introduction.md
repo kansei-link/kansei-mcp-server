@@ -53,17 +53,17 @@ Most agents only need the first 3.
 
 ## Quick Install
 
-<CodeGroup>
+::: code-group
 
-```bash Claude Desktop
+```bash [Claude Desktop]
 npx @kansei-link/mcp-server
 ```
 
-```bash Cursor / Windsurf
+```bash [Cursor / Windsurf]
 npx @kansei-link/mcp-server
 ```
 
-```json claude_desktop_config.json
+```json [claude_desktop_config.json]
 {
   "mcpServers": {
     "kansei-link": {
@@ -74,8 +74,6 @@ npx @kansei-link/mcp-server
 }
 ```
 
-</CodeGroup>
+:::
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  Get up and running in 2 minutes
-</Card>
+> **[Quickstart](/quickstart)** — Get up and running in 2 minutes
