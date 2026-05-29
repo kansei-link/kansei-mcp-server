@@ -62,7 +62,7 @@ export function register(server: McpServer, db: Database.Database): void {
   );
 }
 
-function getInspectionQueue(
+export function getInspectionQueue(
   db: Database.Database,
   opts: {
     status: string;

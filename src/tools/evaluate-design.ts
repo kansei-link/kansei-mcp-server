@@ -39,71 +39,86 @@ export function register(server: McpServer, db: Database.Database): void {
         .describe("Free-text notes on design strengths/weaknesses"),
     },
     async ({ service_id, api_quality_score, doc_completeness_score, auth_stability_score, error_clarity_score, notes }) => {
-      const service = db
-        .prepare("SELECT id, name FROM services WHERE id = ?")
-        .get(service_id) as { id: string; name: string } | undefined;
-
-      if (!service) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: "service_not_found", service_id }),
-            },
-          ],
-        };
-      }
-
-      const today = new Date().toISOString().split("T")[0];
-      const overall =
-        Math.round(
-          ((api_quality_score + doc_completeness_score + auth_stability_score + error_clarity_score) / 4) * 100
-        ) / 100;
-
-      db.prepare(
-        `INSERT INTO service_design_scores (service_id, evaluated_date, api_quality_score, doc_completeness_score, auth_stability_score, error_clarity_score, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(service_id, evaluated_date) DO UPDATE SET
-           api_quality_score = excluded.api_quality_score,
-           doc_completeness_score = excluded.doc_completeness_score,
-           auth_stability_score = excluded.auth_stability_score,
-           error_clarity_score = excluded.error_clarity_score,
-           notes = excluded.notes`
-      ).run(service_id, today, api_quality_score, doc_completeness_score, auth_stability_score, error_clarity_score, notes || null);
-
-      // Fetch history for trend
-      const history = db
-        .prepare(
-          `SELECT evaluated_date, api_quality_score, doc_completeness_score, auth_stability_score, error_clarity_score
-           FROM service_design_scores
-           WHERE service_id = ?
-           ORDER BY evaluated_date DESC
-           LIMIT 10`
-        )
-        .all(service_id) as any[];
-
+      const result = evaluateDesign(db, {
+        service_id,
+        api_quality_score,
+        doc_completeness_score,
+        auth_stability_score,
+        error_clarity_score,
+        notes,
+      });
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify({
-              recorded: true,
-              service_id,
-              service_name: service.name,
-              date: today,
-              scores: {
-                api_quality: api_quality_score,
-                doc_completeness: doc_completeness_score,
-                auth_stability: auth_stability_score,
-                error_clarity: error_clarity_score,
-                overall,
-              },
-              history,
-              message: "Design evaluation recorded. Use get_service_history to see trends over time.",
-            }),
+            text: JSON.stringify(result),
           },
         ],
       };
     }
   );
+}
+
+export function evaluateDesign(
+  db: Database.Database,
+  input: {
+    service_id: string;
+    api_quality_score: number;
+    doc_completeness_score: number;
+    auth_stability_score: number;
+    error_clarity_score: number;
+    notes?: string;
+  }
+): object {
+  const service = db
+    .prepare("SELECT id, name FROM services WHERE id = ?")
+    .get(input.service_id) as { id: string; name: string } | undefined;
+
+  if (!service) {
+    return { error: "service_not_found", service_id: input.service_id };
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+  const overall =
+    Math.round(
+      ((input.api_quality_score + input.doc_completeness_score + input.auth_stability_score + input.error_clarity_score) / 4) * 100
+    ) / 100;
+
+  db.prepare(
+    `INSERT INTO service_design_scores (service_id, evaluated_date, api_quality_score, doc_completeness_score, auth_stability_score, error_clarity_score, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(service_id, evaluated_date) DO UPDATE SET
+       api_quality_score = excluded.api_quality_score,
+       doc_completeness_score = excluded.doc_completeness_score,
+       auth_stability_score = excluded.auth_stability_score,
+       error_clarity_score = excluded.error_clarity_score,
+       notes = excluded.notes`
+  ).run(input.service_id, today, input.api_quality_score, input.doc_completeness_score, input.auth_stability_score, input.error_clarity_score, input.notes || null);
+
+  // Fetch history for trend
+  const history = db
+    .prepare(
+      `SELECT evaluated_date, api_quality_score, doc_completeness_score, auth_stability_score, error_clarity_score
+       FROM service_design_scores
+       WHERE service_id = ?
+       ORDER BY evaluated_date DESC
+       LIMIT 10`
+    )
+    .all(input.service_id) as any[];
+
+  return {
+    recorded: true,
+    service_id: input.service_id,
+    service_name: service.name,
+    date: today,
+    scores: {
+      api_quality: input.api_quality_score,
+      doc_completeness: input.doc_completeness_score,
+      auth_stability: input.auth_stability_score,
+      error_clarity: input.error_clarity_score,
+      overall,
+    },
+    history,
+    message: "Design evaluation recorded. Use get_service_history to see trends over time.",
+  };
 }

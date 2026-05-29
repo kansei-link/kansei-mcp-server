@@ -119,7 +119,7 @@ export function register(server: McpServer, db: Database.Database): void {
 
 /* ── Core logic ────────────────────────────────────────────── */
 
-function auditCost(
+export function auditCost(
   db: Database.Database,
   serviceId: string | undefined,
   periodDays: number
@@ -411,7 +411,7 @@ interface Recommendation {
 
 const PRIORITY_ORDER: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
-function filterRecommendations(
+export function filterRecommendations(
   result: { recommendations?: Recommendation[]; [k: string]: unknown },
   topN: number,
   minPriority: "low" | "medium" | "high"

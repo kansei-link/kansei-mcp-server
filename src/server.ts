@@ -12,18 +12,10 @@ import { register as registerLookup } from "./tools/lookup.js";
 import { register as registerReport } from "./tools/report-unified.js";
 
 // ---------------------------------------------------------------------------
-// Tier 2 — internal / admin tools (consolidation into inspect+analyze in v1.1)
+// Tier 2 — internal / admin tools (2 unified)
 // ---------------------------------------------------------------------------
-import { register as registerCheckUpdates } from "./tools/check-updates.js";
-import { register as registerGetInspectionQueue } from "./tools/get-inspection-queue.js";
-import { register as registerSubmitInspection } from "./tools/submit-inspection.js";
-import { register as registerProposeUpdate } from "./tools/propose-update.js";
-import { register as registerTakeSnapshot } from "./tools/take-snapshot.js";
-import { register as registerEvaluateDesign } from "./tools/evaluate-design.js";
-import { register as registerAuditCost } from "./tools/audit-cost.js";
-import { register as registerAnalyzeTokenSavings } from "./tools/analyze-token-savings.js";
-import { register as registerGenerateAeoReport } from "./tools/generate-aeo-report.js";
-import { register as registerGenerateAeoArticle } from "./tools/generate-aeo-article.js";
+import { register as registerInspect } from "./tools/inspect.js";
+import { register as registerAnalyze } from "./tools/analyze.js";
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
 import { recalculateTrustScores } from "./utils/trust-recalc.js";
@@ -56,6 +48,10 @@ export function createServer(): McpServer {
         "1. `search_services` → find the right service (use `compact: true` to save tokens)",
         "2. `lookup` → get tips, detail, insights, recipes, history (auto-detects from params)",
         "3. `report` → after using a service, report success/failure (5 seconds, helps everyone)",
+        "",
+        "### ADMIN TOOLS (2 additional — for operators and scout agents)",
+        "- `inspect` → colony health: inspection queue, submit findings, propose/review updates, snapshots, design evaluation",
+        "- `analyze` → analytics: token savings, cost audit, AEO reports and articles",
         "",
         "### LOOKUP MODES (all via the `lookup` tool)",
         "- `lookup({ service_id })` → tips (auth, pitfalls, workarounds) — DEFAULT",
@@ -113,17 +109,9 @@ export function createServer(): McpServer {
   registerLookup(server, db);
   registerReport(server, db);
 
-  // --- Tier 2: Internal / admin tools (12 individual, consolidation in v1.1) ---
-  registerCheckUpdates(server, db);
-  registerGetInspectionQueue(server, db);
-  registerSubmitInspection(server, db);
-  registerProposeUpdate(server, db);
-  registerTakeSnapshot(server, db);
-  registerEvaluateDesign(server, db);
-  registerAuditCost(server, db);
-  registerAnalyzeTokenSavings(server, db);
-  registerGenerateAeoReport(server, db);
-  registerGenerateAeoArticle(server, db);
+  // --- Tier 2: Internal / admin tools (2 unified) ---
+  registerInspect(server, db);
+  registerAnalyze(server, db);
 
   // Register prompts (LobeHub Grade A)
   registerPrompts(server);

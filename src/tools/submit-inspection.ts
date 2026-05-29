@@ -80,7 +80,7 @@ interface InspectionRow {
   status: string;
 }
 
-function submitInspection(
+export function submitInspection(
   db: Database.Database,
   input: InspectionInput
 ): object {

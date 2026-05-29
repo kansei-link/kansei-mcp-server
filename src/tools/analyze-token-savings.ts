@@ -138,6 +138,204 @@ function estimateKanseiTipsTokens(
   return Math.round(chars / CHARS_PER_TOKEN);
 }
 
+export function analyzeTokenSavings(
+  db: Database.Database,
+  params: { services?: string[]; task?: string }
+): object {
+  const { services, task } = params;
+
+  // Resolve service list
+  let serviceIds: string[];
+  if (services && services.length > 0) {
+    serviceIds = services;
+  } else {
+    // Default: top 10 services by usage_count (or trust_score if no usage)
+    const topRows = db
+      .prepare(
+        "SELECT id FROM services ORDER BY usage_count DESC, trust_score DESC LIMIT 10"
+      )
+      .all() as Array<{ id: string }>;
+    serviceIds = topRows.map((r) => r.id);
+  }
+
+  const perService: Array<Record<string, unknown>> = [];
+  let totalWithout = 0;
+  let totalWith = 0;
+  const notFound: string[] = [];
+
+  for (const serviceId of serviceIds) {
+    const service = db
+      .prepare(
+        "SELECT id, name, category, api_url, mcp_endpoint, mcp_status, trust_score FROM services WHERE id = ?"
+      )
+      .get(serviceId) as ServiceInfoRow | undefined;
+
+    if (!service) {
+      notFound.push(serviceId);
+      continue;
+    }
+
+    const guide = db
+      .prepare(
+        "SELECT service_id, agent_tips, quickstart_example, auth_overview, auth_setup_hint, rate_limit, key_endpoints, docs_url FROM service_api_guides WHERE service_id = ?"
+      )
+      .get(serviceId) as GuideInfoRow | undefined;
+
+    const stats = db
+      .prepare(
+        "SELECT total_calls, success_rate FROM service_stats WHERE service_id = ?"
+      )
+      .get(serviceId) as StatsInfoRow | undefined;
+
+    const pitfalls = db
+      .prepare(
+        "SELECT error_type, count(*) as count FROM outcomes WHERE service_id = ? AND success = 0 AND error_type IS NOT NULL GROUP BY error_type ORDER BY count DESC LIMIT 3"
+      )
+      .all(serviceId) as PitfallInfoRow[];
+
+    const category = service.category ?? "default";
+    const webFetchEstimate =
+      WEB_FETCH_ESTIMATES_BY_CATEGORY[category] ?? DEFAULT_WEB_FETCH_ESTIMATE;
+
+    const flow = buildFlowWithoutKansei(webFetchEstimate);
+    const tipsTokens = estimateKanseiTipsTokens(guide, pitfalls);
+    const savingsTokens = webFetchEstimate - tipsTokens;
+    const savingsPct = Math.round((savingsTokens / webFetchEstimate) * 100);
+
+    totalWithout += webFetchEstimate;
+    totalWith += tipsTokens;
+
+    // Build coverage summary (what KanseiLink actually provides for this service)
+    const coverage: string[] = [];
+    if (guide?.agent_tips) {
+      try {
+        const tips = JSON.parse(guide.agent_tips);
+        if (Array.isArray(tips)) {
+          coverage.push(`${tips.length} curated agent tips (e.g., ${tips[0]?.slice(0, 60) ?? "..."}${tips[0]?.length > 60 ? "..." : ""})`);
+        }
+      } catch {
+        coverage.push("agent tips available");
+      }
+    }
+    if (guide?.auth_setup_hint) coverage.push("step-by-step auth setup");
+    if (guide?.rate_limit) coverage.push("rate limit details");
+    if (pitfalls.length > 0) {
+      coverage.push(
+        `${pitfalls.length} known pitfalls with workarounds (top: ${pitfalls[0].error_type})`
+      );
+    }
+    if (stats && stats.total_calls > 0) {
+      coverage.push(
+        `${stats.total_calls} agent reports, success rate ${Math.round(stats.success_rate * 100)}%`
+      );
+    }
+
+    perService.push({
+      service_id: service.id,
+      service_name: service.name,
+      category: service.category,
+      has_kansei_guide: guide !== undefined,
+      typical_flow_without_kansei: flow,
+      total_tokens_without_kansei: webFetchEstimate,
+      with_kanseilink: {
+        tool: "get_service_tips",
+        tokens: tipsTokens,
+        coverage: coverage.length > 0 ? coverage : ["basic service metadata only"],
+      },
+      savings: {
+        tokens: savingsTokens,
+        pct: savingsPct,
+      },
+      // Keep backward-compatible string; add detail object alongside
+      confidence: guide ? "measured" : "estimated",
+      confidence_detail: {
+        with_kansei: guide ? "measured" : "estimated",
+        without_kansei: "estimated_by_category",
+        note: guide
+          ? "KanseiLink side measured from actual guide data; baseline estimated from category benchmarks."
+          : "Both sides estimated — no guide exists yet, using category averages.",
+      },
+    });
+  }
+
+  const totalSavings = totalWithout - totalWith;
+  const totalSavingsPct = totalWithout > 0
+    ? Math.round((totalSavings / totalWithout) * 100)
+    : 0;
+
+  // Project over a realistic work session
+  const sessionEstimate = {
+    assumed_services_accessed_per_session: Math.min(serviceIds.length, 5),
+    avg_tokens_saved_per_service: serviceIds.length > 0
+      ? Math.round(totalSavings / serviceIds.length)
+      : 0,
+    estimated_tokens_saved_per_session:
+      serviceIds.length > 0
+        ? Math.round((totalSavings / serviceIds.length) * Math.min(serviceIds.length, 5))
+        : 0,
+    note: "Assumes agent touches 5 different services in a typical work session.",
+  };
+
+  const recommendations: string[] = [];
+  if (totalSavingsPct >= 80) {
+    recommendations.push(
+      "High-impact usage pattern. Call get_service_tips BEFORE any web_search when working with supported services."
+    );
+  } else if (totalSavingsPct >= 50) {
+    recommendations.push(
+      "Moderate-impact. Use get_service_tips for services with verified guides; fall back to web_fetch for others."
+    );
+  }
+  if (notFound.length > 0) {
+    recommendations.push(
+      `Unsupported services (${notFound.join(", ")}) — submit feedback to request KanseiLink coverage.`
+    );
+  }
+  const partiallyCovered = perService.filter((p) => !p.has_kansei_guide);
+  if (partiallyCovered.length > 0) {
+    const names = partiallyCovered.map((p) => p.service_name).join(", ");
+    recommendations.push(
+      `Services without full guides: ${names}. Savings estimates use category averages — actual numbers may vary.`
+    );
+  }
+  recommendations.push(
+    "NOTE: This tool measures RESULT-size savings (web_fetch → agent_tips). Claude Code's built-in MCP Tool Search already handles tool DEFINITION overhead separately."
+  );
+
+  return {
+    executive_summary: {
+      services_analyzed: perService.length,
+      services_not_found: notFound.length,
+      total_tokens_without_kansei: totalWithout,
+      total_tokens_with_kansei: totalWith,
+      total_savings_tokens: totalSavings,
+      total_savings_pct: totalSavingsPct,
+      task_context: task ?? "general analysis (no specific task)",
+    },
+    per_service: perService,
+    session_projection: sessionEstimate,
+    recommendations,
+    methodology: {
+      token_conversion: `${CHARS_PER_TOKEN} chars per token (mixed JP/EN conservative estimate)`,
+      baseline_source: "Benchmarked against freee (14,900 tokens), kintone (20,000-63,600), smarthr (11,400) on 2026-04-16",
+      measurement_types: {
+        with_kansei: "Measured from actual guide content size when guide exists; estimated from category average otherwise.",
+        without_kansei: "Estimated from 3 real benchmarks (freee/kintone/smarthr), scaled by category. Not individually measured per service.",
+      },
+      limitations: [
+        "Actual token counts vary by model tokenizer (cl100k_base vs o200k_base differ ~15%)",
+        "Web-fetch estimates are category-level extrapolations from 3 benchmarks — individual services may differ significantly",
+        "SPA-heavy doc sites (like kintone) cause 2-5x variance within the same category",
+        "Does not measure tool definition overhead (already handled by MCP Tool Search in Claude Code)",
+        "Does not include conversation context accumulation costs",
+        "Trial-and-error cost estimates assume 1 retry cycle — complex auth flows may require 2-3x more",
+      ],
+      improving_accuracy: "To get measured (not estimated) baselines for a specific service, run the benchmark suite: benchmarks/run-token-benchmark.ts",
+      full_benchmark: "C:/Users/HP/KanseiLINK/benchmarks/step1-api-doc-cache.md",
+    },
+  };
+}
+
 export function register(server: McpServer, db: Database.Database): void {
   server.registerTool(
     "analyze_token_savings",
@@ -161,197 +359,7 @@ export function register(server: McpServer, db: Database.Database): void {
       },
     },
     async ({ services, task }) => {
-      // Resolve service list
-      let serviceIds: string[];
-      if (services && services.length > 0) {
-        serviceIds = services;
-      } else {
-        // Default: top 10 services by usage_count (or trust_score if no usage)
-        const topRows = db
-          .prepare(
-            "SELECT id FROM services ORDER BY usage_count DESC, trust_score DESC LIMIT 10"
-          )
-          .all() as Array<{ id: string }>;
-        serviceIds = topRows.map((r) => r.id);
-      }
-
-      const perService: Array<Record<string, unknown>> = [];
-      let totalWithout = 0;
-      let totalWith = 0;
-      const notFound: string[] = [];
-
-      for (const serviceId of serviceIds) {
-        const service = db
-          .prepare(
-            "SELECT id, name, category, api_url, mcp_endpoint, mcp_status, trust_score FROM services WHERE id = ?"
-          )
-          .get(serviceId) as ServiceInfoRow | undefined;
-
-        if (!service) {
-          notFound.push(serviceId);
-          continue;
-        }
-
-        const guide = db
-          .prepare(
-            "SELECT service_id, agent_tips, quickstart_example, auth_overview, auth_setup_hint, rate_limit, key_endpoints, docs_url FROM service_api_guides WHERE service_id = ?"
-          )
-          .get(serviceId) as GuideInfoRow | undefined;
-
-        const stats = db
-          .prepare(
-            "SELECT total_calls, success_rate FROM service_stats WHERE service_id = ?"
-          )
-          .get(serviceId) as StatsInfoRow | undefined;
-
-        const pitfalls = db
-          .prepare(
-            "SELECT error_type, count(*) as count FROM outcomes WHERE service_id = ? AND success = 0 AND error_type IS NOT NULL GROUP BY error_type ORDER BY count DESC LIMIT 3"
-          )
-          .all(serviceId) as PitfallInfoRow[];
-
-        const category = service.category ?? "default";
-        const webFetchEstimate =
-          WEB_FETCH_ESTIMATES_BY_CATEGORY[category] ?? DEFAULT_WEB_FETCH_ESTIMATE;
-
-        const flow = buildFlowWithoutKansei(webFetchEstimate);
-        const tipsTokens = estimateKanseiTipsTokens(guide, pitfalls);
-        const savingsTokens = webFetchEstimate - tipsTokens;
-        const savingsPct = Math.round((savingsTokens / webFetchEstimate) * 100);
-
-        totalWithout += webFetchEstimate;
-        totalWith += tipsTokens;
-
-        // Build coverage summary (what KanseiLink actually provides for this service)
-        const coverage: string[] = [];
-        if (guide?.agent_tips) {
-          try {
-            const tips = JSON.parse(guide.agent_tips);
-            if (Array.isArray(tips)) {
-              coverage.push(`${tips.length} curated agent tips (e.g., ${tips[0]?.slice(0, 60) ?? "..."}${tips[0]?.length > 60 ? "..." : ""})`);
-            }
-          } catch {
-            coverage.push("agent tips available");
-          }
-        }
-        if (guide?.auth_setup_hint) coverage.push("step-by-step auth setup");
-        if (guide?.rate_limit) coverage.push("rate limit details");
-        if (pitfalls.length > 0) {
-          coverage.push(
-            `${pitfalls.length} known pitfalls with workarounds (top: ${pitfalls[0].error_type})`
-          );
-        }
-        if (stats && stats.total_calls > 0) {
-          coverage.push(
-            `${stats.total_calls} agent reports, success rate ${Math.round(stats.success_rate * 100)}%`
-          );
-        }
-
-        perService.push({
-          service_id: service.id,
-          service_name: service.name,
-          category: service.category,
-          has_kansei_guide: guide !== undefined,
-          typical_flow_without_kansei: flow,
-          total_tokens_without_kansei: webFetchEstimate,
-          with_kanseilink: {
-            tool: "get_service_tips",
-            tokens: tipsTokens,
-            coverage: coverage.length > 0 ? coverage : ["basic service metadata only"],
-          },
-          savings: {
-            tokens: savingsTokens,
-            pct: savingsPct,
-          },
-          // Keep backward-compatible string; add detail object alongside
-          confidence: guide ? "measured" : "estimated",
-          confidence_detail: {
-            with_kansei: guide ? "measured" : "estimated",
-            without_kansei: "estimated_by_category",
-            note: guide
-              ? "KanseiLink side measured from actual guide data; baseline estimated from category benchmarks."
-              : "Both sides estimated — no guide exists yet, using category averages.",
-          },
-        });
-      }
-
-      const totalSavings = totalWithout - totalWith;
-      const totalSavingsPct = totalWithout > 0
-        ? Math.round((totalSavings / totalWithout) * 100)
-        : 0;
-
-      // Project over a realistic work session
-      const sessionEstimate = {
-        assumed_services_accessed_per_session: Math.min(serviceIds.length, 5),
-        avg_tokens_saved_per_service: serviceIds.length > 0
-          ? Math.round(totalSavings / serviceIds.length)
-          : 0,
-        estimated_tokens_saved_per_session:
-          serviceIds.length > 0
-            ? Math.round((totalSavings / serviceIds.length) * Math.min(serviceIds.length, 5))
-            : 0,
-        note: "Assumes agent touches 5 different services in a typical work session.",
-      };
-
-      const recommendations: string[] = [];
-      if (totalSavingsPct >= 80) {
-        recommendations.push(
-          "High-impact usage pattern. Call get_service_tips BEFORE any web_search when working with supported services."
-        );
-      } else if (totalSavingsPct >= 50) {
-        recommendations.push(
-          "Moderate-impact. Use get_service_tips for services with verified guides; fall back to web_fetch for others."
-        );
-      }
-      if (notFound.length > 0) {
-        recommendations.push(
-          `Unsupported services (${notFound.join(", ")}) — submit feedback to request KanseiLink coverage.`
-        );
-      }
-      const partiallyCovered = perService.filter((p) => !p.has_kansei_guide);
-      if (partiallyCovered.length > 0) {
-        const names = partiallyCovered.map((p) => p.service_name).join(", ");
-        recommendations.push(
-          `Services without full guides: ${names}. Savings estimates use category averages — actual numbers may vary.`
-        );
-      }
-      recommendations.push(
-        "NOTE: This tool measures RESULT-size savings (web_fetch → agent_tips). Claude Code's built-in MCP Tool Search already handles tool DEFINITION overhead separately."
-      );
-
-      const output = {
-        executive_summary: {
-          services_analyzed: perService.length,
-          services_not_found: notFound.length,
-          total_tokens_without_kansei: totalWithout,
-          total_tokens_with_kansei: totalWith,
-          total_savings_tokens: totalSavings,
-          total_savings_pct: totalSavingsPct,
-          task_context: task ?? "general analysis (no specific task)",
-        },
-        per_service: perService,
-        session_projection: sessionEstimate,
-        recommendations,
-        methodology: {
-          token_conversion: `${CHARS_PER_TOKEN} chars per token (mixed JP/EN conservative estimate)`,
-          baseline_source: "Benchmarked against freee (14,900 tokens), kintone (20,000-63,600), smarthr (11,400) on 2026-04-16",
-          measurement_types: {
-            with_kansei: "Measured from actual guide content size when guide exists; estimated from category average otherwise.",
-            without_kansei: "Estimated from 3 real benchmarks (freee/kintone/smarthr), scaled by category. Not individually measured per service.",
-          },
-          limitations: [
-            "Actual token counts vary by model tokenizer (cl100k_base vs o200k_base differ ~15%)",
-            "Web-fetch estimates are category-level extrapolations from 3 benchmarks — individual services may differ significantly",
-            "SPA-heavy doc sites (like kintone) cause 2-5x variance within the same category",
-            "Does not measure tool definition overhead (already handled by MCP Tool Search in Claude Code)",
-            "Does not include conversation context accumulation costs",
-            "Trial-and-error cost estimates assume 1 retry cycle — complex auth flows may require 2-3x more",
-          ],
-          improving_accuracy: "To get measured (not estimated) baselines for a specific service, run the benchmark suite: benchmarks/run-token-benchmark.ts",
-          full_benchmark: "C:/Users/HP/KanseiLINK/benchmarks/step1-api-doc-cache.md",
-        },
-      };
-
+      const output = analyzeTokenSavings(db, { services, task });
       return {
         content: [
           {

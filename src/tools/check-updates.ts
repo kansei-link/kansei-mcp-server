@@ -61,7 +61,7 @@ export function register(server: McpServer, db: Database.Database): void {
   );
 }
 
-function checkUpdates(
+export function checkUpdates(
   db: Database.Database,
   service: string,
   sinceDays: number
