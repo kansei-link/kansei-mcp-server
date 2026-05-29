@@ -1,0 +1,209 @@
+---
+title: "analyze"
+description: "Analytics and reporting. Analyze token savings, audit agent costs, generate AEO reports and articles."
+---
+
+## Overview
+
+`analyze` provides analytics and reporting capabilities for the KanseiLink ecosystem. It can quantify token savings from using KanseiLink, audit agent costs across services, and generate AEO (Agent Experience Optimization) reports and publishable articles.
+
+This is primarily an admin/operator tool used for business intelligence and content generation.
+
+## Modes
+
+`analyze` supports 4 modes. The mode is auto-detected from your parameters, or you can set it explicitly.
+
+### token_savings
+
+Quantify how many tokens agents save by using KanseiLink's pre-verified data versus trial-and-error with raw API docs.
+
+<ParamField path="services" type="string[]">
+  List of service IDs to analyze (e.g., `["freee", "kintone"]`). Omit to analyze the top 10 most-used services.
+</ParamField>
+
+<ParamField path="task" type="string">
+  Optional task context (e.g., `"create invoice in freee"`) to tailor the analysis.
+</ParamField>
+
+#### Example
+
+```json
+analyze({
+  "mode": "token_savings",
+  "services": ["freee", "smarthr", "kintone"]
+})
+```
+
+```json
+analyze({
+  "task": "create invoice in freee"
+})
+```
+
+### cost
+
+Audit agent costs across services. Returns cost breakdowns and optimization recommendations sorted by impact.
+
+<ParamField path="cost_service_id" type="string">
+  Audit a specific service, or omit for all services. Triggers cost mode.
+</ParamField>
+
+<ParamField path="period_days" type="integer" default={30}>
+  Analysis period in days. Default: 30.
+</ParamField>
+
+<ParamField path="top_n" type="integer" default={10}>
+  Max recommendations to return (default: 10, max: 50). Sorted by priority (high first) then by `monthly_savings_usd` descending.
+</ParamField>
+
+<ParamField path="min_priority" type="enum" default="low">
+  Minimum priority level to include: `"high"` returns only impactful recommendations, `"low"` returns everything. Default: `"low"`.
+</ParamField>
+
+#### Example
+
+```json
+analyze({
+  "cost_service_id": "freee",
+  "period_days": 90,
+  "min_priority": "high"
+})
+```
+
+```json
+analyze({
+  "mode": "cost",
+  "top_n": 5,
+  "min_priority": "medium"
+})
+```
+
+### aeo_report
+
+Generate an AEO (Agent Experience Optimization) report with scores and rankings for services. Used for consulting deliverables and vendor feedback.
+
+<ParamField path="aeo_service_id" type="string">
+  Filter by service ID. Triggers aeo_report mode when present (without article-specific params).
+</ParamField>
+
+<ParamField path="category" type="string">
+  Filter by category (e.g., `"accounting"`, `"hr"`, `"crm"`). When used alone (without `aeo_service_id`), triggers token_savings mode instead.
+</ParamField>
+
+<ParamField path="aeo_top_n" type="number" default={20}>
+  Number of top services to return. Default: 20.
+</ParamField>
+
+<ParamField path="include_recommendations" type="boolean" default={true}>
+  Include improvement recommendations per service. Default: true.
+</ParamField>
+
+#### Example
+
+```json
+analyze({
+  "aeo_service_id": "freee",
+  "include_recommendations": true
+})
+```
+
+```json
+analyze({
+  "mode": "aeo_report",
+  "category": "accounting",
+  "aeo_top_n": 10
+})
+```
+
+### aeo_article
+
+Generate a publishable AEO ranking article with category deep-dives. Outputs in markdown or JSON format.
+
+<ParamField path="article_type" type="string">
+  Article type hint. Triggers aeo_article mode when present.
+</ParamField>
+
+<ParamField path="target_keyword" type="string">
+  Target keyword for the article. Triggers aeo_article mode when present.
+</ParamField>
+
+<ParamField path="quarter" type="string" default="Q2 2026">
+  Report period label (e.g., `"Q2 2026"`, `"2026年上半期"`). Default: `"Q2 2026"`.
+</ParamField>
+
+<ParamField path="format" type="enum" default="markdown">
+  Output format: `"markdown"` for blog/press releases, `"json"` for API embedding. Default: `"markdown"`.
+</ParamField>
+
+<ParamField path="article_top_n" type="number" default={20}>
+  Number of services in the overall ranking table. Default: 20.
+</ParamField>
+
+<ParamField path="categories" type="string[]">
+  Focus categories for deep-dive sections. Omit for the default set.
+</ParamField>
+
+#### Example
+
+```json
+analyze({
+  "mode": "aeo_article",
+  "quarter": "Q2 2026",
+  "format": "markdown",
+  "article_top_n": 30,
+  "categories": ["accounting", "hr", "crm"]
+})
+```
+
+```json
+analyze({
+  "article_type": "quarterly_ranking",
+  "target_keyword": "Japanese SaaS agent readiness"
+})
+```
+
+## Mode Auto-Detection
+
+| Priority | Condition | Mode |
+|----------|-----------|------|
+| 1 | `mode` parameter is set | *(explicit override)* |
+| 2 | `category` alone (no `aeo_service_id`, no `article_type`/`target_keyword`) | `token_savings` |
+| 3 | `cost_service_id` is present | `cost` |
+| 4 | `period` + `model` both present | `cost` |
+| 5 | `aeo_service_id` (without `article_type`/`target_keyword`) | `aeo_report` |
+| 6 | `article_type` or `target_keyword` is present | `aeo_article` |
+
+If no actionable parameters are provided, the tool returns an error listing available modes.
+
+## All Parameters
+
+| Parameter | Type | Required | Modes | Description |
+|-----------|------|----------|-------|-------------|
+| `mode` | enum | -- | all | Explicit mode: `token_savings`, `cost`, `aeo_report`, `aeo_article` |
+| `services` | string[] | -- | token_savings | Service IDs to analyze |
+| `task` | string | -- | token_savings | Task context for tailored analysis |
+| `cost_service_id` | string | -- | cost | Specific service to audit |
+| `period_days` | integer | -- | cost | Analysis period in days (default: 30) |
+| `top_n` | integer | -- | cost | Max recommendations (default: 10) |
+| `min_priority` | enum | -- | cost | Min priority: `low`, `medium`, `high` |
+| `aeo_service_id` | string | -- | aeo_report | Filter by service ID |
+| `category` | string | -- | token_savings, aeo_report | Filter by category |
+| `aeo_top_n` | number | -- | aeo_report | Top N services (default: 20) |
+| `include_recommendations` | boolean | -- | aeo_report | Include recommendations (default: true) |
+| `quarter` | string | -- | aeo_article | Report period label |
+| `format` | enum | -- | aeo_article | Output: `markdown` or `json` |
+| `article_top_n` | number | -- | aeo_article | Ranking table size (default: 20) |
+| `categories` | string[] | -- | aeo_article | Deep-dive categories |
+| `article_type` | string | -- | aeo_article | Article type hint |
+| `target_keyword` | string | -- | aeo_article | Target keyword |
+| `model` | string | -- | cost | Model name hint for cost detection |
+| `period` | string | -- | cost | Period hint for cost detection |
+
+## Notes
+
+- **This is an admin/operator tool** primarily used for business intelligence, consulting deliverables, and content marketing.
+- **Token savings analysis** provides concrete ROI numbers for justifying KanseiLink adoption. Use `lookup` with the returned service_id for the full integration guide.
+- **Cost audit recommendations** are sorted by priority (high first) then by estimated monthly savings. Acting on high-priority recommendations first yields the greatest impact.
+- **AEO reports** can be shared with SaaS vendors to encourage agent-readiness improvements in their APIs.
+- **AEO articles** in markdown format are ready to publish. Review rankings for accuracy before distribution.
+- **Reporting outcome data** (via the `report` tool with `model_name` and token counts) improves the accuracy of future cost audits.
