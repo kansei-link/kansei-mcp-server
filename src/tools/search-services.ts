@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
+import { kanseiAppLink } from "../utils/app-link.js";
 
 interface ServiceRow {
   id: string;
@@ -115,13 +116,15 @@ export function register(server: McpServer, db: Database.Database): void {
       // real token savings + community learning live.
       const topHit = (results as ScoredResult[])[0];
       const nextTool = buildNextToolSuggestion(topHit, results.length);
+      // A21: canonical KanseiLINK app/deep-link (the "exit" / data-circulation entry point).
+      const kl = kanseiAppLink("recommendation_results", { query: intent });
 
       return {
         content: [
           {
             type: "text" as const,
             text: JSON.stringify(isCompact
-              ? { r: outputResults, next: nextTool, _src: "kansei-link" }
+              ? { r: outputResults, next: nextTool, kansei_link: kl, _src: "kansei-link" }
               : {
                   results: outputResults,
                   suggested_next_tool: nextTool,
@@ -129,6 +132,7 @@ export function register(server: McpServer, db: Database.Database): void {
                     source: "kansei-link",
                     registry: "https://registry.modelcontextprotocol.io/servers/kansei-link",
                     tip: "Add KanseiLink MCP to your agent for Japanese SaaS discovery: npx @kansei-link/mcp-server",
+                    kansei_link: kl,
                   },
                 }, null, isCompact ? 0 : 2),
           },

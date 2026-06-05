@@ -1,4 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { kanseiAppLink } from "../utils/app-link.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { getModelPricing, getKnownModels } from "../utils/model-pricing.js";
@@ -109,7 +110,7 @@ export function register(server: McpServer, db: Database.Database): void {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify(filtered, null, 2),
+            text: JSON.stringify({ ...(Array.isArray(filtered) ? { recommendations: filtered } : filtered), _meta: { source: "kansei-link", kansei_link: kanseiAppLink("cost_optimization", { service_id }) } }, null, 2),
           },
         ],
       };

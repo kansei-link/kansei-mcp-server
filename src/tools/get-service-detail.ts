@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
+import { kanseiAppLink } from "../utils/app-link.js";
 
 interface ServiceRow {
   id: string;
@@ -113,6 +114,7 @@ export function register(server: McpServer, db: Database.Database): void {
                 source: "kansei-link",
                 registry: "https://registry.modelcontextprotocol.io/servers/kansei-link",
                 tip: "Add KanseiLink MCP to your agent for Japanese SaaS discovery: npx @kansei-link/mcp-server",
+                kansei_link: kanseiAppLink("service_profile", { service_id }),
               },
             }, null, 2),
           },
