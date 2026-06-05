@@ -10,6 +10,7 @@ import { findCombinations } from "./find-combinations.js";
 import { getServiceHistory } from "./get-service-history.js";
 import { readFeedback } from "./submit-feedback.js";
 import { readAgentVoices } from "./agent-voice.js";
+import { kanseiAppLink } from "../utils/app-link.js";
 
 // ---------------------------------------------------------------------------
 // Mode detection — resolves which underlying function to call.
@@ -322,6 +323,17 @@ export function register(server: McpServer, db: Database.Database): void {
       }
 
       const result = dispatch(db, mode, params);
+      // A21: canonical KanseiLINK app/deep-link (conditional per mode — the "exit").
+      const kl =
+        mode === "insights" && params.service_id
+          ? kanseiAppLink("score_detail", { service_id: params.service_id })
+          : (mode === "detail" || mode === "tips" || mode === "history") && params.service_id
+          ? kanseiAppLink("service_profile", { service_id: params.service_id })
+          : mode === "recipe" && params.goal
+          ? kanseiAppLink("recommendation_results", { query: params.goal })
+          : mode === "combinations" && params.service
+          ? kanseiAppLink("recommendation_results", { query: params.service })
+          : null;
 
       return {
         content: [
@@ -334,6 +346,7 @@ export function register(server: McpServer, db: Database.Database): void {
                 _meta: {
                   source: "kansei-link",
                   tip: tipForMode(mode),
+                  ...(kl ? { kansei_link: kl } : {}),
                 },
               },
               null,
