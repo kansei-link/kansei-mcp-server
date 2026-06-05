@@ -6,6 +6,7 @@ import { analyzeTokenSavings } from "./analyze-token-savings.js";
 import { auditCost, filterRecommendations } from "./audit-cost.js";
 import { generateAeoReport } from "./generate-aeo-report.js";
 import { generateArticle } from "./generate-aeo-article.js";
+import { kanseiAppLink } from "../utils/app-link.js";
 
 // ---------------------------------------------------------------------------
 // Mode detection — resolves which underlying function to call.
@@ -312,6 +313,11 @@ export function register(server: McpServer, db: Database.Database): void {
       }
 
       const result = dispatch(db, mode, params);
+      // A21: canonical app/deep-link for the applicable modes (cost recommendations / per-service aeo score).
+      const kl =
+        mode === "cost" ? kanseiAppLink("cost_optimization", { service_id: params.cost_service_id })
+        : mode === "aeo_report" ? kanseiAppLink("score_detail", { service_id: params.aeo_service_id })
+        : null;
 
       // aeo_article in markdown mode returns a string
       if (typeof result === "string") {
@@ -336,6 +342,7 @@ export function register(server: McpServer, db: Database.Database): void {
                 _meta: {
                   source: "kansei-link",
                   tip: tipForMode(mode),
+                  ...(kl ? { kansei_link: kl } : {}),
                 },
               },
               null,
