@@ -86,3 +86,9 @@ claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
 :::
 
 > **[Quickstart](/quickstart)** — Get up and running in 2 minutes
+
+## OpenClaw Users
+
+KanseiLink also ships as an **OpenClaw plugin** (`@kansei-link/openclaw-plugin`) that hooks into the tool-call lifecycle — automatically observing every SaaS call, injecting pitfall warnings, and providing real-time diagnosis when errors happen. Works across Claude, GPT, Gemini, or any model running inside OpenClaw.
+
+> **[OpenClaw Plugin Guide](/guides/openclaw)** — Setup and usage

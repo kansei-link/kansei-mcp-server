@@ -30,6 +30,7 @@ export default defineConfig({
         text: 'Guides',
         items: [
           { text: 'Standard Flow', link: '/guides/standard-flow' },
+          { text: 'OpenClaw Plugin', link: '/guides/openclaw' },
           { text: 'Migration to v1.0', link: '/guides/migration-v1' },
         ],
       },
