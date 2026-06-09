@@ -1,8 +1,10 @@
 # KanseiLink MCP Server
 
-> The intelligence layer for the Agent Economy. Discover, evaluate, and orchestrate SaaS services with trust scores, workflow recipes, and real agent experience data.
+> Local-first MCP navigator for AI agents. Find, evaluate, and compose MCP tools -- 80% fewer tokens vs trial-and-error.
 
-KanseiLink helps AI agents find the right SaaS tools, avoid unreliable APIs, and build multi-service workflows. Think of it as **the navigation system for AI agents** -- intent-based discovery, trust scoring, community workarounds, and time-series intelligence.
+Your agent wastes thousands of tokens every time it hits a new MCP service: searching docs, guessing auth flows, recovering from errors. KanseiLink eliminates that loop with a local SQLite DB of pre-evaluated services, trust scores, and step-by-step recipes.
+
+**Token savings: 89-97% measured across 7 services** (avg ~16,800 tokens without → ~950 with KanseiLink).
 
 ## Quick Start
 
@@ -10,20 +12,50 @@ KanseiLink helps AI agents find the right SaaS tools, avoid unreliable APIs, and
 npx @kansei-link/mcp-server
 ```
 
-Or add to your MCP client config:
+Works with **Claude Code, Cursor, Cline, Zed, Windsurf** -- any MCP client.
+
+Add to your config (`claude_desktop_config.json`, `.cursor/mcp.json`, etc.):
 
 ```json
 {
   "mcpServers": {
     "kansei-link": {
       "command": "npx",
-      "args": ["@kansei-link/mcp-server"]
+      "args": ["-y", "@kansei-link/mcp-server"]
     }
   }
 }
 ```
 
-### Recommended: install the skill (auto-invocation)
+Or with Claude Code CLI:
+
+```bash
+claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
+```
+
+## What's Inside
+
+| | Count | Description |
+|---|---|---|
+| Services | **11,000+** | MCP servers and SaaS APIs across 23 categories (2,257 MCP-verified via handshake) |
+| Recipes | **200** | Multi-service workflow compositions (standup, PR review, incident response, onboarding...) |
+| API Guides | **199** | Auth setup, endpoints, rate limits, pitfalls, and workarounds |
+| Trust Scores | **Weekly** | Based on automated health probes + real agent usage data |
+
+All data ships inside the npm package as a local SQLite DB. **Zero API calls needed.** No server dependency, no signup.
+
+## Why Not Just Read the Docs?
+
+| Without KanseiLink | With KanseiLink |
+|---|---|
+| `web_search` "freee API auth" | `search_services({ intent: "send invoice" })` |
+| `web_fetch` docs landing page (SPA, mostly nav) | `lookup({ service_id: "freee" })` |
+| `web_fetch` endpoint reference | Agent has auth flow, pitfalls, workarounds |
+| `web_fetch` auth guide | in **~950 tokens** |
+| Trial-and-error on wrong params | First try succeeds |
+| **~16,800 tokens burned** | **89-97% saved** |
+
+### Claude Code: install the skill (auto-invocation)
 
 Installing the MCP alone doesn't teach Claude Code *when* to call KanseiLink. The bundled skill fixes that:
 
@@ -31,41 +63,26 @@ Installing the MCP alone doesn't teach Claude Code *when* to call KanseiLink. Th
 npx -y @kansei-link/mcp-server kansei-link-install-skill
 ```
 
-This copies a `SKILL.md` to `~/.claude/skills/kansei-link/`. Claude Code auto-discovers it and fires the skill on phrases like "freeeで請求書作りたい", "Slack MCPある？", "connect to Stripe" -- no need to say "use KanseiLink".
+This copies a `SKILL.md` to `~/.claude/skills/kansei-link/`. Claude Code auto-discovers it and fires the skill on phrases like "connect to Stripe", "Slack MCPある？", "send invoice via freee" -- no need to say "use KanseiLink".
 
-Flags: `--dry-run`, `--force`, `--help`.
+### Optional: PostToolUse hook
 
-### Optional: PostToolUse hook for zero-friction reporting
-
-Agents tend to *forget* reporting outcomes even when reminded. The bundled hook auto-captures success/failure after every MCP call.
+Auto-capture success/failure after every MCP call (agents tend to forget reporting).
 
 Add to `~/.claude/settings.json`:
 
 ```json
 {
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "mcp__.*",
-        "hooks": [
-          { "type": "command", "command": "npx -y @kansei-link/mcp-server kansei-link-report-hook" }
-        ]
-      }
-    ]
+    "PostToolUse": [{
+      "matcher": "mcp__.*",
+      "hooks": [{ "type": "command", "command": "npx -y @kansei-link/mcp-server kansei-link-report-hook" }]
+    }]
   }
 }
 ```
 
-Disable without editing settings: `export KANSEI_REPORT_HOOK=off`
-
-## What's Inside
-
-- **11,000+ SaaS/MCP services** across 23 categories (global + Japanese) — 2,257 MCP-verified via handshake
-- **200 workflow recipes** -- standup automation, PR review flows, incident response, onboarding, release announcements (12 MCP-native with verified tool names)
-- **199 API connection guides** with auth setup, endpoints, rate limits, and agent tips
-- **Trust scores** based on real agent usage data (success rate, latency, workarounds) — weekly auto-refresh
-- **Agent Voice** -- structured feedback from Claude, GPT, Gemini agents about each API
-- **Time-series intelligence** -- daily snapshots, trend analysis, incident detection
+Disable anytime: `export KANSEI_REPORT_HOOK=off`
 
 ## Tools (5)
 
@@ -138,25 +155,7 @@ report({
 })
 ```
 
-## Migration from v0.x
-
-v1.0 is a **breaking change**. Old tool names are removed:
-
-| Old (v0.x) | New (v1.0) |
-|---|---|
-| `get_service_tips` | `lookup({ service_id })` |
-| `get_service_detail` | `lookup({ service_id, detail: true })` |
-| `get_insights` | `lookup({ service_id, insights: true })` |
-| `get_recipe` | `lookup({ goal })` |
-| `find_combinations` | `lookup({ service })` |
-| `report_outcome` | `report({ success, service_id })` |
-| `submit_feedback` | `report({ subject, body })` |
-| `agent_voice` | `report({ question_id, response_text })` |
-| `record_event` | `report({ event_type, event_date, title })` |
-
-See the [full migration guide](docs/guides/migration-v1.mdx) for complete mapping.
-
-## Categories
+## Categories (23)
 
 CRM, Project Management, Communication, Accounting, HR, E-commerce, Legal, Marketing, Groupware, Productivity, Storage, Support, Payment, Logistics, Reservation, Data Integration, BI/Analytics, Security, Developer Tools, AI/ML, Database, Design, DevOps
 
@@ -175,11 +174,13 @@ Agent <-> KanseiLink MCP Server <-> SQLite (local, zero-config)
 
 ## For SaaS Companies
 
-KanseiLink generates consulting intelligence reports showing:
-- How agents experience your API (success rate, latency, error patterns over time)
-- What agents honestly think (Agent Voice: selection criteria, frustrations, recommendations)
-- How you compare to competitors (category ranking, conversion funnel)
-- Impact of API changes (before/after analysis correlated with external events)
+KanseiLink can generate intelligence reports showing how AI agents experience your API:
+- Success rate, latency, error patterns over time
+- Agent Voice: selection criteria, frustrations, recommendations
+- Category ranking vs competitors
+- Impact of API changes (before/after analysis)
+
+Interested? See [kansei-link.com](https://kansei-link.com) or reach out.
 
 ## Privacy & Data Handling
 
@@ -224,21 +225,29 @@ See [SECURITY.md](SECURITY.md) for full details.
 2. Report the failure: `report({ service_id: "...", success: false, error_type: "auth_error", workaround: "..." })` -- your fix helps the next agent.
 </details>
 
-## Development
+## Contributing
 
 ```bash
+git clone https://github.com/kansei-link/kansei-mcp-server.git
+cd kansei-mcp-server
 npm install
 npm run build
 npm start       # start stdio server
 ```
 
+PRs welcome. If you find a service that's missing or has wrong info, the fastest path is:
+
+```
+report({ subject: "Fix: ServiceX auth is OAuth2 not API key", body: "..." })
+```
+
 ## Links
 
 - [npm](https://www.npmjs.com/package/@kansei-link/mcp-server)
+- [Website](https://kansei-link.com)
 - [MCP Registry](https://registry.modelcontextprotocol.io): `io.github.kansei-link/kansei-mcp-server`
 - [Glama](https://glama.ai/mcp/servers/kansei-link/kansei-mcp-server)
-- [GitHub](https://github.com/kansei-link/kansei-mcp-server)
 
 ## License
 
-MIT -- Synapse Arrows PTE. LTD.
+MIT -- [Synapse Arrows PTE. LTD.](https://kansei-link.com)
