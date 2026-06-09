@@ -1,0 +1,1071 @@
+{
+  "mcp-fetch": {
+    "known_blockers": [
+      {
+        "error_type": "config",
+        "summary": "MCP roots protocol overrides CLI-provided allowed directories — When a client supports the MCP roots protocol, `server-filesystem` unconditionally replaces CLI-provided allowed directories with the cl",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3929",
+        "last_seen": "2026-05-22T17:42:08Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "Add tool annotations to server-everything (13 tools, 0 annotated) — # Request: Add tool annotations — `@modelcontextprotocol/server-everything` v2.0.0",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3401",
+        "last_seen": "2026-05-27T01:54:42Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "[Asana] V2 MCP Server crashes (500 Error) on get_task / update_tasks due to hardcoded V1 schema (task_id) — The Asana MCP Connector (currently utilized in Claude.ai) is broken for single-task operatio",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4258",
+        "last_seen": "2026-06-03T08:37:19Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Security: mcp-server-fetch lacks SSRF protection; cloud-hosted agent hosts can leak IAM credentials — > Two PyPI-published Python MCP servers — `mcp-server-fetch` (Anthropic reference) and `mcp-server",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4143",
+        "last_seen": "2026-06-08T13:31:05Z"
+      },
+      {
+        "error_type": "connection",
+        "summary": "mcp-server-fetch hard-codes use_readability=True which requires Node.js (undeclared);    fails silently when Node is unavailable or misconfigured — mcp-server-fetch hard-codes use_readability=True whe",
+        "severity": "major",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4199",
+        "last_seen": "2026-05-25T07:13:47Z"
+      }
+    ],
+    "proven_fixes": [
+      {
+        "error_type": "schema",
+        "problem": "Add tool annotations to server-everything (13 tools, 0 annotated)",
+        "workaround": "the one developers use to learn the protocol — it should demonstrate best practices, including annotation usage.  For reference, `@modelcontextprotocol/server-filesystem` annotates all 14 of its tools. This server exerc",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3401"
+      },
+      {
+        "error_type": "connection",
+        "problem": "mcp-server-fetch hard-codes use_readability=True which requires Node.js (undeclared);    fails silently when Node is unavailable or misconfigured",
+        "workaround": "dability=True)`. 4. Workaround that confirms the diagnosis: in the installed package's mcp_server_fetch/server.py (resolvable via `python3 -c \"import mcp_server_fetch, inspect; print(inspect.getfile(mcp_server_fetch))\"`)",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4199"
+      },
+      {
+        "error_type": "config",
+        "problem": "MCP roots protocol overrides CLI-provided allowed directories",
+        "workaround": "Opened a fix in #3970 -- adds a cliDirectoriesProvided flag so CLI-provided directories take precedence over MCP roots, with integration tests covering init, roots/list_changed, and backward compat.",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3929"
+      }
+    ],
+    "community_notes": [
+      "[5 comments] Security: mcp-server-fetch lacks SSRF protection; cloud-hosted agent hosts can leak IAM credentials (https://github.com/modelcontextprotocol/servers/issues/4143)"
+    ],
+    "issue_count": 6,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "mcp-everything": {
+    "known_blockers": [
+      {
+        "error_type": "config",
+        "summary": "docs: Fix markdown formatting and file references — Several documentation files in the `Everything` MCP server (`src/everything`) contain broken markdown syntax, incorrect file references, and self-re",
+        "severity": "major",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4096",
+        "last_seen": "2026-05-03T19:24:30Z"
+      }
+    ],
+    "proven_fixes": [],
+    "community_notes": [],
+    "issue_count": 3,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "mcp-filesystem": {
+    "known_blockers": [
+      {
+        "error_type": "config",
+        "summary": "Filesystem server canonicalizes configured Windows mapped-drive paths to UNC at startup, then rejects identical-target Y:\\ inputs — On Windows, when the Filesystem MCP server is configured with paths ",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4129",
+        "last_seen": "2026-05-10T01:46:50Z"
+      },
+      {
+        "error_type": "config",
+        "summary": "filesystem MCP server doesn't support legal Windows pathnames in claude_desktop_config.json — In claude_desktop_config.json, legal Windows characters in pathnames appear unsupported:",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/447",
+        "last_seen": "2026-05-10T16:41:35Z"
+      },
+      {
+        "error_type": "other",
+        "summary": "Security scan results for @modelcontextprotocol/server-filesystem (npm) — MCPSafe AIVSS 68/100 (Grade C) — I ran a free deep security scan of the **@modelcontextprotocol/server-filesystem** npm packag",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4148",
+        "last_seen": "2026-05-12T20:10:35Z"
+      },
+      {
+        "error_type": "connection",
+        "summary": "Filesystem MCP server modified .env without permission and did not back it up — Claude Desktop (via the Filesystem MCP server) modified my .env file without consent when I asked a question about a Doc",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/1869",
+        "last_seen": "2026-05-22T17:41:12Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "[server-filesystem] Single missing allowed-directory causes silent process exit due to Promise.all rejection — `@modelcontextprotocol/server-filesystem` v0.2.0 (`secure-filesystem-server`) crashes",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4238",
+        "last_seen": "2026-06-03T14:52:19Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "filesystem: tools/list succeeds without initialize handshake (MCP lifecycle bypass) — The `@modelcontextprotocol/server-filesystem` MCP server accepts and successfully handles `tools/list` before the ",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4195",
+        "last_seen": "2026-06-03T14:52:20Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "filesystem: malformed JSON-RPC message on stdio causes crash or zombie state — The `secure-filesystem-server` MCP server does not survive a single malformed JSON-RPC line on stdio. After receiving an ",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4206",
+        "last_seen": "2026-06-03T14:52:20Z"
+      },
+      {
+        "error_type": "config",
+        "summary": "The filesystem server stopped working with the OpenAI Agent SDK. — It has been working with an old version of the filesystem server. However, after upgrading the server, openAI (and also the model con",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3051",
+        "last_seen": "2026-06-04T07:12:14Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "filesystem: FS_SEARCH_EXCLUDE_PREFIXES is lexical; should excludes be canonical/symlink-aware? — **Context.** The proposed fix for #4162 (PR #4212) adds `FS_SEARCH_EXCLUDE_PREFIXES` as a fast lexical ",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4208",
+        "last_seen": "2026-06-06T09:06:54Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "Security: filesystem server path parameters lack traversal constraints enabling prompt injection → arbitrary file read/write — The `@modelcontextprotocol/server-filesystem` package exposes 11 tools th",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3752",
+        "last_seen": "2026-06-07T11:52:23Z"
+      }
+    ],
+    "proven_fixes": [
+      {
+        "error_type": "schema",
+        "problem": "Security: filesystem server path parameters lack traversal constraints enabling prompt injection → arbitrary file read/write",
+        "workaround": "The server should resolve all paths to their canonical form and reject any path that does not fall within the configured `allowedDirectories`:  ```typescript import { resolve, relative } from 'path'  function validateP",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3752"
+      },
+      {
+        "error_type": "auth",
+        "problem": "filesystem: FS_SEARCH_EXCLUDE_PREFIXES is lexical; should excludes be canonical/symlink-aware?",
+        "workaround": "nder an excluded prefix is not caught by the prefix check, and may still reach the slow provider path during canonicalisation / validation.  The case for keeping the #4162 fix scoped to the lexical prefilter, as discusse",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4208"
+      },
+      {
+        "error_type": "config",
+        "problem": "The filesystem server stopped working with the OpenAI Agent SDK.",
+        "workaround": "r-filesystem ./` 2. try to \"list tools\" 3. get the following error: ``` [   {     \"code\": \"invalid_literal\",     \"expected\": \"object\",     \"path\": [       \"tools\",       0,       \"inputSchema\",       \"type\"     ],     \"m",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3051"
+      },
+      {
+        "error_type": "connection",
+        "problem": "[filesystem] write_file silently returns success but never writes to disk on Windows",
+        "workaround": "diagnose.  A useful fix boundary would preserve three signals: the protocol error sent to the peer, the local exception or cancellation reason available to application code, and a trace/log field that ties the two togeth",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4138"
+      },
+      {
+        "error_type": "schema",
+        "problem": "filesystem: malformed JSON-RPC message on stdio causes crash or zombie state",
+        "workaround": "diagnose.  A useful fix boundary would preserve three signals: the protocol error sent to the peer, the local exception or cancellation reason available to application code, and a trace/log field that ties the two togeth",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4206"
+      },
+      {
+        "error_type": "auth",
+        "problem": "filesystem: tools/list succeeds without initialize handshake (MCP lifecycle bypass)",
+        "workaround": "diagnose.  A useful fix boundary would preserve three signals: the protocol error sent to the peer, the local exception or cancellation reason available to application code, and a trace/log field that ties the two togeth",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4195"
+      },
+      {
+        "error_type": "schema",
+        "problem": "[server-filesystem] Single missing allowed-directory causes silent process exit due to Promise.all rejection",
+        "workaround": "Hi!\r \r The fix doesn’t do much good if not built and released in a new npm version. There are probably a lot more fixes done in MCP, I hit quite a few every day that Claude Desktop manages to work-around using o",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4238"
+      },
+      {
+        "error_type": "schema",
+        "problem": "Unable to start the MCP File System in Windows",
+        "workaround": "=/= shortcut. This workaround worked for me, see [447](https://github.com/modelcontextprotocol/servers/issues/447#issuecomment-2744011731)  In your case, you'd open an admin Powershell window and run `New-Item -ItemType",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/1469"
+      },
+      {
+        "error_type": "config",
+        "problem": "filesystem: edit_file newText interpreted as String.prototype.replace replacement-pattern (literal $ corrupted)",
+        "workaround": ", shell scripts  ## Workaround (until fix lands) Escape `$` in `newText` by doubling it (`$` → `$$`).  ## Related #2033 — different manifestation of `$` handling in `newText` (that issue reports a parse error; this one r",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4157"
+      },
+      {
+        "error_type": "other",
+        "problem": "filesystem: write_or_update_file",
+        "workaround": "ry files).  Current workaround with `edit_file` requires: 1. Reading the entire file (full content into context) 2. Matching a unique anchor near the end as `oldText` 3. Replacing it with anchor + new entry  For a ~80KB",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/2807"
+      }
+    ],
+    "community_notes": [
+      "[6 comments] 🚨 Security Warning for MCP Server Developers and Users: Systematic Forking as a Supply-Chain Attack (https://github.com/modelcontextprotocol/servers/issues/3635)",
+      "[5 comments] Security: filesystem server path parameters lack traversal constraints enabling prompt injection → a (https://github.com/modelcontextprotocol/servers/issues/3752)",
+      "[23 comments] The filesystem server stopped working with the OpenAI Agent SDK. (https://github.com/modelcontextprotocol/servers/issues/3051)",
+      "[9 comments] [server-filesystem] Single missing allowed-directory causes silent process exit due to Promise.all r (https://github.com/modelcontextprotocol/servers/issues/4238)",
+      "[9 comments] Unable to start the MCP File System in Windows (https://github.com/modelcontextprotocol/servers/issues/1469)"
+    ],
+    "issue_count": 28,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "mcp-memory": {
+    "known_blockers": [
+      {
+        "error_type": "schema",
+        "summary": "Restore structured output schemas in memory server when SDK supports JSON Schema outputSchema — PR #3966 removes `outputSchema` and `structuredContent` from the memory server tools to avoid current SD",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4076",
+        "last_seen": "2026-05-03T13:32:45Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "filesystem: ~1MB JSON-RPC line on stdio causes crash or zombie state — The `secure-filesystem-server` MCP server becomes unavailable after receiving a single ~1 MB JSON-RPC message on stdio.",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4207",
+        "last_seen": "2026-06-03T14:52:20Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "memory: safer persistence defaults, atomic writes, quotas, redaction, and destructive-operation guardrails — While auditing and hardening local MCP server usage, I reviewed `@modelcontextprotocol/serv",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4117",
+        "last_seen": "2026-06-07T10:54:15Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "Knowledge Graph Memory Server failing to create memories — description created by the model itself:",
+        "severity": "major",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/2689",
+        "last_seen": "2026-06-06T01:34:41Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "puppeteer: update old MCP SDK and add browser-automation guardrails by default — While auditing and hardening local MCP server usage, I reviewed `@modelcontextprotocol/server-puppeteer@2025.5.12` and ",
+        "severity": "major",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4118",
+        "last_seen": "2026-06-04T21:53:18Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "fetch: harden URL fetching against private-network access, oversized responses, and redirect/DNS gaps — While auditing and hardening local MCP server usage, I reviewed the current `mcp-server-fetch` b",
+        "severity": "major",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4116",
+        "last_seen": "2026-06-04T21:53:06Z"
+      },
+      {
+        "error_type": "config",
+        "summary": "MCP Server Communication Failure on Windows with Antigravity/Gemini Code Assist — # Bug Report: MCP Server Communication Failure",
+        "severity": "major",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3278",
+        "last_seen": "2026-06-02T20:09:26Z"
+      }
+    ],
+    "proven_fixes": [
+      {
+        "error_type": "auth",
+        "problem": "memory: safer persistence defaults, atomic writes, quotas, redaction, and destructive-operation guardrails",
+        "workaround": "can corrupt state. Switch to write-temp + `fs.rename` (POSIX-atomic on same filesystem, atomic-enough on NTFS via `fs.rename` which maps to `MoveFileEx` with `MOVEFILE_REPLACE_EXISTING`). Stacks on top of PR 1 because t",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4117"
+      },
+      {
+        "error_type": "schema",
+        "problem": "Knowledge Graph Memory Server failing to create memories",
+        "workaround": "io chunking fix, or switch to the SSE (Streamable HTTP) transport which uses Content-Type framing and does not suffer from this concatenation issue. If you control the client (Gemini CLI), ensure it writes exactly one JS",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/2689"
+      },
+      {
+        "error_type": "auth",
+        "problem": "fetch: harden URL fetching against private-network access, oversized responses, and redirect/DNS gaps",
+        "workaround": "diagnose.  A useful fix boundary would preserve three signals: the protocol error sent to the peer, the local exception or cancellation reason available to application code, and a trace/log field that ties the two togeth",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4116"
+      },
+      {
+        "error_type": "schema",
+        "problem": "Memory MCP  Schema Validation Error on read_graph for entities with additional properties",
+        "workaround": "operties`).  It was fixed in #3213 (commit `8af50b9`, merged 2026-01-13): `loadGraph()` now builds clean `{name, entityType, observations}` objects, so extra stored fields are dropped on read. I reproduced your exact cas",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3144"
+      },
+      {
+        "error_type": "schema",
+        "problem": "The memory mcp error 32602 occurs in the cursor, but no error occurs in claude code/roocode/cline, even though the same configuration is used.",
+        "workaround": "roperties`.  It was fixed in #3213 (commit `8af50b9`, merged 2026-01-13), which now builds clean `{name, entityType, observations}` objects on load. I reproduced this against current `main` with the latest SDK and the re",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3122"
+      },
+      {
+        "error_type": "schema",
+        "problem": "Memory MCP, schema validation error: MCP error -32602",
+        "workaround": "g the response.  ## Workaround  - Read data directly from `memory.json` file using file I/O - Write operations (`create_entities`, `add_observations`, etc.) work correctly - Only read operations are affected  ## Addition",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3074"
+      },
+      {
+        "error_type": "schema",
+        "problem": "filesystem: ~1MB JSON-RPC line on stdio causes crash or zombie state",
+        "workaround": "diagnose.  A useful fix boundary would preserve three signals: the protocol error sent to the peer, the local exception or cancellation reason available to application code, and a trace/log field that ties the two togeth",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4207"
+      },
+      {
+        "error_type": "config",
+        "problem": "server-memory: Fix for Termux/Android (shebang issue)",
+        "workaround": "r directory ```  ## Workaround  After installing globally, use `termux-fix-shebang` to patch the binary:  ```bash npm install -g @modelcontextprotocol/server-memory termux-fix-shebang \"$(command -v mcp-server-memory)\" ``",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4244"
+      }
+    ],
+    "community_notes": [
+      "[17 comments] memory: safer persistence defaults, atomic writes, quotas, redaction, and destructive-operation guar (https://github.com/modelcontextprotocol/servers/issues/4117)",
+      "[9 comments] puppeteer: update old MCP SDK and add browser-automation guardrails by default (https://github.com/modelcontextprotocol/servers/issues/4118)",
+      "[5 comments] fetch: harden URL fetching against private-network access, oversized responses, and redirect/DNS gap (https://github.com/modelcontextprotocol/servers/issues/4116)"
+    ],
+    "issue_count": 17,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "sqlite": {
+    "known_blockers": [
+      {
+        "error_type": "schema",
+        "summary": "[git]  raise_exceptions=True — mcp-server-git  pass **_raise_exceptions=True_**; mcp-server-time and mcp-server-sqlite use the default. With set flag, the SDK turns an exception fro",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4213",
+        "last_seen": "2026-05-20T12:18:44Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "Security Audit: Unconstrained string parameters across all official servers — I ran automated security audits on 7 official MCP servers using [mcp-security-audit](https://pypi.org/project/mcp-security",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/3537",
+        "last_seen": "2026-06-06T22:20:21Z"
+      }
+    ],
+    "proven_fixes": [],
+    "community_notes": [
+      "[13 comments] Security Audit: Unconstrained string parameters across all official servers (https://github.com/modelcontextprotocol/servers/issues/3537)"
+    ],
+    "issue_count": 2,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "google-drive": {
+    "known_blockers": [
+      {
+        "error_type": "connection",
+        "summary": "filesystem: recursive search can hang on macOS CloudStorage / lazy provider paths — Hi — thanks for maintaining the filesystem server.",
+        "severity": "major",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4162",
+        "last_seen": "2026-06-06T09:06:14Z"
+      }
+    ],
+    "proven_fixes": [
+      {
+        "error_type": "connection",
+        "problem": "filesystem: recursive search can hang on macOS CloudStorage / lazy provider paths",
+        "workaround": "ot the allocation). Switching to `fs.opendir` streaming would fix that but is a larger structural change — flagging it as a known limitation. - The libuv threadpool angle from the issue (slow calls still stuck in the poo",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4162"
+      }
+    ],
+    "community_notes": [
+      "[15 comments] filesystem: recursive search can hang on macOS CloudStorage / lazy provider paths (https://github.com/modelcontextprotocol/servers/issues/4162)"
+    ],
+    "issue_count": 1,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "slack": {
+    "known_blockers": [
+      {
+        "error_type": "auth",
+        "summary": "Slack invalidates XOXC/XOXD tokens when the MCP server tries to cache users — Slack will invalidate the XOXC/XOXD tokens after detecting the server attempting to cache users in the workspace. This doe",
+        "severity": "critical",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/86",
+        "last_seen": "2026-02-08T10:11:47Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Support file upload and snippet sharing — Currently the server supports downloading file attachments via `attachment_get_data`, but there's no way to upload files or share Slack file/snippet o",
+        "severity": "critical",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/247",
+        "last_seen": "2026-03-23T02:29:15Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Fatal crash on startup: cannot unmarshal number into sso_sync_with_provider (type bool) — The server authenticates successfully but crashes during user cache warmup with a JSON unmarshal error. The Sl",
+        "severity": "critical",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/250",
+        "last_seen": "2026-03-24T13:26:00Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Startup rate-limited on large Enterprise Grid workspaces after v1.2.3 — After upgrading to v1.2.3, the server consistently hits Slack rate limits during startup on large Enterprise Grid workspaces, ca",
+        "severity": "major",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/231",
+        "last_seen": "2026-05-14T20:13:06Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Add retry logic for transient startup failures (AuthTest, RefreshUsers, RefreshChannels) — The server's startup path has three points that call `logger.Fatal()` on any error, with no retry:",
+        "severity": "major",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/238",
+        "last_seen": "2026-03-26T03:43:31Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "conversations_add_message returns 'missing_scope' error despite message sending successfully (xoxp token) — When using `conversations_add_message` with an `xoxp` user OAuth token, the tool returns a `",
+        "severity": "major",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/228",
+        "last_seen": "2026-03-06T13:37:48Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "DXT extension still fails with Claude Desktop's built-in Node.js (UtilityProcess issue) — The Slack MCP Server DXT extension times out during initialization when Claude Desktop uses its built-in Node.",
+        "severity": "major",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/152",
+        "last_seen": "2026-01-17T12:05:49Z"
+      }
+    ],
+    "proven_fixes": [
+      {
+        "error_type": "auth",
+        "problem": "[Gmail MCP] Add get_attachment tool to download message attachments",
+        "workaround": "e today, my (dirty) workaround for now: - agent labels gmail thread with 'DriveUpload' - custom google apps script uploads attachments from labeled emails to drive - agent reads them via drive's read_file_content.  [gith",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4122"
+      },
+      {
+        "error_type": "schema",
+        "problem": "Add FoundryNet — industrial machine intelligence and automation via MCP",
+        "workaround": "— Map raw OEM telemetry to universal canonical schema - `query_machine_history` — Retrieve operational history and health trends - `create_automation` — Parse natural language into automation triggers - `activate_automat",
+        "confidence": "medium",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4111"
+      },
+      {
+        "error_type": "performance",
+        "problem": "Feature request: users_search / users_list tool",
+        "workaround": "those.  ## Current workaround  List all IM channels via `channels_list channel_types=\"im\"`, then read history from each to identify users — which is slow and wasteful.  ## Proposal  Add a `users_search` or `users_list`",
+        "confidence": "high",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/205"
+      },
+      {
+        "error_type": "auth",
+        "problem": "Startup rate-limited on large Enterprise Grid workspaces after v1.2.3",
+        "workaround": "rced cold fetch  ## Workaround  Setting `SLACK_MCP_CACHE_TTL=24h` (or longer) reduces the frequency of cold refreshes. A cache pre-warming script can also help, but shouldn't be necessary.  ## Related PRs  - #218 — Enter",
+        "confidence": "high",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/231"
+      },
+      {
+        "error_type": "auth",
+        "problem": "Duplicate AuthTest API call on every startup",
+        "workaround": "ant call.  I have a fix ready — will open a PR together with #254.",
+        "confidence": "high",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/255"
+      },
+      {
+        "error_type": "other",
+        "problem": "[Feature Request] Include file_id in slack_read_thread response for attachments",
+        "workaround": "d resolve this.  ## Workaround  Currently asking users to either: 1. Paste document text directly into the thread 2. Share the file's permalink (which sometimes contains the file_id in the URL)",
+        "confidence": "high",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/260"
+      },
+      {
+        "error_type": "auth",
+        "problem": "Server blocks MCP initialize response while caching users/channels on startup",
+        "workaround": "ocol handshake.  ## Workaround  Pre-warm the cache by running the binary once before the MCP client connects. The cache files at `~/.cache/slack-mcp-server/` are reused on subsequent runs.  ## Environment  - slack-mcp-se",
+        "confidence": "high",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/271"
+      },
+      {
+        "error_type": "auth",
+        "problem": "Add retry logic for transient startup failures (AuthTest, RefreshUsers, RefreshChannels)",
+        "workaround": "d here.  ## Current workaround  A shell wrapper that catches the non-zero exit and retries the whole process:  ```bash #!/usr/bin/env bash MAX_RETRIES=${SLACK_MCP_MAX_RETRIES:-3} RETRY_DELAY=${SLACK_MCP_RETRY_DELAY:-3}",
+        "confidence": "high",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/238"
+      },
+      {
+        "error_type": "auth",
+        "problem": "Fatal crash on startup: cannot unmarshal number into sso_sync_with_provider (type bool)",
+        "workaround": "o the unmarshal bug fixed in #134 (slack-go/slack v0.17.1 → v0.17.3), but in a different code path. The `Prefs` struct in `pkg/provider/edge/` likely has `sso_sync_with_provider` typed as `bool`, but the Slack API return",
+        "confidence": "high",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/250"
+      },
+      {
+        "error_type": "auth",
+        "problem": "conversations_add_message returns 'missing_scope' error despite message sending successfully (xoxp token)",
+        "workaround": "re retry\" rule.  ## Workaround  Check the conversation history after a `missing_scope` error before retrying. The message was almost certainly delivered.",
+        "confidence": "high",
+        "issue_url": "https://github.com/korotovsky/slack-mcp-server/issues/228"
+      }
+    ],
+    "community_notes": [
+      "[5 comments] Support to get the permalink to a message (https://github.com/korotovsky/slack-mcp-server/issues/100)",
+      "[12 comments] channels_list returns incomplete results (only 6 of 15+ accessible channels) (https://github.com/korotovsky/slack-mcp-server/issues/148)",
+      "[29 comments] Slack invalidates XOXC/XOXD tokens when the MCP server tries to cache users (https://github.com/korotovsky/slack-mcp-server/issues/86)",
+      "[6 comments] Support reading attachments (e.g., images) in Slack MCP (https://github.com/korotovsky/slack-mcp-server/issues/88)",
+      "[8 comments] slack-mcp-server shows as \"connected\" but Claude Code can't see any tools? (https://github.com/korotovsky/slack-mcp-server/issues/135)"
+    ],
+    "issue_count": 67,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "mcp-git": {
+    "known_blockers": [
+      {
+        "error_type": "schema",
+        "summary": "[git] maybe more lenient with the input — git_add failed with the message: [{\"type\":\"text\",\"text\":\"Input validation error: '[\\\"inc/admin/functions.php\\\", \\\"inc/admin/menu.php\\\", \\\"inc/admin/re",
+        "severity": "major",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4242",
+        "last_seen": "2026-05-26T13:05:21Z"
+      }
+    ],
+    "proven_fixes": [],
+    "community_notes": [],
+    "issue_count": 2,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "postgresql-mcp": {
+    "known_blockers": [
+      {
+        "error_type": "schema",
+        "summary": "MCP servers timeout on initialize with Claude Desktop 1.7196.0.0 (protocol 2025-11-25) — All MCP servers fail to connect with Claude Desktop 1.7196.0.0 (Microsoft Store).",
+        "severity": "major",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4153",
+        "last_seen": "2026-05-18T19:20:35Z"
+      }
+    ],
+    "proven_fixes": [],
+    "community_notes": [],
+    "issue_count": 2,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "github-github-mcp-server": {
+    "known_blockers": [
+      {
+        "error_type": "auth",
+        "summary": "`pull_request_review_write` combines create/submit/delete into one tool, making fine-grained permissions by method impossible — Today the `pull_request_review_write` tool consolidates three distinct r",
+        "severity": "critical",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2525",
+        "last_seen": "2026-05-22T12:03:05Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Feature Request: Add support for GitHub Security APIs (Dependabot, Code Scanning, Secret Scanning) — The MCP server currently lacks tools to interact with GitHub's security features. Adding support fo",
+        "severity": "critical",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/1921",
+        "last_seen": "2026-05-27T05:49:36Z"
+      },
+      {
+        "error_type": "other",
+        "summary": "MCP Governance - Allow/Deny List for MCP for Organizations and Teams — # Feature Request: Allow and deny list for MCP Enterprises.",
+        "severity": "critical",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/1048",
+        "last_seen": "2026-05-27T05:56:03Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Non PAT auth method — ### Describe the feature or problem you’d like to solve",
+        "severity": "critical",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/132",
+        "last_seen": "2026-05-29T09:46:38Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "MCP server as part of GitHub Desktop application — It seems to be very missing discussion about having standalone MCP server as part of desktop application (https://desktop.github.com/download/).",
+        "severity": "critical",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/1020",
+        "last_seen": "2026-05-31T09:30:33Z"
+      },
+      {
+        "error_type": "other",
+        "summary": "Security policy template for GitHub MCP server — We've built an open-source policy template for the **GitHub** MCP server that lets teams enforce guardrails on every tool call an AI agent can make.",
+        "severity": "critical",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2136",
+        "last_seen": "2026-06-07T12:08:02Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "[Disclosure] Clarify MCP server tool-surface and deployment boundaries — This is a coordinated, exploit-free disclosure for the public MCP server surface documented in this repository and its adjacent",
+        "severity": "critical",
+        "issue_url": "https://github.com/modelcontextprotocol/servers/issues/4135",
+        "last_seen": "2026-05-11T05:44:25Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "issue_write update (state: closed) hangs — mutation succeeds but no response is ever returned — `issue_write` with `method: \"update\"` and `state: \"closed\"` performs the GitHub mutation but **never ret",
+        "severity": "major",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2636",
+        "last_seen": "2026-06-07T12:50:09Z"
+      },
+      {
+        "error_type": "config",
+        "summary": "GitHub MCP issue read appears to drop code block text in angle brackets — When the AI agent tries to read an issue from my private repository via the GitHub MCP issue-read endpoint, any code between t",
+        "severity": "major",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2202",
+        "last_seen": "2026-06-06T22:59:36Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "Copilot-generated PR review code suggestions (\"Suggest\" changesets) are not returned by pull_request_read or any API — ### Describe the feature or problem you'd like to solve",
+        "severity": "major",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2235",
+        "last_seen": "2026-06-04T21:04:02Z"
+      }
+    ],
+    "proven_fixes": [
+      {
+        "error_type": "other",
+        "problem": "Error 500 when accessing dashboard",
+        "workaround": "essage every time I try to access my dashboard. This started happening yesterday afternoon.  I've tried clearing my browser cache and using a different browser but the issue persists.  Please help!  Emma Davis",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2641"
+      },
+      {
+        "error_type": "runtime",
+        "problem": "Application crash when uploading files",
+        "workaround": "rashes every time I try to upload a file larger than 10MB. I get an error message saying 'Out of memory exception'.  This is happening on Windows 11 with the latest version of your app.  Please fix this bug as soon as po",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2642"
+      },
+      {
+        "error_type": "config",
+        "problem": "feat: add `list_pull_request_review_threads` tool to expose PRRT_ node IDs for resolving threads",
+        "workaround": "nresolved threads → resolve them\" flow using the MCP tools alone, because there is no tool to retrieve the `PRRT_xxx` node IDs needed by `resolve_pull_request_review_thread`.  ## Proposed Solution  Add a `list_pull_reque",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2229"
+      },
+      {
+        "error_type": "config",
+        "problem": "GitHub MCP issue read appears to drop code block text in angle brackets",
+        "workaround": "aw_ptr`. No an easy fix to make. One solution I see - protect angle brackets inside markdown code regions with placeholders before `bluemonday` runs and then restore them.",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2202"
+      },
+      {
+        "error_type": "schema",
+        "problem": "Copilot-generated PR review code suggestions (\"Suggest\" changesets) are not returned by pull_request_read or any API",
+        "workaround": "interface AI agents use to interact with GitHub 2. The MCP server team has direct access to internal GitHub APIs and could surface this data even if the public REST/GraphQL APIs don't expose it yet 3. This is a critical",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2235"
+      },
+      {
+        "error_type": "schema",
+        "problem": "bug: `get_me` tool fails without parameters due to empty JSON object `{}` not being accepted as valid input",
+        "workaround": "the same issue. - A workaround is to pass any dummy key, but this should not be necessary.",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2587"
+      },
+      {
+        "error_type": "config",
+        "problem": "update_pull_request: `reviewers` field silently ignores team slugs",
+        "workaround": "ad91446d55959`)  ## Workaround  Using the `gh` CLI works correctly: ``` gh pr edit 123 --add-reviewer ORG/team-slug ```  ## Context  The GitHub REST API for [[requesting reviewers](https://docs.github.com/en/rest/pulls/r",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2440"
+      },
+      {
+        "error_type": "config",
+        "problem": "projects_write: item_id parameter typed as float64 instead of string",
+        "workaround": "c ID separately  ## Workaround  Using `gh project item-edit` via CLI works fine with the GraphQL node ID string.  ## Environment  - MCP endpoint: `https://api.githubcopilot.com/mcp/` - Toolset: `default,projects` - Clien",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2153"
+      },
+      {
+        "error_type": "auth",
+        "problem": "Make `projects` toolset part of the default toolsets",
+        "workaround": "h parameters. - The workaround today requires running the local server binary with `--toolsets=default,projects` and a personal access token, which is a significant setup hurdle compared to just pasting the MCP URL.",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2275"
+      },
+      {
+        "error_type": "schema",
+        "problem": "Add file mode (executable bit) support to `push_files`",
+        "workaround": "d as `100644`. 2. **Workaround scope drift.** The agent invents a second file (e.g.    `scripts/permissions.sh` containing `find scripts/ -exec chmod +x`)    that wasn't part of the task, hoping a CI step or human will r",
+        "confidence": "high",
+        "issue_url": "https://github.com/github/github-mcp-server/issues/2578"
+      }
+    ],
+    "community_notes": [
+      "[12 comments] feat: add `list_pull_request_review_threads` tool to expose PRRT_ node IDs for resolving threads (https://github.com/github/github-mcp-server/issues/2229)",
+      "[40 comments] Remote: Incompatibility with Claude (Web) Integrations (https://github.com/github/github-mcp-server/issues/549)",
+      "[8 comments] Cannot use access_token from GitHub App to call create_pull_request_with_copilot (https://github.com/github/github-mcp-server/issues/1082)",
+      "[7 comments] Cannot configure Remote GitHub MCP Server in ChatGPT (OAuth discovery error) (https://github.com/github/github-mcp-server/issues/1081)",
+      "[6 comments] Remote MCP OAuth + Gemini CLI Errors Out (https://github.com/github/github-mcp-server/issues/1075)"
+    ],
+    "issue_count": 102,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "notion": {
+    "known_blockers": [
+      {
+        "error_type": "auth",
+        "summary": "401 using mcp.notion.com/mcp — I found several related issues, but it’s still not clear to me whether this is supported or not.",
+        "severity": "critical",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/106",
+        "last_seen": "2026-01-01T13:19:00Z"
+      },
+      {
+        "error_type": "other",
+        "summary": "🛡️ Free security badge + Team account for your README — I built [MCPSafe](https://mcpsafe.org) - a security scanner for MCP servers. Ran a scan on Notion MCP Server:",
+        "severity": "critical",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/198",
+        "last_seen": "2026-02-05T22:57:16Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "[Security] AgentAudit Scan: Path Traversal in File Uploads, Token Logging — We scanned this package using [AgentAudit](https://agentaudit.dev) as part of a security audit of the top 20 most-used MCP s",
+        "severity": "critical",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/222",
+        "last_seen": "2026-02-26T15:50:09Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Guest users are completely locked out of Notion MCP — this creates an unfair access gap for freelancers and contractors — Notion MCP (and the official API) completely blocks access for guest users. Wh",
+        "severity": "critical",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/227",
+        "last_seen": "2026-03-12T07:15:37Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "[SECURITY] Path Traversal in file upload allows reading arbitrary server files (CWE-22) — The `prepareFileUpload` function in `src/openapi-mcp-server/client/http-client.ts` passes user-supplied file p",
+        "severity": "critical",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/237",
+        "last_seen": "2026-03-19T09:50:36Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Security Advisory: Prompt Injection Risk via Notion Page Content — The official Notion MCP server gives AI assistants read AND write access to Notion workspaces. When the AI reads page content, **atta",
+        "severity": "critical",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/238",
+        "last_seen": "2026-03-28T09:43:36Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Fetch tool should expose public_url field from page objects — The Notion API returns a `public_url` field on every page object (`null` if the page isn't shared to the web, or the public URL string if ",
+        "severity": "critical",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/245",
+        "last_seen": "2026-03-31T03:13:22Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "Security scan results for notion-mcp-server — MCPSafe AIVSS 71/100 (Grade B) — I ran a free deep security scan of **makenotion/notion-mcp-server** using [MCPSafe](https://mcpsafe.io) — a security scan",
+        "severity": "critical",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/285",
+        "last_seen": "2026-05-12T21:44:07Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "NOTION_TOKEN env var not read when spawned by Claude Code on Windows (stdio + HTTP) — - **OS**: Windows 11 Pro 10.0.26200",
+        "severity": "critical",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/291",
+        "last_seen": "2026-05-26T07:48:07Z"
+      },
+      {
+        "error_type": "schema",
+        "summary": "Bug: `notion-update-page` / `insert_content` fails with \"Invalid Notion page or block URL\" on pages containing bookmark blocks — **Summary:** Any write operation (`update_content`, `insert_content`, `",
+        "severity": "major",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/296",
+        "last_seen": "2026-06-05T13:11:08Z"
+      }
+    ],
+    "proven_fixes": [
+      {
+        "error_type": "schema",
+        "problem": "Bug: `notion-update-page` / `insert_content` fails with \"Invalid Notion page or block URL\" on pages containing bookmark blocks",
+        "workaround": "blocked entirely  **Workaround:** Manual edits in Notion UI. `notion-fetch` unaffected.  **MCP server:** Remote (`https://mcp.notion.com/mcp`) via Claude.ai connector",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/296"
+      },
+      {
+        "error_type": "auth",
+        "problem": "Cloudflare blocks MCP server IP when making API calls to notion.com",
+        "workaround": "gli theres a way to workaround cloudfare while notion team doesnt fix the pattern recognition in their end when using the gateway, by connecting using local nodejs config:  \"notion\": {   \"command\": \"npx\",   \"args\": [",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/252"
+      },
+      {
+        "error_type": "runtime",
+        "problem": "API-create-a-data-source and API-update-a-data-source return invalid_request_url — database creation unreliable + missing POST /v1/databases tool",
+        "workaround": "ld have served as a workaround for Issue 1) - `heading_1`, `heading_2`, `heading_3` - `numbered_list_item`, `toggle`, `callout`, `divider`, `image`, `code`  The [Notion API supports 20+ block types](https://developers.no",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/218"
+      },
+      {
+        "error_type": "other",
+        "problem": "Feature Request: Property-based filtering in notion-search for database queries",
+        "workaround": "ly unreliable.  ### Workaround  None. Repeated semantic searches with different keywords yield inconsistent and incomplete results.",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/278"
+      },
+      {
+        "error_type": "auth",
+        "problem": "Notion MCP server does not work with Claude Code",
+        "workaround": "blocking issue — no workaround without a separate Notion API key.",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/277"
+      },
+      {
+        "error_type": "other",
+        "problem": "synced_block_reference: URL inside url= attribute gets auto-converted to <mention-page>, mangling the tag",
+        "workaround": "n a different page, try to write a synced_block_reference pointing at that URL via `update_content`:  ``` <synced_block_reference url=\"https://www.notion.so/<PAGE_UUID>#<BLOCK_UUID>\"> \\thello from source </synced_block_r",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/286"
+      },
+      {
+        "error_type": "auth",
+        "problem": "v2.2.1 ships stale bin/cli.mjs — PR #212 double-serialization fix not included in bundle (published 33 min before PR merge)",
+        "workaround": "ect parameters.  ## Workaround (until fixed release)  Call the Notion REST API directly, bypassing the MCP layer:  ```python import urllib.request, json  headers = {     \"Authorization\": f\"Bearer {NOTION_TOKEN}\",     \"No",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/284"
+      },
+      {
+        "error_type": "schema",
+        "problem": "Bug Report: Notion MCP — Status Property \"in_progress\" Group Options Not Recognized via API",
+        "workaround": "ress-group values.  Workaround None available via API. Users must manually update the Status field in the Notion UI.  Affected Functionality Any workflow automation relying on MCP to set task status to in_progress-group",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/232"
+      },
+      {
+        "error_type": "schema",
+        "problem": "Bug: notion-create-view silently drops FILTER on Status property (no error, no warning)",
+        "workaround": "archive views.  ## Workaround  Edit filters via Notion UI directly (`Filter → <Status property> → is not → <value>`). Per-view manual process.  ## Possibly related  - Issue #232 reports another Status-property bug (in_p",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/283"
+      },
+      {
+        "error_type": "config",
+        "problem": "File properties in database entries return internal file:// reference instead of signed S3 URL",
+        "workaround": "on pattern. Current workaround is to move the image into the page body, which defeats the purpose of file properties.  ## Related  Same class of bug as #260 (formula/rollup values returning unresolved `formulaResult://`",
+        "confidence": "high",
+        "issue_url": "https://github.com/makenotion/notion-mcp-server/issues/274"
+      }
+    ],
+    "community_notes": [
+      "[6 comments] OAuth token expires too frequently — requires re-authentication 3+ times per week (https://github.com/makenotion/notion-mcp-server/issues/225)",
+      "[8 comments] Notion MCP server does not work with Claude Code (https://github.com/makenotion/notion-mcp-server/issues/277)",
+      "[7 comments] updating or adding multiple values for multi_select properties fails  in update-page (https://github.com/makenotion/notion-mcp-server/issues/108)",
+      "[11 comments] Feature Request: Support local file upload for images and files (https://github.com/makenotion/notion-mcp-server/issues/191)",
+      "[16 comments] Internal Server Error on OAuth callback when connecting via Claude.ai (Hosted MCP) (https://github.com/makenotion/notion-mcp-server/issues/269)"
+    ],
+    "issue_count": 100,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "atlassian-atlassian-mcp-server": {
+    "known_blockers": [
+      {
+        "error_type": "auth",
+        "summary": "Feature: expose Jira issue-properties read/write via MCP — > This issue is made from my personal account because my EMU one at Cisco does not allow issue creation for public repos. This issue was writ",
+        "severity": "critical",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/142",
+        "last_seen": "2026-04-17T15:52:13Z"
+      },
+      {
+        "error_type": "config",
+        "summary": "Tool responses prepend LLM instructions (\"Include this notice in your response before presenting the tool results\"), normalizing a prompt-injection pattern — Responses from `mcp.atlassian.com` current",
+        "severity": "critical",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/157",
+        "last_seen": "2026-05-01T01:49:07Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Not able to setup atlasian MCP with Google's Gemini Enterprise BYO MCP — Trying to use this feature: https://docs.cloud.google.com/gemini/enterprise/docs/connectors/custom-mcp-server/set-up-custom-mcp",
+        "severity": "critical",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/162",
+        "last_seen": "2026-05-12T21:56:49Z"
+      },
+      {
+        "error_type": "connection",
+        "summary": "getJiraIssue / searchJiraIssuesUsingJql hang indefinitely on comment reads for issues with media-heavy ADF — no opt-out available — `getJiraIssue` and `searchJiraIssuesUsingJql` hang until the 60 s cl",
+        "severity": "critical",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/145",
+        "last_seen": "2026-05-26T21:11:37Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Why do we only have access to team graph when using api token?",
+        "severity": "major",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/168",
+        "last_seen": "2026-06-07T22:47:17Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "MCP tool responses too verbose - breaks context window for users with many work items — Claude users who rely on Jira for daily planning cannot effectively use the MCP connector when they have dozens ",
+        "severity": "major",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/17",
+        "last_seen": "2026-06-06T09:04:52Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Pagination broken: searchJiraIssuesUsingJql never returns nextPageToken or pagination metadata — # Pagination broken: `searchJiraIssuesUsingJql` never returns `nextPageToken` or pagination metadata",
+        "severity": "major",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/118",
+        "last_seen": "2026-06-05T01:14:33Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "VSCode: \"Internal Server Error\" when authenticating with OAuth and \"We couldn't verify your access\" — - Add Atlassian MCP from VSCode extensions tab",
+        "severity": "major",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/108",
+        "last_seen": "2026-06-04T14:04:46Z"
+      },
+      {
+        "error_type": "auth",
+        "summary": "Jira API returns Forbidden after re-authenticating with Jira scopes granted — Within claude code, after clearing and re-authenticating the Atlassian MCP server connection, Jira API calls return Forbid",
+        "severity": "major",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/52",
+        "last_seen": "2026-06-02T08:36:45Z"
+      },
+      {
+        "error_type": "other",
+        "summary": "[Feature Request] download attachment from Jira ticket via MCP — **Context**: Verified API capabilities for fetching documents from Jira tickets using official Atlassian MCP server.",
+        "severity": "major",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/15",
+        "last_seen": "2026-05-28T10:11:31Z"
+      }
+    ],
+    "proven_fixes": [
+      {
+        "error_type": "auth",
+        "problem": "Pagination broken: searchJiraIssuesUsingJql never returns nextPageToken or pagination metadata",
+        "workaround": "page. - There is no workaround within the MCP tool itself. The only mitigation is to use JQL `ORDER BY key ASC` with `AND key > \"LAST-KEY\"` to manually paginate, but this is fragile and undocumented.  ## Likely root caus",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/118"
+      },
+      {
+        "error_type": "other",
+        "problem": "[Feature Request] download attachment from Jira ticket via MCP",
+        "workaround": "with the on-premis solution of Atlassian which worked great. We switch to the cloud solution where I don't get PAT tokens and I have been put chains on with this move.  I cannot imagine that this takes much effort to ex",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/15"
+      },
+      {
+        "error_type": "auth",
+        "problem": "addAttachmentToJiraIssue — support uploading attachments to a Jira issue",
+        "workaround": "Currently the only workaround is embedding direct links to the originals in the description, which is fragile and loses the attachment context.  ## Expected API  The Jira REST API endpoint already supports this: ``` POS",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/125"
+      },
+      {
+        "error_type": "connection",
+        "problem": "getJiraIssue / searchJiraIssuesUsingJql hang indefinitely on comment reads for issues with media-heavy ADF — no opt-out available",
+        "workaround": "hat the recommended workaround is, so agents can halt cleanly instead of retrying.  ## Related issues  - [[#59](https://github.com/atlassian/atlassian-mcp-server/issues/59)](https://github.com/atlassian/atlassian-mcp-ser",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/145"
+      },
+      {
+        "error_type": "other",
+        "problem": "Feature Request: Add Jira Agile sprint listing tool to resolve sprint IDs",
+        "workaround": "ithout it, the only workaround is scraping `customfield_10020` from an existing issue in the active sprint, which is brittle across sprint transitions.  **Requested:** A tool (or extension to `searchJiraIssuesUsingJql`)",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/166"
+      },
+      {
+        "error_type": "auth",
+        "problem": "Lossless markdown round-trip for Confluence macros and large-page support via file-path parameter",
+        "workaround": "the TOC case |  ## Workaround (current)  - Use `contentFormat: \"adf\"` and manually include `extension` nodes for macros. This preserves macros but increases payload size ~5x and is impractical for large pages. - For lar",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/161"
+      },
+      {
+        "error_type": "breaking_change",
+        "problem": "Editing content via Rovo MCP causes the loss of all ADF-rich content",
+        "workaround": "his.  I've tested a solution to inject changes without formatting to mkd and it seems to work although it's much less token efficient. This current solution could be set as default in the \"system prompt\" and the less eff",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/60"
+      },
+      {
+        "error_type": "config",
+        "problem": "Feature request: Add tool for attaching files to Jira issues",
+        "workaround": "hments-integration)/workaround for attaching files to Jira/Confluence via the REST API, but it is not really production-ready yet because it still needs stronger safeguards around credential handling, strict host validat",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/63"
+      },
+      {
+        "error_type": "breaking_change",
+        "problem": "Inline comment anchors lost when updating Confluence pages via updateConfluencePage",
+        "workaround": "comment anchors  ## Workaround  Current workaround:  1. Before updating: Read inline comments with `getConfluencePageInlineComments` 2. Store comment metadata (id, body, original text selection) 3. Update the page via MC",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/54"
+      },
+      {
+        "error_type": "config",
+        "problem": "updateConfluencePage / createConfluencePage unusable for large pages — body parameter has no file-reference or partial-update mechanism",
+        "workaround": "not in context. 4. Workaround attempt — pass `contentFormat: \"markdown\"` instead: update succeeds but all layout macros (`layoutSection`, `layoutColumn`, `extension`, `status`, panel macros) are stripped. Page layout is",
+        "confidence": "high",
+        "issue_url": "https://github.com/atlassian/atlassian-mcp-server/issues/106"
+      }
+    ],
+    "community_notes": [
+      "[13 comments] Why do we only have access to team graph when using api token? (https://github.com/atlassian/atlassian-mcp-server/issues/168)",
+      "[14 comments] MCP tool responses too verbose - breaks context window for users with many work items (https://github.com/atlassian/atlassian-mcp-server/issues/17)",
+      "[5 comments] Pagination broken: searchJiraIssuesUsingJql never returns nextPageToken or pagination metadata (https://github.com/atlassian/atlassian-mcp-server/issues/118)",
+      "[17 comments] VSCode: \"Internal Server Error\" when authenticating with OAuth and \"We couldn't verify your access\" (https://github.com/atlassian/atlassian-mcp-server/issues/108)",
+      "[13 comments] [Feature Request] download attachment from Jira ticket via MCP (https://github.com/atlassian/atlassian-mcp-server/issues/15)"
+    ],
+    "issue_count": 100,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  },
+  "linear": {
+    "known_blockers": [
+      {
+        "error_type": "other",
+        "summary": "🛡️ Free security badge + Team account for your README — I built [MCPSafe](https://mcpsafe.org) - a security scanner for MCP servers. Ran a scan on your MCP server:",
+        "severity": "critical",
+        "issue_url": "https://github.com/jerhadf/linear-mcp-server/issues/29",
+        "last_seen": "2026-02-04T16:20:26Z"
+      }
+    ],
+    "proven_fixes": [
+      {
+        "error_type": "schema",
+        "problem": "linear_update_issue: status parameter expects stateId UUID but schema implies status name",
+        "workaround": "s version: 22.x  ## Workaround  Currently, users must obtain the workflow state UUID manually and pass that instead of the status name. This is not documented and not intuitive.",
+        "confidence": "high",
+        "issue_url": "https://github.com/jerhadf/linear-mcp-server/issues/26"
+      }
+    ],
+    "community_notes": [],
+    "issue_count": 8,
+    "data_source": "github-issues-mining",
+    "data_quality": "semi-confirmed"
+  }
+}

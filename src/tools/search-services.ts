@@ -1,6 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
+import {
+  classifyReliabilitySource,
+  type ReliabilityBasis,
+} from "../utils/reliability-source.js";
 import { kanseiAppLink } from "../utils/app-link.js";
 
 interface ServiceRow {
@@ -103,6 +107,8 @@ export function register(server: McpServer, db: Database.Database): void {
             grade: r.axr_grade || null,
             mcp: r.mcp_status,
             success: r.success_rate != null ? Math.round(r.success_rate * 100) / 100 : null,
+            est: r.estimated_success_rate ?? null,
+            basis: r.reliability_basis ?? "none",
             cmd: r.mcp_endpoint || null,
             ready: r.agent_ready,
             fresh: r.freshness.confidence,
@@ -747,15 +753,40 @@ export function searchServices(
 
   // Track search appearances for funnel analytics
   const today = new Date().toISOString().split("T")[0];
-  for (const r of results.slice(0, limit)) {
+  const finalResults = results.slice(0, limit);
+  for (const r of finalResults) {
     db.prepare(`
       UPDATE service_snapshots
       SET search_appearances = search_appearances + 1
       WHERE service_id = ? AND snapshot_date = ?
     `).run(r.service_id, today);
+
+    // Reliability provenance: split MEASURED live telemetry from internal
+    // (seed/eval/scout) ESTIMATES so an estimated number never masquerades as
+    // a measured success_rate. `success_rate` becomes live-only (or null when
+    // there is no live data); the blended estimate is exposed separately via
+    // `estimated_success_rate`. NOTE: agent_ready was already classified from
+    // the blended ServiceRow rate above, so a service can still read
+    // agent_ready:"verified" while measured:false — tighten in workstream D.
+    const relSource = classifyReliabilitySource(db, r.service_id);
+    r.reliability_basis = relSource.basis;
+    r.measured = relSource.measured;
+
+    const blended = r.success_rate;
+    if (relSource.measured && relSource.live_success_rate != null) {
+      r.success_rate = Math.round(relSource.live_success_rate * 100) / 100;
+      r.estimated_success_rate =
+        relSource.basis === "mixed" && blended != null
+          ? Math.round(blended * 100) / 100
+          : null;
+    } else {
+      r.success_rate = null;
+      r.estimated_success_rate =
+        blended != null ? Math.round(blended * 100) / 100 : null;
+    }
   }
 
-  return results.slice(0, limit);
+  return finalResults;
 }
 
 /**
@@ -794,6 +825,11 @@ interface ScoredResult {
   axr_grade: string | null;
   relevance_score: number;
   freshness: FreshnessMeta;
+  // Reliability provenance — populated for the returned top-N results so that
+  // estimated (seed/eval) numbers never masquerade as measured live telemetry.
+  measured?: boolean;
+  reliability_basis?: ReliabilityBasis;
+  estimated_success_rate?: number | null;
 }
 
 /** Bonus when the user's intent mentions a service by name */

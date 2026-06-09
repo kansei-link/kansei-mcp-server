@@ -38,8 +38,8 @@ interface ServiceRow {
   name: string;
 }
 
-// Fields that agents are allowed to propose changes to
-const ALLOWED_FIELDS = [
+// Fields that agents are allowed to propose changes to (services table)
+const ALLOWED_SERVICE_FIELDS = [
   "description",
   "category",
   "tags",
@@ -48,6 +48,26 @@ const ALLOWED_FIELDS = [
   "api_url",
   "api_auth_method",
   "namespace",
+] as const;
+
+// Fields in service_api_guides table that agents can propose changes to
+const ALLOWED_GUIDE_FIELDS = [
+  "agent_tips",
+  "auth_overview",
+  "quickstart_example",
+  "rate_limit",
+  "auth_setup_hint",
+  "key_endpoints",
+  "error_format",
+  "sandbox_url",
+  "docs_url",
+  "pagination_style",
+] as const;
+
+// Combined set for validation
+const ALL_ALLOWED_FIELDS = [
+  ...ALLOWED_SERVICE_FIELDS,
+  ...ALLOWED_GUIDE_FIELDS,
 ] as const;
 
 export function register(server: McpServer, db: Database.Database): void {
@@ -69,9 +89,10 @@ export function register(server: McpServer, db: Database.Database): void {
         changes: z
           .record(z.string(), z.string())
           .describe(
-            "Object of field→new_value pairs to change. Allowed fields: " +
-            "description, category, tags, mcp_endpoint, mcp_status, api_url, " +
-            "api_auth_method, namespace. Example: {\"mcp_endpoint\": \"https://new-url\", \"tags\": \"accounting,invoice,bulk\"}"
+            "Object of field→new_value pairs to change. " +
+            "Service fields: description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, namespace. " +
+            "Guide fields: agent_tips, auth_overview, quickstart_example, rate_limit, auth_setup_hint, key_endpoints, error_format, sandbox_url, docs_url, pagination_style. " +
+            "Example: {\"agent_tips\": \"[{\\\"tip\\\": \\\"Use v2 endpoint\\\", ...}]\", \"mcp_endpoint\": \"https://new-url\"}"
           ),
         reason: z
           .string()
@@ -233,15 +254,16 @@ function proposeUpdate(
     };
   }
 
-  // Validate fields
+  // Validate fields (accept both service and guide fields)
   const invalidFields = Object.keys(input.changes).filter(
-    (f) => !(ALLOWED_FIELDS as readonly string[]).includes(f)
+    (f) => !(ALL_ALLOWED_FIELDS as readonly string[]).includes(f)
   );
   if (invalidFields.length > 0) {
     return {
       error: "invalid_fields",
       message: `Cannot propose changes to: ${invalidFields.join(", ")}`,
-      allowed_fields: [...ALLOWED_FIELDS],
+      allowed_service_fields: [...ALLOWED_SERVICE_FIELDS],
+      allowed_guide_fields: [...ALLOWED_GUIDE_FIELDS],
     };
   }
 
@@ -252,16 +274,23 @@ function proposeUpdate(
     };
   }
 
-  // Get current values for comparison
+  // Get current values for comparison (from both tables)
   const currentService = db
     .prepare("SELECT * FROM services WHERE id = ?")
     .get(input.service_id) as Record<string, unknown>;
 
-  const diff: Record<string, { current: unknown; proposed: string }> = {};
+  const currentGuide = db
+    .prepare("SELECT * FROM service_api_guides WHERE service_id = ?")
+    .get(input.service_id) as Record<string, unknown> | undefined;
+
+  const diff: Record<string, { current: unknown; proposed: string; table: string }> = {};
   for (const [field, newValue] of Object.entries(input.changes)) {
+    const isGuideField = (ALLOWED_GUIDE_FIELDS as readonly string[]).includes(field);
+    const source = isGuideField ? currentGuide : currentService;
     diff[field] = {
-      current: currentService[field] ?? null,
+      current: source?.[field] ?? null,
       proposed: newValue,
+      table: isGuideField ? "service_api_guides" : "services",
     };
   }
 
@@ -375,14 +404,60 @@ function reviewUpdate(
   const fieldChanges = JSON.parse(proposal.field_changes) as Record<string, string>;
 
   const applyTransaction = db.transaction(() => {
-    // 1. Apply each field change to the service
+    // 1. Apply each field change — route to correct table
+    const serviceUpdates: [string, string][] = [];
+    const guideUpdates: [string, string][] = [];
+
     for (const [field, value] of Object.entries(fieldChanges)) {
-      // Safety: only update allowed fields
-      if ((ALLOWED_FIELDS as readonly string[]).includes(field)) {
-        db.prepare(`UPDATE services SET ${field} = ? WHERE id = ?`).run(
-          value,
-          proposal.service_id
-        );
+      if ((ALLOWED_GUIDE_FIELDS as readonly string[]).includes(field)) {
+        guideUpdates.push([field, value]);
+      } else if ((ALLOWED_SERVICE_FIELDS as readonly string[]).includes(field)) {
+        serviceUpdates.push([field, value]);
+      }
+    }
+
+    // Apply services table updates
+    for (const [field, value] of serviceUpdates) {
+      db.prepare(`UPDATE services SET ${field} = ? WHERE id = ?`).run(
+        value,
+        proposal.service_id
+      );
+    }
+
+    // Apply guide table updates (UPSERT: guide row may not exist yet)
+    if (guideUpdates.length > 0) {
+      const existingGuide = db
+        .prepare("SELECT service_id FROM service_api_guides WHERE service_id = ?")
+        .get(proposal.service_id);
+
+      if (existingGuide) {
+        // UPDATE existing guide row
+        for (const [field, value] of guideUpdates) {
+          db.prepare(
+            `UPDATE service_api_guides SET ${field} = ?, updated_at = datetime('now') WHERE service_id = ?`
+          ).run(value, proposal.service_id);
+        }
+      } else {
+        // INSERT minimal guide row — required NOT NULL fields get defaults
+        const guideDefaults: Record<string, string> = {
+          base_url: "https://unknown",
+          auth_overview: "Not documented yet",
+          key_endpoints: "[]",
+          quickstart_example: "Not available yet",
+        };
+        // Merge defaults with proposed updates
+        const insertFields: Record<string, string> = {
+          service_id: proposal.service_id,
+          ...guideDefaults,
+        };
+        for (const [field, value] of guideUpdates) {
+          insertFields[field] = value;
+        }
+        const cols = Object.keys(insertFields);
+        const placeholders = cols.map(() => "?").join(", ");
+        db.prepare(
+          `INSERT INTO service_api_guides (${cols.join(", ")}) VALUES (${placeholders})`
+        ).run(...Object.values(insertFields));
       }
     }
 

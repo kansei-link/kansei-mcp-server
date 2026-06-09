@@ -21,7 +21,14 @@
     "start": "node dist/index.js",
     "start:http": "node dist/http-server.js",
     "seed": "node dist/db/seed.js",
+    "test:jp-search": "tsx scripts/verify-jp-search.mts",
+    "test:seed-merge": "tsx scripts/verify-seed-tag-merge.mts",
     "articles:auto": "node scripts/generate-articles-auto.mjs",
+    "crawl:issues": "tsx src/crawler/mine-issues.ts --days 30",
+    "crawl:registry": "tsx src/crawler/sync-registry.ts",
+    "crawl:probe": "tsx src/crawler/health-probe.ts --limit 5000",
+    "crawl:probe:quick": "tsx src/crawler/health-probe.ts --limit 200",
+    "crawl:all": "npm run crawl:probe && npm run crawl:issues",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

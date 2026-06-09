@@ -2,6 +2,10 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { kanseiAppLink } from "../utils/app-link.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
+import {
+  classifyReliabilitySource,
+  gradeLabel,
+} from "../utils/reliability-source.js";
 
 interface ServiceRow {
   id: string;
@@ -257,18 +261,60 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     };
   });
 
-  // Build reliability summary
-  let reliabilityLabel: string;
-  if (!stats || stats.total_calls === 0) {
-    reliabilityLabel = "no_data";
-  } else if (stats.success_rate >= 0.95) {
-    reliabilityLabel = "excellent";
-  } else if (stats.success_rate >= 0.8) {
-    reliabilityLabel = "good";
-  } else if (stats.success_rate >= 0.6) {
-    reliabilityLabel = "fair";
+  // Build reliability summary — separating MEASURED (live) telemetry from
+  // ESTIMATES (seed/eval/scout). `service_stats` blends both, so we classify
+  // provenance and present the live-only rate as the headline `success_rate`,
+  // keeping any estimate in a clearly-labeled `estimated_success_rate`.
+  const relSource = classifyReliabilitySource(db, service.id);
+  const estimatedRate =
+    stats && stats.total_calls > 0
+      ? Math.round(stats.success_rate * 100) / 100
+      : null;
+  const liveRate =
+    relSource.live_success_rate != null
+      ? Math.round(relSource.live_success_rate * 100) / 100
+      : null;
+  const avgLatency = stats ? Math.round(stats.avg_latency_ms) : null;
+
+  let reliability: Record<string, unknown>;
+  if (relSource.basis === "none") {
+    reliability = {
+      basis: "none",
+      measured: false,
+      label: "no_data",
+      success_rate: null,
+      total_reports: 0,
+      note: relSource.note,
+    };
+  } else if (relSource.basis === "estimated") {
+    // Seed/eval-only: never present the estimate as a measured success_rate.
+    reliability = {
+      basis: "estimated",
+      measured: false,
+      label: "estimated",
+      success_rate: null,
+      estimated_success_rate: estimatedRate,
+      avg_latency_ms: avgLatency,
+      live_reports: 0,
+      estimated_reports: relSource.estimated_reports,
+      note: relSource.note,
+    };
   } else {
-    reliabilityLabel = "poor";
+    // live | mixed — at least one genuine field report exists.
+    reliability = {
+      basis: relSource.basis,
+      measured: true,
+      label: liveRate != null ? gradeLabel(liveRate) : "no_data",
+      success_rate: liveRate, // live-only — the honest measured number
+      avg_latency_ms: avgLatency,
+      live_reports: relSource.live_reports,
+      unique_agents: relSource.live_agents,
+      note: relSource.note,
+    };
+    if (relSource.basis === "mixed") {
+      reliability.estimated_success_rate = estimatedRate;
+      reliability.estimated_reports = relSource.estimated_reports;
+    }
   }
 
   // Build recent activity summary
@@ -317,14 +363,8 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     // Auth guide
     auth,
 
-    // Reliability
-    reliability: {
-      label: reliabilityLabel,
-      success_rate: stats ? Math.round(stats.success_rate * 100) / 100 : null,
-      avg_latency_ms: stats ? Math.round(stats.avg_latency_ms) : null,
-      total_reports: stats?.total_calls ?? 0,
-      unique_agents: stats?.unique_agents ?? 0,
-    },
+    // Reliability (provenance-aware: measured live vs. internal estimate)
+    reliability,
 
     // Pitfalls from community
     common_pitfalls: commonPitfalls.length > 0 ? commonPitfalls : "No issues reported yet — you may be among the first to use this service!",
@@ -354,6 +394,136 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
       }
     }
     if (guide.quickstart_example) tips.quickstart = guide.quickstart_example;
+  }
+
+  // === Fix ②: Report→Tips Pipeline ===
+  // Surface high-quality insights from outcomes and agent_feedback
+  // so that reports flow into what agents actually read.
+
+  // 1. Successful workarounds that actually helped (verified by subsequent success)
+  const provenWorkarounds = db
+    .prepare(
+      `SELECT
+         w.error_type,
+         w.workaround,
+         count(*) as times_reported,
+         (SELECT count(*) FROM outcomes o2
+          WHERE o2.service_id = ? AND o2.success = 1
+          AND o2.created_at >= w.created_at) as successes_after
+       FROM outcomes w
+       WHERE w.service_id = ? AND w.workaround IS NOT NULL AND w.success = 1
+       GROUP BY w.error_type, w.workaround
+       HAVING times_reported >= 1
+       ORDER BY times_reported DESC, successes_after DESC
+       LIMIT 5`
+    )
+    .all(serviceId, serviceId) as Array<{
+    error_type: string;
+    workaround: string;
+    times_reported: number;
+    successes_after: number;
+  }>;
+
+  // 2. Recurring unresolved failures (errors without any successful workaround)
+  const unresolvedFailures = db
+    .prepare(
+      `SELECT
+         error_type,
+         count(*) as occurrences,
+         max(created_at) as last_seen
+       FROM outcomes
+       WHERE service_id = ? AND success = 0 AND error_type IS NOT NULL
+       AND error_type NOT IN (
+         SELECT DISTINCT o2.error_type FROM outcomes o2
+         WHERE o2.service_id = ? AND o2.success = 1 AND o2.workaround IS NOT NULL
+         AND o2.error_type IS NOT NULL
+       )
+       GROUP BY error_type
+       HAVING occurrences >= 2
+       ORDER BY occurrences DESC
+       LIMIT 3`
+    )
+    .all(serviceId, serviceId) as Array<{
+    error_type: string;
+    occurrences: number;
+    last_seen: string;
+  }>;
+
+  // 3. Agent feedback (community observations about this service)
+  const agentFeedback = db
+    .prepare(
+      `SELECT subject, body, created_at
+       FROM agent_feedback
+       WHERE subject LIKE ? OR subject LIKE ?
+       ORDER BY created_at DESC
+       LIMIT 3`
+    )
+    .all(`%${serviceId}%`, `%${service.name}%`) as Array<{
+    subject: string;
+    body: string;
+    created_at: string;
+  }>;
+
+  // 4. Recent success patterns (what's working NOW — most recent successful contexts)
+  const recentSuccessPatterns = db
+    .prepare(
+      `SELECT context_masked, workaround, created_at
+       FROM outcomes
+       WHERE service_id = ? AND success = 1 AND context_masked IS NOT NULL
+       ORDER BY created_at DESC
+       LIMIT 3`
+    )
+    .all(serviceId) as Array<{
+    context_masked: string;
+    workaround: string | null;
+    created_at: string;
+  }>;
+
+  // Assemble field insights (only include non-empty sections)
+  const fieldInsights: Record<string, unknown> = {};
+
+  if (provenWorkarounds.length > 0) {
+    fieldInsights.proven_fixes = provenWorkarounds.map((w) => ({
+      error: w.error_type,
+      fix: w.workaround,
+      confidence: w.times_reported >= 3 ? "high" : w.times_reported >= 2 ? "medium" : "low",
+      reported_by: `${w.times_reported} agent(s)`,
+    }));
+  }
+
+  if (unresolvedFailures.length > 0) {
+    fieldInsights.known_blockers = unresolvedFailures.map((f) => ({
+      error: f.error_type,
+      occurrences: f.occurrences,
+      last_seen: f.last_seen,
+      status: "No workaround found yet. If you find a fix, please report_outcome.",
+    }));
+  }
+
+  if (agentFeedback.length > 0) {
+    fieldInsights.community_notes = agentFeedback.map((f) => ({
+      subject: f.subject,
+      note: f.body.length > 300 ? f.body.substring(0, 300) + "..." : f.body,
+      date: f.created_at,
+    }));
+  }
+
+  if (recentSuccessPatterns.length > 0) {
+    fieldInsights.recent_success_patterns = recentSuccessPatterns.map((s) => ({
+      context: s.context_masked,
+      approach: s.workaround ?? "Standard flow",
+      date: s.created_at,
+    }));
+  }
+
+  if (Object.keys(fieldInsights).length > 0) {
+    tips.field_insights = fieldInsights;
+    tips.field_insights_note =
+      "Auto-derived from real agent usage reports. " +
+      "proven_fixes = workarounds that led to success. " +
+      "known_blockers = errors with no known fix yet. " +
+      "community_notes = agent observations. " +
+      "recent_success_patterns = what's working now.";
   }
 
   return tips;

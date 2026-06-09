@@ -2,7 +2,7 @@ import { getDb } from "./connection.js";
 import { initializeDb } from "./schema.js";
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -70,6 +70,52 @@ function loadJson<T>(filename: string): T {
   const distPath = path.join(__dirname, "..", "data", filename);
   const filePath = existsSync(srcPath) ? srcPath : distPath;
   return JSON.parse(readFileSync(filePath, "utf-8"));
+}
+
+/**
+ * Parse a tags field tolerantly. The seed source-of-truth historically stored
+ * tags in TWO formats — CSV ("crm,sales,marketing") and JSON-array-string
+ * ('["pos","retail"]'). Every consumer (search tagMatchBoost, resources.ts,
+ * AEO reports) splits on comma, so JSON-array rows silently broke exact-tag
+ * matching (only the trigram FTS substring index saved them). parseTags
+ * normalizes both shapes into a clean token list.
+ */
+function parseTags(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("[")) {
+    try {
+      const arr = JSON.parse(trimmed);
+      if (Array.isArray(arr)) return arr.map((t) => String(t).trim()).filter(Boolean);
+    } catch {
+      // malformed JSON — fall through to CSV parsing
+    }
+  }
+  return trimmed.split(",").map((t) => t.trim()).filter(Boolean);
+}
+
+/**
+ * Union seed tags onto a row's existing (post-seed enriched) tags. This is the
+ * systemic replacement for the manual scripts/enrich-jp-tags.mjs migration:
+ * it upholds the "seed = FLOOR, not ceiling" principle by KEEPING every
+ * enriched tag while GUARANTEEING every seed tag is present. Output is canonical
+ * CSV (the format all consumers expect), so it also retires the legacy
+ * JSON-array tag shape. De-dupe is case-insensitive; existing order is
+ * preserved and new seed tags are appended. Idempotent across restarts.
+ */
+function mergeSeedTags(
+  existing: string | null | undefined,
+  seed: string | null | undefined
+): string {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const t of [...parseTags(existing), ...parseTags(seed)]) {
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out.join(",");
 }
 
 export function seedDatabase(db: ReturnType<typeof getDb>): void {
@@ -203,10 +249,18 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   //   overwrote the dynamic AAA floor with the hardcoded seed — services
   //   like mongodb-atlas kept snapping back to AAA despite 0 real calls.
   //
-  // api_auth_method / trust_score / tags: enriched post-seed via scripts
-  //   (enrich-auth-methods.mjs, enrich-jp-tags.mjs, etc.) based on real
-  //   agent feedback. Overwriting these on restart would discard community
-  //   data quality improvements. Seed values are the FLOOR, not the ceiling.
+  // api_auth_method / trust_score: enriched post-seed via scripts
+  //   (enrich-auth-methods.mjs, etc.) based on real agent feedback.
+  //   Overwriting these scalars on restart would discard community data
+  //   quality improvements. Seed values are the FLOOR, not the ceiling.
+  //
+  // tags: MERGED, not skipped. Previously excluded for the same floor-not-
+  //   ceiling reason, but that meant seed tag additions (e.g. JP synonyms)
+  //   never reached existing/prod rows — the regression that required the
+  //   manual scripts/enrich-jp-tags.mjs migration. We now union seed tags
+  //   onto the row's existing tags (see mergeSeedTags): every enriched tag
+  //   is preserved AND every seed tag is guaranteed present. This retires
+  //   the manual script and self-heals prod on the next restart.
   //
   // axr_dims / axr_facade, name, description, category, mcp_endpoint,
   //   mcp_status, api_url ARE still overwritten — those are authoritative
@@ -219,12 +273,18 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
       namespace = excluded.namespace,
       description = excluded.description,
       category = excluded.category,
+      tags = excluded.tags,
       mcp_endpoint = excluded.mcp_endpoint,
       mcp_status = excluded.mcp_status,
       api_url = excluded.api_url,
       axr_dims = excluded.axr_dims,
       axr_facade = excluded.axr_facade
   `);
+
+  // Read existing tags so the seed loop can UNION (not overwrite) them — the
+  // value passed as @tags below is the merged result, which excluded.tags
+  // then writes back on conflict. Fresh rows simply receive canonical CSV.
+  const selectExistingTags = db.prepare(`SELECT tags FROM services WHERE id = ?`);
 
   const insertStats = db.prepare(`
     INSERT OR IGNORE INTO service_stats (service_id) VALUES (@service_id)
@@ -269,8 +329,13 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
 
   const seedAll = db.transaction(() => {
     for (const service of services) {
+      const existing = selectExistingTags.get(service.id) as
+        | { tags: string | null }
+        | undefined;
+      const mergedTags = mergeSeedTags(existing?.tags, service.tags);
       insertService.run({
         ...service,
+        tags: mergedTags,
         api_url: service.api_url ?? null,
         api_auth_method: service.api_auth_method ?? null,
         axr_score: service.axr_score ?? null,
@@ -404,8 +469,15 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   );
 }
 
-// Run directly when invoked as a script (npm run seed)
-const isDirectRun = process.argv[1]?.includes("seed");
+// Run directly ONLY when this module is the process entry point (npm run seed →
+// `node dist/db/seed.js`). The previous guard — process.argv[1].includes("seed")
+// — false-positived for ANY script whose path merely contains "seed" (e.g.
+// scripts/verify-seed-tag-merge.mts), silently triggering a full PRODUCTION seed
+// of the default file DB on mere import. Comparing import.meta.url to the entry
+// URL is the robust ESM idiom and seeds only on genuine direct invocation.
+const isDirectRun =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isDirectRun) {
   const db = getDb();
   initializeDb(db);
