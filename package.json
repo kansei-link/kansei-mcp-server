@@ -1,7 +1,7 @@
 {
   "name": "@kansei-link/mcp-server",
   "mcpName": "io.github.kansei-link/kansei-mcp-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP intelligence layer for discovering and orchestrating Japanese SaaS MCP tools",
   "type": "module",
   "main": "dist/index.js",
@@ -13,7 +13,15 @@
   },
   "files": [
     "dist",
-    "src/data",
+    "src/data/services-seed.json",
+    "src/data/recipes-seed.json",
+    "src/data/api-guides-seed.json",
+    "src/data/changelog-seed.json",
+    "src/data/voices-seed.json",
+    "src/data/github-issues-30d-tips.json",
+    "src/data/github-issues-180d-tips.json",
+    "src/data/recipes-new-75.json",
+    "src/data/jp-watchlist.txt",
     ".well-known"
   ],
   "scripts": {
@@ -29,6 +37,14 @@
     "crawl:probe": "tsx src/crawler/health-probe.ts --limit 5000",
     "crawl:probe:quick": "tsx src/crawler/health-probe.ts --limit 200",
     "crawl:all": "npm run crawl:probe && npm run crawl:issues",
+    "watch": "tsx src/crawler/watchdog.ts",
+    "watch:report": "tsx src/crawler/watchdog.ts --report",
+    "watch:fix": "tsx src/crawler/watchdog.ts --report --fix",
+    "crawl:diff": "tsx src/crawler/registry-diff.ts",
+    "crawl:diff:ingest": "tsx src/crawler/registry-diff.ts --ingest",
+    "ops:cycle": "tsx src/crawler/ops-cycle.ts",
+    "ops:quick": "tsx src/crawler/ops-cycle.ts --quick",
+    "ops:dry": "tsx src/crawler/ops-cycle.ts --dry",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

@@ -60,10 +60,10 @@ Disable without editing settings: `export KANSEI_REPORT_HOOK=off`
 
 ## What's Inside
 
-- **1,000+ SaaS/API services** across 23 categories (global + Japanese)
-- **188 workflow recipes** -- deploy pipelines, AI code review, incident response, onboarding flows
-- **126 API connection guides** with auth setup, endpoints, rate limits, and agent tips
-- **Trust scores** based on real agent usage data (success rate, latency, workarounds)
+- **11,000+ SaaS/MCP services** across 23 categories (global + Japanese) — 2,257 MCP-verified via handshake
+- **200 workflow recipes** -- standup automation, PR review flows, incident response, onboarding, release announcements (12 MCP-native with verified tool names)
+- **199 API connection guides** with auth setup, endpoints, rate limits, and agent tips
+- **Trust scores** based on real agent usage data (success rate, latency, workarounds) — weekly auto-refresh
 - **Agent Voice** -- structured feedback from Claude, GPT, Gemini agents about each API
 - **Time-series intelligence** -- daily snapshots, trend analysis, incident detection
 
