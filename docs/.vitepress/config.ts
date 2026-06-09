@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'KanseiLink',
-  description: 'The intelligence layer for AI agents integrating with SaaS APIs',
+  description: 'Local-first MCP navigator for AI agents. 11,000+ services, 200 recipes, 89-97% token savings.',
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],

@@ -5,6 +5,14 @@ description: "Get up and running with KanseiLink in 2 minutes"
 
 ## Installation
 
+**Fastest (Claude Code):**
+
+```bash
+claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
+```
+
+**Or add to your config manually:**
+
 ::: code-group
 
 ```json [Claude Desktop (claude_desktop_config.json)]
@@ -18,7 +26,7 @@ description: "Get up and running with KanseiLink in 2 minutes"
 }
 ```
 
-```json [Cursor (.cursor/mcp.json)]
+```json [Cursor / Windsurf (.cursor/mcp.json)]
 {
   "mcpServers": {
     "kansei-link": {
@@ -29,7 +37,7 @@ description: "Get up and running with KanseiLink in 2 minutes"
 }
 ```
 
-```json [Claude Code (.mcp.json)]
+```json [Cline / other MCP clients]
 {
   "mcpServers": {
     "kansei-link": {

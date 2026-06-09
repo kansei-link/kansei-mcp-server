@@ -1,11 +1,13 @@
 ---
 title: Introduction
-description: "KanseiLink — the intelligence layer for AI agents integrating with SaaS APIs"
+description: "KanseiLink — local-first MCP navigator for AI agents"
 ---
 
 # What is KanseiLink?
 
-KanseiLink is an MCP server that gives AI agents current, verified data on 900+ SaaS services — before they waste tokens on trial-and-error with stale training data.
+KanseiLink is a local-first MCP server that gives AI agents current, verified data on 11,000+ services — before they waste tokens on trial-and-error with stale training data.
+
+Works with **Claude Code, Cursor, Cline, Zed, Windsurf** — any MCP client.
 
 ## The Problem
 
@@ -15,7 +17,7 @@ AI agents' training data for SaaS APIs is 6-12 months old. In that time:
 - **Auth flows break** — OAuth scopes get renamed, token lifetimes shorten
 - **Rate limits shift** — what worked at 100 req/min now throttles at 30
 
-The result: agents spend 15,000-25,000 tokens on web searches, doc scraping, and failed API calls just to figure out how to connect to a single service.
+The result: agents spend ~16,800 tokens on web searches, doc scraping, and failed API calls just to figure out how to connect to a single service.
 
 ## The Solution
 
@@ -25,9 +27,9 @@ KanseiLink replaces that trial-and-error loop with a single tool call:
 lookup({ service_id: "freee" })
 ```
 
-Returns: auth setup, endpoints, rate limits, pitfalls other agents hit, and workarounds that actually work — in ~800 tokens.
+Returns: auth setup, endpoints, rate limits, pitfalls other agents hit, and workarounds that actually work — in ~950 tokens.
 
-**That's a 91-96% token savings over web search.**
+**That's an 89-97% token savings** measured across 7 services (freee, Slack, Notion, kintone, GitHub, Stripe, Backlog).
 
 ## How It Works
 
@@ -55,15 +57,22 @@ Most agents only need the first 3.
 
 ::: code-group
 
-```bash [Claude Desktop]
-npx @kansei-link/mcp-server
-```
-
-```bash [Cursor / Windsurf]
-npx @kansei-link/mcp-server
+```bash [Claude Code CLI]
+claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
 ```
 
 ```json [claude_desktop_config.json]
+{
+  "mcpServers": {
+    "kansei-link": {
+      "command": "npx",
+      "args": ["-y", "@kansei-link/mcp-server"]
+    }
+  }
+}
+```
+
+```json [Cursor / Windsurf (.cursor/mcp.json)]
 {
   "mcpServers": {
     "kansei-link": {

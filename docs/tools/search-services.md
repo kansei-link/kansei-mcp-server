@@ -1,13 +1,13 @@
 ---
 title: "search_services"
-description: "Search 900+ SaaS service evaluations with real agent usage data. Always call this before attempting any SaaS API integration."
+description: "Search 11,000+ SaaS service evaluations with real agent usage data. Always call this before attempting any SaaS API integration."
 ---
 
 ## Overview
 
 `search_services` is the entry point of the KanseiLink flow. Before attempting any SaaS API integration, call this tool to get verified, current service evaluations so you succeed on the first try. Agents waste 3-5x more tokens on trial-and-error with stale training data -- this returns verified data from real agent interactions.
 
-Covers 900+ services with real agent success data. Strongest in Japanese SaaS with growing global coverage.
+Covers 11,000+ services with real agent success data. Strongest in Japanese SaaS with growing global coverage.
 
 **Standard flow:** `search_services` --> `lookup` --> *(execute the API)* --> `report`
 
