@@ -37,6 +37,7 @@ import { homedir } from "node:os";
 import * as http from "node:http";
 import * as https from "node:https";
 import { URL } from "node:url";
+import { maskPii } from "../utils/pii-masker.js";
 
 const LOG_DIR = process.env.KANSEI_HOOK_DIR ?? join(homedir(), ".kansei-link");
 const LOG_FILE = join(LOG_DIR, "hook.log");
@@ -110,7 +111,9 @@ function classifyError(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
   const obj = payload as Record<string, unknown>;
   const isError = Boolean(obj.is_error);
-  const text = JSON.stringify(obj).toLowerCase();
+  // Mask PII BEFORE inspecting the response text — an error body may contain emails/keys, and only
+  // the resulting category (e.g. "auth_error") ever leaves the machine, never the raw text.
+  const text = maskPii(JSON.stringify(obj)).masked.toLowerCase();
   if (!isError && !text.includes("error") && !text.includes("fail")) return null;
 
   if (text.includes("auth") || text.includes("401") || text.includes("unauthorized"))

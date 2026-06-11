@@ -34,6 +34,24 @@ All text submitted via `context` field is processed through PII masking before s
 
 **Policy**: Raw text with PII is never persisted to disk. Masking occurs in-memory before any database write.
 
+- `agent_id` (e.g. on `submit_feedback`) is normalized to an agent *family* (`claude` / `gpt` / `gemini` / …) or `anonymous` — an arbitrary identifier (email, username) can never be stored through it.
+- Auto-captured error responses (`kansei-link-report-hook`) are PII-masked **before** classification; only the resulting error *category* is ever transmitted, never the raw response.
+
+## What ships where
+
+- The **npm package** (`@kansei-link/mcp-server`, stdio server) makes **no outbound network calls by default** — it serves a local bundled SQLite dataset.
+- The **hosted HTTP facade** (Railway) exposes the dashboard read APIs, Stripe billing, and the opt-in `report-outcome` / `telemetry` sinks.
+
+## Billing & Access Endpoints (hosted facade)
+
+- **Stripe webhooks** (`/webhooks/stripe`) are verified with `stripe.webhooks.constructEvent` (HMAC signature) over the raw request body.
+- **`/api/checkout`** accepts only price IDs configured via `STRIPE_PRICE_*` (a client cannot substitute an arbitrary or different valid price).
+- **`/api/access`** requires a per-email access token = `HMAC(email, secret)`. Without a valid token the response is **indistinguishable from "free"**, so an attacker cannot enumerate whether an email is a paying customer or what tier they hold. Tokens are obtained only from **`/api/access-token?session_id=<stripe checkout session>`**, which is verified against Stripe (the unforgeable post-checkout session proves the caller owns the email).
+- **`/admin/*`** endpoints require a `CRAWLER_SECRET` bearer token.
+- CORS is scoped to a single configured origin; credentials are not exposed.
+
+Server secrets are environment variables only (never committed): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_*`, `CRAWLER_SECRET`, `ACCESS_TOKEN_SECRET` (optional — falls back to `STRIPE_WEBHOOK_SECRET`), `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`. See `.env.example`.
+
 ## Trust Model
 
 ### Service Trust Score (0.0 - 1.0)

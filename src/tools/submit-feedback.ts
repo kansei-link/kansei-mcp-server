@@ -17,6 +17,18 @@ import { maskPii } from "../utils/pii-masker.js";
  * This is the "Moltbook" (complaint/suggestion book) of the agent world.
  */
 
+// agent_id must be an agent TYPE/family, not a PII-bearing identifier. Anything that isn't a known
+// family collapses to 'anonymous', so a caller can never persist an email/username via this field.
+const AGENT_FAMILIES = [
+  "claude", "gpt", "openai", "codex", "gemini", "cursor", "copilot",
+  "llama", "mistral", "grok", "deepseek", "qwen", "windsurf",
+];
+function normalizeAgentId(raw: string | undefined | null): string {
+  if (!raw) return "anonymous";
+  const low = String(raw).toLowerCase();
+  return AGENT_FAMILIES.find((f) => low.includes(f)) ?? "anonymous";
+}
+
 interface FeedbackRow {
   id: number;
   agent_id: string | null;
@@ -167,7 +179,10 @@ function submitFeedback(
   //   - if the service_id resolves, keep it linked
   //   - if not, prepend a "[re: <original>]" breadcrumb to the body so the
   //     reference is preserved as free text, and set the FK column to null.
-  const agentId: string | null = input.agent_id ?? null;
+  // agent_id is an agent TYPE/family, never a PII-bearing identifier. Normalize to a known family
+  // (or 'anonymous') so an `agent_id: "alice@corp.com"` can never be persisted — matches the stated
+  // privacy contract ("only the agent type is retained") and the outcomes table's agent_id_hash policy.
+  const agentId: string = normalizeAgentId(input.agent_id);
   let serviceId: string | null = input.service_id ?? null;
   const feedbackType: string = input.type;
   const prio: string = input.priority;

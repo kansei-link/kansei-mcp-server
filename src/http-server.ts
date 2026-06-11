@@ -25,6 +25,7 @@ import { seedDatabase } from "./db/seed.js";
 import {
   handleStripeWebhook,
   handleAccessCheck,
+  handleAccessTokenIssue,
   handleCreateCheckout,
   handleCustomerPortal,
 } from "./stripe.js";
@@ -115,6 +116,7 @@ app.get("/api/config", (_req: Request, res: Response) => {
   });
 });
 app.get("/api/access", apiLimiter, handleAccessCheck);
+app.get("/api/access-token", apiLimiter, handleAccessTokenIssue);
 app.post("/api/checkout", apiLimiter, handleCreateCheckout);
 app.post("/api/portal", apiLimiter, handleCustomerPortal);
 
