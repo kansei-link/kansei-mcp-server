@@ -46,7 +46,8 @@ All text submitted via `context` field is processed through PII masking before s
 
 - **Stripe webhooks** (`/webhooks/stripe`) are verified with `stripe.webhooks.constructEvent` (HMAC signature) over the raw request body.
 - **`/api/checkout`** accepts only price IDs configured via `STRIPE_PRICE_*` (a client cannot substitute an arbitrary or different valid price).
-- **`/api/access`** requires a per-email access token = `HMAC(email, secret)`. Without a valid token the response is **indistinguishable from "free"**, so an attacker cannot enumerate whether an email is a paying customer or what tier they hold. Tokens are obtained only from **`/api/access-token?session_id=<stripe checkout session>`**, which is verified against Stripe (the unforgeable post-checkout session proves the caller owns the email).
+- **`/api/access`** is read-only content gating, keyed by email — it returns only a tier + expiry (no payment data). It is intentionally not token-gated at launch, so existing subscribers aren't locked out; the residual risk is a low-stakes "is this email a customer" read. **Magic-link email login** is the planned post-launch upgrade that closes this read-enumeration (a Stripe-verified token issuer, `/api/access-token?session_id=...`, already exists as the bridge).
+- **`/api/portal`** (manage/cancel billing — high-impact) **is** token-gated: it requires the per-email `HMAC(email, secret)` token, so it cannot be used to take over or enumerate billing.
 - **`/admin/*`** endpoints require a `CRAWLER_SECRET` bearer token.
 - CORS is scoped to a single configured origin; credentials are not exposed.
 

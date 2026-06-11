@@ -187,15 +187,15 @@ function accessResultForEmail(email: string): AccessResult {
   return result;
 }
 
-// GET /api/access?email=&token=   — token = HMAC(email, secret), obtained via /api/access-token.
-// SECURITY: without a valid token this returns the generic free result and NEVER reveals whether
-// the email is a paying customer (was an open email→subscription enumeration endpoint).
+// GET /api/access?email=   — read-only content gating (returns tier + expiry only, no payment data).
+// LAUNCH POSTURE: keyed by email. This is intentionally NOT token-gated — the residual risk is a
+// low-stakes "is this email a customer + tier" read, and gating it would lock out existing
+// subscribers who predate the token flow. The DANGEROUS endpoints stay locked: /api/portal
+// (manage/cancel billing → token-gated) and /api/checkout (price-whitelisted). The proper upgrade
+// that closes this read-enumeration is magic-link email login — planned post-launch (see SECURITY.md).
 export function handleAccessCheck(req: Request, res: Response) {
   const email = ((req.query.email as string) || "").trim().toLowerCase();
-  const token = (req.header("x-access-token") as string) || ((req.query.token as string) || "");
-
-  // Generic, non-leaking response for missing param / missing-or-wrong token.
-  if (!email || !tokenMatches(token, accessTokenFor(email))) {
+  if (!email) {
     res.json({ tier: "free", active: false } as AccessResult);
     return;
   }
