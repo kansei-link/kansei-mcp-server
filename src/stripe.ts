@@ -173,7 +173,7 @@ function accessResultForEmail(email: string): AccessResult {
   const row = getDb().prepare(`
     SELECT tier, status, service_ids, current_period_end, cancel_at_period_end
     FROM subscriptions
-    WHERE email = ? AND status IN ('active', 'trialing')
+    WHERE LOWER(email) = ? AND status IN ('active', 'trialing')
     ORDER BY
       CASE tier WHEN 'enterprise' THEN 4 WHEN 'team' THEN 3 WHEN 'pro' THEN 2 ELSE 1 END DESC
     LIMIT 1
@@ -288,16 +288,26 @@ export async function handleCreateCheckout(req: Request, res: Response) {
 // ─── Customer Portal ───────────────────────────────────────────────
 
 export async function handleCustomerPortal(req: Request, res: Response) {
-  const { email } = req.body as { email?: string };
+  const body = (req.body ?? {}) as { email?: string; token?: string };
+  const email = (body.email || "").trim().toLowerCase();
+  const token = (req.header("x-access-token") as string) || body.token || "";
 
   if (!email) {
     res.status(400).json({ error: "email required" });
     return;
   }
 
+  // A portal session can VIEW billing and CANCEL/modify the subscription, so this must prove
+  // ownership — same per-email token as /api/access. Without it, respond exactly as "no subscription"
+  // so an attacker cannot (a) take over billing or (b) enumerate customers via this endpoint.
+  if (!tokenMatches(token, accessTokenFor(email))) {
+    res.status(404).json({ error: "No subscription found for this email" });
+    return;
+  }
+
   const db = getDb();
   const row = db.prepare(
-    "SELECT stripe_customer_id FROM subscriptions WHERE email = ? LIMIT 1"
+    "SELECT stripe_customer_id FROM subscriptions WHERE LOWER(email) = ? LIMIT 1"
   ).get(email) as { stripe_customer_id: string } | undefined;
 
   if (!row) {

@@ -18,6 +18,7 @@
   var API_BASE = window.KANSEI_API_BASE || "https://kansei-link-mcp-production-b054.up.railway.app";
   var TIER_RANK = { free: 0, pro: 1, team: 2, enterprise: 3 };
   var STORAGE_KEY = "kl_email";
+  var TOKEN_KEY = "kl_token"; // per-email access token, issued by /api/access-token after checkout
   var CACHE_KEY = "kl_access";
   var CACHE_TTL = 5 * 60 * 1000; // 5 min
 
@@ -74,8 +75,13 @@
       return;
     }
 
+    // Access requires the per-email token (HMAC issued by /api/access-token). Without it the API
+    // returns "free" by design — email alone can no longer reveal subscription status.
+    var token = localStorage.getItem(TOKEN_KEY) || "";
+    var url = API_BASE + "/api/access?email=" + encodeURIComponent(email) +
+              (token ? "&token=" + encodeURIComponent(token) : "");
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", API_BASE + "/api/access?email=" + encodeURIComponent(email));
+    xhr.open("GET", url);
     xhr.onload = function () {
       if (xhr.status === 200) {
         try {
@@ -123,7 +129,10 @@
   }
 
   function showLoginPrompt(link) {
-    var input = prompt(lang === "ja" ? "登録時のメールアドレスを入力してください:" : "Enter your subscription email:");
+    var msg = lang === "ja"
+      ? "登録時のメールアドレスを入力してください。\n（アクセスは登録した端末に保存されます。別端末・履歴削除後は、登録確認メールのリンクから復元してください）"
+      : "Enter your subscription email.\n(Access is saved on the device you subscribed on. On a new device or after clearing data, restore it via the link in your confirmation email.)";
+    var input = prompt(msg);
     if (input && input.indexOf("@") > 0) {
       localStorage.setItem(STORAGE_KEY, input.trim());
       localStorage.removeItem(CACHE_KEY);

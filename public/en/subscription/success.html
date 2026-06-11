@@ -34,30 +34,48 @@
     </div>
   </div>
   <script>
+    // Exchange the Stripe checkout session for an access token (see ja/success.html for rationale).
     (function() {
-      var email = localStorage.getItem('kl_email');
-      if (!email) {
-        var input = prompt('Enter your subscription email to confirm access:');
-        if (input && input.indexOf('@') > 0) {
-          localStorage.setItem('kl_email', input.trim());
-          email = input.trim();
-        }
-      }
-      var portalLink = document.getElementById('portal-link');
-      if (portalLink && email) {
+      var API_BASE = window.KANSEI_API_BASE || "https://kansei-link-mcp-production-b054.up.railway.app";
+      var params = new URLSearchParams(window.location.search);
+      var sessionId = params.get('session_id');
+
+      function wirePortal(email, token) {
+        var portalLink = document.getElementById('portal-link');
+        if (!portalLink || !email || !token) return;
         portalLink.addEventListener('click', function(e) {
           e.preventDefault();
           var xhr = new XMLHttpRequest();
-          xhr.open('POST', '/api/portal');
+          xhr.open('POST', API_BASE + '/api/portal');
           xhr.setRequestHeader('Content-Type', 'application/json');
           xhr.onload = function() {
             if (xhr.status === 200) {
-              var data = JSON.parse(xhr.responseText);
-              if (data.url) window.location.href = data.url;
+              try { var d = JSON.parse(xhr.responseText); if (d.url) window.location.href = d.url; } catch (e) {}
             }
           };
-          xhr.send(JSON.stringify({ email: email }));
+          xhr.send(JSON.stringify({ email: email, token: token }));
         });
+      }
+
+      if (sessionId) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', API_BASE + '/api/access-token?session_id=' + encodeURIComponent(sessionId));
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            try {
+              var d = JSON.parse(xhr.responseText);
+              if (d.email && d.token) {
+                localStorage.setItem('kl_email', d.email);
+                localStorage.setItem('kl_token', d.token);
+                localStorage.removeItem('kl_access');
+                wirePortal(d.email, d.token);
+              }
+            } catch (e) {}
+          }
+        };
+        xhr.send();
+      } else {
+        wirePortal(localStorage.getItem('kl_email'), localStorage.getItem('kl_token'));
       }
     })();
   </script>
