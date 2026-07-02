@@ -7,7 +7,7 @@
   <meta name="description" content="Stripeが2025-26にAgent Toolkitとして公開した公式MCPサーバーは mcp.stripe.com のリモートホスト型でOAuth+DCRに対応——25ツール、Restricted API Key推奨、form-encoded body、最小通貨単位、Idempotency-Keyまで、決済エージェント開発で詰まる8つのポイントを実データと公式ドキュメントから整理。">
   <meta name="keywords" content="Stripe MCP, Stripe Agent Toolkit, mcp.stripe.com, Restricted API Key, Payment Intents, MCP deep dive, payment MCP, OAuth DCR, AEO 2026, KanseiLink">
   <meta name="author" content="KanseiLink Research">
-  <meta name="robots" content="noindex, nofollow">
+  <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://kansei-link.com/insights/stripe-mcp-deep-dive-2026">
   <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/stripe-mcp-deep-dive-2026">
   <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/stripe-mcp-deep-dive-2026">
@@ -97,7 +97,7 @@
         "name": "KanseiLinkデータでStripe MCPの実績はどう見えていますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "2026-05時点で、stripe-global(公式MCP、bearer_token認証)は信頼スコア0.7・AEOグレードA・ユースケース蓄積0件で『connectable』。一方stripe-jp(3rdパーティMCP)は信頼スコア0.6・AEOグレードA・33件の利用報告・成功率73%・平均レイテンシ177msと、3rdパーティMCP経由の実績が先行しています。ただしstripe-jpデータは単一エージェント由来であり代表性に注意が必要(single_source_bias警告あり)。新規エージェント開発では公式の stripe-global を第一選択にし、ユースケース蓄積に貢献することが業界全体の検証速度を上げます。"
+          "text": "2026-05時点で、stripe-global(公式MCP、bearer_token認証)は信頼スコア0.7・AEOグレードA・ユースケース蓄積0件で『connectable』。一方stripe-jp(3rdパーティMCP)は信頼スコア0.6・AEOグレードA・33件の利用報告と、3rdパーティMCP経由の報告が先行しています。ただしstripe-jpデータは単一エージェント由来であり代表性に注意が必要(single_source_bias警告あり)。新規エージェント開発では公式の stripe-global を第一選択にし、ユースケース蓄積に貢献することが業界全体の検証速度を上げます。"
         }
       }
     ]
@@ -643,7 +643,7 @@ amount=2000&amp;currency=jpy&amp;payment_method=pm_xxxxx&amp;confirm=true</code>
     <h2 id="faq">FAQ</h2>
 
     <h3>Q1. Stripe公式MCPと3rdパーティMCPはどちらを選ぶべきですか?</h3>
-    <p>原則は公式(<code>mcp.stripe.com</code> または <code>@stripe/mcp</code>)です。KanseiLinkデータでは公式の stripe-global は信頼スコア0.7・AEOグレードAで、3rdパーティの stripe-jp(同0.6・成功率73%・33件報告)を上回ります。3rdパーティを選ぶのは『公式が提供していないカスタムツール』が必要な特殊ケースに限定するのが妥当です。</p>
+    <p>原則は公式(<code>mcp.stripe.com</code> または <code>@stripe/mcp</code>)です。KanseiLinkデータでは公式の stripe-global は信頼スコア0.7・AEOグレードAで、3rdパーティの stripe-jp(同0.6・33件報告)を上回ります。3rdパーティを選ぶのは『公式が提供していないカスタムツール』が必要な特殊ケースに限定するのが妥当です。</p>
 
     <h3>Q2. Restricted API Keyのスコープ設計はどう始めるべきですか?</h3>
     <p>『最小権限の原則』で組みます。新規顧客の決済を扱うエージェントなら <code>Customers: Write / Payment Intents: Write / Charges: Read</code> 程度から始め、必要に応じて拡張。<strong>Refunds や Subscriptions を扱うのは別キー</strong>に分離するのが安全。Stripe ダッシュボードで複数のRAKを発行し、エージェント単位で割り当てます。</p>
@@ -662,7 +662,7 @@ amount=2000&amp;currency=jpy&amp;payment_method=pm_xxxxx&amp;confirm=true</code>
 
     <div class="disclosure-box">
       <div class="label">データ開示・免責事項</div>
-      <p>本記事のStripe MCPに関する技術情報(エンドポイント・認証方式・レート制限・ツール数・キー種類)はKanseiLink MCP <code>get_service_detail</code>(stripe-global)、<code>get_service_tips</code>(stripe-global / stripe-jp)が2026-05-19時点で返したデータと、Stripe公式ドキュメント(docs.stripe.com、docs.stripe.com/mcp、docs.stripe.com/agents)に基づきます。「Restricted API Keyの推奨」「2026年5月以降アカウントは最初からRAK発行」はStripe公式ドキュメントが2026-05時点で明記している方針として確認しました。「25ツール」「v0.3.3 @ Stripe Sessions April 2026」は複数のサードパーティ解説記事(skywork.ai、chatforest.com)が一致する数値として記載していますが、Stripe公式のリリースノートで最新版を確認することを推奨します。KanseiLink stripe-globalデータは <code>usage_count: 0</code> で実エージェント挙動データは未蓄積、stripe-jpデータは33件報告・成功率73%ですが <code>single_source_bias</code> 警告があり代表性に注意。価格・仕様・APIスキーマは予告なく変更される可能性があるため、本番運用時は公式ドキュメントの最新版をご確認ください。</p>
+      <p>本記事のStripe MCPに関する技術情報(エンドポイント・認証方式・レート制限・ツール数・キー種類)はKanseiLink MCP <code>get_service_detail</code>(stripe-global)、<code>get_service_tips</code>(stripe-global / stripe-jp)が2026-05-19時点で返したデータと、Stripe公式ドキュメント(docs.stripe.com、docs.stripe.com/mcp、docs.stripe.com/agents)に基づきます。「Restricted API Keyの推奨」「2026年5月以降アカウントは最初からRAK発行」はStripe公式ドキュメントが2026-05時点で明記している方針として確認しました。「25ツール」「v0.3.3 @ Stripe Sessions April 2026」は複数のサードパーティ解説記事(skywork.ai、chatforest.com)が一致する数値として記載していますが、Stripe公式のリリースノートで最新版を確認することを推奨します。KanseiLink stripe-globalデータは <code>usage_count: 0</code> で実エージェント挙動データは未蓄積、stripe-jpデータは33件の報告がありますが <code>single_source_bias</code> 警告があり代表性に注意。価格・仕様・APIスキーマは予告なく変更される可能性があるため、本番運用時は公式ドキュメントの最新版をご確認ください。</p>
     </div>
 
     <div class="related-section">

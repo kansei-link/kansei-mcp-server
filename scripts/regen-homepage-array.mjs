@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Regenerate the hardcoded `const services = [...]` array inside
- * public/index.html from the current kansei-link.db. The homepage
- * keeps a static data block for SEO (search engines parse it
- * without running JS), so we refresh it whenever the DB grows.
+ * Regenerate the `const services = [...]` array that the homepage
+ * loads from public/js/services-data.js (externalized 2026-07-02;
+ * it used to be inlined in index.html but grew to 2.4MB, which hurt
+ * crawl/CWV — Google renders the external script the same way).
  *
  * Run after regen-seed.mjs in the daily loop. Idempotent: if the
  * output is byte-for-byte identical, no file change happens.
@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, "..", "kansei-link.db");
-const indexPath = path.join(__dirname, "..", "public", "index.html");
+const indexPath = path.join(__dirname, "..", "public", "js", "services-data.js");
 
 const START_MARKER = "// Service data (embedded for static site)";
 const ARRAY_PREFIX = "const services = [";

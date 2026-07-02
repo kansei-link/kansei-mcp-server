@@ -7,7 +7,7 @@
   <meta name="description" content="Stripe's official Agent Toolkit MCP server at mcp.stripe.com supports OAuth + Dynamic Client Registration. We cover the remote/local split, 25 tools, Restricted API Keys, form-encoded bodies, smallest-currency-unit math, and Idempotency-Key strategy — the eight pitfalls payment agents actually hit, backed by KanseiLink data and Stripe's docs.">
   <meta name="keywords" content="Stripe MCP, Stripe Agent Toolkit, mcp.stripe.com, Restricted API Key, Payment Intents, MCP deep dive, payment MCP, OAuth DCR, AEO 2026, KanseiLink">
   <meta name="author" content="KanseiLink Research">
-  <meta name="robots" content="noindex, nofollow">
+  <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://kansei-link.com/en/insights/stripe-mcp-deep-dive-2026">
   <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/stripe-mcp-deep-dive-2026">
   <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/stripe-mcp-deep-dive-2026">
@@ -97,7 +97,7 @@
         "name": "What does KanseiLink data say about real Stripe MCP performance?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "As of 2026-05, stripe-global (official, bearer_token auth) has a trust score of 0.7, AEO grade A, and zero usage reports — 'connectable' but unproven in our dataset. stripe-jp (a third-party MCP) shows trust 0.6, AEO A, 33 reports, 73% success, 177ms avg latency — but those reports come from a single agent (single_source_bias warning). New agent projects should default to official stripe-global and report outcomes back so the industry's verification dataset catches up."
+          "text": "As of 2026-05, stripe-global (official, bearer_token auth) has a trust score of 0.7, AEO grade A, and zero usage reports — 'connectable' but unproven in our dataset. stripe-jp (a third-party MCP) shows trust 0.6, AEO A, and 33 reports — but those reports come from a single agent (single_source_bias warning). New agent projects should default to official stripe-global and report outcomes back so the industry's verification dataset catches up."
         }
       }
     ]
@@ -643,7 +643,7 @@ amount=2000&amp;currency=jpy&amp;payment_method=pm_xxxxx&amp;confirm=true</code>
     <h2 id="faq">FAQ</h2>
 
     <h3>Q1. Official MCP or third-party MCP — which should I pick?</h3>
-    <p>Default to the official server (<code>mcp.stripe.com</code> or <code>@stripe/mcp</code>). KanseiLink data lists stripe-global at trust 0.7 / AEO A — ahead of the third-party stripe-jp (0.6 / 73% success / 33 reports). Reach for third-party only when you need a custom tool the official server doesn't ship.</p>
+    <p>Default to the official server (<code>mcp.stripe.com</code> or <code>@stripe/mcp</code>). KanseiLink data lists stripe-global at trust 0.7 / AEO A — ahead of the third-party stripe-jp (0.6 / 33 reports). Reach for third-party only when you need a custom tool the official server doesn't ship.</p>
 
     <h3>Q2. How should I scope a Restricted API Key?</h3>
     <p>Least privilege. A payment agent might start with <code>Customers: Write / Payment Intents: Write / Charges: Read</code> and expand from there. <strong>Refunds and Subscriptions belong on separate keys</strong>. Issue multiple RAKs in the Stripe Dashboard and assign one per agent.</p>
@@ -662,7 +662,7 @@ amount=2000&amp;currency=jpy&amp;payment_method=pm_xxxxx&amp;confirm=true</code>
 
     <div class="disclosure-box">
       <div class="label">Data disclosure and disclaimer</div>
-      <p>Stripe MCP technical details (endpoint, auth, rate limits, tool count, key types) in this article come from KanseiLink MCP <code>get_service_detail</code> (stripe-global) and <code>get_service_tips</code> (stripe-global / stripe-jp) as of 2026-05-19, plus Stripe's own documentation (docs.stripe.com, docs.stripe.com/mcp, docs.stripe.com/agents). The Restricted API Key recommendation and the "accounts created after May 2026 ship RAKs by default" statement are explicit in Stripe's docs as of 2026-05. "25 tools" and "v0.3.3 at Stripe Sessions April 2026" are cited consistently across third-party explainers (skywork.ai, chatforest.com); confirm the exact tool count in Stripe's latest release notes for production work. KanseiLink stripe-global has <code>usage_count: 0</code> — no real-agent behavior data yet. stripe-jp reports 33 outcomes at 73% success but carries a <code>single_source_bias</code> warning. Pricing, specs, and API schemas change without notice; verify against the live docs before going to production.</p>
+      <p>Stripe MCP technical details (endpoint, auth, rate limits, tool count, key types) in this article come from KanseiLink MCP <code>get_service_detail</code> (stripe-global) and <code>get_service_tips</code> (stripe-global / stripe-jp) as of 2026-05-19, plus Stripe's own documentation (docs.stripe.com, docs.stripe.com/mcp, docs.stripe.com/agents). The Restricted API Key recommendation and the "accounts created after May 2026 ship RAKs by default" statement are explicit in Stripe's docs as of 2026-05. "25 tools" and "v0.3.3 at Stripe Sessions April 2026" are cited consistently across third-party explainers (skywork.ai, chatforest.com); confirm the exact tool count in Stripe's latest release notes for production work. KanseiLink stripe-global has <code>usage_count: 0</code> — no real-agent behavior data yet. stripe-jp has 33 reported outcomes but carries a <code>single_source_bias</code> warning. Pricing, specs, and API schemas change without notice; verify against the live docs before going to production.</p>
     </div>
 
     <div class="related-section">

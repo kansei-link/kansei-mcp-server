@@ -149,15 +149,26 @@ function generatePage(service) {
         })),
       },
       {
+        // aggregateRating は使わない: ratingCount に total_agent_calls を入れると
+        // ユーザーレビュー数を偽装する形になる（実体は probe/seed 含む呼び出し数）。
+        // 自社単独評価は critic review (単一 Review, author=KanseiLink) が正直な表現。
         "@type": "SoftwareApplication",
         name: s.name,
         applicationCategory: cat,
-        aggregateRating: {
-          "@type": "AggregateRating",
-          ratingValue: s.aeo_score.toFixed(2),
-          bestRating: "1.00",
-          worstRating: "0.00",
-          ratingCount: s.total_agent_calls || 1,
+        review: {
+          "@type": "Review",
+          author: {
+            "@type": "Organization",
+            name: "KanseiLink",
+            url: "https://kansei-link.com",
+          },
+          reviewRating: {
+            "@type": "Rating",
+            ratingValue: s.aeo_score.toFixed(2),
+            bestRating: "1.00",
+            worstRating: "0.00",
+          },
+          reviewBody: `AEO (Agent Engine Optimization) readiness rating by KanseiLink, based on published methodology: MCP availability, API quality, documentation, and auth-guide clarity.`,
         },
       },
     ],
