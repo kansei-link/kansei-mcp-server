@@ -582,13 +582,13 @@
     <h1>MCPサーバー可観測性入門ガイド 2026 — ログ・分散トレーシング・アラート設計の実践</h1>
 
     <p class="lead">
-      MCPサーバーが本番環境で稼働し始めると、最初の壁は<strong>「ブラックボックス問題」</strong>だ——ツール呼び出しが失敗したとき、原因がMCPサーバー側にあるのか、クライアント側にあるのか、ネットワーク側にあるのかを特定できない。KanseiLinkが225サービスの実測データで観察したところ、成功率91%・平均レイテンシ163msを達成するトップ層のサービスに共通する特徴の一つが「可観測性への投資」だ。本記事では、30分で始められる実践的な可観測性設計を解説する。
+      MCPサーバーが本番環境で稼働し始めると、最初の壁は<strong>「ブラックボックス問題」</strong>だ——ツール呼び出しが失敗したとき、原因がMCPサーバー側にあるのか、クライアント側にあるのか、ネットワーク側にあるのかを特定できない。KanseiLinkが225サービスを評価したところ、トップ層のサービスに共通する特徴の一つが「可観測性への投資」だ。本記事では、30分で始められる実践的な可観測性設計を解説する。
     </p>
 
     <div class="stat-row">
       <div class="stat-box">
-        <div class="stat-num">91%</div>
-        <div class="stat-label">KanseiLink実測<br>トップ層成功率ベンチマーク</div>
+        <div class="stat-num">観測中</div>
+        <div class="stat-label">KanseiLink評価<br>トップ層成功率ベンチマーク</div>
       </div>
       <div class="stat-box">
         <div class="stat-num">3</div>
@@ -609,7 +609,7 @@
     <ul>
       <li><strong>① ブラックボックス問題の解消</strong>——エージェントのツール呼び出しがどの層で失敗したかを特定できる。MCPプロトコル層・APIバックエンド層・ネットワーク層を分離して観察できると、根本原因の特定が数時間から数分に短縮される</li>
       <li><strong>② コンプライアンス要件（GDPR・SOC2）</strong>——2026年現在、日本でもGDPR相当の個人情報保護規制が強化されている。MCPを通じてアクセスされた業務データの監査証跡は、コンプライアンス上の必須要件になりつつある</li>
-      <li><strong>③ コスト最適化</strong>——どのツールが遅いか、無駄なリトライがどこで発生しているかを把握することで、LLMのトークン消費とAPIコスト削減に直結する。KanseiLinkの分析では、可観測性なしのMCP運用はリトライループによる余分なコストが平均15〜30%発生している</li>
+      <li><strong>③ コスト最適化</strong>——どのツールが遅いか、無駄なリトライがどこで発生しているかを把握することで、LLMのトークン消費とAPIコスト削減に直結する。可観測性なしのMCP運用では、リトライループによる余分なトークン消費が静かに積み上がりやすい</li>
     </ul>
 
     <h2>2. 3層監視モデル</h2>
@@ -630,7 +630,7 @@
       <h4>Layer 2 — ツール層</h4>
       <p>個別ツール呼び出しのパフォーマンスと信頼性を監視する。</p>
       <ul>
-        <li><strong>ツール別成功率</strong>——どのtool_nameが失敗しているかを特定。KanseiLinkのSlack MCPデータでは成功率91%・平均163ms</li>
+        <li><strong>ツール別成功率</strong>——どのtool_nameが失敗しているかを特定。KanseiLinkのSlack MCPデータでは平均163ms（成功率は実測データを蓄積中）</li>
         <li><strong>レイテンシヒストグラム（P50/P95/P99）</strong>——P95が3,000msを超えるとエージェントのタイムアウトリスクが上昇</li>
         <li><strong>エラータイプ分類</strong>——api_error / invalid_input / timeout / rate_limit の比率分析</li>
       </ul>
@@ -788,7 +788,7 @@ logging.basicConfig(level=logging.INFO)
       </tbody>
     </table>
 
-    <p>KanseiLink実測のトップ層ベンチマーク（Slack MCP参考値）は成功率91%・平均レイテンシ163ms。これらを<strong>「目標値」</strong>として使用できる。BBB以下の評価を受けているサービスは概して成功率60〜75%・P95レイテンシ5,000ms以上の水準にある。</p>
+    <p>KanseiLinkのトップ層ベンチマーク（Slack MCP参考値）は平均レイテンシ163ms（成功率は現在実測データを蓄積中）。これらを<strong>「目標値」</strong>として使用できる。BBB以下の評価を受けているサービスは概してP95レイテンシ5,000ms以上の水準にあり、接続品質面でも課題が観測されている。</p>
 
     <h2>6. 推奨ツールスタック比較</h2>
 
@@ -861,23 +861,23 @@ logging.basicConfig(level=logging.INFO)
       <div class="step-num">4</div>
       <div class="step-body">
         <h4>KanseiLinkスコアと照合（5分）</h4>
-        <p>自社サービスのAEOスコアを<a href="../index.html">KanseiLinkランキング</a>で確認し、成功率・レイテンシの実測値と対照させる。BBB以下の評価を受けている場合、可観測性データが改善のロードマップ策定に直接活用できる。</p>
+        <p>自社サービスのAEOスコアを<a href="../index.html">KanseiLinkランキング</a>で確認し、レイテンシの実測値やAEOグレードと対照させる。BBB以下の評価を受けている場合、可観測性データが改善のロードマップ策定に直接活用できる。</p>
       </div>
     </div>
 
     <div class="disclosure-box">
-      <strong>開示事項：</strong> 本記事のアラート閾値はKanseiLinkの225サービス実測データベースに基づく参考値です。実際の閾値はサービスの特性・トラフィックパターン・SLA要件によって大きく異なります。本記事の推奨事項を実装する前に、自社の要件を十分に検討してください。KanseiLinkは特定ツールベンダーとのパートナーシップは持っていません。
+      <strong>開示事項：</strong> 本記事のアラート閾値はKanseiLinkの225サービス評価データベースに基づく参考値です。実際の閾値はサービスの特性・トラフィックパターン・SLA要件によって大きく異なります。本記事の推奨事項を実装する前に、自社の要件を十分に検討してください。KanseiLinkは特定ツールベンダーとのパートナーシップは持っていません。
     </div>
 
     <p style="font-size:13px; color:var(--gray-text); margin-top:32px; padding:16px; background:var(--gray-light); border-radius:8px;">
       <strong>情報源・検証状況：</strong>
-      3層監視モデル ✅（<a href="https://zeo.org/resources/blog/mcp-server-observability-monitoring-testing-performance-metrics" target="_blank" style="color:var(--blue)">Zeo.org</a>）、構造化ログベストプラクティス ✅（<a href="https://www.merge.dev/blog/mcp-observability" target="_blank" style="color:var(--blue)">Merge.dev</a>、<a href="https://mcpmanager.ai/blog/mcp-logging/" target="_blank" style="color:var(--blue)">MCP Manager</a>）、GDPR・PIIログ除外要件 ✅（<a href="https://www.redhat.com/en/blog/mcp-security-logging-and-runtime-security-measures" target="_blank" style="color:var(--blue)">Red Hat Blog</a>）、Slack MCPの91%成功率・163ms ✅（KanseiLink実測データ、2026-04-13更新）、Grafana Cloud無料枠50GB ✅（<a href="https://grafana.com/products/cloud/" target="_blank" style="color:var(--blue)">Grafana公式</a>）。
+      3層監視モデル ✅（<a href="https://zeo.org/resources/blog/mcp-server-observability-monitoring-testing-performance-metrics" target="_blank" style="color:var(--blue)">Zeo.org</a>）、構造化ログベストプラクティス ✅（<a href="https://www.merge.dev/blog/mcp-observability" target="_blank" style="color:var(--blue)">Merge.dev</a>、<a href="https://mcpmanager.ai/blog/mcp-logging/" target="_blank" style="color:var(--blue)">MCP Manager</a>）、GDPR・PIIログ除外要件 ✅（<a href="https://www.redhat.com/en/blog/mcp-security-logging-and-runtime-security-measures" target="_blank" style="color:var(--blue)">Red Hat Blog</a>）、Slack MCPの平均163ms ✅（KanseiLinkプローブ実測、2026-04-13更新。成功率は実測データ蓄積中）、Grafana Cloud無料枠50GB ✅（<a href="https://grafana.com/products/cloud/" target="_blank" style="color:var(--blue)">Grafana公式</a>）。
     </p>
 
     <!-- CTA -->
     <div class="cta-section">
       <h2>自社MCPサーバーのAEOスコアを確認する</h2>
-      <p>225+サービスのMCP成功率・レイテンシ・AEOスコアは無料ランキングページで閲覧可能。可観測性改善の目標値設定にご活用ください。</p>
+      <p>225+サービスのMCPレイテンシ・AEOスコア（成功率は実測データ蓄積中）は無料ランキングページで閲覧可能。可観測性改善の目標値設定にご活用ください。</p>
       <a href="../index.html" class="btn-cta">AEOランキングを見る</a>
     </div>
 

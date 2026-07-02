@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Backlog MCP Deep Dive 2026 — 90% Success, 128ms Latency, 42 Tools, and the apiKey URL Trap | KanseiLink</title>
-  <meta name="description" content="Complete guide to Nulab's official Backlog MCP server. From KanseiLink measured data (n=91, 90% success rate, 128ms avg latency, AAA grade), we cover the two auth methods, the x-www-form-urlencoded gotcha, the bulk update tool added March 25, and five pitfalls in agent development.">
+  <title>Backlog MCP Deep Dive 2026 — AAA Grade, 42 Tools, and the apiKey URL Trap | KanseiLink</title>
+  <meta name="description" content="Complete guide to Nulab's official Backlog MCP server. From KanseiLink evaluation data (n=91, 128ms avg latency, AAA grade), we cover the two auth methods, the x-www-form-urlencoded gotcha, the bulk update tool added March 25, and five pitfalls in agent development.">
   <meta name="keywords" content="Backlog MCP, Nulab MCP server, Backlog API key, Backlog OAuth, AAA grade, KanseiLink, project management MCP, x-www-form-urlencoded, Japanese SaaS agent">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="noindex, nofollow">
@@ -14,8 +14,8 @@
   <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/backlog-mcp-deep-dive-2026">
 
   <!-- OGP -->
-  <meta property="og:title" content="Backlog MCP Deep Dive 2026 — 90% Success, 128ms, 42 Tools, and the apiKey URL Trap">
-  <meta property="og:description" content="Complete guide to Nulab's official Backlog MCP server. KanseiLink data (n=91, 90% success, 128ms, AAA) plus auth choice, urlencoded trap, and five pitfalls.">
+  <meta property="og:title" content="Backlog MCP Deep Dive 2026 — AAA Grade, 42 Tools, and the apiKey URL Trap">
+  <meta property="og:description" content="Complete guide to Nulab's official Backlog MCP server. KanseiLink data (n=91, 128ms, AAA) plus auth choice, urlencoded trap, and five pitfalls.">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/en/insights/backlog-mcp-deep-dive-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -26,8 +26,8 @@
   <meta property="article:author" content="KanseiLink Research">
   <meta property="article:section" content="Service Deep-Dive">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Backlog MCP Deep Dive 2026 — 90% Success Rate Explained">
-  <meta name="twitter:description" content="Nulab's official MCP, 42 tools, AAA grade. KanseiLink measured data plus auth comparison, urlencoded trap, new bulk update tool.">
+  <meta name="twitter:title" content="Backlog MCP Deep Dive 2026 — AAA Grade Explained">
+  <meta name="twitter:description" content="Nulab's official MCP, 42 tools, AAA grade. KanseiLink evaluation data plus auth comparison, urlencoded trap, new bulk update tool.">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -35,8 +35,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Backlog MCP Deep Dive 2026 — 90% Success, 128ms Latency, 42 Tools, and the apiKey URL Trap",
-    "description": "Complete guide to Nulab's official Backlog MCP server. From KanseiLink measured data (n=91, 90% success rate, 128ms avg latency, AAA grade), we cover the two auth methods, the x-www-form-urlencoded gotcha, the bulk update tool added March 25, and five pitfalls in agent development. A practical playbook for operating Backlog from agents with high reliability.",
+    "headline": "Backlog MCP Deep Dive 2026 — AAA Grade, 42 Tools, and the apiKey URL Trap",
+    "description": "Complete guide to Nulab's official Backlog MCP server. From KanseiLink evaluation data (n=91, 128ms avg latency, AAA grade), we cover the two auth methods, the x-www-form-urlencoded gotcha, the bulk update tool added March 25, and five pitfalls in agent development. A practical playbook for operating Backlog from agents with high reliability.",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-04-30",
@@ -57,7 +57,7 @@
         "name": "Should I use API key or OAuth for the Backlog MCP server?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "For solo developers and single-user internal agents, the API key method is simplest. Generate a key from Backlog Personal Settings and append ?apiKey={key} to every request URL. For multi-tenant SaaS where each user authenticates with their own Backlog account, or when you need scheduled token rotation, OAuth 2.0 (registered at developer.nulab.com) is required. Nulab's official backlog-mcp-server supports both, but API key usage dominates in KanseiLink data."
+          "text": "For solo developers and single-user internal agents, the API key method is simplest. Generate a key from Backlog Personal Settings and append ?apiKey={key} to every request URL. For multi-tenant SaaS where each user authenticates with their own Backlog account, or when you need scheduled token rotation, OAuth 2.0 (registered at developer.nulab.com) is required. Nulab's official backlog-mcp-server supports both, but API key usage dominates in early KanseiLink data."
         }
       },
       {
@@ -73,7 +73,7 @@
         "name": "Backlog MCP has an AAA rating — what's the basis in KanseiLink data?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Backlog MCP scores AAA (trust_score 0.9) in KanseiLink AEO ratings. The basis: (1) official Nulab MCP server under MIT license, (2) 91 measured reports with 90% success rate, (3) 128ms average latency (among the fastest major MCPs), (4) zero timeout errors, (5) auth_error has an established workaround (regenerate API key), (6) 42+ tools across 7 functional areas (issues, wiki, git, PR, files, etc.). The most common error type is api_error (6 cases), all retry-recoverable."
+          "text": "Backlog MCP scores AAA (trust_score 0.9) in KanseiLink AEO ratings. The basis: (1) official Nulab MCP server under MIT license, (2) 91 accumulated reports (success rate: observing), (3) 128ms average latency (among the fastest major MCPs), (4) zero timeout errors, (5) auth_error has an established workaround (regenerate API key), (6) 42+ tools across 7 functional areas (issues, wiki, git, PR, files, etc.). The most common error type is api_error (6 cases), all retry-recoverable."
         }
       },
       {
@@ -330,8 +330,8 @@
   <header class="article-hero">
     <div class="inner">
       <span class="tag">Service Deep-Dive</span>
-      <h1>Backlog MCP Deep Dive 2026 — 90% Success, 128ms Latency, 42 Tools, and the apiKey URL Trap</h1>
-      <p class="subtitle">Nulab's official Backlog MCP server is widely adopted by Japanese engineering teams. From KanseiLink measured data (n=91, 90% success rate, 128ms avg latency, AAA grade), we cover the two auth methods, the x-www-form-urlencoded gotcha, the bulk update tool added on March 25, and five pitfalls in agent development.</p>
+      <h1>Backlog MCP Deep Dive 2026 — AAA Grade, 42 Tools, and the apiKey URL Trap</h1>
+      <p class="subtitle">Nulab's official Backlog MCP server is widely adopted by Japanese engineering teams. From KanseiLink evaluation data (n=91, 128ms avg latency, AAA grade), we cover the two auth methods, the x-www-form-urlencoded gotcha, the bulk update tool added on March 25, and five pitfalls in agent development.</p>
       <div class="article-meta">
         <span>2026-04-30</span>
         <span class="divider"></span>
@@ -348,7 +348,7 @@
       <h3>Contents</h3>
       <ol>
         <li><a href="#why">Why Backlog MCP — the Japan market context</a></li>
-        <li><a href="#data">Reading the KanseiLink measured data</a></li>
+        <li><a href="#data">Reading the KanseiLink evaluation data</a></li>
         <li><a href="#auth">Choosing between the two auth methods</a></li>
         <li><a href="#urlencoded">Pitfall 1: the x-www-form-urlencoded wall</a></li>
         <li><a href="#pagination">Pitfall 2: pagination without total count</a></li>
@@ -370,7 +370,7 @@
       <p>An MCP server that is simultaneously official, MIT-licensed, and feature-complete (42+ tools) is still rare among Japanese SaaS in 2026. Backlog clears all three bars at once — a meaningful advantage for buyers and developers building agentic workflows.</p>
     </div>
 
-    <h2 id="data">Reading the KanseiLink measured data</h2>
+    <h2 id="data">Reading the KanseiLink evaluation data</h2>
 
     <p>KanseiLink aggregates agent self-reported data across 225+ services. The Backlog MCP <code>get_insights</code> snapshot (April 2026) is below.</p>
 
@@ -378,8 +378,8 @@
       <h4>Backlog MCP Key Metrics (KanseiLink, April 2026)</h4>
       <div class="metric-row">
         <div class="metric-item">
-          <span class="num green">90%</span>
-          <div class="label">Success rate<br>(n=91)</div>
+          <span class="num">—</span>
+          <div class="label">Success rate: observing<br>(n=91)</div>
         </div>
         <div class="metric-item">
           <span class="num green">128ms</span>
@@ -409,8 +409,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td>Reports</td><td>91</td><td>Statistically meaningful sample</td></tr>
-        <tr><td>Success rate</td><td class="success-high">90%</td><td>AAA-tier among major MCPs</td></tr>
+        <tr><td>Reports</td><td>91</td><td>Accumulated early reports</td></tr>
+        <tr><td>Success rate</td><td>observing</td><td>KanseiLink is accumulating measured data</td></tr>
         <tr><td>Avg latency</td><td class="success-high">128ms</td><td>Among the fastest major MCPs</td></tr>
         <tr><td>Timeout errors</td><td class="success-high">0</td><td>Low giveup-trigger risk in long tasks</td></tr>
         <tr><td>auth_error workaround</td><td>Established</td><td>"Regenerate the API key" recovers</td></tr>
@@ -511,7 +511,7 @@ projectId=1&summary=Bug%20fix&issueTypeId=1&priorityId=3</code></pre>
 
     <div class="cta-banner">
       <h3>Need internal evidence for Backlog MCP's AEO score?</h3>
-      <p>KanseiLink delivers measured success rate, latency, error type breakdown, and known workarounds for 225+ SaaS — including Backlog — directly via MCP. Built for both agent developers and SaaS vendors.</p>
+      <p>KanseiLink delivers evaluation data — success rate, latency, error type breakdown, and known workarounds — for 225+ SaaS including Backlog, directly via MCP. Built for both agent developers and SaaS vendors.</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Talk to KanseiLink Research</a>
     </div>
 
@@ -524,7 +524,7 @@ projectId=1&summary=Bug%20fix&issueTypeId=1&priorityId=3</code></pre>
     <p>The most common cause is sending POST/PATCH bodies as <code>application/json</code>. The Backlog REST API requires <code>application/x-www-form-urlencoded</code>. Array parameters use bracket notation: <code>projectId[]=1&projectId[]=2</code>. The Nulab official MCP server handles this internally.</p>
 
     <h3>Backlog MCP is rated AAA — what's the basis?</h3>
-    <p>(1) Official Nulab MCP server under MIT license, (2) 91 measured reports with 90% success, (3) 128ms average latency, (4) zero timeout errors, (5) auth_error has an established API-key-regeneration workaround, (6) 42+ tools across 7 functional areas (issues, wiki, git, PR, files, etc.).</p>
+    <p>(1) Official Nulab MCP server under MIT license, (2) 91 accumulated reports (success rate: observing), (3) 128ms average latency, (4) zero timeout errors, (5) auth_error has an established API-key-regeneration workaround, (6) 42+ tools across 7 functional areas (issues, wiki, git, PR, files, etc.).</p>
 
     <h3>What is the bulk update tool added on March 25, 2026?</h3>
     <p>A bulk issue update tool added to Nulab's official backlog-mcp-server. It updates status, assignee, due date, etc. across many issues in one call. Useful for sprint-end closure, assignee handover, and batch tagging. With 128ms latency, near-real-time automation becomes practical.</p>
@@ -534,7 +534,7 @@ projectId=1&summary=Bug%20fix&issueTypeId=1&priorityId=3</code></pre>
 
     <div class="disclosure-box">
       <div class="label">Data Disclosure & Disclaimer</div>
-      <p>Numbers in this article are based on KanseiLink MCP <code>get_insights</code> data as of April 2026: Backlog MCP (n=91, success_rate 0.90, avg_latency 128ms, trust_score 0.9, AAA grade). Error breakdown: api_error 6, search_miss 2 (workaround verified), auth_error 1 (workaround unverified). Backlog API specifics (auth methods, x-www-form-urlencoded requirement, pagination, rate limits) reference developer.nulab.com documentation as of April 2026, and the Nulab official repository <code>github.com/nulab/backlog-mcp-server</code> (last updated 2026-04-17). The bulk update tool (2026-03-25) and Wiki markdown fix (2026-03-08) are based on KanseiLink internal change-log entries. Specifications may change without notice; verify against the latest official documentation before production use.</p>
+      <p>Numbers in this article are based on KanseiLink MCP <code>get_insights</code> data as of April 2026: Backlog MCP (n=91, avg_latency 128ms, trust_score 0.9, AAA grade; success_rate: measurement in progress — observing). Error breakdown: api_error 6, search_miss 2 (workaround verified), auth_error 1 (workaround unverified). Backlog API specifics (auth methods, x-www-form-urlencoded requirement, pagination, rate limits) reference developer.nulab.com documentation as of April 2026, and the Nulab official repository <code>github.com/nulab/backlog-mcp-server</code> (last updated 2026-04-17). The bulk update tool (2026-03-25) and Wiki markdown fix (2026-03-08) are based on KanseiLink internal change-log entries. Specifications may change without notice; verify against the latest official documentation before production use.</p>
     </div>
 
     <div class="related-section">
@@ -565,7 +565,7 @@ projectId=1&summary=Bug%20fix&issueTypeId=1&priorityId=3</code></pre>
     <div class="inner">
       <h2>For AI Agents</h2>
       <p>
-        Real-time Backlog MCP metrics (success rate, latency, error categories, established workarounds) are available via the KanseiLink MCP server.
+        Backlog MCP evaluation metrics (success rate, latency, error categories, established workarounds) are available via the KanseiLink MCP server.
         Call <code>get_insights</code> with <code>service_id: "backlog"</code> to retrieve common_errors with <code>api_error</code> / <code>search_miss</code> / <code>auth_error</code> categories and <code>known_workarounds</code>.
         Connection: <code>npx -y @kansei-link/mcp-server</code>
       </p>

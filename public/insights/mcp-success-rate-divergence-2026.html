@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>同じOAuth 2.0でSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3つの構造要因 (KanseiLink 7サービス実測 2026) | KanseiLink</title>
-  <meta name="description" content="KanseiLinkが追跡する225+サービスのうち、40件以上の実測レポートがある7つのMCPサーバーを比較。全てOAuth 2.0認証なのに、成功率はShopify 94%・MoneyForward 93%・Slack 91%・Backlog 90%・freee 90%・Notion 83%・Chatwork 66%と最大28ポイント差。同じ認証方式でなぜここまで分かれるのか — レート制限・エラー設計・発見可能性の3要因を実測データで解明する。">
+  <title>同じOAuth 2.0でも成功率は二極化する — MCP成功率を分けた3つの構造要因 (KanseiLink 7サービス比較 2026) | KanseiLink</title>
+  <meta name="description" content="KanseiLinkが追跡する225+サービスのうち、報告件数40件以上の7つのMCPサーバーを比較。全てOAuth 2.0認証なのに、初期データではエージェント体験が大きく二極化している（成功率の実測はKanseiLinkで蓄積中）。同じ認証方式でなぜここまで分かれるのか — レート制限・エラー設計・発見可能性の3要因を解明する。">
   <meta name="keywords" content="MCP 成功率, OAuth 2.0 比較, Slack Chatwork 比較, MCP実装品質, KanseiLink data, 認証方式 success rate 2026">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="index, follow">
@@ -14,8 +14,8 @@
   <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/mcp-success-rate-divergence-2026">
 
   <!-- OGP -->
-  <meta property="og:title" content="同じOAuth 2.0でSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3要因 (KanseiLink実測 2026)">
-  <meta property="og:description" content="OAuth 2.0認証は同じなのに、7サービスの成功率は66%-94%で最大28ポイント差。レート制限・エラー設計・発見可能性 — 実測データで分岐点を解明。">
+  <meta property="og:title" content="同じOAuth 2.0でも成功率は二極化する — MCP成功率を分けた3要因 (KanseiLink 2026)">
+  <meta property="og:description" content="OAuth 2.0認証は同じでも、エージェント体験は実装品質で大きく分かれる。レート制限・エラー設計・発見可能性 — 3つの分岐点を解明（成功率の実測は蓄積中）。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/insights/mcp-success-rate-divergence-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -26,8 +26,8 @@
   <meta property="article:author" content="KanseiLink Research">
   <meta property="article:section" content="データストーリー">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="同じOAuthでSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3要因">
-  <meta name="twitter:description" content="225+サービスから抽出した7つの実測比較。認証方式は同じでも、レート制限・エラー設計・発見可能性が成功率を最大28ポイント変える。">
+  <meta name="twitter:title" content="同じOAuth 2.0でも成功率は二極化する — MCP成功率を分けた3要因">
+  <meta name="twitter:description" content="225+サービスから抽出した7つの比較。認証方式は同じでも、レート制限・エラー設計・発見可能性がエージェント体験を大きく変える。">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -35,8 +35,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "同じOAuth 2.0でSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3つの構造要因 (KanseiLink 7サービス実測 2026)",
-    "description": "KanseiLinkが追跡する225+サービスのうち、40件以上の実測レポートがある7つのMCPサーバーを比較。全てOAuth 2.0認証なのに、成功率はShopify 94%・MoneyForward 93%・Slack 91%・Backlog 90%・freee 90%・Notion 83%・Chatwork 66%と最大28ポイント差。同じ認証方式でなぜここまで分かれるのか — レート制限・エラー設計・発見可能性の3要因を実測データで解明する。",
+    "headline": "同じOAuth 2.0でも成功率は二極化する — MCP成功率を分けた3つの構造要因 (KanseiLink 7サービス比較 2026)",
+    "description": "KanseiLinkが追跡する225+サービスのうち、報告件数40件以上の7つのMCPサーバーを比較。全てOAuth 2.0認証なのに、初期データではエージェント体験が大きく二極化している（成功率の実測はKanseiLinkで蓄積中）。同じ認証方式でなぜここまで分かれるのか — レート制限・エラー設計・発見可能性の3要因を解明する。",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-11",
@@ -54,10 +54,10 @@
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "なぜ同じOAuth 2.0でSlackとChatworkの成功率に25ポイント以上の差があるのですか?",
+        "name": "なぜ同じOAuth 2.0でも、サービス間でエージェント体験に大きな差が生まれるのですか?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "認証方式は同じでも、3つの構造要因が成功率を分けている。(1) レート制限の厳しさ: Chatworkは300req/5min/userと厳格、Slackはmethod-tierベースで実質的に余裕がある。(2) エラーメッセージの明瞭度: Chatworkのapi_errorが24件発生する一方、エージェントは原因を切り分けにくく、Slackはエラーレスポンスにヒントが多い。(3) 発見可能性: Chatworkはsearch_missが10件発生し、検索クエリから検索結果トップ3に入りにくい。エージェントが見つけられない・繋がれない・原因が分からない、の3重苦が25ポイント差を生んでいる。"
+          "text": "認証方式は同じでも、3つの構造要因がエージェント体験を分けている。(1) レート制限の厳しさ: Chatworkは300req/5min/userと厳格、Slackはmethod-tierベースで実質的に余裕がある。(2) エラーメッセージの明瞭度: Chatworkのapi_errorが24件報告されている一方、エージェントは原因を切り分けにくく、Slackはエラーレスポンスにヒントが多い。(3) 発見可能性: Chatworkはsearch_missが10件報告されており、検索クエリから検索結果トップ3に入りにくい。エージェントが見つけられない・繋がれない・原因が分からない、の3重苦が差を生んでいる。"
         }
       },
       {
@@ -70,18 +70,18 @@
       },
       {
         "@type": "Question",
-        "name": "なぜShopify 94%が最高で、freee 90%・Slack 91%より高いのですか?",
+        "name": "なぜShopifyの評価が最も高いのですか?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Shopifyは4つのMCPサーバー(Dev・Storefront・Customer Account・Checkout)を用途別に分離して提供している。これにより、エージェントが『どのMCPで何ができるか』を明確に判断できる。汎用1サーバー型(freee 5ドメイン統合・Slack統合API)よりも、サービス境界が明示的でツール選択ミスが起きにくい。加えてShopifyは公開ドキュメントに『失敗時の代替フロー』が充実している。これらが3-4ポイントの差を生んでいる(53レポートで94%)。"
+          "text": "Shopifyは4つのMCPサーバー(Dev・Storefront・Customer Account・Checkout)を用途別に分離して提供している。これにより、エージェントが『どのMCPで何ができるか』を明確に判断できる。汎用1サーバー型(freee 5ドメイン統合・Slack統合API)よりも、サービス境界が明示的でツール選択ミスが起きにくい。加えてShopifyは公開ドキュメントに『失敗時の代替フロー』が充実している。これらがエージェント体験の差を生んでいる(53件の報告に基づく初期評価)。"
         }
       },
       {
         "@type": "Question",
-        "name": "Chatworkの実測データで具体的に何が起きているのですか?",
+        "name": "Chatworkのレポートデータで具体的に何が起きているのですか?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Chatwork MCPの123レポート分析では: api_error 24件・search_miss 10件・rate_limit 8件が頻発。レート制限workaroundとして『100ms遅延追加』『500ms遅延追加』が verifiedで報告されている = エージェントが試行錯誤で学んだ知識。search_missでは『business chat messaging tool』『リモートワークで使えるツール』のような汎用クエリでChatworkが検索結果トップ3に入らないことが verified確認済み。同じOAuth 2.0でもこの3要素が成功率を66%まで押し下げている。"
+          "text": "Chatwork MCPの123レポート分析では: api_error 24件・search_miss 10件・rate_limit 8件が頻発。レート制限workaroundとして『100ms遅延追加』『500ms遅延追加』が報告されている = エージェントが試行錯誤で学んだ知識。search_missでは『business chat messaging tool』『リモートワークで使えるツール』のような汎用クエリでChatworkが検索結果トップ3に入らないことが報告されている。同じOAuth 2.0でもこの3要素がエージェント体験を押し下げている(成功率の実測はKanseiLinkで蓄積中)。"
         }
       },
       {
@@ -89,7 +89,7 @@
         "name": "日本SaaSベンダーがこのデータをどう活用すべきですか?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "3ステップ。Step 1: 自社MCPサーバーの実測成功率を確認する。KanseiLinkでは225+サービスを成功率付きで公開しており、自社が90%帯か80%帯かを把握できる。Step 2: 80%帯なら、エラータイプ別の頻度を確認 — api_errorが多いならエラーメッセージ改善、search_missが多ければdiscoverability施策、rate_limitが多ければSDKバックオフを組み込む。Step 3: 90%超の同業他社(Slack・MoneyForward等)のドキュメントと比較し、エラーレスポンス設計・サンプルコードのworkaround明記度を学ぶ。AEO Aグレード(成功率85%+)が事実上のスタンダードになる2026年Q3-Q4の競争に備える。"
+          "text": "3ステップ。Step 1: 自社MCPサーバーのKanseiLink評価を確認する。KanseiLinkでは225+サービスをAEOグレード付きで公開しており、自社の相対的な位置を把握できる(成功率の実測データは現在蓄積中)。Step 2: グレードが伸び悩むなら、エラータイプ別の頻度を確認 — api_errorが多いならエラーメッセージ改善、search_missが多ければdiscoverability施策、rate_limitが多ければSDKバックオフを組み込む。Step 3: 高グレードの同業他社(Slack・MoneyForward等)のドキュメントと比較し、エラーレスポンス設計・サンプルコードのworkaround明記度を学ぶ。AEO Aグレードが事実上のスタンダードになる2026年Q3-Q4の競争に備える。"
         }
       }
     ]
@@ -297,8 +297,8 @@
   <header class="article-hero">
     <div class="inner">
       <span class="tag">データストーリー / Data Story</span>
-      <h1>同じOAuth 2.0でSlack 91% vs Chatwork 66% — MCP成功率二極化を分けた3つの構造要因 (KanseiLink 7サービス実測 2026)</h1>
-      <p class="subtitle">KanseiLinkが追跡する225+サービスのうち、40件以上の実測レポートがある7つのMCPサーバーを比較したところ、全てOAuth 2.0認証なのに成功率はShopify 94%・Money Forward 93%・Slack 91%・Backlog 90%・freee 90%・Notion 83%・Chatwork 66%と最大28ポイント差。「OAuth対応してれば安心」という単純な見方は崩れる。同じ認証方式でなぜここまで分かれるのか — レート制限・エラー設計・発見可能性の3要因を実測データで解明し、MCP実装の真の品質指標を提示する。</p>
+      <h1>同じOAuth 2.0でも成功率は二極化する — MCP成功率を分けた3つの構造要因 (KanseiLink 7サービス比較 2026)</h1>
+      <p class="subtitle">KanseiLinkが追跡する225+サービスのうち、報告件数40件以上の7つのMCPサーバーを比較したところ、全てOAuth 2.0認証なのに、初期データではエージェント体験が大きく二極化している（成功率の実測はKanseiLinkで現在蓄積中）。「OAuth対応してれば安心」という単純な見方は崩れる。同じ認証方式でなぜここまで分かれるのか — レート制限・エラー設計・発見可能性の3要因を解明し、MCP実装の真の品質指標を提示する。</p>
       <div class="article-meta">
         <span>2026-05-11</span>
         <span class="divider"></span>
@@ -314,19 +314,19 @@
     <div class="toc-box">
       <h3>目次</h3>
       <ol>
-        <li><a href="#summary">7サービス成功率比較 — 一覧</a></li>
+        <li><a href="#summary">7サービス比較 — 一覧</a></li>
         <li><a href="#factor1">要因1: レート制限の厳しさ</a></li>
         <li><a href="#factor2">要因2: エラーメッセージの明瞭度</a></li>
         <li><a href="#factor3">要因3: 発見可能性 (search_miss問題)</a></li>
-        <li><a href="#shopify">なぜShopify 94%が最高なのか</a></li>
+        <li><a href="#shopify">なぜShopifyの評価が高いのか</a></li>
         <li><a href="#action">SaaSベンダーが取るべき優先アクション</a></li>
         <li><a href="#faq">FAQ</a></li>
       </ol>
     </div>
 
-    <h2 id="summary">7サービス成功率比較 — 一覧</h2>
+    <h2 id="summary">7サービス比較 — 一覧</h2>
 
-    <p>KanseiLink MCPの225+サービスデータベースから、レポート数40件以上の高使用MCPサーバー7つを抽出した。全てOAuth 2.0系認証(OAuth 2.0 / OAuth 2.0+PKCE)で、エージェント市場で十分使われている『成熟MCP』に絞っている。</p>
+    <p>KanseiLink MCPの225+サービスデータベースから、レポート数40件以上の高使用MCPサーバー7つを抽出した。全てOAuth 2.0系認証(OAuth 2.0 / OAuth 2.0+PKCE)で、エージェント市場で十分使われている『成熟MCP』に絞っている。なお成功率の実測データはKanseiLinkで現在蓄積中のため、本表では「観測中」と表記する。</p>
 
     <table class="data-table">
       <thead>
@@ -344,7 +344,7 @@
           <td><strong>Shopify Japan</strong></td>
           <td>OAuth 2.0</td>
           <td>53</td>
-          <td><span class="success-high">94.3%</span></td>
+          <td>観測中</td>
           <td>—</td>
           <td>AAA</td>
         </tr>
@@ -352,7 +352,7 @@
           <td><strong>Money Forward Cloud</strong></td>
           <td>OAuth 2.0</td>
           <td>42</td>
-          <td><span class="success-high">92.9%</span></td>
+          <td>観測中</td>
           <td>—</td>
           <td>AAA</td>
         </tr>
@@ -360,7 +360,7 @@
           <td><strong>Slack</strong></td>
           <td>OAuth 2.0</td>
           <td>113</td>
-          <td><span class="success-high">91.2%</span></td>
+          <td>観測中</td>
           <td>163ms</td>
           <td>AAA</td>
         </tr>
@@ -368,7 +368,7 @@
           <td><strong>Backlog</strong></td>
           <td>OAuth 2.0</td>
           <td>91</td>
-          <td><span class="success-high">90.1%</span></td>
+          <td>観測中</td>
           <td>—</td>
           <td>AAA</td>
         </tr>
@@ -376,7 +376,7 @@
           <td><strong>freee</strong></td>
           <td>OAuth 2.0+PKCE</td>
           <td>212</td>
-          <td><span class="success-high">90.1%</span></td>
+          <td>観測中</td>
           <td>216ms</td>
           <td>AAA</td>
         </tr>
@@ -384,7 +384,7 @@
           <td><strong>Notion</strong></td>
           <td>OAuth 2.0</td>
           <td>48</td>
-          <td><span class="success-mid">83.3%</span></td>
+          <td>観測中</td>
           <td>—</td>
           <td>AAA</td>
         </tr>
@@ -392,7 +392,7 @@
           <td><strong>Chatwork</strong></td>
           <td>OAuth 2.0</td>
           <td>123</td>
-          <td><span class="success-low">65.9%</span></td>
+          <td>観測中</td>
           <td>378ms</td>
           <td>AA</td>
         </tr>
@@ -400,19 +400,19 @@
     </table>
 
     <div class="data-highlight">
-      <h4>📊 二極化の数値ハイライト</h4>
+      <h4>📊 比較データハイライト</h4>
       <div class="metric-row">
         <div class="metric-item">
-          <span class="num green">94.3%</span>
-          <span class="label">最高 (Shopify)</span>
+          <span class="num">7</span>
+          <span class="label">比較サービス数<br>(全てOAuth 2.0系)</span>
         </div>
         <div class="metric-item">
-          <span class="num red">65.9%</span>
-          <span class="label">最低 (Chatwork)</span>
+          <span class="num">観測中</span>
+          <span class="label">成功率実測<br>(KanseiLinkで蓄積中)</span>
         </div>
         <div class="metric-item">
-          <span class="num orange">28.4pt</span>
-          <span class="label">最大差<br>(同じOAuth 2.0なのに)</span>
+          <span class="num">3</span>
+          <span class="label">体験を分ける構造要因<br>(レート制限・エラー設計・発見可能性)</span>
         </div>
         <div class="metric-item">
           <span class="num">682</span>
@@ -421,7 +421,7 @@
       </div>
     </div>
 
-    <p><strong>重要な発見</strong>: 7サービス全てが <em>同じOAuth 2.0系認証</em> を採用しているにも関わらず、成功率は28.4ポイントもの幅がある。「OAuth対応していれば安心」という業界通説は<strong>明確に否定される</strong>。差を生んでいるのは認証ではなく、認証の後ろにある実装品質だ。</p>
+    <p><strong>重要な視点</strong>: 7サービス全てが <em>同じOAuth 2.0系認証</em> を採用しているにも関わらず、エラー・つまずきの報告パターンには大きな幅がある。「OAuth対応していれば安心」という業界通説は<strong>そのままでは成り立たない</strong>。差を生んでいるのは認証ではなく、認証の後ろにある実装品質だ。</p>
 
     <h2 id="factor1">要因1: レート制限の厳しさ</h2>
 
@@ -451,7 +451,7 @@ reported_count: 1</code></pre>
 
     <p>第2の要因は <strong>エラー応答の情報量</strong>。Chatwork MCPは123件中 <code>api_error</code> が <strong>24件</strong>(19.5%)、Notionは48件中 <code>api_error</code>系が複数発生。一方Slackは113件中 <code>api_error</code> が9件(8.0%)、freeeは212件中 <code>api_error</code> が15件(7.1%)。同じエラー名でも、レスポンスに含まれるヒントの量が違う。</p>
 
-    <p>成功率の高いサービス(Slack・freee・Money Forward)は、エラーレスポンスに以下を含む傾向がある:</p>
+    <p>エラー報告の少ないサービス(Slack・freee・Money Forward)は、エラーレスポンスに以下を含む傾向がある:</p>
 
     <ul>
       <li>具体的なフィールド名(『<code>channel_not_found: channel "C123" doesn't exist or isn't visible</code>』)</li>
@@ -459,7 +459,7 @@ reported_count: 1</code></pre>
       <li>リトライ可否の明示(<code>error.retryable: true/false</code>)</li>
     </ul>
 
-    <p>一方、低成功率サービスは『<code>{"error": "Bad Request"}</code>』だけで原因が不明、エージェントは推測で再試行 → タイムアウトで諦める、という失敗パターンに陥る。</p>
+    <p>一方、エラー報告の多いサービスは『<code>{"error": "Bad Request"}</code>』だけで原因が不明、エージェントは推測で再試行 → タイムアウトで諦める、という失敗パターンに陥る。</p>
 
     <h3>freeeで発見したauth_expiredパターン</h3>
     <p>興味深いケース: freee MCPでは <code>auth_expired</code> が4件発生したが、workaroundとして『<em>OAuth tokenをリフレッシュ — token expires every 24h</em>』が verified状態で3件報告されている。トークンの寿命がドキュメント化されていれば、エージェントは事前に refresh フローを組める。Chatworkの場合、24h以上のセッションでトークン期限切れに遭遇するパターンが報告されているが、解決workaroundが verifiedで蓄積していない。</p>
@@ -482,12 +482,12 @@ verification: unverified, reported_count: 1</code></pre>
 
     <div class="insight-box">
       <div class="label">統合インサイト</div>
-      <p>3要因(レート制限 × エラー設計 × 発見可能性)は <strong>独立に成功率を押し下げる</strong>。Chatworkの66%は、各要因が <em>個別に</em> 5-15ポイントずつ削った合計値と読める。逆に、これらを個別に改善するだけで段階的に85%超えは可能。OAuth実装そのものに手を入れる必要はない。</p>
+      <p>3要因(レート制限 × エラー設計 × 発見可能性)は <strong>独立にエージェント体験を押し下げる</strong>。Chatworkの伸び悩みは、各要因が <em>個別に</em> 体験を削った合計値と読める。逆に、これらを個別に改善するだけで段階的な底上げは可能。OAuth実装そのものに手を入れる必要はない。</p>
     </div>
 
-    <h2 id="shopify">なぜShopify 94%が最高なのか</h2>
+    <h2 id="shopify">なぜShopifyの評価が高いのか</h2>
 
-    <p>同じOAuth 2.0でShopifyだけが94.3%という頭一つ抜けた成功率を出している理由は構造的だ。Shopifyは <strong>4つの専用MCPサーバー</strong>(Dev、Storefront、Customer Account、Checkout)を用途別に分離して提供している。</p>
+    <p>同じOAuth 2.0でShopifyの評価が頭一つ抜けている理由は構造的だ。Shopifyは <strong>4つの専用MCPサーバー</strong>(Dev、Storefront、Customer Account、Checkout)を用途別に分離して提供している。</p>
 
     <ul>
       <li><strong>Dev MCP</strong>: 開発者向けAPI・GraphQL Storefront等のドキュメント参照</li>
@@ -498,7 +498,7 @@ verification: unverified, reported_count: 1</code></pre>
 
     <p>これにより、エージェントが『どのMCPで何ができるか』を <strong>明確に判断できる</strong>。汎用1サーバー型(freeeの5ドメイン統合、Slackの全機能統合APIなど)よりも、サービス境界が明示的でツール選択ミスが起きにくい。加えて『Every store exposes /api/mcp endpoint』という標準パターンも、エージェントが新しい店舗に対しても予測通り動作できる安心感を生む。</p>
 
-    <p>これは大規模MCP実装の <strong>『専用化 vs 汎用化』のトレードオフ</strong> を示す重要な実例で、KanseiLink分析でもツール選択精度がfree-form 1サーバー型より15-20%高い傾向がある。</p>
+    <p>これは大規模MCP実装の <strong>『専用化 vs 汎用化』のトレードオフ</strong> を示す重要な実例で、KanseiLinkの評価でもfree-form 1サーバー型よりツール選択の迷いが起きにくい傾向がある。</p>
 
     <h2 id="action">SaaSベンダーが取るべき優先アクション</h2>
 
@@ -513,38 +513,38 @@ verification: unverified, reported_count: 1</code></pre>
 
     <div class="success-box">
       <div class="label">✅ 目標水準</div>
-      <p>AEO Aグレード(成功率85%+)が2026年Q3-Q4の事実上の業界スタンダードになる見通し。現在80%帯のサービスは、上記P0-P2の改善で90%超は実現可能。OAuth 2.0実装そのものを書き直す必要はない。</p>
+      <p>AEO Aグレードが2026年Q3-Q4の事実上の業界スタンダードになる見通し。現在グレードが伸び悩むサービスも、上記P0-P2の改善で上位グレードは十分実現可能。OAuth 2.0実装そのものを書き直す必要はない。</p>
     </div>
 
     <div class="cta-banner">
-      <h3>自社MCPの成功率データを取得してみる</h3>
-      <p>KanseiLinkは225+サービスのMCP対応状況・成功率・エラーパターン・workaroundデータをMCP経由で公開しています。<code>get_insights(service_id)</code>で自社・競合の実測データが即取得可能。改善ロードマップ設計のたたき台に。</p>
+      <h3>自社MCPの評価データを取得してみる</h3>
+      <p>KanseiLinkは225+サービスのMCP対応状況・AEOグレード・エラーパターン・workaroundデータをMCP経由で公開しています。<code>get_insights(service_id)</code>で自社・競合の評価データが即取得可能。改善ロードマップ設計のたたき台に。</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">エンタープライズプランを相談する</a>
     </div>
 
     <h2 id="faq">FAQ</h2>
 
-    <h3>Q1. 同じOAuth 2.0なのにSlackとChatworkで25ポイント以上差が出る理由は?</h3>
-    <p>認証方式は同じでも、(1) レート制限の厳しさ、(2) エラーメッセージの明瞭度、(3) 発見可能性、の3要因が成功率を分けている。OAuthそのものは『認証パス』が確立しているだけで、その後のエージェント体験は実装ごとに大きく異なる。</p>
+    <h3>Q1. 同じOAuth 2.0なのにサービス間でエージェント体験に差が出る理由は?</h3>
+    <p>認証方式は同じでも、(1) レート制限の厳しさ、(2) エラーメッセージの明瞭度、(3) 発見可能性、の3要因がエージェント体験を分けている。OAuthそのものは『認証パス』が確立しているだけで、その後のエージェント体験は実装ごとに大きく異なる。</p>
 
-    <h3>Q2. ShopifyとMoney Forwardが90%超なのは構造的に何が違うのですか?</h3>
-    <p>Shopifyは4MCPサーバー分離型でツール選択精度が高い。Money Forwardは2026年3月から全プランでRemote MCPを提供し、API成熟度が高くエラーパターンが少ない。両者とも『エージェント側で迷う場面が少ない』ことが90%超を支えている。</p>
+    <h3>Q2. ShopifyとMoney Forwardの評価が高いのは構造的に何が違うのですか?</h3>
+    <p>Shopifyは4MCPサーバー分離型でツール選択精度が高い。Money Forwardは2026年3月から全プランでRemote MCPを提供し、API成熟度が高くエラーパターンが少ない。両者とも『エージェント側で迷う場面が少ない』ことが高評価を支えている。</p>
 
-    <h3>Q3. Chatworkの66%は救済可能ですか?</h3>
-    <p>はい、構造的に可能。3要因(レート制限・エラー設計・発見可能性)はそれぞれ独立に改善できる。例えば、verifiedで蓄積されている100ms delay workaroundをドキュメントに明記するだけでも初回成功率が改善する見込み。OAuth実装の書き直しは不要。</p>
+    <h3>Q3. Chatworkの伸び悩みは救済可能ですか?</h3>
+    <p>はい、構造的に可能。3要因(レート制限・エラー設計・発見可能性)はそれぞれ独立に改善できる。例えば、蓄積されている100ms delay workaroundをドキュメントに明記するだけでも初回成功率が改善する見込み。OAuth実装の書き直しは不要。</p>
 
-    <h3>Q4. Notion 83%とChatwork 66%の差はどこから来ますか?</h3>
-    <p>Notionはエラーレスポンスが比較的詳細(API errorに具体的なblock_id/property名を含む)。一方rate_limitエラーは少なく、search_missもChatworkほど多くない。3要因のうち1つだけ弱いNotion vs 3要因全て弱いChatwork、という違いが17ポイント差を生む。</p>
+    <h3>Q4. NotionとChatworkの差はどこから来ますか?</h3>
+    <p>Notionはエラーレスポンスが比較的詳細(API errorに具体的なblock_id/property名を含む)。一方rate_limitエラーは少なく、search_missもChatworkほど多くない。3要因のうち1つだけ弱いNotion vs 3要因全て弱いChatwork、という違いがエージェント体験の差を生む。</p>
 
     <h3>Q5. 認証方式以外で成功率を予測する指標はありますか?</h3>
     <p>KanseiLinkデータでは『エラーレスポンスにworkaround_hintを含むか』『公式ドキュメントにレート制限実装パターンが書かれているか』『英語+日本語両方のメタデータを揃えているか』の3つが、認証方式よりも強い予測変数。詳細は<a href="aeo-methodology.html">AEO格付け方法論</a>を参照。</p>
 
     <h3>Q6. KanseiLinkのデータはどう取得しますか?</h3>
-    <p>MCP経由で <code>npx -y @kansei-link/mcp-server</code> で接続し、<code>get_insights(service_id)</code>で各サービスの実測データを取得できる。225+サービスのAEOグレード一覧は<a href="aeo-ranking-q2-2026.html">AEO Readiness Ranking Q2 2026</a>で公開。</p>
+    <p>MCP経由で <code>npx -y @kansei-link/mcp-server</code> で接続し、<code>get_insights(service_id)</code>で各サービスの評価データを取得できる。225+サービスのAEOグレード一覧は<a href="aeo-ranking-q2-2026.html">AEO Readiness Ranking Q2 2026</a>で公開。</p>
 
     <div class="disclosure-box">
       <div class="label">データ開示・免責事項</div>
-      <p>本記事の成功率データは2026年5月11日時点のKanseiLink MCPデータベース実測値(<code>get_insights</code>取得値)で、各サービスとも累積レポート数40件以上の高使用MCPサーバーのみ抽出しています。サンプル数の偏り(Chatwork 123件 vs Money Forward 42件)による統計的不確実性は残ります。レート制限値(Chatwork 300req/5min/user、Slackのmethod-tier等)は2026年5月時点の各社公開ドキュメント値で、変更される可能性があります。エラーパターン頻度はKanseiLinkユーザー由来のレポート集計値であり、各サービスの全エージェントを代表するものではありません。本記事の改善提言はKanseiLinkリサーチチームの分析であり、各社の実装事情に応じた調整が必要です。</p>
+      <p>本記事の比較データは2026年5月11日時点のKanseiLink MCPデータベースの評価・初期データ(<code>get_insights</code>取得値)で、各サービスとも累積レポート数40件以上の高使用MCPサーバーのみ抽出しています。エージェント成功率の実測データはKanseiLinkで現在蓄積中であり、本記事では実測成功率の数値は提示していません。サンプル数の偏り(Chatwork 123件 vs Money Forward 42件)による統計的不確実性は残ります。レート制限値(Chatwork 300req/5min/user、Slackのmethod-tier等)は2026年5月時点の各社公開ドキュメント値で、変更される可能性があります。エラーパターン頻度はKanseiLinkユーザー由来のレポート集計値であり、各サービスの全エージェントを代表するものではありません。本記事の改善提言はKanseiLinkリサーチチームの分析であり、各社の実装事情に応じた調整が必要です。</p>
     </div>
 
     <div class="related-section">
@@ -552,7 +552,7 @@ verification: unverified, reported_count: 1</code></pre>
       <div class="related-grid">
         <a href="mcp-success-patterns-data-2026.html" class="related-card">
           <div class="tag">データストーリー</div>
-          <h4>KanseiLinkの225+サービス分析が示すMCP成功の法則 — 成功率90%超えサービスの共通点</h4>
+          <h4>KanseiLinkの225+サービス分析が示すMCP成功の法則 — 高グレードサービスの共通点</h4>
         </a>
         <a href="mcp-verified-vs-connectable-2026.html" class="related-card">
           <div class="tag">データストーリー</div>
@@ -560,7 +560,7 @@ verification: unverified, reported_count: 1</code></pre>
         </a>
         <a href="mcp-latency-success-rate-correlation-2026.html" class="related-card">
           <div class="tag">データストーリー</div>
-          <h4>「遅いAPIは失敗率も高い」は本当か？ KanseiLink 225サービス実測データでMCPレイテンシと成功率の相関を検証</h4>
+          <h4>「遅いAPIは失敗率も高い」は本当か？ MCPレイテンシ実測データと成功率の関係を読み解く</h4>
         </a>
         <a href="mcp-rate-limiting-implementation-guide-2026.html" class="related-card">
           <div class="tag">実装ガイド</div>
@@ -575,8 +575,8 @@ verification: unverified, reported_count: 1</code></pre>
     <div class="inner">
       <h2>For AI Agents</h2>
       <p>
-        本記事の7サービス成功率データは、KanseiLink MCPの <code>get_insights(service_id)</code> で個別に再取得可能(例: <code>get_insights({"service_id": "chatwork"})</code>)。
-        自社サービスがどの帯にいるか確認するなら <code>search_services({"intent": "..."})</code> → <code>get_insights</code> の順で。
+        本記事の7サービス比較データは、KanseiLink MCPの <code>get_insights(service_id)</code> で個別に再取得可能(例: <code>get_insights({"service_id": "chatwork"})</code>)。
+        自社サービスの評価を確認するなら <code>search_services({"intent": "..."})</code> → <code>get_insights</code> の順で。
         接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
       </p>
     </div>

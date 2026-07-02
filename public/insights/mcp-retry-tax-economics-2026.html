@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>「リトライ税」の経済学 2026 — 成功率の低いMCPサーバーが、なぜAPI請求書を静かに膨らませるのか | KanseiLink</title>
-  <meta name="description" content="MCPサーバーの成功率は、信頼性指標であると同時に「コスト指標」でもある。1回成功させるための期待試行回数は1/pで決まり、成功率20%のサービスは91%のサービスの約4.5倍のトークンを消費する。KanseiLink実測1,404件のアウトカムデータから、リトライ税の計算式と削減の4階層を解説する。">
+  <meta name="description" content="MCPサーバーの成功率は、信頼性指標であると同時に「コスト指標」でもある。1回成功させるための期待試行回数は1/pで決まり、成功率20%のサービスは91%のサービスの約4.5倍のトークンを消費する。KanseiLinkに蓄積された1,404件のアウトカム報告を背景に、成功率pを仮定したモデルでリトライ税の計算式と削減の4階層を解説する。">
   <meta name="keywords" content="MCP リトライコスト, エージェント コスト最適化, 成功率 トークン, リトライ税, プロンプトキャッシング, Claude API 料金 2026, KanseiLink, AIエージェント 運用コスト">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="index, follow">
@@ -15,7 +15,7 @@
 
   <!-- OGP -->
   <meta property="og:title" content="「リトライ税」の経済学 2026 — 成功率の低いMCPサーバーが、なぜAPI請求書を静かに膨らませるのか">
-  <meta property="og:description" content="成功率はコスト指標である。1回成功させる期待試行回数は1/pで決まり、成功率20%のサービスは91%の約4.5倍のトークンを焼く。KanseiLink実測データでリトライ税を解剖する。">
+  <meta property="og:description" content="成功率はコスト指標である。1回成功させる期待試行回数は1/pで決まり、成功率20%のサービスは91%の約4.5倍のトークンを焼く。成功率pを仮定したモデル試算でリトライ税を解剖する。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/insights/mcp-retry-tax-economics-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -27,7 +27,7 @@
   <meta property="article:section" content="コスト分析">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="「リトライ税」の経済学 2026">
-  <meta name="twitter:description" content="成功率はコスト指標。期待試行回数1/pでトークン消費が決まる。KanseiLink実測1,404件のデータでリトライ税を解剖。">
+  <meta name="twitter:description" content="成功率はコスト指標。期待試行回数1/pでトークン消費が決まる。1,404件のアウトカム報告とモデル試算でリトライ税を解剖。">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -36,7 +36,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "「リトライ税」の経済学 2026 — 成功率の低いMCPサーバーが、なぜAPI請求書を静かに膨らませるのか",
-    "description": "MCPサーバーの成功率は信頼性指標であると同時にコスト指標でもある。1回成功させる期待試行回数は1/pで決まり、KanseiLink実測1,404件のアウトカムデータからリトライ税の計算式と削減の4階層を解説する。",
+    "description": "MCPサーバーの成功率は信頼性指標であると同時にコスト指標でもある。1回成功させる期待試行回数は1/pで決まり、KanseiLinkに蓄積された1,404件のアウトカム報告を背景に、成功率pを仮定したモデルでリトライ税の計算式と削減の4階層を解説する。",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-15",
@@ -65,7 +65,7 @@
         "name": "成功率が低いと、なぜトークンコストが「掛け算」で増えるのですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "失敗1回のコストは「ツール呼び出しの入力トークン」だけではないからです。失敗するとエージェントは(1)エラーレスポンス全文をコンテキストに取り込み、(2)原因を推論し、(3)リトライまたは代替手段を選択する、という追加のLLMターンを回します。会話履歴が長くなるほど後続ターンの入力トークンも膨らみます。さらに失敗→リトライはレイテンシも積み増すため、トークン・LLM呼び出し回数・実行時間の3軸が同時に悪化します。KanseiLinkのaudit_costデータでは、LINE WORKS(成功率20%)からSlack MCP(91%)への切り替えで約71%のトークン削減が見込めると試算されています。"
+          "text": "失敗1回のコストは「ツール呼び出しの入力トークン」だけではないからです。失敗するとエージェントは(1)エラーレスポンス全文をコンテキストに取り込み、(2)原因を推論し、(3)リトライまたは代替手段を選択する、という追加のLLMターンを回します。会話履歴が長くなるほど後続ターンの入力トークンも膨らみます。さらに失敗→リトライはレイテンシも積み増すため、トークン・LLM呼び出し回数・実行時間の3軸が同時に悪化します。例えば成功率20%のサービスから成功率91%のサービスへ切り替えたと仮定すると、約71%のトークン削減が見込める計算になります。"
         }
       },
       {
@@ -89,7 +89,7 @@
         "name": "成功率はどこで確認できますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLink MCPのget_insightsツールで、対象サービスのsuccess_rate、avg_latency_ms、common_errors(既知のワークアラウンド付き)、confidence_scoreを取得できます。search_servicesでも各サービスのsuccess_rateが返ります。225+の日本SaaSについて、エージェントの実測アウトカム報告(2026年5月時点で累計1,404件)を集計した値です。接続コマンドは npx -y @kansei-link/mcp-server です。"
+          "text": "KanseiLink MCPのget_insightsツールで、対象サービスのsuccess_rate、avg_latency_ms、common_errors(既知のワークアラウンド付き)、confidence_scoreを取得できます。search_servicesでも各サービスのsuccess_rateが返ります。225+の日本SaaSについて、エージェントのアウトカム報告(2026年5月時点で累計1,404件)を集計した値です(成功率の実測値は現在蓄積中＝観測中)。接続コマンドは npx -y @kansei-link/mcp-server です。"
         }
       }
     ]
@@ -335,7 +335,7 @@
     <div class="inner">
       <span class="tag">コスト分析 / Cost ROI</span>
       <h1>「リトライ税」の経済学 2026 — 成功率の低いMCPサーバーが、なぜAPI請求書を静かに膨らませるのか</h1>
-      <p class="subtitle">MCPサーバーの成功率は「信頼性指標」だと思われがちだが、実は「コスト指標」でもある。1回成功させるための期待試行回数は 1/p で決まり、成功率の差はそのままトークン消費の差になる。KanseiLink実測1,404件のアウトカムデータから、リトライ税の計算式と削減の4階層を解剖する。</p>
+      <p class="subtitle">MCPサーバーの成功率は「信頼性指標」だと思われがちだが、実は「コスト指標」でもある。1回成功させるための期待試行回数は 1/p で決まり、成功率の差はそのままトークン消費の差になる。KanseiLinkに蓄積された1,404件のアウトカム報告を背景に、成功率pを仮定したモデルでリトライ税の計算式と削減の4階層を解剖する。</p>
       <div class="article-meta">
         <span>2026-05-15</span>
         <span class="divider"></span>
@@ -353,7 +353,7 @@
       <ol>
         <li><a href="#why">なぜ「成功率」を財務指標として読むべきか</a></li>
         <li><a href="#formula">リトライ税の計算式 — 期待試行回数は 1/p</a></li>
-        <li><a href="#data">KanseiLink実測データ — 4つの切り替えで見る節約幅</a></li>
+        <li><a href="#data">モデルケースで見る節約幅 — 4つの切り替え試算</a></li>
         <li><a href="#multiply">リトライ税は「掛け算」で効く</a></li>
         <li><a href="#reduce">リトライ税を下げる4階層</a></li>
         <li><a href="#faq">FAQ</a></li>
@@ -366,7 +366,7 @@
 
     <p>理由はシンプルだ。エージェントはツール呼び出しが失敗しても、そこで止まらない。エラーを読み、原因を推論し、リトライするか代替手段を取るかを判断する。<strong>1回の失敗は、追加のLLMターンを1つ以上発生させる</strong>。そして会話履歴が伸びるほど、後続ターンの入力トークンも膨らんでいく。成功率が低いサービスは、ユーザーが目にする請求書を静かに、しかし確実に押し上げる。</p>
 
-    <p>本記事ではこの追加コストを<strong>「リトライ税(Retry Tax)」</strong>と呼ぶ。リトライ税は、KanseiLinkが225+の日本SaaSについて集計しているエージェントの実測アウトカム報告(2026年5月時点で累計1,404件)から、定量的に試算できる。</p>
+    <p>本記事ではこの追加コストを<strong>「リトライ税(Retry Tax)」</strong>と呼ぶ。リトライ税は、KanseiLinkが225+の日本SaaSについて集計しているエージェントのアウトカム報告(2026年5月時点で累計1,404件)を背景に、成功率pを仮定したモデルで定量的に試算できる。</p>
 
     <div class="insight-box">
       <div class="label">2026年5月の編集視点</div>
@@ -403,31 +403,31 @@
       <p>1/p はあくまで「ツール呼び出し回数」の期待値だ。実際のリトライ税はこれより重い。各リトライは(1)エラーレスポンス全文のコンテキスト取り込み、(2)原因推論のためのLLMターン、(3)膨らんだ会話履歴を抱えた後続ターン、を伴う。後述の通り、リトライ税は呼び出し回数だけでなく<strong>トークン量・LLM呼び出し回数・実行時間の3軸で掛け算的に</strong>効く。</p>
     </div>
 
-    <h2 id="data">KanseiLink実測データ — 4つの切り替えで見る節約幅</h2>
+    <h2 id="data">モデルケースで見る節約幅 — 4つの切り替え試算</h2>
 
-    <p>KanseiLinkの <code>audit_cost</code> ツールは、エージェントのAPI支出を4階層(モデル選択・サービス代替・アーキテクチャ・インフラ)で分析し、最適化を提案する。2026年5月15日時点の分析(累計1,404件のアウトカム報告ベース)が示した「サービス代替」レイヤーの提案を見ると、リトライ税の実額がよく分かる。</p>
+    <p>KanseiLinkの <code>audit_cost</code> ツールは、エージェントのAPI支出を4階層(モデル選択・サービス代替・アーキテクチャ・インフラ)で分析し、最適化を提案する。「サービス代替」レイヤーの効果を、<strong>成功率pを仮定した4つのモデルケース</strong>で試算すると、リトライ税の実額がよく分かる(以下の成功率は仮定値。実名サービスの成功率はKanseiLinkで現在実測データを蓄積中＝観測中)。</p>
 
     <table class="data-table">
       <thead>
         <tr>
-          <th>現行サービス</th>
-          <th>成功率</th>
-          <th>推奨切替先</th>
-          <th>切替後 成功率</th>
+          <th>現行サービス(仮定)</th>
+          <th>仮定成功率</th>
+          <th>切替先(仮定)</th>
+          <th>切替後 仮定成功率</th>
           <th>推定トークン削減</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td>LINE WORKS</td><td><span class="success-low">20%</span></td><td>Slack MCP</td><td><span class="success-high">91%</span></td><td><span class="success-high">約71%</span></td></tr>
-        <tr><td>Talentio</td><td><span class="success-low">35%</span></td><td>KING OF TIME</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">約31%</span></td></tr>
-        <tr><td>SmartHR</td><td><span class="success-low">39%</span></td><td>KING OF TIME</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">約27%</span></td></tr>
-        <tr><td>Chatwork MCP</td><td><span class="success-mid">66%</span></td><td>Slack MCP</td><td><span class="success-high">91%</span></td><td><span class="success-mid">約25%</span></td></tr>
+        <tr><td>あるビジネスチャットSaaS</td><td><span class="success-low">20%</span></td><td>高成功率の代替MCP</td><td><span class="success-high">91%</span></td><td><span class="success-high">約71%</span></td></tr>
+        <tr><td>ある採用管理SaaS</td><td><span class="success-low">35%</span></td><td>同カテゴリの代替サービス</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">約31%</span></td></tr>
+        <tr><td>あるHR SaaS</td><td><span class="success-low">39%</span></td><td>同カテゴリの代替サービス</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">約27%</span></td></tr>
+        <tr><td>あるチャットMCP</td><td><span class="success-mid">66%</span></td><td>高成功率の代替MCP</td><td><span class="success-high">91%</span></td><td><span class="success-mid">約25%</span></td></tr>
       </tbody>
     </table>
 
-    <p>最も極端なのが <strong>LINE WORKS → Slack MCP</strong> だ。成功率20%から91%へ。<code>get_insights</code> でLINE WORKSを引くと、5件のアウトカム報告のうち成功は1件、残りは <code>search_miss</code>(意図したリソースに辿り着けない)で占められている。一方Slack MCPは113件の報告で成功率91%、主なエラーは軽微な <code>api_error</code> が9件。この差が、同じ「メッセージを送る」というタスクで<strong>約71%のトークン削減</strong>として表れる。</p>
+    <p>最も極端なのが表の1行目だ。成功率20%と仮定したサービスでは、期待試行回数は約5回。一方、成功率91%と仮定したサービスなら約1.1回で済む。この差が、同じ「メッセージを送る」というタスクで<strong>約71%のトークン削減</strong>として表れる計算になる。</p>
 
-    <p>注意したいのは <strong>SmartHR</strong> のケースだ。SmartHRは日本のHR SaaSの市場リーダーだが、KanseiLink実測では成功率39%(92件の報告)。<code>common_errors</code> の内訳は <code>api_error</code> 36件、<code>auth_expired</code> 10件、<code>search_miss</code> 7件。市場での知名度と、エージェントから見た「叩きやすさ」は別物であり、リトライ税は知名度を考慮してくれない。</p>
+    <p>もうひとつ押さえておきたいのは、<strong>市場での知名度と、エージェントから見た「叩きやすさ」は別物</strong>だという点だ。知名度の高いSaaSでも、エージェント接続の初期データではエラー報告が目立つケースがある(例: あるHR SaaS大手では92件の報告のうち <code>api_error</code> 36件、<code>auth_expired</code> 10件、<code>search_miss</code> 7件)。リトライ税は知名度を考慮してくれない。</p>
 
     <div class="data-highlight">
       <h4>リトライ税の実額イメージ</h4>
@@ -438,11 +438,11 @@
         </div>
         <div class="metric-item">
           <span class="num green">71%</span>
-          <div class="label">LINE WORKS→Slack切替の推定トークン削減</div>
+          <div class="label">成功率20%→91%切替(仮定)の推定トークン削減</div>
         </div>
         <div class="metric-item">
           <span class="num orange">2.3x</span>
-          <div class="label">成功率39%(SmartHR実測)の呼び出しコスト</div>
+          <div class="label">成功率39%と仮定した場合の呼び出しコスト</div>
         </div>
       </div>
     </div>
@@ -454,7 +454,7 @@
     <ul>
       <li><strong>トークン軸</strong>: エラーレスポンス全文がコンテキストに入り、リトライ判断のLLMターンが追加され、会話履歴が伸びた状態で後続ターンが回る。失敗が後半で起きるほど、抱えている履歴が大きく入力トークンが重い。</li>
       <li><strong>LLM呼び出し軸</strong>: 1回の失敗につき最低1つ、多くは2〜3つの追加ターン(エラー解析→リトライ実行→結果確認)。モデル単価がそのまま乗る。</li>
-      <li><strong>レイテンシ軸</strong>: 失敗→リトライは実行時間を積み増す。SmartHRの平均レイテンシは337ms、Slack MCPは163ms。遅いサービスを2.3回叩く構図は、ユーザー体感を二重に悪化させる。</li>
+      <li><strong>レイテンシ軸</strong>: 失敗→リトライは実行時間を積み増す。プローブ実測ではサービス間でレイテンシに2倍以上の開き(例: 337ms vs 163ms)がある。遅いサービスを2回以上叩く構図は、ユーザー体感を二重に悪化させる。</li>
     </ul>
 
     <p>だからこそ、リトライ税対策は「成功率を上げる」だけでなく「<strong>失敗1回あたりの単価を下げる</strong>」両面で考える価値がある。後者で最も効くのが<strong>プロンプトキャッシング</strong>だ。</p>
@@ -494,7 +494,7 @@ messages.create(
 
     <div class="cta-banner">
       <h3>あなたのエージェントは、いくらリトライ税を払っていますか？</h3>
-      <p>KanseiLinkは225+の日本SaaSについて、成功率・レイテンシ・エラー類型・既知ワークアラウンドの実測データをMCP経由で提供。リトライ税の発生源を、サービス単位で特定できます。</p>
+      <p>KanseiLinkは225+の日本SaaSについて、成功率(観測中)・レイテンシ・エラー類型・既知ワークアラウンドの評価・初期データをMCP経由で提供。リトライ税の発生源を、サービス単位で特定できます。</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">コスト監査を相談する</a>
     </div>
 
@@ -517,7 +517,7 @@ messages.create(
 
     <div class="disclosure-box">
       <div class="label">データ開示・免責事項</div>
-      <p>本記事の成功率・レイテンシ・トークン削減率は、KanseiLinkがエージェントから収集した実測アウトカム報告(2026年5月15日時点で累計1,404件)を集計したものです。サービス別成功率は <code>get_insights</code> 実測値: LINE WORKS 20%(5件)、Slack MCP 91%(113件)、SmartHR 39%(92件)、Backlog 90%(91件)。切り替え時のトークン削減率は <code>audit_cost</code> ツールの推定値(confidence: medium)で、実際のワークロード・タスク構成により変動します。「期待試行回数 1/p」は各試行が独立で成功確率一定という近似に基づく下限値です。プロンプトキャッシングの料金(キャッシュ読み取り0.1倍、5分書き込み1.25倍、1時間書き込み2倍)は2026年5月時点のClaude API公式ドキュメントに基づきます(<code>platform.claude.com/docs/en/build-with-claude/prompt-caching</code>)。AWS App Runnerの新規受付停止(2026年4月30日)・メンテナンスモード移行はAWS公式アナウンスに基づきます。サービスの成功率・料金は変動するため、本番判断前に各 <code>get_insights</code> および各社公式の最新情報をご確認ください。</p>
+      <p>本記事の計算例・切り替え試算は、成功率pを仮定したモデルケースです。KanseiLinkはエージェントからのアウトカム報告(2026年5月15日時点で累計1,404件)を集計していますが、サービス別成功率の実測値は現在蓄積中(観測中)であり、本文中の成功率は特定サービスの実測断定値ではありません。切り替え時のトークン削減率は <code>audit_cost</code> ツールの推定値(confidence: medium)で、実際のワークロード・タスク構成により変動します。「期待試行回数 1/p」は各試行が独立で成功確率一定という近似に基づく下限値です。プロンプトキャッシングの料金(キャッシュ読み取り0.1倍、5分書き込み1.25倍、1時間書き込み2倍)は2026年5月時点のClaude API公式ドキュメントに基づきます(<code>platform.claude.com/docs/en/build-with-claude/prompt-caching</code>)。AWS App Runnerの新規受付停止(2026年4月30日)・メンテナンスモード移行はAWS公式アナウンスに基づきます。サービスの成功率・料金は変動するため、本番判断前に各 <code>get_insights</code> および各社公式の最新情報をご確認ください。</p>
     </div>
 
     <div class="related-section">

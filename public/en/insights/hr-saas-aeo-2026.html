@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HR SaaS AEO Map 2026 — SmartHR, freee HR & KING OF TIME Agent Readiness Report | KanseiLink</title>
-  <meta name="description" content="SmartHR's AI agent success rate is just 39% across 89 runs. A data-driven AEO comparison of Japan's top HR SaaS platforms: SmartHR, freee HR, and KING OF TIME — with error analysis and implementation guidance.">
+  <meta name="description" content="SmartHR shows agent-integration friction in early data (89 reported runs). A data-driven AEO comparison of Japan's top HR SaaS platforms: SmartHR, freee HR, and KING OF TIME — with error analysis and implementation guidance.">
   <meta name="keywords" content="HR SaaS AEO, SmartHR AEO, freee HR MCP, KING OF TIME API, AI agent HR, Japanese HR SaaS, KanseiLink">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="noindex, nofollow">
@@ -15,7 +15,7 @@
 
   <!-- OGP -->
   <meta property="og:title" content="HR SaaS AEO Map 2026 — SmartHR, freee HR & KING OF TIME Agent Readiness Report">
-  <meta property="og:description" content="SmartHR: 39% agent success rate across 89 runs. freee HR: official MCP, untested. KING OF TIME: 65% success, API only. Full HR SaaS AEO comparison for Japan.">
+  <meta property="og:description" content="SmartHR: agent success rate under observation (89 reported runs). freee HR: official MCP, untested. KING OF TIME: API only, steadier early reports. Full HR SaaS AEO comparison for Japan.">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/en/insights/hr-saas-aeo-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -23,8 +23,8 @@
   <meta property="article:author" content="KanseiLink Research">
   <meta property="article:section" content="Industry Report">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="HR SaaS AEO Map 2026 — SmartHR 39% success rate, freee HR MCP, KING OF TIME 65%">
-  <meta name="twitter:description" content="Real agent telemetry from Japan's top HR SaaS platforms. SmartHR's auth issues exposed.">
+  <meta name="twitter:title" content="HR SaaS AEO Map 2026 — SmartHR pitfalls, freee HR MCP, KING OF TIME">
+  <meta name="twitter:description" content="KanseiLink evaluation of Japan's top HR SaaS platforms. SmartHR's auth pitfalls explained.">
 
   <!-- JSON-LD: Article -->
   <script type="application/ld+json">
@@ -32,7 +32,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "HR SaaS AEO Map 2026 — SmartHR, freee HR & KING OF TIME Agent Readiness Report",
-    "description": "SmartHR's AI agent success rate is just 39% across 89 runs. A data-driven AEO comparison of Japan's top HR SaaS platforms with error analysis and implementation guidance.",
+    "description": "SmartHR shows agent-integration friction in early data (89 reported runs). A data-driven AEO comparison of Japan's top HR SaaS platforms with error analysis and implementation guidance.",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-04-07",
@@ -50,10 +50,10 @@
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "Why is SmartHR's AI agent success rate so low?",
+        "name": "Why do AI agents struggle with SmartHR's API?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLink data shows a 39% success rate across 89 runs. The primary causes are: (1) frequent use of the deprecated v1 API endpoint instead of v2, (2) incomplete OAuth scope documentation forcing agents to guess required scopes, and (3) high average latency (301ms) increasing timeout failures. Using v2 endpoints and pre-requesting employees.read, attendance.read, and payroll.read scopes substantially improves success rates."
+          "text": "KanseiLink's early data (89 reported runs) shows agent success rates trending low; field measurement is still accumulating. The primary causes are: (1) frequent use of the deprecated v1 API endpoint instead of v2, (2) incomplete OAuth scope documentation forcing agents to guess required scopes, and (3) high average latency (301ms) increasing timeout failures. Using v2 endpoints and pre-requesting employees.read, attendance.read, and payroll.read scopes substantially improves success rates."
         }
       },
       {
@@ -316,7 +316,7 @@
       <h3>Contents</h3>
       <ol>
         <li><a href="#overview">HR SaaS AEO landscape — how it differs from accounting</a></li>
-        <li><a href="#smarthr">SmartHR — BBB grade: the 39% problem</a></li>
+        <li><a href="#smarthr">SmartHR — BBB grade: three pitfalls that trip up agents</a></li>
         <li><a href="#freee-hr">freee HR — A grade: official MCP, high potential</a></li>
         <li><a href="#kingoftime">KING OF TIME — BBB grade: attendance API in practice</a></li>
         <li><a href="#comparison">Three-way comparison and implementation recommendations</a></li>
@@ -326,7 +326,7 @@
 
     <div class="disclosure-box">
       <div class="label">Data Disclosure</div>
-      <p>Report data is sourced from real agent telemetry via the KanseiLink MCP server (as of 2026-04-07). Sample sizes: SmartHR 89 runs, KING OF TIME 34 runs, freee HR 0 runs (no MCP-based attempts recorded yet).</p>
+      <p>Report data is based on KanseiLink's evaluation and early-stage data, including automated evaluation and seed data (as of 2026-04-07; field telemetry is still being accumulated). Sample sizes: SmartHR 89 runs, KING OF TIME 34 runs, freee HR 0 runs (no MCP-based attempts recorded yet).</p>
     </div>
 
     <h2 id="overview">HR SaaS AEO Landscape — How It Differs from Accounting</h2>
@@ -337,10 +337,10 @@
 
     <div class="key-concept">
       <div class="label">HR SaaS AEO Snapshot — Q2 2026</div>
-      <p>8 services tracked. Official MCP: 1 service. API only: 7 services. Category avg. success rate: ~50% (vs. 90%+ for accounting). Most common error type: auth failures and API errors neck-and-neck.</p>
+      <p>8 services tracked. Official MCP: 1 service. API only: 7 services. Category avg. success rate: observing (early data trends below accounting). Most common error type: auth failures and API errors neck-and-neck.</p>
     </div>
 
-    <h2 id="smarthr">SmartHR — BBB Grade: The 39% Problem</h2>
+    <h2 id="smarthr">SmartHR — BBB Grade: Three Pitfalls That Trip Up Agents</h2>
 
     <div class="service-card rank-2">
       <div class="service-card-header">
@@ -349,7 +349,7 @@
         <span style="font-size:13px;color:var(--gray-text);">AEO Score 0.60</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val danger">39%</div><div class="lbl">Success Rate</div></div>
+        <div class="metric-item"><div class="val danger">—</div><div class="lbl">Success Rate</div></div>
         <div class="metric-item"><div class="val">301ms</div><div class="lbl">Avg. Latency</div></div>
         <div class="metric-item"><div class="val">89</div><div class="lbl">Agent Runs</div></div>
         <div class="metric-item"><div class="val">7</div><div class="lbl">Unique Agents</div></div>
@@ -358,12 +358,12 @@
 
     <div class="warning-box">
       <div class="label">Critical Implementation Warning</div>
-      <p>61% of agent attempts against SmartHR's API fail. Deploying to production without implementing the workarounds identified in this report is not recommended.</p>
+      <p>A high share of agent attempts against SmartHR's API fail in early reports (observing). Deploying to production without implementing the workarounds identified in this report is not recommended.</p>
     </div>
 
     <p>SmartHR is the leading cloud HR platform in Japan — used by companies ranging from listed enterprises to growing SMBs for employee records, contracts, and year-end tax adjustments. It exposes a RESTful API for developers, and agent integration is theoretically well-supported. The reality of the data tells a different story.</p>
 
-    <p>Across 89 agent runs, success rate is 39% — one of the lowest among all major services tracked by KanseiLink. Seven distinct agents have attempted integration, amplifying confidence in the dataset. Three error categories account for nearly all failures:</p>
+    <p>Across 89 reported agent runs, success rates trend low (KanseiLink is still accumulating field telemetry). Seven distinct agents have attempted integration. Three error categories account for nearly all failures:</p>
 
     <h3>SmartHR error analysis</h3>
 
@@ -395,7 +395,7 @@
 
     <p>freee HR has no live agent run data to report, so success rate and latency figures are not available. However, freee's integrated MCP server covers the HR domain — employee data, attendance, payroll, and year-end adjustment — under the same server that powers freee accounting. Structural readiness is solid.</p>
 
-    <p>Projecting from freee's accounting domain telemetry (90.3% success, 206 runs) provides reasonable grounds for optimism: the same MCP server, the same authentication plumbing, the same developer standards. For builders constructing HR AI assistants or automation agents, freee HR is the lowest-risk option in the category. That said, <strong>a pilot testing period before production deployment is recommended until live HR-domain telemetry accumulates.</strong></p>
+    <p>Projecting from freee's accounting domain track record (AAA grade, 206 runs) provides reasonable grounds for optimism: the same MCP server, the same authentication plumbing, the same developer standards. For builders constructing HR AI assistants or automation agents, freee HR is the lowest-risk option in the category. That said, <strong>a pilot testing period before production deployment is recommended until live HR-domain telemetry accumulates.</strong></p>
 
     <h2 id="kingoftime">KING OF TIME — BBB Grade: Attendance API in Practice</h2>
 
@@ -406,14 +406,14 @@
         <span style="font-size:13px;color:var(--gray-text);">AEO Score 0.60</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val">65%</div><div class="lbl">Success Rate</div></div>
+        <div class="metric-item"><div class="val">—</div><div class="lbl">Success Rate</div></div>
         <div class="metric-item"><div class="val">199ms</div><div class="lbl">Avg. Latency</div></div>
         <div class="metric-item"><div class="val">34</div><div class="lbl">Agent Runs</div></div>
         <div class="metric-item"><div class="val">API only</div><div class="lbl">MCP Status</div></div>
       </div>
     </div>
 
-    <p>KING OF TIME is Japan's market-leading attendance management system by install base. Its REST API uses API key authentication and supports time-punch data retrieval, shift management, and overtime calculation. No official MCP server exists, but the relatively simple API design contributes to a 65% success rate — far ahead of SmartHR's 39%.</p>
+    <p>KING OF TIME is Japan's market-leading attendance management system by install base. Its REST API uses API key authentication and supports time-punch data retrieval, shift management, and overtime calculation. No official MCP server exists, but the relatively simple API design contributes to steadier early results than SmartHR (success rate under observation).</p>
 
     <p>All 12 errors in the dataset are classified as API errors, with zero authentication failures. API key auth, simpler than OAuth2, reduces agent-side authentication failure risk. The tradeoff is key management responsibility — API key rotation and storage must be handled by the agent implementation layer.</p>
 
@@ -445,7 +445,7 @@
           <td><strong>KING OF TIME</strong></td>
           <td><span class="grade-badge bg-bbb">BBB</span></td>
           <td>None (API only)</td>
-          <td>65%</td>
+          <td>observing</td>
           <td>199ms</td>
           <td>API Key</td>
         </tr>
@@ -453,7 +453,7 @@
           <td><strong>SmartHR</strong></td>
           <td><span class="grade-badge bg-bbb">BBB</span></td>
           <td>None (API only)</td>
-          <td>39%</td>
+          <td>observing</td>
           <td>301ms</td>
           <td>OAuth2</td>
         </tr>

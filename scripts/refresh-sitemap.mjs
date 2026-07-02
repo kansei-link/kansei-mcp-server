@@ -65,6 +65,42 @@ for (const entry of entries) {
   kept.push(entry);
 }
 
+// 3. 再追加: insights配下でindexableなのにsitemapに無いページを復帰させる
+//    (noindex解除後の復帰用。URL形式は既存に合わせ .html / ディレクトリは末尾スラッシュ)
+import { readdirSync } from 'node:fs';
+const keptLocs = new Set(kept.map((e) => (e.match(/<loc>(.*?)<\/loc>/) || [])[1]));
+const added = [];
+for (const rel of ['insights', 'en/insights']) {
+  const dir = join(pub, rel.replace('/', '\\'));
+  let files;
+  try { files = readdirSync(dir).filter((f) => f.endsWith('.html')); } catch { continue; }
+  for (const f of files) {
+    const html = readFileSync(join(dir, f), 'utf8');
+    if (/name=["']robots["']\s+content=["']noindex/i.test(html)) continue;
+    const loc = f === 'index.html'
+      ? `https://kansei-link.com/${rel}/`
+      : `https://kansei-link.com/${rel}/${f}`;
+    if (keptLocs.has(loc)) continue;
+    kept.push(`<url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n  </url>`);
+    added.push(loc);
+  }
+}
+
+// services/*/index.html (pSEOページ) の復帰・新規追加
+try {
+  for (const d of readdirSync(join(pub, 'services'), { withFileTypes: true })) {
+    if (!d.isDirectory()) continue;
+    const p = join(pub, 'services', d.name, 'index.html');
+    if (!existsSync(p)) continue;
+    const html = readFileSync(p, 'utf8');
+    if (/name=["']robots["']\s+content=["']noindex/i.test(html)) continue;
+    const loc = `https://kansei-link.com/services/${d.name}/`;
+    if (keptLocs.has(loc)) continue;
+    kept.push(`<url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n  </url>`);
+    added.push(loc);
+  }
+} catch { /* no services dir */ }
+
 const header = xml.slice(0, xml.indexOf('<url>'));
 const footer = xml.slice(xml.lastIndexOf('</url>') + '</url>'.length);
 writeFileSync(sitemapPath, header + kept.join('\n  ') + footer);
@@ -73,5 +109,6 @@ console.log(JSON.stringify({
   total_before: entries.length,
   total_after: kept.length,
   lastmod_updated: touched,
-  dropped_noindex: dropped,
+  dropped_noindex: dropped.length,
+  added_back: added,
 }, null, 2));

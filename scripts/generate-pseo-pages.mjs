@@ -2,9 +2,12 @@
 /**
  * pSEO Page Generator for KanseiLINK
  *
- * Generates individual service pages from aeo-data.json.
- * Target: services with grade BBB and above.
- * Purpose: agent discoverability (AEO) + human SEO.
+ * Generates individual service pages from kansei-link.db.
+ * Target (2026-07-02 Phase 1): every service with a curated API guide
+ * (service_api_guides, ~199) plus any service that already has a page.
+ * Guides are curated from official docs + registry checks, so these
+ * pages carry real connection content ("how to connect X" queries),
+ * not just a grade — authority-before-scale.
  *
  * URL pattern: /services/{service_id}/
  * Output:      public/services/{service_id}/index.html
@@ -12,17 +15,15 @@
  * Usage: node scripts/generate-pseo-pages.mjs
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import Database from "better-sqlite3";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
-const DATA_PATH = join(ROOT, "public", "aeo-data.json");
+const DB_PATH = join(ROOT, "kansei-link.db");
 const OUT_DIR = join(ROOT, "public", "services");
-
-// Minimum grade to generate a page for
-const MIN_GRADES = new Set(["AAA", "AA", "A", "BBB"]);
 
 const CATEGORY_LABELS = {
   accounting: "Accounting & Finance",
@@ -65,6 +66,10 @@ const GRADE_LABELS = {
   AA: "Very Good — Strong agent support with minor gaps",
   A: "Good — Functional agent integration",
   BBB: "Adequate — Basic agent connectivity available",
+  BB: "Limited — Partial agent connectivity",
+  B: "Weak — Significant integration gaps",
+  CCC: "Needs Improvement — Not yet agent-ready",
+  D: "Not Agent-Ready",
 };
 
 function successTier(rate) {
@@ -95,13 +100,49 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
+function renderGuideSection(s) {
+  const g = s.guide;
+  if (!g) return "";
+  let endpoints = [];
+  try { endpoints = JSON.parse(g.key_endpoints || "[]"); } catch { /* keep empty */ }
+  let tips = [];
+  try { tips = JSON.parse(g.agent_tips || "[]"); } catch { /* keep empty */ }
+
+  const factRows = [
+    ["Base URL", g.base_url && `<code>${escapeHtml(g.base_url)}</code>`],
+    ["API version", g.api_version && escapeHtml(g.api_version)],
+    ["Auth", g.auth_overview && escapeHtml(g.auth_overview)],
+    ["Token URL", g.auth_token_url && `<code>${escapeHtml(g.auth_token_url)}</code>`],
+    ["Scopes", g.auth_scopes && escapeHtml(g.auth_scopes)],
+    ["Request body", g.request_content_type && `<code>${escapeHtml(g.request_content_type)}</code>`],
+    ["Pagination", g.pagination_style && escapeHtml(g.pagination_style)],
+    ["Rate limit", g.rate_limit && escapeHtml(g.rate_limit)],
+    ["Error format", g.error_format && `<code>${escapeHtml(g.error_format)}</code>`],
+  ].filter(([, v]) => v);
+
+  return `
+<section class="guide" id="connect">
+  <h2>How to Connect ${escapeHtml(s.name)} to an AI Agent</h2>
+  ${g.auth_setup_hint ? `<h3>Auth setup</h3>\n  <p>${escapeHtml(g.auth_setup_hint)}</p>` : ""}
+  ${factRows.length ? `<h3>Key facts</h3>\n  <table>\n${factRows.map(([k, v]) => `    <tr><th>${k}</th><td>${v}</td></tr>`).join("\n")}\n  </table>` : ""}
+  ${endpoints.length ? `<h3>Key endpoints</h3>\n  <table>\n    <tr><th>Method</th><th>Path</th><th>Description</th></tr>\n${endpoints.map((e) => `    <tr><td><code>${escapeHtml(e.method || "")}</code></td><td><code>${escapeHtml(e.path || "")}</code></td><td>${escapeHtml(e.description || "")}</td></tr>`).join("\n")}\n  </table>` : ""}
+  ${g.quickstart_example ? `<h3>Quickstart</h3>\n  <pre><code>${escapeHtml(g.quickstart_example)}</code></pre>` : ""}
+  ${tips.length ? `<h3>Agent pitfalls &amp; tips</h3>\n  <ul>\n${tips.map((t) => `    <li>${escapeHtml(t)}</li>`).join("\n")}\n  </ul>` : ""}
+  <p class="src-note">Source: curated by KanseiLink from official documentation${g.docs_url ? ` (<a href="${escapeHtml(g.docs_url)}" rel="noopener" target="_blank">docs</a>)` : ""} and registry checks${g.updated_at ? `. Last reviewed: ${escapeHtml(String(g.updated_at).split(" ")[0])}` : ""}. Specs change — verify against the official docs before production use.</p>
+</section>`;
+}
+
 function generatePage(service) {
   const s = service;
   const cat = CATEGORY_LABELS[s.category] || s.category;
   const gradeColor = GRADE_COLORS[s.grade] || "#6B7280";
   const gradeLabel = GRADE_LABELS[s.grade] || s.grade;
-  const title = `${s.name} AEO Score & AI Agent Readiness | KanseiLink`;
-  const desc = `${s.name} is rated ${s.grade} (score: ${s.aeo_score.toFixed(2)}) for AI agent readiness. ${cat} category. Check MCP status, integration options, and how to connect via AI agents.`;
+  const title = s.guide
+    ? `${s.name} Integration Guide — Auth Setup, Rate Limits & AEO Score | KanseiLink`
+    : `${s.name} AEO Score & AI Agent Readiness | KanseiLink`;
+  const desc = s.guide
+    ? `How to connect ${s.name} to an AI agent: auth setup (${s.guide.auth_scopes ? "scoped " : ""}${(s.guide.auth_overview || "").split(".")[0]}), rate limits, key endpoints, and known pitfalls. AEO grade ${s.grade} in ${cat}.`.slice(0, 300)
+    : `${s.name} is rated ${s.grade} (score: ${s.aeo_score.toFixed(2)}) for AI agent readiness. ${cat} category. Check MCP status, integration options, and how to connect via AI agents.`;
   const url = `https://kansei-link.com/services/${s.service_id}/`;
   const today = new Date().toISOString().split("T")[0];
 
@@ -117,13 +158,25 @@ function generatePage(service) {
     },
     {
       q: `How does ${s.name} compare to other ${cat} services?`,
-      a: `In the ${cat} category, ${s.name} is rated ${s.grade}. KanseiLink evaluates services based on MCP availability, API quality, documentation, agent success rates, and integration recipe availability. Visit the full rankings at kansei-link.com to see how ${s.name} compares.`,
+      a: `In the ${cat} category, ${s.name} is rated ${s.grade}. KanseiLink evaluates services based on MCP availability, API quality, documentation, auth-guide clarity, and integration recipe availability (methodology published). Visit the full rankings at kansei-link.com to see how ${s.name} compares.`,
     },
     {
       q: `How can I integrate ${s.name} with an AI agent?`,
-      a: `The fastest way to integrate ${s.name} with an AI agent is through KanseiLink MCP. Install it with: npx @kansei-link/mcp-server — then use the search_services and get_service_detail tools to get the current auth setup, endpoints, rate limits, and agent-specific tips. This data is kept fresh and verified against real agent usage.`,
+      a: `The fastest way to integrate ${s.name} with an AI agent is through KanseiLink MCP. Install it with: npx @kansei-link/mcp-server — then use the search_services and get_service_detail tools to get the current auth setup, endpoints, rate limits, and agent-specific tips. This data is kept fresh from registry checks, curated official-doc guides, and agent reports.`,
     },
   ];
+  if (s.guide?.auth_overview) {
+    faqs.push({
+      q: `How do I authenticate with ${s.name}?`,
+      a: `${s.guide.auth_overview}${s.guide.auth_setup_hint ? " Setup: " + s.guide.auth_setup_hint : ""}`,
+    });
+  }
+  if (s.guide?.rate_limit) {
+    faqs.push({
+      q: `What are ${s.name}'s API rate limits?`,
+      a: s.guide.rate_limit,
+    });
+  }
 
   const jsonLd = JSON.stringify({
     "@context": "https://schema.org",
@@ -242,6 +295,19 @@ function generatePage(service) {
     .cta-card p { font-size: 14px; color: var(--gray-text); margin-bottom: 16px; }
     .cta-code { display: inline-block; background: var(--white); border: 1px solid var(--gray-mid); border-radius: 8px; padding: 10px 24px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 15px; font-weight: 600; color: var(--blue); letter-spacing: -0.3px; }
 
+    /* CONNECT GUIDE */
+    .guide { max-width: 720px; margin: 40px auto; padding: 0 24px; }
+    .guide h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; }
+    .guide h3 { font-size: 16px; font-weight: 700; margin: 24px 0 10px; }
+    .guide p, .guide li { font-size: 14px; color: var(--gray-dark); line-height: 1.7; }
+    .guide ul { padding-left: 20px; margin: 8px 0; }
+    .guide table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+    .guide td, .guide th { border: 1px solid var(--gray-mid); padding: 8px 10px; text-align: left; vertical-align: top; }
+    .guide th { background: var(--gray-light); font-weight: 600; white-space: nowrap; }
+    .guide pre { background: #0F172A; color: #E2E8F0; border-radius: 10px; padding: 16px; font-size: 12.5px; overflow-x: auto; line-height: 1.6; margin: 8px 0; }
+    .guide code { font-family: 'SFMono-Regular', Consolas, monospace; }
+    .guide .src-note { font-size: 12px; color: var(--gray-text); margin-top: 12px; }
+
     /* FAQ */
     .faq { max-width: 720px; margin: 40px auto; padding: 0 24px; }
     .faq h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; }
@@ -320,12 +386,12 @@ function generatePage(service) {
 <section class="cta-banner">
   <div class="cta-card">
     <h3>Get Full Integration Guide</h3>
-    <p>Exact success rates, auth setup, endpoints, rate limits, known pitfalls, and step-by-step recipes — all verified against real agent usage.</p>
+    <p>Current auth setup, endpoints, rate limits, known pitfalls, and step-by-step recipes — kept fresh from registry checks, curated official-doc guides, and agent reports.</p>
     <code class="cta-code">npx @kansei-link/mcp-server</code>
     <p style="margin-top:12px;margin-bottom:0;font-size:13px;color:var(--gray-text)">Then use: <code style="background:var(--white);padding:2px 6px;border-radius:4px;font-size:12px">search_services</code> → <code style="background:var(--white);padding:2px 6px;border-radius:4px;font-size:12px">get_service_detail</code></p>
   </div>
 </section>
-
+${renderGuideSection(s)}
 <section class="faq">
   <h2>Frequently Asked Questions</h2>
 ${faqs
@@ -363,23 +429,85 @@ ${faqs
 
 // ── Main ──
 
-const data = JSON.parse(readFileSync(DATA_PATH, "utf-8"));
+// ページ対象 = 「キュレーション済みAPIガイドを持つサービス」∪「git管理下の既存ページ」。
+// ガイドの無い薄いページを量産しない (authority-before-scale)。
+// 既存ページはgit追跡ベースで判定（生成後のreaddirだと自己増殖するため）。
+import { execSync } from "child_process";
+const existingSlugs = [...new Set(
+  execSync("git ls-files public/services", { cwd: ROOT, encoding: "utf8" })
+    .split("\n")
+    .map((l) => (l.match(/^public\/services\/([^/]+)\//) || [])[1])
+    .filter(Boolean)
+)];
 
-// Collect all unique services with dedup
-const serviceMap = new Map();
-data.overall_top.forEach((s) => serviceMap.set(s.service_id, s));
-Object.values(data.category_rankings).forEach((cat) =>
-  cat.rankings.forEach((s) => {
-    if (!serviceMap.has(s.service_id)) serviceMap.set(s.service_id, s);
-  })
-);
+const db = new Database(DB_PATH, { readonly: true });
+const placeholders = existingSlugs.map(() => "?").join(",") || "''";
+const rows = db
+  .prepare(
+    `SELECT s.id AS service_id, s.name, s.category, s.mcp_status,
+            s.axr_score, s.axr_grade,
+            COALESCE(ss.success_rate, 0) AS success_rate_raw,
+            COALESCE(ss.total_calls, 0) AS total_agent_calls,
+            COALESCE(r.recipe_count, 0) AS recipe_count,
+            g.base_url, g.api_version, g.auth_overview, g.auth_token_url, g.auth_scopes,
+            g.auth_setup_hint, g.key_endpoints, g.request_content_type, g.pagination_style,
+            g.rate_limit, g.error_format, g.quickstart_example, g.agent_tips, g.docs_url,
+            g.updated_at AS guide_updated_at
+     FROM services s
+     LEFT JOIN service_stats ss ON ss.service_id = s.id
+     LEFT JOIN service_api_guides g ON g.service_id = s.id
+     LEFT JOIN (
+       SELECT j.value AS svc_id, COUNT(*) AS recipe_count
+       FROM recipes, json_each(recipes.required_services) j
+       GROUP BY j.value
+     ) r ON r.svc_id = s.id
+     WHERE (g.service_id IS NOT NULL
+            AND (g.auth_setup_hint IS NOT NULL OR g.rate_limit IS NOT NULL OR g.docs_url IS NOT NULL))
+        OR s.id IN (${placeholders})`
+  )
+  .all(...existingSlugs);
+db.close();
 
-// Filter to BBB+ only
-const targets = [...serviceMap.values()].filter((s) =>
-  MIN_GRADES.has(s.grade)
-);
+function mcpTypeOf(status) {
+  if (status === "official") return "Official MCP";
+  if (status === "third_party") return "Third-party";
+  if (status === "community") return "Community";
+  return "API Only";
+}
 
-console.log(`Found ${serviceMap.size} total services, ${targets.length} with grade BBB+`);
+const targets = rows.map((r) => ({
+  service_id: r.service_id,
+  name: r.name,
+  category: r.category,
+  grade: r.axr_grade || "BB",
+  aeo_score: (r.axr_score ?? 50) / 100,
+  agent_ready: r.mcp_status === "official" ? "verified" : "connectable",
+  mcp_type: mcpTypeOf(r.mcp_status),
+  success_rate: r.success_rate_raw > 0 ? Math.round(r.success_rate_raw * 100) : null,
+  total_agent_calls: r.total_agent_calls,
+  recipe_count: r.recipe_count,
+  guide: r.auth_overview || r.base_url || r.quickstart_example
+    ? {
+        base_url: r.base_url,
+        api_version: r.api_version,
+        auth_overview: r.auth_overview,
+        auth_token_url: r.auth_token_url,
+        auth_scopes: r.auth_scopes,
+        auth_setup_hint: r.auth_setup_hint,
+        key_endpoints: r.key_endpoints,
+        request_content_type: r.request_content_type,
+        pagination_style: r.pagination_style,
+        rate_limit: r.rate_limit,
+        error_format: r.error_format,
+        quickstart_example: r.quickstart_example,
+        agent_tips: r.agent_tips,
+        docs_url: r.docs_url,
+        updated_at: r.guide_updated_at,
+      }
+    : null,
+}));
+
+console.log(`Targets: ${targets.length} (guides: ${targets.filter((t) => t.guide).length}, existing pages: ${existingSlugs.length})`);
 
 // Generate pages
 let created = 0;

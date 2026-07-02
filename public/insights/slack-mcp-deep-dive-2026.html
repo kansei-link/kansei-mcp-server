@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Slack MCP完全攻略 2026 — AAA格付けの本質・公式サーバー4機能と限界・認証と5つの落とし穴 | KanseiLink</title>
-  <meta name="description" content="KanseiLink実測データ（n=113、成功率91.15%、AAAグレード）に基づくSlack MCP完全解説。2026年3月リリースの公式MCPサーバーの4機能ドメイン、OAuth2認証設定、エージェント開発者が必ずハマる5つの落とし穴、kintone・Notionとの比較まで網羅。">
+  <meta name="description" content="KanseiLink評価データ（n=113、AAAグレード）に基づくSlack MCP完全解説。2026年3月リリースの公式MCPサーバーの4機能ドメイン、OAuth2認証設定、エージェント開発者が必ずハマる5つの落とし穴、kintone・Notionとの比較まで網羅。">
   <meta name="keywords" content="Slack MCP, Slack API, Slack エージェント, MCPサーバー, Slack OAuth, AEO, KanseiLink, AIエージェント Slack, chat.postMessage, xoxb">
   <meta name="author" content="KanseiLink / Synapse Arrows PTE. LTD.">
   <meta name="robots" content="noindex, nofollow">
@@ -17,7 +17,7 @@
 
   <!-- OGP -->
   <meta property="og:title" content="Slack MCP完全攻略 2026 — AAA格付けの本質・5つの落とし穴">
-  <meta property="og:description" content="KanseiLink n=113・成功率91.15%・AAAグレード。Slack公式MCPサーバーの4機能・認証設計・エージェント開発の落とし穴を完全解説。">
+  <meta property="og:description" content="KanseiLink n=113・AAAグレード。Slack公式MCPサーバーの4機能・認証設計・エージェント開発の落とし穴を完全解説。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/insights/slack-mcp-deep-dive-2026.html">
   <meta property="og:site_name" content="KanseiLink">
@@ -28,7 +28,7 @@
   <meta property="article:section" content="Service Deep-Dive">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Slack MCP完全攻略 2026 — AAAグレード・5つの落とし穴 | KanseiLink">
-  <meta name="twitter:description" content="n=113・成功率91.15%・AAA。Slack公式MCPサーバーの全容と、エージェント開発者が必ずハマる「HTTP 200問題」「チャンネルID問題」を解説。">
+  <meta name="twitter:description" content="n=113・AAA。Slack公式MCPサーバーの全容と、エージェント開発者が必ずハマる「HTTP 200問題」「チャンネルID問題」を解説。">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -37,7 +37,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "Slack MCP完全攻略 2026 — AAA格付けの本質・公式サーバー4機能と限界・認証と5つの落とし穴",
-    "description": "KanseiLink実測データ（n=113、成功率91.15%）に基づくSlack MCP完全解説。公式MCPサーバーの機能・認証・落とし穴・比較まで実装者向けに網羅。",
+    "description": "KanseiLink評価データ（n=113、AAAグレード）に基づくSlack MCP完全解説。公式MCPサーバーの機能・認証・落とし穴・比較まで実装者向けに網羅。",
     "author": {
       "@type": "Organization",
       "name": "KanseiLink"
@@ -572,7 +572,7 @@
     <h1>Slack MCP完全攻略 2026 &#8212; AAA格付けの本質・公式サーバー4機能と限界・認証と5つの落とし穴</h1>
 
     <p class="lead">
-      KanseiLinkのAEO評価でSlack MCPはAAAグレードを取得している。実測113回のAPI呼び出しにおける成功率は91.15%——コミュニケーション系SaaSの中で断トツのスコアだ。2026年3月30日にはSlack公式MCPサーバーがリリースされ、AIエージェントとSlackの統合がかつてなく容易になった。しかし「簡単に使える＝ハマらない」は幻想だ。本記事ではKanseiLinkの実データを軸に、Slack MCPの実力・認証設計・公式サーバーの限界、そして開発者が必ずハマる5つの落とし穴を徹底解説する。
+      KanseiLinkのAEO評価でSlack MCPはAAAグレードを取得している。評価の背景にはn=113のレポートデータがあり、成功率はKanseiLinkで現在実測データを蓄積中（観測中）だ。2026年3月30日にはSlack公式MCPサーバーがリリースされ、AIエージェントとSlackの統合がかつてなく容易になった。しかし「簡単に使える＝ハマらない」は幻想だ。本記事ではKanseiLinkの評価データを軸に、Slack MCPの実力・認証設計・公式サーバーの限界、そして開発者が必ずハマる5つの落とし穴を徹底解説する。
     </p>
 
     <h2>1. KanseiLinkデータが示すSlack MCPの実力</h2>
@@ -582,13 +582,13 @@
       <div class="grade-detail">
         <strong>Slack MCP &#8212; AXR格付け</strong>
         公式MCP: ✅ (npx @slack/mcp-server、2026-03-30リリース)<br>
-        実測呼び出し数: 113回 / 成功率: 91.15%<br>
+        レポート数: 113件 / 成功率: 観測中<br>
         Trust Score: 0.90 / カテゴリ: communication
       </div>
     </div>
 
     <p>
-      KanseiLinkはSlackに対して113回のエージェント呼び出しを実施し、そのうち103回が成功（成功率91.15%）という結果を得た。これはコミュニケーション系SaaSの中で最高水準であり、kintone（trust_score 0.7）やNotionを上回るtrust_score 0.90を記録している。
+      KanseiLinkはSlackについてn=113のレポートを集約している（成功率は現在実測データを蓄積中＝観測中）。AEO評価では、kintone（trust_score 0.7）やNotionを上回るtrust_score 0.90を記録している。
     </p>
 
     <table class="data-table">
@@ -611,9 +611,9 @@
           <td>✅ 優秀</td>
         </tr>
         <tr>
-          <td><strong>実測成功率</strong></td>
-          <td>91.15%（n=113）——コミュニケーション系SaaS最高</td>
-          <td>✅ 実績あり</td>
+          <td><strong>成功率</strong></td>
+          <td>観測中（n=113のレポートを蓄積）</td>
+          <td>⏳ 観測中</td>
         </tr>
         <tr>
           <td><strong>レート制限</strong></td>
@@ -794,7 +794,7 @@ data = response.json()
         </tr>
         <tr>
           <td><strong>KanseiLink成功率</strong></td>
-          <td>91.15% (n=113)</td>
+          <td>観測中 (n=113)</td>
           <td>データあり</td>
           <td>データあり</td>
         </tr>

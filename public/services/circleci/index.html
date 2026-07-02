@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CircleCI Integration Guide — Auth Setup, Rate Limits &amp; AEO Score | KanseiLink</title>
+  <meta name="description" content="How to connect CircleCI to an AI agent: auth setup (Personal API token as Bearer or in Circle-Token header), rate limits, key endpoints, and known pitfalls. AEO grade A in DevOps.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/services/circleci/">
+
+  <!-- OGP -->
+  <meta property="og:title" content="CircleCI AEO Score: A | KanseiLink">
+  <meta property="og:description" content="How to connect CircleCI to an AI agent: auth setup (Personal API token as Bearer or in Circle-Token header), rate limits, key endpoints, and known pitfalls. AEO grade A in DevOps.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kansei-link.com/services/circleci/">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@KanseiLink">
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage","name":"CircleCI Integration Guide — Auth Setup, Rate Limits & AEO Score | KanseiLink","description":"How to connect CircleCI to an AI agent: auth setup (Personal API token as Bearer or in Circle-Token header), rate limits, key endpoints, and known pitfalls. AEO grade A in DevOps.","url":"https://kansei-link.com/services/circleci/","publisher":{"@type":"Organization","name":"KanseiLink","legalName":"Synapse Arrows PTE. LTD."},"dateModified":"2026-07-02"},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is CircleCI's AEO score?","acceptedAnswer":{"@type":"Answer","text":"CircleCI has an AEO score of 0.70 and is rated A (Functional agent integration). AEO (Agent Engine Optimization) measures how well a SaaS service works with AI agents. Scores range from 0.00 to 1.00, with grades from AAA (best) to D (not agent-ready)."}},{"@type":"Question","name":"Is CircleCI AI-agent-ready?","acceptedAnswer":{"@type":"Answer","text":"CircleCI is currently connectable for AI agent use. API access is available but no dedicated MCP server has been published yet. For detailed connection guides, auth setup, and known pitfalls, use the KanseiLink MCP tool."}},{"@type":"Question","name":"How does CircleCI compare to other DevOps services?","acceptedAnswer":{"@type":"Answer","text":"In the DevOps category, CircleCI is rated A. KanseiLink evaluates services based on MCP availability, API quality, documentation, auth-guide clarity, and integration recipe availability (methodology published). Visit the full rankings at kansei-link.com to see how CircleCI compares."}},{"@type":"Question","name":"How can I integrate CircleCI with an AI agent?","acceptedAnswer":{"@type":"Answer","text":"The fastest way to integrate CircleCI with an AI agent is through KanseiLink MCP. Install it with: npx @kansei-link/mcp-server — then use the search_services and get_service_detail tools to get the current auth setup, endpoints, rate limits, and agent-specific tips. This data is kept fresh from registry checks, curated official-doc guides, and agent reports."}},{"@type":"Question","name":"How do I authenticate with CircleCI?","acceptedAnswer":{"@type":"Answer","text":"Personal API token as Bearer or in Circle-Token header. Generate at circleci.com > User Settings > Personal API Tokens. Setup: 1. Go to circleci.com > User Settings > Personal API Tokens. 2. Create token. 3. Use as 'Circle-Token' header or Bearer token."}},{"@type":"Question","name":"What are CircleCI's API rate limits?","acceptedAnswer":{"@type":"Answer","text":"No published hard limit. Fair use policy."}}]},{"@type":"SoftwareApplication","name":"CircleCI","applicationCategory":"DevOps","review":{"@type":"Review","author":{"@type":"Organization","name":"KanseiLink","url":"https://kansei-link.com"},"reviewRating":{"@type":"Rating","ratingValue":"0.70","bestRating":"1.00","worstRating":"0.00"},"reviewBody":"AEO (Agent Engine Optimization) readiness rating by KanseiLink, based on published methodology: MCP availability, API quality, documentation, and auth-guide clarity."}}]}</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6; --blue-light: #7882DC; --teal: #00C4B3;
+      --black: #000; --white: #FFF; --lavender: #F4F5FD;
+      --gray-light: #F5F5F5; --gray-mid: #E5E7EB;
+      --gray-text: #6B7280; --gray-dark: #374151;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, sans-serif; color: var(--black); background: var(--white); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    .nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .nav .inner { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; height: 56px; justify-content: space-between; }
+    .logo { font-size: 20px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -0.5px; }
+    .nav-links { display: flex; gap: 20px; font-size: 14px; }
+    .nav-links a { color: var(--gray-text); }
+    .nav-links a:hover { color: var(--blue); text-decoration: none; }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, var(--lavender) 0%, var(--white) 100%); padding: 48px 24px; text-align: center; }
+    .hero-grade { font-size: 72px; font-weight: 800; line-height: 1; color: #0891B2; margin-bottom: 8px; }
+    .hero-score { font-size: 18px; color: var(--gray-text); margin-bottom: 8px; }
+    .hero-name { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .hero-cat { font-size: 15px; color: var(--gray-text); text-transform: capitalize; }
+    .hero-label { display: inline-block; margin-top: 16px; padding: 4px 16px; border-radius: 9999px; font-size: 13px; font-weight: 600; color: var(--white); background: #0891B2; }
+
+    /* METRICS */
+    .metrics { max-width: 720px; margin: -24px auto 0; padding: 0 24px; position: relative; z-index: 10; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; }
+    .metric-card { background: var(--white); border: 1px solid var(--gray-mid); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .metric-label { font-size: 12px; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .metric-value { font-size: 18px; font-weight: 600; }
+
+    /* CTA BANNER */
+    .cta-banner { max-width: 720px; margin: 32px auto; padding: 0 24px; }
+    .cta-card { background: var(--lavender); border: 1px solid rgba(26,63,214,0.1); border-radius: 12px; padding: 24px 32px; text-align: center; }
+    .cta-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .cta-card p { font-size: 14px; color: var(--gray-text); margin-bottom: 16px; }
+    .cta-code { display: inline-block; background: var(--white); border: 1px solid var(--gray-mid); border-radius: 8px; padding: 10px 24px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 15px; font-weight: 600; color: var(--blue); letter-spacing: -0.3px; }
+
+    /* CONNECT GUIDE */
+    .guide { max-width: 720px; margin: 40px auto; padding: 0 24px; }
+    .guide h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; }
+    .guide h3 { font-size: 16px; font-weight: 700; margin: 24px 0 10px; }
+    .guide p, .guide li { font-size: 14px; color: var(--gray-dark); line-height: 1.7; }
+    .guide ul { padding-left: 20px; margin: 8px 0; }
+    .guide table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+    .guide td, .guide th { border: 1px solid var(--gray-mid); padding: 8px 10px; text-align: left; vertical-align: top; }
+    .guide th { background: var(--gray-light); font-weight: 600; white-space: nowrap; }
+    .guide pre { background: #0F172A; color: #E2E8F0; border-radius: 10px; padding: 16px; font-size: 12.5px; overflow-x: auto; line-height: 1.6; margin: 8px 0; }
+    .guide code { font-family: 'SFMono-Regular', Consolas, monospace; }
+    .guide .src-note { font-size: 12px; color: var(--gray-text); margin-top: 12px; }
+
+    /* FAQ */
+    .faq { max-width: 720px; margin: 40px auto; padding: 0 24px; }
+    .faq h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; }
+    .faq-item { border: 1px solid var(--gray-mid); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+    .faq-q { padding: 16px 20px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--white); }
+    .faq-q:hover { background: var(--gray-light); }
+    .faq-q .arrow { font-size: 12px; color: var(--gray-text); transition: transform 0.2s; }
+    .faq-q.open .arrow { transform: rotate(180deg); }
+    .faq-a { padding: 0 20px 16px; font-size: 14px; color: var(--gray-dark); line-height: 1.7; display: none; }
+    .faq-a.open { display: block; }
+
+    /* RELATED */
+    .related { max-width: 720px; margin: 40px auto; padding: 0 24px 64px; }
+    .related h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--gray-dark); }
+    .related-links { display: flex; flex-wrap: wrap; gap: 12px; }
+    .related-links a { display: inline-block; padding: 8px 16px; background: var(--gray-light); border-radius: 8px; font-size: 14px; color: var(--gray-dark); }
+    .related-links a:hover { background: var(--lavender); color: var(--blue); text-decoration: none; }
+
+    /* FOOTER */
+    .footer { border-top: 1px solid var(--gray-mid); padding: 32px 24px; text-align: center; font-size: 13px; color: var(--gray-text); }
+    .footer a { color: var(--gray-text); }
+
+    @media (max-width: 600px) {
+      .hero-grade { font-size: 56px; }
+      .hero-name { font-size: 22px; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="inner">
+    <a href="/" class="logo">KanseiLink</a>
+    <div class="nav-links">
+      <a href="/">Rankings</a>
+      <a href="/checker/">Score Checker</a>
+      <a href="/insights/">Insights</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-grade">A</div>
+  <div class="hero-score">AEO Score: 0.70 / 1.00</div>
+  <h1 class="hero-name">CircleCI</h1>
+  <div class="hero-cat">DevOps</div>
+  <div class="hero-label">Good — Functional agent integration</div>
+</section>
+
+<section class="metrics">
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">Agent Ready</div>
+      <div class="metric-value">Connectable</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">MCP Type</div>
+      <div class="metric-value">API Only</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Success Rate</div>
+      <div class="metric-value">🟢 High</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Agent Activity</div>
+      <div class="metric-value">● New</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Recipes</div>
+      <div class="metric-value">—</div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-banner">
+  <div class="cta-card">
+    <h3>Get Full Integration Guide</h3>
+    <p>Current auth setup, endpoints, rate limits, known pitfalls, and step-by-step recipes — kept fresh from registry checks, curated official-doc guides, and agent reports.</p>
+    <code class="cta-code">npx @kansei-link/mcp-server</code>
+    <p style="margin-top:12px;margin-bottom:0;font-size:13px;color:var(--gray-text)">Then use: <code style="background:var(--white);padding:2px 6px;border-radius:4px;font-size:12px">search_services</code> → <code style="background:var(--white);padding:2px 6px;border-radius:4px;font-size:12px">get_service_detail</code></p>
+  </div>
+</section>
+
+<section class="guide" id="connect">
+  <h2>How to Connect CircleCI to an AI Agent</h2>
+  <h3>Auth setup</h3>
+  <p>1. Go to circleci.com &gt; User Settings &gt; Personal API Tokens. 2. Create token. 3. Use as 'Circle-Token' header or Bearer token.</p>
+  <h3>Key facts</h3>
+  <table>
+    <tr><th>Base URL</th><td><code>https://circleci.com/api/v2/</code></td></tr>
+    <tr><th>API version</th><td>v2</td></tr>
+    <tr><th>Auth</th><td>Personal API token as Bearer or in Circle-Token header. Generate at circleci.com &gt; User Settings &gt; Personal API Tokens.</td></tr>
+    <tr><th>Request body</th><td><code>application/json</code></td></tr>
+    <tr><th>Pagination</th><td>token-based: next_page_token in response.</td></tr>
+    <tr><th>Rate limit</th><td>No published hard limit. Fair use policy.</td></tr>
+    <tr><th>Error format</th><td><code>JSON: {&quot;message&quot;:&quot;...&quot;}</code></td></tr>
+  </table>
+  <h3>Key endpoints</h3>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+    <tr><td><code>GET</code></td><td><code>/pipeline</code></td><td>List pipelines</td></tr>
+    <tr><td><code>POST</code></td><td><code>/project/{project-slug}/pipeline</code></td><td>Trigger pipeline</td></tr>
+    <tr><td><code>GET</code></td><td><code>/workflow/{id}</code></td><td>Get workflow details</td></tr>
+    <tr><td><code>GET</code></td><td><code>/workflow/{id}/job</code></td><td>List jobs in workflow</td></tr>
+  </table>
+  <h3>Quickstart</h3>
+  <pre><code>POST /api/v2/project/gh/{org}/{repo}/pipeline
+Circle-Token: {token}
+Content-Type: application/json
+
+{&quot;branch&quot;:&quot;main&quot;}</code></pre>
+  <h3>Agent pitfalls &amp; tips</h3>
+  <ul>
+    <li>Project slug format: gh/{org}/{repo} for GitHub, bb/{org}/{repo} for Bitbucket.</li>
+    <li>Trigger pipeline with parameters for dynamic configuration.</li>
+    <li>Use Insights API for test and performance metrics.</li>
+    <li>Workflows contain jobs — hierarchy is Pipeline &gt; Workflow &gt; Job.</li>
+  </ul>
+  <p class="src-note">Source: curated by KanseiLink from official documentation (<a href="https://circleci.com/docs/api/v2/" rel="noopener" target="_blank">docs</a>) and registry checks. Last reviewed: 2026-04-07. Specs change — verify against the official docs before production use.</p>
+</section>
+<section class="faq">
+  <h2>Frequently Asked Questions</h2>
+  <div class="faq-item">
+    <div class="faq-q open" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+      What is CircleCI's AEO score?
+      <span class="arrow">▼</span>
+    </div>
+    <div class="faq-a open">CircleCI has an AEO score of 0.70 and is rated A (Functional agent integration). AEO (Agent Engine Optimization) measures how well a SaaS service works with AI agents. Scores range from 0.00 to 1.00, with grades from AAA (best) to D (not agent-ready).</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+      Is CircleCI AI-agent-ready?
+      <span class="arrow">▼</span>
+    </div>
+    <div class="faq-a">CircleCI is currently connectable for AI agent use. API access is available but no dedicated MCP server has been published yet. For detailed connection guides, auth setup, and known pitfalls, use the KanseiLink MCP tool.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+      How does CircleCI compare to other DevOps services?
+      <span class="arrow">▼</span>
+    </div>
+    <div class="faq-a">In the DevOps category, CircleCI is rated A. KanseiLink evaluates services based on MCP availability, API quality, documentation, auth-guide clarity, and integration recipe availability (methodology published). Visit the full rankings at kansei-link.com to see how CircleCI compares.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+      How can I integrate CircleCI with an AI agent?
+      <span class="arrow">▼</span>
+    </div>
+    <div class="faq-a">The fastest way to integrate CircleCI with an AI agent is through KanseiLink MCP. Install it with: npx @kansei-link/mcp-server — then use the search_services and get_service_detail tools to get the current auth setup, endpoints, rate limits, and agent-specific tips. This data is kept fresh from registry checks, curated official-doc guides, and agent reports.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+      How do I authenticate with CircleCI?
+      <span class="arrow">▼</span>
+    </div>
+    <div class="faq-a">Personal API token as Bearer or in Circle-Token header. Generate at circleci.com &gt; User Settings &gt; Personal API Tokens. Setup: 1. Go to circleci.com &gt; User Settings &gt; Personal API Tokens. 2. Create token. 3. Use as 'Circle-Token' header or Bearer token.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+      What are CircleCI's API rate limits?
+      <span class="arrow">▼</span>
+    </div>
+    <div class="faq-a">No published hard limit. Fair use policy.</div>
+  </div>
+</section>
+
+<section class="related">
+  <h2>Explore More</h2>
+  <div class="related-links">
+    <a href="/">← Full AEO Rankings</a>
+    <a href="/checker/?s=circleci">Score Checker</a>
+    <a href="/insights/">Insights & Reports</a>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>&copy; 2026 KanseiLink by Synapse Arrows PTE. LTD.</p>
+  <p style="margin-top:8px">
+    <a href="/">Rankings</a> · <a href="/checker/">Checker</a> · <a href="/insights/">Insights</a> · <a href="/about.html">About</a>
+  </p>
+</footer>
+
+</body>
+</html>

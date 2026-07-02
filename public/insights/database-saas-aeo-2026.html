@@ -57,7 +57,7 @@
         "name": "AIエージェント向けに最初に選ぶべきデータベースは何ですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "用途で分かれます。構造化データ・既存業務系の中心に据えるならAnthropic公式のPostgres MCPサーバー(平均82ms、成功率100%、Aグレード)が出発点。RAG・セマンティック検索を組むならQdrant公式MCP(85ms、A、MITライセンス)。プロトタイプ段階や軽量埋め込みストアならChroma(100ms、A)。キャッシュ/セッションはRedis MCP(105ms)。Postgres MCPはAnthropic公式リポジトリの reference servers として整備されており、現在は modelcontextprotocol/servers のアーカイブ枠でコミュニティ主導に移行していますが、依然として最も学習コストが低い入口です。"
+          "text": "用途で分かれます。構造化データ・既存業務系の中心に据えるならAnthropic公式のPostgres MCPサーバー(平均82ms、Aグレード)が出発点。RAG・セマンティック検索を組むならQdrant公式MCP(85ms、A、MITライセンス)。プロトタイプ段階や軽量埋め込みストアならChroma(100ms、A)。キャッシュ/セッションはRedis MCP(105ms)。Postgres MCPはAnthropic公式リポジトリの reference servers として整備されており、現在は modelcontextprotocol/servers のアーカイブ枠でコミュニティ主導に移行していますが、依然として最も学習コストが低い入口です。"
         }
       },
       {
@@ -81,7 +81,7 @@
         "name": "Postgres MCPサーバーは『アーカイブされた』と聞きました。今でも使えますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "modelcontextprotocol/servers のリファレンス実装はAnthropicから『learning purposes / archived』のステータスに移行しており、新機能追加はコミュニティ実装(pgEdge MCP、Postgres MCP Pro、@anthropic/postgres-mcp など)が主導しています。基本的なスキーマ参照とクエリは引き続き動作し、KanseiLink実測でもsuccess_rate 100%・82msと安定していますが、書き込み権限・行レベル権限制御・接続プールが必要な本番ワークロードでは、pgEdge MCPやSupabase MCP、Neon MCPといった『書き込み対応』『マルチテナント対応』のコミュニティ実装を選ぶのが2026年の実務的選択です。"
+          "text": "modelcontextprotocol/servers のリファレンス実装はAnthropicから『learning purposes / archived』のステータスに移行しており、新機能追加はコミュニティ実装(pgEdge MCP、Postgres MCP Pro、@anthropic/postgres-mcp など)が主導しています。基本的なスキーマ参照とクエリは引き続き動作し、KanseiLinkのプローブ実測でも82msと安定した応答を確認していますが、書き込み権限・行レベル権限制御・接続プールが必要な本番ワークロードでは、pgEdge MCPやSupabase MCP、Neon MCPといった『書き込み対応』『マルチテナント対応』のコミュニティ実装を選ぶのが2026年の実務的選択です。"
         }
       }
     ]
@@ -383,12 +383,12 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td><strong>PostgreSQL MCP</strong></td><td>RDB</td><td>公式 (Anthropic reference)</td><td class="success-high">A</td><td class="success-high">82ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>Qdrant</strong></td><td>Vector DB</td><td>公式 (qdrant/mcp-server-qdrant)</td><td class="success-high">A</td><td class="success-high">85ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>Chroma</strong></td><td>Vector DB</td><td>第三者</td><td class="success-high">A</td><td>100ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>Redis</strong></td><td>KVS / Cache</td><td>第三者 (modelcontextprotocol/server-redis)</td><td class="success-mid">BBB</td><td>105ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>MySQL</strong></td><td>RDB</td><td>第三者 (modelcontextprotocol/server-mysql)</td><td class="success-mid">BBB</td><td>108ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>Turso</strong></td><td>Edge SQLite</td><td>API only</td><td class="success-mid">BB</td><td>100ms</td><td class="success-high">100%</td></tr>
+        <tr><td><strong>PostgreSQL MCP</strong></td><td>RDB</td><td>公式 (Anthropic reference)</td><td class="success-high">A</td><td class="success-high">82ms</td><td>観測中</td></tr>
+        <tr><td><strong>Qdrant</strong></td><td>Vector DB</td><td>公式 (qdrant/mcp-server-qdrant)</td><td class="success-high">A</td><td class="success-high">85ms</td><td>観測中</td></tr>
+        <tr><td><strong>Chroma</strong></td><td>Vector DB</td><td>第三者</td><td class="success-high">A</td><td>100ms</td><td>観測中</td></tr>
+        <tr><td><strong>Redis</strong></td><td>KVS / Cache</td><td>第三者 (modelcontextprotocol/server-redis)</td><td class="success-mid">BBB</td><td>105ms</td><td>観測中</td></tr>
+        <tr><td><strong>MySQL</strong></td><td>RDB</td><td>第三者 (modelcontextprotocol/server-mysql)</td><td class="success-mid">BBB</td><td>108ms</td><td>観測中</td></tr>
+        <tr><td><strong>Turso</strong></td><td>Edge SQLite</td><td>API only</td><td class="success-mid">BB</td><td>100ms</td><td>観測中</td></tr>
         <tr><td><strong>Supabase</strong></td><td>BaaS / Postgres</td><td>第三者 (公式リポジトリ案内あり)</td><td class="success-mid">BBB</td><td>—</td><td>n/a</td></tr>
         <tr><td><strong>Neon</strong></td><td>Serverless Postgres</td><td>第三者 (@neondatabase/mcp-server-neon)</td><td class="success-mid">BBB</td><td>—</td><td>n/a</td></tr>
         <tr><td><strong>PlanetScale</strong></td><td>Serverless MySQL</td><td>API only</td><td class="success-mid">BB</td><td>—</td><td>n/a</td></tr>
@@ -400,7 +400,7 @@
 
     <h2 id="postgres">Anthropic公式Postgres MCP — 「アーカイブ」表記の実態</h2>
 
-    <p>Anthropicは <code>modelcontextprotocol/servers</code> に複数のreference実装を公開しており、Postgresはその代表格だ。KanseiLink実測では <strong>レイテンシ82ms / 成功率100% / Aグレード(trust 0.8)</strong> と、データベース系の中で最速級の応答時間を記録している。</p>
+    <p>Anthropicは <code>modelcontextprotocol/servers</code> に複数のreference実装を公開しており、Postgresはその代表格だ。KanseiLink実測では <strong>レイテンシ82ms / Aグレード(trust 0.8)</strong>（成功率は観測中） と、データベース系の中で最速級の応答時間を記録している。</p>
 
     <pre><code># Claude Desktop config例
 {
@@ -421,7 +421,7 @@
 
     <h2 id="qdrant">Qdrant公式 — ベクトルDB MCPの本命</h2>
 
-    <p>RAG・エージェント長期記憶の文脈で2026年に最も「無難な選択」となったのが <strong>Qdrant公式MCPサーバー</strong>(<code>github.com/qdrant/mcp-server-qdrant</code>、MITライセンス)。KanseiLink実測では <strong>レイテンシ85ms / 成功率100% / Aグレード(trust 0.9)</strong>。</p>
+    <p>RAG・エージェント長期記憶の文脈で2026年に最も「無難な選択」となったのが <strong>Qdrant公式MCPサーバー</strong>(<code>github.com/qdrant/mcp-server-qdrant</code>、MITライセンス)。KanseiLink実測では <strong>レイテンシ85ms / Aグレード(trust 0.9)</strong>（成功率は観測中）。</p>
 
     <p>このMCPサーバーは <code>sentence-transformers/all-MiniLM-L6-v2</code> をデフォルトの埋め込みモデルとし、FastEmbed系のローカルモデルが動く。<code>--qdrant-local-path</code> 引数でローカルファイルベースのモードに切り替えられるため、PoC段階ではマネージドCloudにつなげる前にオフラインで動作確認できる。Smithery経由(<code>npx @smithery/cli install mcp-server-qdrant --client claude</code>)のインストールにも対応している。</p>
 
@@ -432,15 +432,15 @@
 
     <h2 id="chroma">Chroma — プロトタイピングの軽量解</h2>
 
-    <p>Chromaは「数百〜数十万ベクトル」のスケールでRAGを試作するチームに依然として人気が高い。KanseiLink実測では <strong>レイテンシ100ms / 成功率100% / Aグレード(trust 0.8)</strong>。Pythonクライアント・JSクライアントの両対応で、ノートブック上で <code>chroma.PersistentClient(path=...)</code> ですぐ立ち上がる手軽さが魅力だ。</p>
+    <p>Chromaは「数百〜数十万ベクトル」のスケールでRAGを試作するチームに依然として人気が高い。KanseiLink実測では <strong>レイテンシ100ms / Aグレード(trust 0.8)</strong>（成功率は観測中）。Pythonクライアント・JSクライアントの両対応で、ノートブック上で <code>chroma.PersistentClient(path=...)</code> ですぐ立ち上がる手軽さが魅力だ。</p>
 
     <p>MCPサーバーは第三者実装(<code>npx -y chroma-mcp</code>)で、bearer_token認証。本番運用では永続化・バックアップ・水平スケールを自前で設計する必要があるため、 <strong>「Chromaで作って、本番直前にQdrantへ移行する」</strong> というロードマップが多くのプロジェクトで採用されている。</p>
 
     <h2 id="kvs">Redis・Turso — KVS/エッジSQLiteの位置付け</h2>
 
-    <p>エージェントの「短期記憶」「セッションコンテキスト」「LLM応答キャッシュ」の置き場として、Redis MCPは標準解だ。KanseiLink実測では <strong>レイテンシ105ms / 成功率100% / BBBグレード(trust 0.7)</strong>。<code>modelcontextprotocol/server-redis</code> 経由でセットアップでき、キー・ストリーム・Pub/Sub・検索といったRedis機能を一通り操作できる。</p>
+    <p>エージェントの「短期記憶」「セッションコンテキスト」「LLM応答キャッシュ」の置き場として、Redis MCPは標準解だ。KanseiLink実測では <strong>レイテンシ105ms / BBBグレード(trust 0.7)</strong>（成功率は観測中）。<code>modelcontextprotocol/server-redis</code> 経由でセットアップでき、キー・ストリーム・Pub/Sub・検索といったRedis機能を一通り操作できる。</p>
 
-    <p>一方で2026年に存在感を増したのが <strong>Turso</strong> (Edge SQLite / libSQL)。30以上のリージョンから低レイテンシで読み出せるレプリケーションと、ローカル組み込みレプリカ機能を持つ。KanseiLink実測 <strong>100ms / 成功率100% / BBグレード</strong> で、現時点ではAPIアクセスのみ(MCPは未提供)だが、エッジで動くエージェントの「ローカルファースト」DB候補として注目されている。</p>
+    <p>一方で2026年に存在感を増したのが <strong>Turso</strong> (Edge SQLite / libSQL)。30以上のリージョンから低レイテンシで読み出せるレプリケーションと、ローカル組み込みレプリカ機能を持つ。KanseiLink実測 <strong>100ms / BBグレード</strong>（成功率は観測中）で、現時点ではAPIアクセスのみ(MCPは未提供)だが、エッジで動くエージェントの「ローカルファースト」DB候補として注目されている。</p>
 
     <h2 id="supabase-neon">Supabase・Neon・PlanetScale — マネージドPostgres勢の現在地</h2>
 
@@ -457,7 +457,7 @@
 
     <p>MongoDB Atlasは Atlas Search・Vector Searchを含む「ドキュメントDB+ベクトル統合」のポジションを取る。MCPサーバーは第三者実装(<code>mongodb-mcp-server</code>)があり、Atlas Admin/Data APIを介して操作する。KanseiLink格付けはBBB(connectable)で、エージェント自己報告データはまだ少数だが、既にMongoDBで動いている業務システムにエージェントを後付けするには有力な選択肢だ。</p>
 
-    <p>MySQL系はOSS版・各種マネージド(RDS、Cloud SQL、PlanetScale)を一括りで「<code>modelcontextprotocol/server-mysql</code>でスキーマ参照と読み取りクエリができる」位置付け。KanseiLink実測 <strong>108ms / 成功率100% / BBBグレード</strong>。書き込みやストアドプロシージャの呼び出しは、引き続きアプリケーション側で薄いAPIを書く運用が無難だ。</p>
+    <p>MySQL系はOSS版・各種マネージド(RDS、Cloud SQL、PlanetScale)を一括りで「<code>modelcontextprotocol/server-mysql</code>でスキーマ参照と読み取りクエリができる」位置付け。KanseiLink実測 <strong>108ms / BBBグレード</strong>（成功率は観測中）。書き込みやストアドプロシージャの呼び出しは、引き続きアプリケーション側で薄いAPIを書く運用が無難だ。</p>
 
     <h2 id="decision">用途別の選定フロー</h2>
 
@@ -475,20 +475,20 @@
 
     <div class="cta-banner">
       <h3>データベースSaaSのAEO格付けを社内導入したい方へ</h3>
-      <p>KanseiLinkは225+のSaaSについて、成功率・レイテンシ・エラー類型・既知ワークアラウンドの実測データをMCP経由で提供します。データベース層の選定もエージェント実測ベースで判断できます。</p>
+      <p>KanseiLinkは225+のSaaSについて、成功率・レイテンシ・エラー類型・既知ワークアラウンドの評価・初期データをMCP経由で提供します。データベース層の選定もエージェント実測ベースで判断できます。</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO格付けデータの活用を相談する</a>
     </div>
 
     <h2 id="faq">FAQ</h2>
 
     <h3>AIエージェント向けに最初に選ぶべきデータベースは？</h3>
-    <p>用途で分かれます。構造化データ・既存業務系の中心に据えるならAnthropic公式Postgres MCP(82ms / 100% / A)。RAG・セマンティック検索ならQdrant公式MCP(85ms / 100% / A、MITライセンス)。プロトタイプならChroma(100ms / 100% / A)。キャッシュ/セッションはRedis MCP(105ms / 100% / BBB)。</p>
+    <p>用途で分かれます。構造化データ・既存業務系の中心に据えるならAnthropic公式Postgres MCP(82ms / A)。RAG・セマンティック検索ならQdrant公式MCP(85ms / A、MITライセンス)。プロトタイプならChroma(100ms / A)。キャッシュ/セッションはRedis MCP(105ms / BBB)。</p>
 
     <h3>ベクトルDB MCPで本番運用に耐えるのは？</h3>
     <p>2026年5月時点で最も信頼できるのはQdrant公式MCPサーバー。FastEmbedがデフォルトで、ローカルモードとマネージドCloudの双方をサポート。Chromaはプロトタイピング向けで、本番のスケール要件には公式Qdrantが優位。</p>
 
     <h3>Postgres MCPは『アーカイブされた』と聞きました。今でも使えますか？</h3>
-    <p>はい。<code>modelcontextprotocol/servers</code> のリファレンス実装はAnthropicから「learning purposes / archived」のステータスに移行していますが、これは「廃止」ではなく「コミュニティ実装に主役を譲る」シグナル。読み取り・スキーマ参照には十分堅牢で、KanseiLink実測でもsuccess_rate 100% / 82msと安定。書き込み・本番運用にはpgEdge MCPやSupabase MCPなどのコミュニティ実装が現実解です。</p>
+    <p>はい。<code>modelcontextprotocol/servers</code> のリファレンス実装はAnthropicから「learning purposes / archived」のステータスに移行していますが、これは「廃止」ではなく「コミュニティ実装に主役を譲る」シグナル。読み取り・スキーマ参照には十分堅牢で、KanseiLinkのプローブ実測でも82msと安定。書き込み・本番運用にはpgEdge MCPやSupabase MCPなどのコミュニティ実装が現実解です。</p>
 
     <h3>Supabase MCPの認証はどうなりますか？</h3>
     <p>2026年の重要な変更として、Supabase AuthがOAuth 2.1 / OpenID Connectプロバイダーとなり、MCPサーバーのデフォルト認証もOAuthのDynamic Client Registrationに切り替わりました。CI/CDなど非対話シナリオではPersonal Access Token(PAT)を使い分けます。</p>
@@ -498,7 +498,7 @@
 
     <div class="disclosure-box">
       <div class="label">データ開示・免責事項</div>
-      <p>本記事の数値はKanseiLink MCP <code>search_services</code> / <code>get_insights</code> ツールの2026年4月時点データに基づきます: PostgreSQL MCP (n=1, 82ms, 100%, A)、Qdrant (n=1, 85ms, 100%, A)、Chroma (n=1, 100ms, 100%, A)、Redis (n=1, 105ms, 100%, BBB)、MySQL (n=1, 108ms, 100%, BBB)、Turso (n=1, 100ms, 100%, BB)、Supabase / Neon / PlanetScale / MongoDB Atlas は usage_count=0 のため実測値は提示せず。Postgres MCPの「archived」ステータスは <code>github.com/modelcontextprotocol/servers</code> の公式表記、Qdrant公式MCPサーバーは <code>github.com/qdrant/mcp-server-qdrant</code>(MITライセンス)、Supabase MCPのOAuth 2.1対応は <code>supabase.com/docs/guides/getting-started/mcp</code> の2026年4月公開ドキュメントを参照。サンプル数が少ない項目は今後のデータ蓄積で値が変動する可能性があるため、本番運用時は最新の各公式ドキュメントを必ずご確認ください。</p>
+      <p>本記事の数値はKanseiLink MCP <code>search_services</code> / <code>get_insights</code> ツールの2026年4月時点データに基づきます: PostgreSQL MCP (n=1, 82ms, A)、Qdrant (n=1, 85ms, A)、Chroma (n=1, 100ms, A)、Redis (n=1, 105ms, BBB)、MySQL (n=1, 108ms, BBB)、Turso (n=1, 100ms, BB)、いずれもn=1のため成功率は観測中として扱い、Supabase / Neon / PlanetScale / MongoDB Atlas は usage_count=0 のため実測値は提示せず。Postgres MCPの「archived」ステータスは <code>github.com/modelcontextprotocol/servers</code> の公式表記、Qdrant公式MCPサーバーは <code>github.com/qdrant/mcp-server-qdrant</code>(MITライセンス)、Supabase MCPのOAuth 2.1対応は <code>supabase.com/docs/guides/getting-started/mcp</code> の2026年4月公開ドキュメントを参照。サンプル数が少ない項目は今後のデータ蓄積で値が変動する可能性があるため、本番運用時は最新の各公式ドキュメントを必ずご確認ください。</p>
     </div>
 
     <div class="related-section">
@@ -514,7 +514,7 @@
         </a>
         <a href="mcp-success-patterns-data-2026.html" class="related-card">
           <div class="tag">データ分析</div>
-          <h4>225+サービス分析が示すMCP成功の法則 — 成功率90%超えサービスの共通点</h4>
+          <h4>225+サービス分析が示すMCP成功の法則 — 高グレードサービスの共通点</h4>
         </a>
         <a href="mcp-verified-vs-connectable-2026.html" class="related-card">
           <div class="tag">検証</div>
@@ -529,7 +529,7 @@
     <div class="inner">
       <h2>For AI Agents</h2>
       <p>
-        データベース系MCPの実測メトリクス(成功率・レイテンシ・MCP状態)はKanseiLink MCP経由で取得できます。
+        データベース系MCPの評価メトリクス(成功率・レイテンシ・MCP状態)はKanseiLink MCP経由で取得できます。
         <code>search_services</code> に <code>category: "database"</code> または <code>category: "storage"</code> を指定すると、Postgres / Qdrant / Chroma / Redis / Supabase / Neon / MongoDB Atlas など主要DBサービスがランク付けされて返ります。
         接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
       </p>

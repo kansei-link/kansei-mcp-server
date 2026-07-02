@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>サブエージェント並列実行のコスト経済学 2026 — ファンアウトの損益分岐点 | KanseiLink</title>
-  <meta name="description" content="サブエージェントを並列で走らせると速くなる——だが「速い」は「安い」ではない。各サブエージェントはコンテキストを複製し、最も遅いサービスがバッチ全体を律速し、低成功率サービスへの並列呼び出しはリトライコストを掛け算する。KanseiLink実測レイテンシ・成功率データを使い、ファンアウトすべき時と逐次にすべき時の損益分岐点を解剖する。">
+  <meta name="description" content="サブエージェントを並列で走らせると速くなる——だが「速い」は「安い」ではない。各サブエージェントはコンテキストを複製し、最も遅いサービスがバッチ全体を律速し、低成功率サービスへの並列呼び出しはリトライコストを掛け算する。KanseiLinkの実測レイテンシと成功率の初期データ(蓄積中)を使い、ファンアウトすべき時と逐次にすべき時の損益分岐点を解剖する。">
   <meta name="keywords" content="サブエージェント 並列, ファンアウト コスト, エージェント コスト最適化, コンテキスト複製, 並列実行 損益分岐点, MCP レイテンシ, KanseiLink, AIエージェント 運用コスト">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="index, follow">
@@ -36,7 +36,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "サブエージェント並列実行のコスト経済学 2026 — ファンアウトの損益分岐点",
-    "description": "サブエージェントの並列実行(ファンアウト)が生む3つの隠れコスト——コンテキスト複製・最遅サービスによる律速・低成功率サービスへのリトライ掛け算——をKanseiLink実測データで解剖し、並列すべき時と逐次すべき時の損益分岐点を示す。",
+    "description": "サブエージェントの並列実行(ファンアウト)が生む3つの隠れコスト——コンテキスト複製・最遅サービスによる律速・低成功率サービスへのリトライ掛け算——をKanseiLinkの実測レイテンシと初期データで解剖し、並列すべき時と逐次すべき時の損益分岐点を示す。",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-24",
@@ -81,7 +81,7 @@
         "name": "低成功率サービスを並列で叩くとなぜコストが膨らむのですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "失敗はリトライを生み、リトライはコンテキスト複製を伴う追加実行を生むからです。成功率39%のSmartHRに10件の並列呼び出しを投げると、期待成功は約4件、残り6件はリトライ対象になります。各リトライはサブエージェントのコンテキストを再度消費するため、低成功率サービスではファンアウトの幅(同時実行数)を増やすほど、失敗の絶対数とリトライコストが線形に増えます。verified層(90%超)なら同じ10件でも失敗は約1件で済みます。"
+          "text": "失敗はリトライを生み、リトライはコンテキスト複製を伴う追加実行を生むからです。例えば成功率39%のサービスに10件の並列呼び出しを投げると、期待成功は約4件、残り6件はリトライ対象になります。各リトライはサブエージェントのコンテキストを再度消費するため、低成功率サービスではファンアウトの幅(同時実行数)を増やすほど、失敗の絶対数とリトライコストが線形に増えます。成功率90%超のサービスなら同じ10件でも失敗は約1件で済みます。"
         }
       },
       {
@@ -335,7 +335,7 @@
     <div class="inner">
       <span class="tag">コスト・ROI分析 / Cost Analysis</span>
       <h1>サブエージェント並列実行のコスト経済学 2026 — ファンアウトの損益分岐点</h1>
-      <p class="subtitle">サブエージェントを並列で走らせると速くなる。だが「速い」は「安い」ではない。各サブエージェントはコンテキストを複製し、最も遅いサービスがバッチ全体を律速し、低成功率サービスへの並列呼び出しはリトライコストを掛け算する。KanseiLink実測レイテンシ・成功率を使い、ファンアウトすべき時と逐次にすべき時の損益分岐点を解剖する。</p>
+      <p class="subtitle">サブエージェントを並列で走らせると速くなる。だが「速い」は「安い」ではない。各サブエージェントはコンテキストを複製し、最も遅いサービスがバッチ全体を律速し、低成功率サービスへの並列呼び出しはリトライコストを掛け算する。KanseiLinkの実測レイテンシと成功率の初期データ(蓄積中)を使い、ファンアウトすべき時と逐次にすべき時の損益分岐点を解剖する。</p>
       <div class="article-meta">
         <span>2026-05-24</span>
         <span class="divider"></span>
@@ -369,7 +369,7 @@
 
     <div class="insight-box">
       <div class="label">本記事の主張</div>
-      <p>ファンアウトは<strong>レイテンシを買うためにトークンを支払う取引</strong>だ。壁時計時間の短縮価値が、(1)コンテキスト複製、(2)律速による待ち、(3)リトライ掛け算——の3コストを上回るときだけ、並列は正当化される。この損益分岐点を、KanseiLinkの実測レイテンシ・成功率データで可視化する。</p>
+      <p>ファンアウトは<strong>レイテンシを買うためにトークンを支払う取引</strong>だ。壁時計時間の短縮価値が、(1)コンテキスト複製、(2)律速による待ち、(3)リトライ掛け算——の3コストを上回るときだけ、並列は正当化される。この損益分岐点を、KanseiLinkの実測レイテンシと成功率の初期データで可視化する。</p>
     </div>
 
     <h2 id="cost1">コスト①: コンテキスト複製税</h2>
@@ -392,12 +392,12 @@
         <tr><th>サービス</th><th>平均レイテンシ</th><th>成功率</th><th>並列バッチでの役割</th></tr>
       </thead>
       <tbody>
-        <tr><td><strong>Backlog MCP</strong></td><td><span class="success-high">128ms</span></td><td>90.1%</td><td>速い・安全</td></tr>
-        <tr><td><strong>Slack MCP</strong></td><td><span class="success-high">163ms</span></td><td>91.2%</td><td>速い・安全</td></tr>
-        <tr><td><strong>kintone MCP</strong></td><td>199ms</td><td>78.7%</td><td>中速</td></tr>
-        <tr><td><strong>freee MCP</strong></td><td>216ms</td><td>90.1%</td><td>中速・安全</td></tr>
-        <tr><td><strong>SmartHR</strong></td><td><span class="success-mid">337ms</span></td><td><span class="success-low">39.1%</span></td><td>遅い・危険</td></tr>
-        <tr><td><strong>Salesforce Japan</strong></td><td><span class="success-low">474ms</span></td><td><span class="success-low">42.9%</span></td><td>最遅・律速段階</td></tr>
+        <tr><td><strong>Backlog MCP</strong></td><td><span class="success-high">128ms</span></td><td>観測中</td><td>速い</td></tr>
+        <tr><td><strong>Slack MCP</strong></td><td><span class="success-high">163ms</span></td><td>観測中</td><td>速い</td></tr>
+        <tr><td><strong>kintone MCP</strong></td><td>199ms</td><td>観測中</td><td>中速</td></tr>
+        <tr><td><strong>freee MCP</strong></td><td>216ms</td><td>観測中</td><td>中速</td></tr>
+        <tr><td><strong>SmartHR</strong></td><td><span class="success-mid">337ms</span></td><td>観測中</td><td>遅い</td></tr>
+        <tr><td><strong>Salesforce Japan</strong></td><td><span class="success-low">474ms</span></td><td>観測中</td><td>最遅・律速段階</td></tr>
       </tbody>
     </table>
 
@@ -407,22 +407,22 @@
 
     <p>3つ目が最も見落とされやすい。<strong>失敗はリトライを生み、リトライはコンテキストを再消費する追加実行を生む</strong>。並列幅を広げるほど、低成功率サービスでは失敗の絶対数が増える。</p>
 
-    <p>成功率39%のSmartHRに10件の並列呼び出しを投げる場合を考えよう。期待成功は約4件、残り<strong>約6件はリトライ対象</strong>になる。各リトライはサブエージェントのコンテキスト(複製税込み)を再度消費する。一方、成功率90%超のverified層(freee・Slack・Backlog)に同じ10件を投げれば、失敗は約1件で済む。同じ並列幅でも、成功率帯によってリトライコストは6倍違う。</p>
+    <p>仮に、成功率が39%に低迷するサービスに10件の並列呼び出しを投げる場合を考えよう。期待成功は約4件、残り<strong>約6件はリトライ対象</strong>になる。各リトライはサブエージェントのコンテキスト(複製税込み)を再度消費する。一方、成功率90%超のサービスに同じ10件を投げれば、失敗は約1件で済む。同じ並列幅でも、成功率帯によってリトライコストは6倍違う。</p>
 
     <div class="data-highlight">
-      <h4>10件並列、成功率帯別の期待失敗数</h4>
+      <h4>10件並列、成功率帯別の期待失敗数(仮定値による試算)</h4>
       <div class="metric-row">
         <div class="metric-item">
           <span class="num green">~1</span>
-          <div class="label">verified層(90%+)<br>freee・Slack・Backlog</div>
+          <div class="label">高成功率帯<br>(90%+と仮定)</div>
         </div>
         <div class="metric-item">
           <span class="num orange">~2</span>
-          <div class="label">中位(79%)<br>kintone</div>
+          <div class="label">中位帯<br>(79%と仮定)</div>
         </div>
         <div class="metric-item">
           <span class="num red">~6</span>
-          <div class="label">低成功率(39%)<br>SmartHR</div>
+          <div class="label">低成功率帯<br>(39%と仮定)</div>
         </div>
       </div>
     </div>
@@ -440,7 +440,7 @@
       <tbody>
         <tr><td><strong>タスク依存性</strong></td><td>互いに独立</td><td>前の結果が次の入力</td></tr>
         <tr><td><strong>サービスのレイテンシ</strong></td><td>高い(待ち短縮の価値大)</td><td>低い(verified層128〜216ms)</td></tr>
-        <tr><td><strong>サービスの成功率</strong></td><td>高い(リトライ掛け算リスク小)</td><td>低い(SmartHR 39%等)</td></tr>
+        <tr><td><strong>サービスの成功率</strong></td><td>高い(リトライ掛け算リスク小)</td><td>低い(成功率が伸び悩むサービス)</td></tr>
         <tr><td><strong>並列幅</strong></td><td>多数(短縮効果が複製税を上回る)</td><td>少数(複製税が勝つ)</td></tr>
       </tbody>
     </table>
@@ -466,7 +466,7 @@
 
     <div class="cta-banner">
       <h3>並列バッチを、データで設計しませんか？</h3>
-      <p>KanseiLinkは301+の日本SaaSについて、サービス別のレイテンシ・成功率・エラー内訳を実測データで提供します。どのサービスを並列化し、どれを隔離すべきか——コスト最適なバッチ設計をデータから導けます。</p>
+      <p>KanseiLinkは301+の日本SaaSについて、サービス別の実測レイテンシと、成功率・エラー内訳の初期データ(蓄積中)を提供します。どのサービスを並列化し、どれを隔離すべきか——コスト最適なバッチ設計をデータから導けます。</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">コスト最適化を相談する</a>
     </div>
 
@@ -482,14 +482,14 @@
     <p>並列バッチは全サブエージェントの完了を待つためです。verified層は128〜216msですが、Salesforceは474ms、SmartHRは337ms。Salesforceを1つ混ぜると他が128msでも全体は474ms待ちになり、遅いサービスが律速段階になります。</p>
 
     <h3>低成功率サービスを並列で叩くとなぜコストが膨らむのですか？</h3>
-    <p>失敗がリトライを生み、リトライが複製税込みの追加実行を生むからです。成功率39%のSmartHRに10件並列を投げると期待失敗は約6件、verified層(90%+)なら約1件。同じ並列幅でも成功率帯でリトライコストは6倍違います。</p>
+    <p>失敗がリトライを生み、リトライが複製税込みの追加実行を生むからです。例えば成功率39%のサービスに10件並列を投げると期待失敗は約6件、成功率90%+の帯なら約1件。同じ並列幅でも成功率帯でリトライコストは6倍違います。</p>
 
     <h3>並列実行のコストを抑えるベストプラクティスは？</h3>
     <p>(1)独立タスクだけ並列化、(2)バッチを成功率帯で揃える、(3)遅いサービスを別バッチに隔離、(4)共通コンテキストをプロンプトキャッシュで再利用、(5)ファンアウト幅を成功率に応じて調整。<code>get_insights</code> で事前にレイテンシ・成功率を確認してバッチ設計に反映できます。</p>
 
     <div class="disclosure-box">
       <div class="label">データ開示・免責事項</div>
-      <p>本記事のレイテンシ・成功率は、KanseiLinkがエージェントから収集した実測アウトカム報告(2026年5月時点)の <code>get_insights</code> 実測値です: Backlog 128ms/90.1%、Slack 163ms/91.2%、kintone 199ms/78.7%、freee 216ms/90.1%、SmartHR 337ms/39.1%、Salesforce Japan 474ms/42.9%。「期待失敗数」は成功率から算出した期待値(例: 成功率39%×10件→期待失敗約6.1件)であり、実際の分布は試行ごとに変動します。コンテキスト複製・律速・リトライ掛け算のコスト構造は、一般的なオーケストレーター/サブエージェント型アーキテクチャ(全サブエージェントが独立コンテキストを持ち、バッチ完了を待ち合わせる前提)に基づくモデルであり、ランタイムの実装(コンテキスト共有・ストリーミング集約・部分完了の扱い)により差異が生じます。具体的なトークン単価・課金額は使用モデル・プロバイダ・プロンプトキャッシュ適用状況に依存するため、本記事では金額を明示せず相対的なコスト構造として論じています。損益分岐点の評価は分析的モデルであり、個別ワークロードでの実測検証を推奨します。最新のレイテンシ・成功率は各 <code>get_insights</code> でご確認ください。</p>
+      <p>本記事のレイテンシは、KanseiLinkの接続プローブによる実測値です(2026年5月時点): Backlog 128ms、Slack 163ms、kintone 199ms、freee 216ms、SmartHR 337ms、Salesforce Japan 474ms。サービス別の実測成功率はKanseiLinkで蓄積中であり、本文の成功率帯(90%+/79%/39%)はリトライコストの期待値計算のための仮定値であって、特定サービスの実測値ではありません。「期待失敗数」は成功率から算出した期待値(例: 成功率39%×10件→期待失敗約6.1件)であり、実際の分布は試行ごとに変動します。コンテキスト複製・律速・リトライ掛け算のコスト構造は、一般的なオーケストレーター/サブエージェント型アーキテクチャ(全サブエージェントが独立コンテキストを持ち、バッチ完了を待ち合わせる前提)に基づくモデルであり、ランタイムの実装(コンテキスト共有・ストリーミング集約・部分完了の扱い)により差異が生じます。具体的なトークン単価・課金額は使用モデル・プロバイダ・プロンプトキャッシュ適用状況に依存するため、本記事では金額を明示せず相対的なコスト構造として論じています。損益分岐点の評価は分析的モデルであり、個別ワークロードでの実測検証を推奨します。最新のレイテンシ・成功率は各 <code>get_insights</code> でご確認ください。</p>
     </div>
 
     <div class="related-section">
@@ -521,7 +521,7 @@
       <h2>For AI Agents</h2>
       <p>
         サブエージェントをファンアウトする前に、対象サービスのレイテンシと成功率を <code>get_insights</code> で確認してください。
-        Salesforce(474ms)やSmartHR(39%)のような遅い・低成功率サービスは別バッチに隔離し、verified層(Slack・freee・Backlog)とは混ぜないことでバッチ全体の律速とリトライ掛け算を避けられます。
+        Salesforce(474ms)のような遅いサービスや、成功率が低いと観測されるサービスは別バッチに隔離し、verified層とは混ぜないことでバッチ全体の律速とリトライ掛け算を避けられます。
         実行後は <code>report_outcome</code> で結果を報告すると、レイテンシ・成功率データが更新されます。
         接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
       </p>

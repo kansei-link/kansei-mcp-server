@@ -65,7 +65,7 @@
         "name": "Does KanseiLink data show the same trend?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLink covers 225+ services (primarily Japanese SaaS), so the population differs. April 2026 KanseiLink data: verified (success rate ≥80%) is 6 services (~3%), connectable (official MCP or API exists) is the majority, info_only (no API/MCP) is the rest. The external audits' '9% healthy' and '17% production-grade' figures align with KanseiLink's verified ~3% in spirit — both point to the same conclusion that few MCP servers are truly production-ready."
+          "text": "KanseiLink covers 225+ services (primarily Japanese SaaS), so the population differs. April 2026 KanseiLink data: verified (official MCP plus a successful KanseiLink MCP handshake check) is 6 services (~3%), connectable (official MCP or API exists) is the majority, info_only (no API/MCP) is the rest. The external audits' '9% healthy' and '17% production-grade' figures align with KanseiLink's verified ~3% in spirit — both point to the same conclusion that few MCP servers are truly production-ready."
         }
       },
       {
@@ -441,11 +441,11 @@
       </tbody>
     </table>
 
-    <p>KanseiLink only catalogs services with vendor-confirmed existence, so its "effectively unusable" rate runs lower than the external audits. Conversely, KanseiLink's verified rate (~3%) is more demanding than Apigene's "healthy 9%" because verification requires demonstrated agent success in production. <strong>Once you normalize for population and threshold, all three studies converge: the vast majority of MCP servers are 'connectable but not trustworthy.'</strong></p>
+    <p>KanseiLink only catalogs services with vendor-confirmed existence, so its "effectively unusable" rate runs lower than the external audits. Conversely, KanseiLink's verified rate (~3%) is more demanding than Apigene's "healthy 9%" because verification requires an official MCP server plus a successful KanseiLink MCP handshake check. <strong>Once you normalize for population and threshold, all three studies converge: the vast majority of MCP servers are 'connectable but not trustworthy.'</strong></p>
 
     <div class="insight-box">
       <div class="label">Implications for Japanese SaaS</div>
-      <p>In KanseiLink data, AAA-rated services nearly all reach verified status (success rate ≥80%), but AA-and-below ratings show wide variance in actual success. This signals a substantial gap between "released an official MCP server" and "agents can rely on it in production" — consistent with what the external audits show at scale.</p>
+      <p>In KanseiLink data, AAA-rated services nearly all reach verified status (official MCP plus a successful KanseiLink MCP handshake check), but AA-and-below ratings show wide variance in observed connection quality. This signals a substantial gap between "released an official MCP server" and "agents can rely on it in production" — consistent with what the external audits show at scale.</p>
     </div>
 
     <h2 id="causes">Why MCP Servers Die — The Three Root Causes</h2>
@@ -492,7 +492,7 @@
     <p>The most widely cited source is Apigene's April 2026 "Host MCP Server: 2026 Deployment Guide." Rapid Claw separately published "1,847 servers audited, 52% abandoned" the same month. Two independent studies converge on the same conclusion. However, neither publishes full sampling methodology or judgment criteria.</p>
 
     <h3>Does KanseiLink data show the same trend?</h3>
-    <p>KanseiLink covers 225+ services (mostly Japanese SaaS) — a different population. Verified (success rate ≥80%) is just 3% (6 services), aligning structurally with the external audits' "9% healthy" and "17% production-grade." All three studies point to the same conclusion: trustworthy MCP servers are a small minority.</p>
+    <p>KanseiLink covers 225+ services (mostly Japanese SaaS) — a different population. Verified (official MCP plus a successful KanseiLink MCP handshake check) is just 3% (6 services), aligning structurally with the external audits' "9% healthy" and "17% production-grade." All three studies point to the same conclusion: trustworthy MCP servers are a small minority.</p>
 
     <h3>What are the main reasons MCP servers die?</h3>
     <p>(1) Abandoned servers with expired credentials, (2) silent breakage from upstream API changes (HTTP 200 with broken response schemas), (3) cold-start timeouts on serverless platforms. Japanese SaaS vendors can prevent these with continuous health monitoring and pinned API versions.</p>

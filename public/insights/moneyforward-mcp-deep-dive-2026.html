@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・OAuth 2.0・成功率93%・仕訳エンドポイントとエージェント開発の7つの落とし穴 | KanseiLink</title>
-  <meta name="description" content="マネーフォワード クラウド会計の公式MCPサーバー(npx @moneyforward/mcp-server)をKanseiLink実測データで徹底解剖。trust 0.90・成功率93%・平均156ms。OAuth 2.0認証、office_id前提の仕訳/試算表エンドポイント、AI自動仕訳、レート制限300req/5分、freeeとの設計差——会計エージェント開発で詰まる7つのポイントを実データと公式ドキュメントで解説する。">
+  <title>Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・OAuth 2.0・仕訳エンドポイントとエージェント開発の7つの落とし穴 | KanseiLink</title>
+  <meta name="description" content="マネーフォワード クラウド会計の公式MCPサーバー(npx @moneyforward/mcp-server)をKanseiLink評価データで徹底解剖。trust 0.90・平均156ms。OAuth 2.0認証、office_id前提の仕訳/試算表エンドポイント、AI自動仕訳、レート制限300req/5分、freeeとの設計差——会計エージェント開発で詰まる7つのポイントを実データと公式ドキュメントで解説する。">
   <meta name="keywords" content="Money Forward MCP, マネーフォワード API, MCP server, OAuth 2.0, 会計エージェント, 仕訳 API, AEO, KanseiLink, freee 比較">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="noindex, nofollow">
@@ -14,8 +14,8 @@
   <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/moneyforward-mcp-deep-dive-2026">
 
   <!-- OGP -->
-  <meta property="og:title" content="Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・OAuth 2.0・成功率93%・仕訳エンドポイントの落とし穴">
-  <meta property="og:description" content="公式MCPサーバー(npx @moneyforward/mcp-server)をKanseiLink実測で解剖。trust 0.90・成功率93%・156ms。office_id前提の設計、AI自動仕訳、freeeとの差を解説。">
+  <meta property="og:title" content="Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・OAuth 2.0・仕訳エンドポイントの落とし穴">
+  <meta property="og:description" content="公式MCPサーバー(npx @moneyforward/mcp-server)をKanseiLink評価で解剖。trust 0.90・平均156ms。office_id前提の設計、AI自動仕訳、freeeとの差を解説。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/insights/moneyforward-mcp-deep-dive-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -26,8 +26,8 @@
   <meta property="article:author" content="KanseiLink Research">
   <meta property="article:section" content="MCP Deep Dive">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・成功率93%・7つの落とし穴">
-  <meta name="twitter:description" content="マネーフォワード公式MCPをKanseiLink実測データで解剖。OAuth 2.0・仕訳/試算表エンドポイント・AI自動仕訳・freeeとの設計差。">
+  <meta name="twitter:title" content="Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・OAuth 2.0・7つの落とし穴">
+  <meta name="twitter:description" content="マネーフォワード公式MCPをKanseiLink評価データで解剖。OAuth 2.0・仕訳/試算表エンドポイント・AI自動仕訳・freeeとの設計差。">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -35,8 +35,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・OAuth 2.0・成功率93%・仕訳エンドポイントとエージェント開発の7つの落とし穴",
-    "description": "マネーフォワード クラウド会計の公式MCPサーバーをKanseiLink実測データで徹底解剖。trust 0.90・成功率93%・平均156ms。OAuth 2.0認証、office_id前提の仕訳/試算表エンドポイント、AI自動仕訳、レート制限、freeeとの設計差を解説。",
+    "headline": "Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・OAuth 2.0・仕訳エンドポイントとエージェント開発の7つの落とし穴",
+    "description": "マネーフォワード クラウド会計の公式MCPサーバーをKanseiLink評価データで徹底解剖。trust 0.90・平均156ms。OAuth 2.0認証、office_id前提の仕訳/試算表エンドポイント、AI自動仕訳、レート制限、freeeとの設計差を解説。",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-27",
@@ -65,7 +65,7 @@
         "name": "Money ForwardとfreeeのMCP/APIはどう違いますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "両者ともOAuth 2.0認証で、事業所スコープのIDを最初に取得する設計は共通です(Money Forwardはoffice_id、freeeはcompany_id)。KanseiLink実測ではMoney Forwardが成功率93%・平均156ms・trust 0.90、freeeも高い信頼スコアを持ちます。違いは、Money Forwardが2026年3月に全プラン向けRemote MCPを公開しAI自動仕訳(POST /auto_journal_entries)を備える点、freeeがOAuth PKCEと5ドメイン統合に強い点です。会計エージェントではどちらも『事業所ID取得→勘定科目取得→仕訳の貸借一致』という同じ罠にはまります。"
+          "text": "両者ともOAuth 2.0認証で、事業所スコープのIDを最初に取得する設計は共通です(Money Forwardはoffice_id、freeeはcompany_id)。KanseiLink評価ではMoney Forwardがtrust 0.90・平均156ms、freeeも高い信頼スコアを持ちます。違いは、Money Forwardが2026年3月に全プラン向けRemote MCPを公開しAI自動仕訳(POST /auto_journal_entries)を備える点、freeeがOAuth PKCEと5ドメイン統合に強い点です。会計エージェントではどちらも『事業所ID取得→勘定科目取得→仕訳の貸借一致』という同じ罠にはまります。"
         }
       },
       {
@@ -73,7 +73,7 @@
         "name": "仕訳作成APIで最もよくある失敗は何ですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "最も多いのは(1)office_idを取得せずにエンドポイントを叩いて失敗するケースと、(2)仕訳の借方・貸方の金額が一致せずエラーになるケースです。POST /journalsは必ずoffice_idスコープ内で実行し、deal_categories(勘定科目)から有効なIDを取得してから借方・貸方を組む必要があります。金額はJPYの整数(小数なし)で渡します。KanseiLinkの42件の報告では成功率93%と高いものの、残る失敗の多くがこの2点に起因します。"
+          "text": "最も多いのは(1)office_idを取得せずにエンドポイントを叩いて失敗するケースと、(2)仕訳の借方・貸方の金額が一致せずエラーになるケースです。POST /journalsは必ずoffice_idスコープ内で実行し、deal_categories(勘定科目)から有効なIDを取得してから借方・貸方を組む必要があります。金額はJPYの整数(小数なし)で渡します。KanseiLinkに寄せられた42件の報告でも、失敗の多くがこの2点に起因します。"
         }
       },
       {
@@ -89,7 +89,7 @@
         "name": "AEOグレードはどのくらいですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLinkの実測では、Money Forward Cloud MCPはtrust_score 0.90・エージェント成功率93%・平均レイテンシ156msで、battle-testedな『verified(🟢)』ティアに位置します。公式MCPサーバー提供・OAuth 2.0準拠・構造化エラーレスポンスという、AEO上位グループの条件を満たしています。最新の格付けはKanseiLink MCPのsearch_services/get_service_detailで確認できます。"
+          "text": "KanseiLinkの評価では、Money Forward Cloud MCPはtrust_score 0.90・平均レイテンシ156msで、『verified(🟢)』ティア(公式MCP提供＋KanseiLinkのMCPハンドシェイク検証済み)に位置します。公式MCPサーバー提供・OAuth 2.0準拠・構造化エラーレスポンスという、AEO上位グループの条件を満たしています。最新の格付けはKanseiLink MCPのsearch_services/get_service_detailで確認できます。"
         }
       }
     ]
@@ -334,8 +334,8 @@
   <header class="article-hero">
     <div class="inner">
       <span class="tag">MCP Deep Dive</span>
-      <h1>Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・OAuth 2.0・成功率93%、仕訳エンドポイントとエージェント開発の7つの落とし穴</h1>
-      <p class="subtitle">マネーフォワード クラウド会計は、日本の中堅・成長企業に深く根ざしたクラウド会計プラットフォームだ。2026年3月、全プラン向けの公式Remote MCPサーバー(<code>npx @moneyforward/mcp-server</code>)が公開され、会計エージェント開発の入り口が一気に広がった。KanseiLink実測ではtrust 0.90・成功率93%・平均156msと、日本SaaSの中でもトップグループのエージェント対応を示す。本稿ではOAuth 2.0認証、office_id前提のエンドポイント設計、AI自動仕訳、レート制限、そしてfreeeとの設計差まで、実データと公式ドキュメントで解剖する。</p>
+      <h1>Money Forward Cloud MCP完全攻略 2026 — 公式Remote MCP・OAuth 2.0、仕訳エンドポイントとエージェント開発の7つの落とし穴</h1>
+      <p class="subtitle">マネーフォワード クラウド会計は、日本の中堅・成長企業に深く根ざしたクラウド会計プラットフォームだ。2026年3月、全プラン向けの公式Remote MCPサーバー(<code>npx @moneyforward/mcp-server</code>)が公開され、会計エージェント開発の入り口が一気に広がった。KanseiLink評価ではtrust 0.90・平均156msと、日本SaaSの中でもトップグループのエージェント対応を示す。本稿ではOAuth 2.0認証、office_id前提のエンドポイント設計、AI自動仕訳、レート制限、そしてfreeeとの設計差まで、実データと公式ドキュメントで解剖する。</p>
       <div class="article-meta">
         <span>2026-05-27</span>
         <span class="divider"></span>
@@ -352,7 +352,7 @@
       <h3>目次</h3>
       <ol>
         <li><a href="#summary">3行サマリ</a></li>
-        <li><a href="#data">KanseiLink実測データ — trust 0.90 / 成功率93%</a></li>
+        <li><a href="#data">KanseiLink評価データ — trust 0.90 / 平均156ms</a></li>
         <li><a href="#auth">認証 — OAuth 2.0と公式Remote MCP</a></li>
         <li><a href="#endpoints">主要エンドポイント — office_id起点の設計</a></li>
         <li><a href="#pitfalls">エージェント開発の7つの落とし穴</a></li>
@@ -365,7 +365,7 @@
 
     <ul>
       <li><strong>公式Remote MCPが全プランで利用可能</strong>: 2026年3月以降、<code>npx @moneyforward/mcp-server</code> がOAuth認可を内包し、最も簡単な統合パスを提供。</li>
-      <li><strong>KanseiLink実測でトップグループ</strong>: trust_score 0.90・エージェント成功率93%・平均156ms。verified(🟢)ティアに位置する。</li>
+      <li><strong>KanseiLink評価でトップグループ</strong>: trust_score 0.90・平均156ms。verified(🟢)ティアに位置する。</li>
       <li><strong>つまずきの大半は『設計の理解不足』</strong>: 技術的難しさよりも、office_id前提の呼び出し順序と仕訳の貸借一致という会計ドメイン特有の罠が失敗の主因。</li>
     </ul>
 
@@ -374,19 +374,19 @@
       <p>会計SaaSは日本SaaSの中で最もエージェント対応(AEO)が進んだカテゴリだ。freeeに続きMoney Forwardが公式Remote MCPを全プラン公開したことで、『中堅企業の会計データに直接触れる会計エージェント』の現実味が一段増した。月次決算・仕訳起票・試算表取得を自動化したいエージェント開発者にとって、Money Forward MCPは2026年に押さえるべき基盤の一つだ。</p>
     </div>
 
-    <h2 id="data">KanseiLink実測データ — trust 0.90 / 成功率93%</h2>
+    <h2 id="data">KanseiLink評価データ — trust 0.90 / 平均156ms</h2>
 
     <p>KanseiLinkは実エージェントの利用結果を継続的に収集している。Money Forward Cloud MCPの直近の集計は以下の通り。</p>
 
     <div class="data-highlight">
-      <h4>Money Forward Cloud MCP — KanseiLink実測(2026-05時点)</h4>
+      <h4>Money Forward Cloud MCP — KanseiLink評価(2026-05時点)</h4>
       <div class="metric-row">
         <div class="metric-item">
           <span class="num green">0.90</span>
           <div class="label">trust_score</div>
         </div>
         <div class="metric-item">
-          <span class="num green">93%</span>
+          <span class="num green">観測中</span>
           <div class="label">エージェント成功率(42件)</div>
         </div>
         <div class="metric-item">
@@ -400,7 +400,7 @@
       </div>
     </div>
 
-    <p>成功率93%は日本SaaSの中で上位に入る数字だ。報告された失敗は主に <code>api_error</code> 系で、後述する『呼び出し順序』と『仕訳の整合』に起因するものが目立つ。平均156msという低レイテンシは、会計のような多段ワークフロー(事業所取得→勘定科目取得→仕訳起票)を回すエージェントにとって、リトライ時のコスト累積を抑える上で有利に働く。</p>
+    <p>エージェント成功率はKanseiLinkで現在実測データを蓄積中(観測中)だ。報告された失敗は主に <code>api_error</code> 系で、後述する『呼び出し順序』と『仕訳の整合』に起因するものが目立つ。平均156msという低レイテンシは、会計のような多段ワークフロー(事業所取得→勘定科目取得→仕訳起票)を回すエージェントにとって、リトライ時のコスト累積を抑える上で有利に働く。</p>
 
     <div class="success-box">
       <div class="label">✅ verified(🟢)ティアの条件を満たす</div>
@@ -421,7 +421,7 @@ npx @moneyforward/mcp-server
 
     <div class="insight-box">
       <div class="label">MCP経由なら認可フローを内包</div>
-      <p>公式MCPサーバーはOAuthの認可フローをラップしているため、エージェント側はトークンのライフサイクル管理から解放される。手動REST連携が必要なのは、独自バックエンドに組み込む場合や、MCP未対応のランタイムを使う場合に限られる。まずはMCP経由を試すのが、KanseiLink実測の成功率を最大化する近道だ。</p>
+      <p>公式MCPサーバーはOAuthの認可フローをラップしているため、エージェント側はトークンのライフサイクル管理から解放される。手動REST連携が必要なのは、独自バックエンドに組み込む場合や、MCP未対応のランタイムを使う場合に限られる。まずはMCP経由を試すのが、初回接続の成功を最大化する近道だ。</p>
     </div>
 
     <h2 id="endpoints">主要エンドポイント — office_id起点の設計</h2>
@@ -518,7 +518,7 @@ Response:
     <p>はい。<code>npx @moneyforward/mcp-server</code> は2026年3月以降、全プラン向けのRemote MCPとして提供されています。MCPサーバーがOAuth 2.0の認可フローを内包するため、手動でclient_id/secretを管理せず接続できます。手動REST連携を行う場合は developer.moneyforward.com でアプリ登録が必要です。</p>
 
     <h3>Q2. Money ForwardとfreeeのMCP/APIはどう違いますか?</h3>
-    <p>両者ともOAuth 2.0で、事業所スコープのID(MFはoffice_id、freeeはcompany_id)を最初に取得する設計は共通です。KanseiLink実測ではMoney Forwardが成功率93%・156ms・trust 0.90。違いはMoney Forwardが全プラン向けRemote MCPとAI自動仕訳(/auto_journal_entries)を備える点、freeeがPKCEと5ドメイン統合に強い点です。</p>
+    <p>両者ともOAuth 2.0で、事業所スコープのID(MFはoffice_id、freeeはcompany_id)を最初に取得する設計は共通です。KanseiLink評価ではMoney Forwardがtrust 0.90・平均156ms。違いはMoney Forwardが全プラン向けRemote MCPとAI自動仕訳(/auto_journal_entries)を備える点、freeeがPKCEと5ドメイン統合に強い点です。</p>
 
     <h3>Q3. 仕訳作成APIで最もよくある失敗は?</h3>
     <p>(1)office_idを取得せずに叩く、(2)借方・貸方の金額が一致しない、の2点が大半です。POST /journalsはoffice_idスコープ内で実行し、deal_categoriesから有効な勘定科目IDを取得してから借方・貸方を組みます。金額はJPYの整数で渡してください。</p>
@@ -527,11 +527,11 @@ Response:
     <p>トークンあたり5分間で300リクエストです。超過するとHTTP 429がRetry-After付きで返ります。バースト処理ではRetry-Afterを尊重した指数バックオフを実装し、ページネーション(per_page最大100)で取得件数を抑えてください。</p>
 
     <h3>Q5. AEOグレードはどのくらいですか?</h3>
-    <p>KanseiLink実測でtrust_score 0.90・成功率93%・156msと、battle-testedな『verified(🟢)』ティアに位置します。公式MCP提供・OAuth 2.0準拠・構造化エラーという、AEO上位グループの条件を満たしています。最新格付けはKanseiLink MCPの <code>get_service_detail</code> で確認できます。</p>
+    <p>KanseiLink評価でtrust_score 0.90・平均156msと、『verified(🟢)』ティア(公式MCP提供＋KanseiLinkのMCPハンドシェイク検証済み)に位置します。公式MCP提供・OAuth 2.0準拠・構造化エラーという、AEO上位グループの条件を満たしています。最新格付けはKanseiLink MCPの <code>get_service_detail</code> で確認できます。</p>
 
     <div class="disclosure-box">
       <div class="label">データ開示・免責事項</div>
-      <p>本記事の技術仕様(認証方式・エンドポイント・レート制限・最近の変更履歴)およびエージェント実測値(trust_score 0.90、成功率93%、平均レイテンシ156ms、報告42件)は、KanseiLink MCPの <code>get_service_detail</code>/<code>get_insights</code> が2026年5月時点で返した値に基づきます。「公式Remote MCP全プラン公開 2026-03」「AI自動仕訳エンドポイント追加 2026-03-18」「多通貨仕訳サポート 2026-02-10」はKanseiLinkの変更履歴データに基づく記載です。API仕様は変更される可能性があるため、実装前に developer.moneyforward.com の公式ドキュメントで最新仕様を必ず確認してください。本記事は特定の実装結果や事業判断を保証するものではありません。</p>
+      <p>本記事の技術仕様(認証方式・エンドポイント・レート制限・最近の変更履歴)およびエージェント関連の指標(trust_score 0.90、平均レイテンシ156ms、報告42件)は、KanseiLink MCPの <code>get_service_detail</code>/<code>get_insights</code> が2026年5月時点で返した値に基づきます。「公式Remote MCP全プラン公開 2026-03」「AI自動仕訳エンドポイント追加 2026-03-18」「多通貨仕訳サポート 2026-02-10」はKanseiLinkの変更履歴データに基づく記載です。API仕様は変更される可能性があるため、実装前に developer.moneyforward.com の公式ドキュメントで最新仕様を必ず確認してください。本記事は特定の実装結果や事業判断を保証するものではありません。</p>
     </div>
 
     <div class="related-section">

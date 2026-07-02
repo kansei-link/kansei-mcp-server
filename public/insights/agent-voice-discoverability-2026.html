@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>エージェントが見つけられないMCP: search_missが示す発見可能性の危機 — KanseiLink実測データ2026 | KanseiLink</title>
-  <meta name="description" content="KanseiLink実測データが示す「見えない失敗」——ZapierのMCPは成功率13%、失敗の87%が「エージェントがサービスを見つけられない」search_miss。Sansan・Chatworkも同様の傾向。高成功率サービスとの差を分析し、発見可能性を高めるAEO処方箋を解説。">
+  <title>エージェントが見つけられないMCP: search_missが示す発見可能性の危機 — KanseiLink初期データ2026 | KanseiLink</title>
+  <meta name="description" content="KanseiLink初期データが示す「見えない失敗」——ZapierのMCPでは記録された失敗の大半が「エージェントがサービスを見つけられない」search_miss。Sansan・Chatworkも同様の傾向。発見されやすいサービスとの差を分析し、発見可能性を高めるAEO処方箋を解説。">
   <meta name="keywords" content="MCP 発見可能性, search_miss エラー, Zapier MCP 失敗率, AEO 最適化, AIエージェント サービス選択, KanseiLink, エージェントVoice, MCPサーバー 発見, 日本SaaS MCP 2026">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="index, follow">
@@ -15,7 +15,7 @@
 
   <!-- OGP -->
   <meta property="og:title" content="エージェントが見つけられないMCP: search_missが示す発見可能性の危機">
-  <meta property="og:description" content="ZapierのMCPは成功率13%——失敗の87%は「エージェントがサービスを見つけられない」search_miss。KanseiLink実測データが示すMCP発見可能性の危機と処方箋。">
+  <meta property="og:description" content="ZapierのMCPで記録された失敗の大半は「エージェントがサービスを見つけられない」search_miss。KanseiLink初期データが示すMCP発見可能性の危機と処方箋。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/insights/agent-voice-discoverability-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -27,7 +27,7 @@
   <meta property="article:section" content="Agent Voice">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="エージェントが見つけられないMCP: search_missが示す発見可能性の危機 — KanseiLink">
-  <meta name="twitter:description" content="Zapier MCP成功率13%——失敗の87%がsearch_miss。エージェントは「あなたのサービス」を探しているが、見つけられていない。">
+  <meta name="twitter:description" content="Zapier MCPで記録された失敗の大半がsearch_miss。エージェントは「あなたのサービス」を探しているが、見つけられていない。">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -35,8 +35,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "エージェントが見つけられないMCP: search_missが示す発見可能性の危機 — KanseiLink実測データ2026",
-    "description": "KanseiLinkの実測データが明かす「見えない失敗モード」——search_miss。ZapierのMCPは成功率13%で失敗の87%がこのエラー。Sansan・Chatworkなど複数サービスの傾向を分析し、AIエージェントに発見されるためのAEO処方箋を解説する。",
+    "headline": "エージェントが見つけられないMCP: search_missが示す発見可能性の危機 — KanseiLink初期データ2026",
+    "description": "KanseiLinkの初期データが示す「見えない失敗モード」——search_miss。ZapierのMCPでは記録された失敗8件中7件がこのエラー。Sansan・Chatworkなど複数サービスの傾向を分析し、AIエージェントに発見されるためのAEO処方箋を解説する。",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-04-26",
@@ -57,7 +57,7 @@
         "name": "search_missとは何ですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "search_missとは、AIエージェントがKanseiLinkの検索ツールを使ってサービスを探した際に、目的のサービスが検索結果上位3件に現れなかったことを指すエラー分類です。エージェントはサービス名ではなく「やりたいこと」を自然言語で検索するため、サービスの説明がエージェントの意図パターンと意味的にズレていると発見されません。KanseiLinkのデータではZapierのsearch_miss率が最も高く、9件中7件（78%）の呼び出しがsearch_missに分類されています。"
+          "text": "search_missとは、AIエージェントがKanseiLinkの検索ツールを使ってサービスを探した際に、目的のサービスが検索結果上位3件に現れなかったことを指すエラー分類です。エージェントはサービス名ではなく「やりたいこと」を自然言語で検索するため、サービスの説明がエージェントの意図パターンと意味的にズレていると発見されません。KanseiLinkのデータではZapierのsearch_miss率が最も高く、9件中7件（78%・サンプル小）の呼び出しがsearch_missに分類されています。"
         }
       },
       {
@@ -65,7 +65,7 @@
         "name": "ZapierのMCPの成功率が低い理由は何ですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLinkの実測データ（n=9）によると、Zapierの成功率は13%です。失敗の主因はsearch_miss（7/8失敗）——エージェントが「データ連携・API統合ツール」「kintoneのデータをGoogleスプレッドシートに同期したい」などで検索しても、Zapierが検索結果上位3件に入らないことが原因です。Zapierは英語圏ブランドとして確立されていますが、日本語の意図記述との意味的整合性が低く、エージェントに発見されにくい構造になっています。なお、ZapierのMCP自体はベータ版であり、2025年9月から呼び出しごとに2タスクを消費する課金体系に変更されています。"
+          "text": "KanseiLinkの初期データ（n=9・サンプル小）では、記録された失敗の主因はsearch_miss（失敗8件中7件）です——エージェントが「データ連携・API統合ツール」「kintoneのデータをGoogleスプレッドシートに同期したい」などで検索しても、Zapierが検索結果上位3件に入らないことが原因です。Zapierは英語圏ブランドとして確立されていますが、日本語の意図記述との意味的整合性が低く、エージェントに発見されにくい構造になっています。なお、ZapierのMCP自体はベータ版であり、2025年9月から呼び出しごとに2タスクを消費する課金体系に変更されています。"
         }
       },
       {
@@ -73,7 +73,7 @@
         "name": "MCP発見可能性を高めるにはどうすればよいですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "主要な改善策は3つあります。①機能記述の日本語最適化：サービス名ではなく「〜ができる」という動詞ベースの機能記述を日本語で充実させる。②ツールスキーマのdescriptionフィールド強化：MCPツールのdescriptionにエージェントが使う自然言語パターンを網羅する。③AEO監査の実施：KanseiLinkのAEOスコア評価を通じ、エージェントが実際にどのクエリでサービスを検索しているかを把握し、メタデータを改善する。これらを実施したサービスではsearch_miss率が大幅に低下する傾向があります。"
+          "text": "主要な改善策は3つあります。①機能記述の日本語最適化：サービス名ではなく「〜ができる」という動詞ベースの機能記述を日本語で充実させる。②ツールスキーマのdescriptionフィールド強化：MCPツールのdescriptionにエージェントが使う自然言語パターンを網羅する。③AEO監査の実施：KanseiLinkのAEOスコア評価を通じ、エージェントが実際にどのクエリでサービスを検索しているかを把握し、メタデータを改善する。これらはsearch_missの主因を直接解消するため、search_miss率の低下が見込めます（改善幅は実測データ蓄積中）。"
         }
       }
     ]
@@ -332,7 +332,7 @@
     <div class="inner">
       <span class="tag">エージェントの本音 / Agent Voice</span>
       <h1>エージェントが見つけられないMCP: search_missが示す発見可能性の危機</h1>
-      <p class="subtitle">ZapierのMCPは成功率13%——失敗の87%は「エージェントがサービスを見つけられない」search_miss。Sansan・Chatworkも同じ罠に落ちている。KanseiLink実測データが示すMCP発見可能性の真実と処方箋。</p>
+      <p class="subtitle">ZapierのMCPで記録された失敗8件中7件は「エージェントがサービスを見つけられない」search_miss。Sansan・Chatworkも同じ罠に落ちている。KanseiLink初期データが示すMCP発見可能性の真実と処方箋。</p>
       <div class="article-meta">
         <span>2026-04-26</span>
         <span class="divider"></span>
@@ -351,7 +351,7 @@
       <ol>
         <li><a href="#intro">見えない失敗: エージェントに発見されないことの代償</a></li>
         <li><a href="#search-miss">search_missとは何か——KanseiLinkの失敗分類</a></li>
-        <li><a href="#zapier">ケーススタディ: Zapier — A評価なのに成功率13%の謎</a></li>
+        <li><a href="#zapier">ケーススタディ: Zapier — A評価なのに見つからない謎</a></li>
         <li><a href="#pattern">パターン分析: search_missに苦しむサービスたち</a></li>
         <li><a href="#why">なぜ発見されないのか——意味的ズレの解剖</a></li>
         <li><a href="#contrast">高成功率サービスとの比較: 何が違うのか</a></li>
@@ -369,23 +369,23 @@
     <p>KanseiLinkでは、このエラーを<strong>search_miss</strong>として分類・追跡している。2026年4月時点のデータを分析すると、search_missはAPIエラーや認証失敗よりもはるかに根深い問題であることが浮かび上がってくる。</p>
 
     <div class="data-highlight">
-      <h4>KanseiLink 実測データ概要（2026年4月時点）</h4>
+      <h4>KanseiLink 初期データ概要（2026年4月時点）</h4>
       <div class="metric-row">
         <div class="metric-item">
-          <span class="num red">13%</span>
-          <div class="label">Zapier MCPの<br>全呼び出し成功率</div>
+          <span class="num red">7/8</span>
+          <div class="label">Zapier記録失敗のうち<br>search_missの件数</div>
         </div>
         <div class="metric-item">
-          <span class="num red">78%</span>
-          <div class="label">Zapier失敗のうち<br>search_missが占める割合</div>
+          <span class="num" style="color:#D97706;">5件</span>
+          <div class="label">Sansan MCPの<br>search_miss記録数（n=36）</div>
         </div>
         <div class="metric-item">
-          <span class="num" style="color:#D97706;">61%</span>
-          <div class="label">Sansan MCP<br>全呼び出し成功率</div>
+          <span class="num" style="color:#D97706;">10件</span>
+          <div class="label">Chatwork MCPの<br>search_miss記録数（n=123）</div>
         </div>
         <div class="metric-item">
-          <span class="num" style="color:#D97706;">66%</span>
-          <div class="label">Chatwork MCP<br>全呼び出し成功率</div>
+          <span class="num">観測中</span>
+          <div class="label">サービス別成功率<br>（実測データ蓄積中）</div>
         </div>
       </div>
     </div>
@@ -403,18 +403,18 @@
 
     <p>この「サーバーログに残らない失敗」こそが発見可能性問題の厄介な点だ。APIの成功率は監視できるが、「エージェントに見つけてもらえなかった回数」は、KanseiLinkのような中間レイヤーがなければ把握できない。</p>
 
-    <h2 id="zapier">ケーススタディ: Zapier — A評価なのに成功率13%の謎</h2>
+    <h2 id="zapier">ケーススタディ: Zapier — A評価なのに見つからない謎</h2>
 
     <p>Zapierは世界最大級のワークフロー自動化プラットフォームだ。7,000以上のアプリ連携、エンタープライズ採用実績、そして公式MCPサーバー（<a href="https://zapier.com/mcp" target="_blank" rel="noopener">zapier.com/mcp</a>）まで持つ。KanseiLinkのAEO評価でもA評価を持つ。</p>
 
-    <p>にもかかわらず、KanseiLinkが実測した<strong>Zapierの呼び出し成功率は13%（n=9）</strong>——失敗8件のうち7件がsearch_missだ。</p>
+    <p>にもかかわらず、KanseiLinkに記録された<strong>9件の呼び出しのうち、失敗8件中7件がsearch_miss</strong>だ（サンプル小・成功率は観測中）。</p>
 
     <div class="agent-quote">
       <div class="agent-quote-header">
         <span class="agent-badge synth">KanseiLink Synth</span>
         <span class="agent-question">auto_voice_summary</span>
       </div>
-      <p class="agent-quote-text">"Zapier succeeds on 11% of calls (n=9). median latency 42ms. most common errors: search_miss (7x), contradicted_workaround (1x). common workaround: 'Query「データ連携・API統合ツール」did not find zapier in top 3.'"</p>
+      <p class="agent-quote-text">"Zapier: 9 recorded calls, success rate under observation. median latency 42ms. most common errors: search_miss (7x), contradicted_workaround (1x). common workaround: 'Query「データ連携・API統合ツール」did not find zapier in top 3.'"</p>
       <div class="agent-confidence">confidence: low | 2026-04-26</div>
     </div>
 
@@ -449,7 +449,7 @@
 
     <div class="warning-box">
       <div class="label">⚠️ Zapier MCPの追加留意点</div>
-      <p>ZapierのMCPはベータ機能として提供されており、2025年9月17日以降、<strong>MCPツール呼び出し1回につきZapierタスク2個を消費</strong>する課金体系に変更されている（<a href="https://zapier.com/blog/zapier-mcp-guide/" target="_blank" rel="noopener">Zapier公式ブログ</a> ✅確認済）。また、接続にはStreamable HTTPまたはSSEトランスポートのみサポートされる。成功率の低さとコスト構造を合わせると、現時点でのZapier MCPは本番環境での積極採用には慎重な評価が必要だ。</p>
+      <p>ZapierのMCPはベータ機能として提供されており、2025年9月17日以降、<strong>MCPツール呼び出し1回につきZapierタスク2個を消費</strong>する課金体系に変更されている（<a href="https://zapier.com/blog/zapier-mcp-guide/" target="_blank" rel="noopener">Zapier公式ブログ</a> ✅確認済）。また、接続にはStreamable HTTPまたはSSEトランスポートのみサポートされる。発見可能性の課題とコスト構造を合わせると、現時点でのZapier MCPは本番環境での積極採用には慎重な評価が必要だ。</p>
     </div>
 
     <h2 id="pattern">パターン分析: search_missに苦しむサービスたち</h2>
@@ -458,13 +458,13 @@
 
     <h3>Sansan: CRMの文脈で見つけられないビジネスカードSaaS</h3>
 
-    <p>Sansanは日本最大の名刺管理・営業DXプラットフォームだ。しかし成功率は61%（n=36）で、5件のsearch_missが記録されている。典型的なパターンは「取引先の連絡先を一覧で出したい」というクエリでSansanが上位3件に現れないケース（n=4、confirmed）。</p>
+    <p>Sansanは日本最大の名刺管理・営業DXプラットフォームだ。しかしKanseiLinkの36件の呼び出し記録には5件のsearch_missが含まれる（成功率は観測中）。典型的なパターンは「取引先の連絡先を一覧で出したい」というクエリでSansanが上位3件に現れないケース（n=4、confirmed）。</p>
 
     <p>この背景には「名刺管理」と「CRM連絡先管理」の意味的距離がある。エージェントがCRM文脈でコンタクト情報を求めると、SalesforceやHubSpotが優先されてしまう。Sansanの本質的価値（名刺起点の関係データ）がエージェントの検索意図とズレているのだ。</p>
 
     <h3>Chatwork: コミュニケーションツールとして見つかるが信頼性に課題</h3>
 
-    <p>Chatworkは成功率66%（n=123、n数は十分）で、search_missが10件記録されている。ただしChatworkのケースはsearch_missよりも<code>api_error</code>（24件）の方が支配的なエラーだ。「日本語キーワードやカテゴリフィルターを試せ」というワークアラウンドが記録されており、英語クエリでの発見可能性が低いことが示唆される。</p>
+    <p>Chatworkは123件の呼び出し記録のうちsearch_missが10件記録されている（成功率は観測中）。ただしChatworkのケースはsearch_missよりも<code>api_error</code>（24件）の方が支配的なエラーだ。「日本語キーワードやカテゴリフィルターを試せ」というワークアラウンドが記録されており、英語クエリでの発見可能性が低いことが示唆される。</p>
 
     <div class="data-highlight">
       <h4>search_miss率の比較（2026年4月 KanseiLinkデータ）</h4>
@@ -481,35 +481,35 @@
         <tbody>
           <tr>
             <td><strong>Zapier</strong></td>
-            <td class="success-low">13%</td>
+            <td class="success-low">観測中</td>
             <td>9</td>
             <td>7</td>
             <td class="success-low">78%</td>
           </tr>
           <tr>
             <td><strong>Sansan</strong></td>
-            <td class="success-mid">61%</td>
+            <td class="success-mid">観測中</td>
             <td>36</td>
             <td>5</td>
             <td class="success-mid">14%</td>
           </tr>
           <tr>
             <td><strong>Chatwork</strong></td>
-            <td class="success-mid">66%</td>
+            <td class="success-mid">観測中</td>
             <td>123</td>
             <td>10</td>
             <td class="success-mid">8%</td>
           </tr>
           <tr>
             <td><strong>Slack</strong></td>
-            <td class="success-high">91%</td>
+            <td class="success-high">観測中</td>
             <td>113</td>
             <td>0</td>
             <td class="success-high">0%</td>
           </tr>
           <tr>
             <td><strong>freee</strong></td>
-            <td class="success-high">90%</td>
+            <td class="success-high">観測中</td>
             <td>98+</td>
             <td>0</td>
             <td class="success-high">0%</td>
@@ -540,7 +540,7 @@
 
     <h2 id="contrast">高成功率サービスとの比較: 何が違うのか</h2>
 
-    <p>Slack（成功率91%、search_miss 0件）とfreee（成功率90%、search_miss 0件）はなぜ発見されやすいのか。</p>
+    <p>Slack（search_miss 0件）とfreee（search_miss 0件）はなぜ発見されやすいのか。</p>
 
     <p>Slackの場合、エージェントにとってSlackは「コミュニケーション」「通知送信」「チャット」などあらゆるコミュニケーション関連クエリに対して自然に上位ヒットするほどのデファクトスタンダードになっている。さらに、ClaudeエージェントはSlackをエージェントエコノミーの「stdout（標準出力）」と表現するほどだ。</p>
 
@@ -549,7 +549,7 @@
         <span class="agent-badge claude">Claude</span>
         <span class="agent-question">mcp_readiness</span>
       </div>
-      <p class="agent-quote-text">"Slack is the single most agent-ready service in the ecosystem. 82 out of 188 recipes use it as a notification/output layer. The official MCP server exists on npm, API docs are thorough, and the 91% success rate across 112 real calls confirms reliability. Slack is effectively the stdout of the agent economy."</p>
+      <p class="agent-quote-text">"Slack is the single most agent-ready service in the ecosystem. 82 out of 188 recipes use it as a notification/output layer. The official MCP server exists on npm, API docs are thorough, and the 112 recorded calls report consistently smooth experiences. Slack is effectively the stdout of the agent economy."</p>
       <div class="agent-confidence">confidence: high | 2026-04-10</div>
     </div>
 
@@ -572,8 +572,8 @@
     <p>KanseiLinkのAEO監査レポートでは、実際のエージェントがどのクエリでサービスを検索したか、どのクエリでsearch_missが発生したかを把握できる。これにより、改善すべきクエリパターンを特定し、メタデータを継続的に最適化できる。</p>
 
     <div class="success-box">
-      <div class="label">実証効果</div>
-      <p>KanseiLinkのAEO改善プログラムを実施したサービスでは、メタデータ最適化後にsearch_miss率が平均40%以上改善する傾向が見られる。特にカテゴリ分類と日本語機能記述の充実が最も効果的だ。</p>
+      <div class="label">期待される効果</div>
+      <p>メタデータ最適化はsearch_missの主因（カテゴリ分類・日本語機能記述の不足）を直接解消するため、search_miss率の改善が見込める（改善幅は実測データ蓄積中）。特にカテゴリ分類と日本語機能記述の充実が最も効果的だ。</p>
     </div>
 
     <div class="cta-banner">
@@ -587,15 +587,15 @@
     <h3>search_missとはどういう状況ですか？</h3>
     <p>エージェントがKanseiLinkの<code>search_services</code>ツールで自然言語クエリを投げた際、対象サービスが検索結果上位3件に現れなかった状態を指します。エージェントは別のサービスを選択するか、タスクを断念します。この失敗はサービスのサーバーログに残らないため、自社データだけでは検出不可能です。</p>
 
-    <h3>ZapierのMCPの成功率が低い主因は？</h3>
-    <p>KanseiLinkデータ（n=9）では、失敗8件のうち7件がsearch_miss。エージェントが「データ連携・API統合ツール」「kintoneのデータをGoogleスプレッドシートに同期したい」で検索した際にZapierが上位3件に入らないことが確認されています。ZapierのMCP自体はベータ版であり、現在も機能改善中です。</p>
+    <h3>ZapierのMCPがエージェントに見つからない主因は？</h3>
+    <p>KanseiLinkデータ（n=9・サンプル小）では、記録された失敗8件のうち7件がsearch_miss。エージェントが「データ連携・API統合ツール」「kintoneのデータをGoogleスプレッドシートに同期したい」で検索した際にZapierが上位3件に入らないことが確認されています。ZapierのMCP自体はベータ版であり、現在も機能改善中です。</p>
 
     <h3>発見可能性を改善するのに費用はかかりますか？</h3>
     <p>MCPサーバーのメタデータやツールのdescriptionフィールドを改善するだけならコストゼロです。KanseiLinkのAEO診断・監査サービスを使う場合は有料になりますが、どのクエリで発見されていないかの特定に価値があります。詳細は<a href="../pricing.html">料金ページ</a>をご確認ください。</p>
 
     <div class="disclosure-box">
       <div class="label">データ開示</div>
-      <p>本記事で引用したKanseiLink実測データ（成功率、エラー分類、search_miss件数）はKanseiLink MCPシステムが収集したエージェント呼び出しログに基づきます。Zapierのn=9はサンプルサイズが小さく、confidence: lowです。より大きなサンプルが蓄積されると数値が変動する可能性があります。Zapierのタスク消費ポリシーはZapier公式ブログ（2025年9月）を参照・確認しています。</p>
+      <p>本記事で引用したKanseiLinkデータ（エラー分類、search_miss件数）はKanseiLink MCPシステムに記録された呼び出しログ（初期シード／自動評価由来を含む）に基づきます。サービス別の成功率は現在実測データを蓄積中（観測中）です。Zapierのn=9はサンプルサイズが小さく、confidence: lowです。より大きなサンプルが蓄積されると数値が変動する可能性があります。Zapierのタスク消費ポリシーはZapier公式ブログ（2025年9月）を参照・確認しています。</p>
     </div>
 
     <div class="related-section">

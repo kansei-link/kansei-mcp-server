@@ -123,10 +123,12 @@ function jsLiteral(obj) {
 
 const serviceObjs = rows.map((r) => {
   const scoreDecimal = r.axr_score != null ? Math.round((r.axr_score / 100) * 100) / 100 : null;
-  const successPct =
-    r.success_rate && r.success_rate > 0
-      ? Math.round(r.success_rate * 100) + "%"
-      : "N/A";
+  // 生の%は出さない（実測裏付けが弱いため）。UI/データとも tier のみ。
+  const successPct = (() => {
+    if (!r.success_rate || r.success_rate <= 0) return "N/A";
+    const p = Math.round(r.success_rate * 100);
+    return p >= 80 ? "High" : p >= 50 ? "Med" : "Low";
+  })();
   const obj = {
     name: r.name,
     grade: r.axr_grade ?? "BB",

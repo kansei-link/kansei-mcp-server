@@ -57,7 +57,7 @@
         "name": "Which database should AI agents start with?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "It depends on the workload. For structured data and existing operational systems, start with Anthropic's official Postgres MCP server (avg 82ms, 100% success rate, A grade). For RAG and semantic search, the official Qdrant MCP (85ms, A, MIT license). For lightweight prototyping or embedded vector stores, Chroma (100ms, A). For caching and session memory, Redis MCP (105ms). The Postgres MCP server is hosted in Anthropic's reference servers repo and has moved to the archived/community-led tier in modelcontextprotocol/servers, but it is still the lowest-friction starting point for most teams."
+          "text": "It depends on the workload. For structured data and existing operational systems, start with Anthropic's official Postgres MCP server (avg 82ms, A grade). For RAG and semantic search, the official Qdrant MCP (85ms, A, MIT license). For lightweight prototyping or embedded vector stores, Chroma (100ms, A). For caching and session memory, Redis MCP (105ms). The Postgres MCP server is hosted in Anthropic's reference servers repo and has moved to the archived/community-led tier in modelcontextprotocol/servers, but it is still the lowest-friction starting point for most teams."
         }
       },
       {
@@ -81,7 +81,7 @@
         "name": "I heard the Postgres MCP server was 'archived'. Is it still usable?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The reference implementation in modelcontextprotocol/servers has been moved by Anthropic to a 'learning purposes / archived' status, with new feature work shifting to community implementations (pgEdge MCP, Postgres MCP Pro, @anthropic/postgres-mcp, etc.). Schema introspection and basic queries still work, and KanseiLink measurements show stable performance (100% success, 82ms). For production workloads that need writes, row-level permissions, or connection pooling, the practical 2026 choice is to switch to a community-led implementation like pgEdge MCP, Supabase MCP, or Neon MCP."
+          "text": "The reference implementation in modelcontextprotocol/servers has been moved by Anthropic to a 'learning purposes / archived' status, with new feature work shifting to community implementations (pgEdge MCP, Postgres MCP Pro, @anthropic/postgres-mcp, etc.). Schema introspection and basic queries still work, and KanseiLink's reachability probes show stable response times (82ms). For production workloads that need writes, row-level permissions, or connection pooling, the practical 2026 choice is to switch to a community-led implementation like pgEdge MCP, Supabase MCP, or Neon MCP."
         }
       }
     ]
@@ -383,12 +383,12 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td><strong>PostgreSQL MCP</strong></td><td>RDB</td><td>Official (Anthropic reference)</td><td class="success-high">A</td><td class="success-high">82ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>Qdrant</strong></td><td>Vector DB</td><td>Official (qdrant/mcp-server-qdrant)</td><td class="success-high">A</td><td class="success-high">85ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>Chroma</strong></td><td>Vector DB</td><td>Third-party</td><td class="success-high">A</td><td>100ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>Redis</strong></td><td>KVS / Cache</td><td>Third-party (modelcontextprotocol/server-redis)</td><td class="success-mid">BBB</td><td>105ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>MySQL</strong></td><td>RDB</td><td>Third-party (modelcontextprotocol/server-mysql)</td><td class="success-mid">BBB</td><td>108ms</td><td class="success-high">100%</td></tr>
-        <tr><td><strong>Turso</strong></td><td>Edge SQLite</td><td>API only</td><td class="success-mid">BB</td><td>100ms</td><td class="success-high">100%</td></tr>
+        <tr><td><strong>PostgreSQL MCP</strong></td><td>RDB</td><td>Official (Anthropic reference)</td><td class="success-high">A</td><td class="success-high">82ms</td><td>observing</td></tr>
+        <tr><td><strong>Qdrant</strong></td><td>Vector DB</td><td>Official (qdrant/mcp-server-qdrant)</td><td class="success-high">A</td><td class="success-high">85ms</td><td>observing</td></tr>
+        <tr><td><strong>Chroma</strong></td><td>Vector DB</td><td>Third-party</td><td class="success-high">A</td><td>100ms</td><td>observing</td></tr>
+        <tr><td><strong>Redis</strong></td><td>KVS / Cache</td><td>Third-party (modelcontextprotocol/server-redis)</td><td class="success-mid">BBB</td><td>105ms</td><td>observing</td></tr>
+        <tr><td><strong>MySQL</strong></td><td>RDB</td><td>Third-party (modelcontextprotocol/server-mysql)</td><td class="success-mid">BBB</td><td>108ms</td><td>observing</td></tr>
+        <tr><td><strong>Turso</strong></td><td>Edge SQLite</td><td>API only</td><td class="success-mid">BB</td><td>100ms</td><td>observing</td></tr>
         <tr><td><strong>Supabase</strong></td><td>BaaS / Postgres</td><td>Third-party (referenced from official docs)</td><td class="success-mid">BBB</td><td>—</td><td>n/a</td></tr>
         <tr><td><strong>Neon</strong></td><td>Serverless Postgres</td><td>Third-party (@neondatabase/mcp-server-neon)</td><td class="success-mid">BBB</td><td>—</td><td>n/a</td></tr>
         <tr><td><strong>PlanetScale</strong></td><td>Serverless MySQL</td><td>API only</td><td class="success-mid">BB</td><td>—</td><td>n/a</td></tr>
@@ -400,7 +400,7 @@
 
     <h2 id="postgres">Anthropic's official Postgres MCP — what 'archived' really means</h2>
 
-    <p>Anthropic publishes several reference implementations in <code>modelcontextprotocol/servers</code>; the Postgres server is the flagship. KanseiLink measurements show <strong>82ms latency / 100% success / A grade (trust 0.8)</strong>, the fastest round trip in the database tier.</p>
+    <p>Anthropic publishes several reference implementations in <code>modelcontextprotocol/servers</code>; the Postgres server is the flagship. KanseiLink measurements show <strong>82ms latency / A grade (trust 0.8)</strong> (success rate still being observed), the fastest round trip in the database tier.</p>
 
     <pre><code># Example Claude Desktop config
 {
@@ -421,7 +421,7 @@
 
     <h2 id="qdrant">Official Qdrant — the production vector DB pick</h2>
 
-    <p>For RAG and long-term agent memory, the safest 2026 choice has become the <strong>official Qdrant MCP server</strong> (<code>github.com/qdrant/mcp-server-qdrant</code>, MIT license). KanseiLink measurements: <strong>85ms latency / 100% success / A grade (trust 0.9)</strong>.</p>
+    <p>For RAG and long-term agent memory, the safest 2026 choice has become the <strong>official Qdrant MCP server</strong> (<code>github.com/qdrant/mcp-server-qdrant</code>, MIT license). KanseiLink measurements: <strong>85ms latency / A grade (trust 0.9)</strong> (success rate still being observed).</p>
 
     <p>The server defaults to the <code>sentence-transformers/all-MiniLM-L6-v2</code> embedding model and ships with FastEmbed support. The <code>--qdrant-local-path</code> flag switches to local file-based mode, which lets you validate flows offline before touching managed Cloud. Smithery installation is also supported (<code>npx @smithery/cli install mcp-server-qdrant --client claude</code>).</p>
 
@@ -432,15 +432,15 @@
 
     <h2 id="chroma">Chroma — the lightweight prototyping option</h2>
 
-    <p>For RAG prototypes in the "hundreds of thousands to a million" range, Chroma remains the popular pick. KanseiLink measurements: <strong>100ms latency / 100% success / A grade (trust 0.8)</strong>. Both Python and JS clients are available, and you can spin it up in a notebook with <code>chroma.PersistentClient(path=...)</code>.</p>
+    <p>For RAG prototypes in the "hundreds of thousands to a million" range, Chroma remains the popular pick. KanseiLink measurements: <strong>100ms latency / A grade (trust 0.8)</strong> (success rate still being observed). Both Python and JS clients are available, and you can spin it up in a notebook with <code>chroma.PersistentClient(path=...)</code>.</p>
 
     <p>The MCP server is third-party (<code>npx -y chroma-mcp</code>) and uses bearer token auth. Persistence, backups, and horizontal scale need to be designed by hand for production, which is why many teams adopt the pattern <strong>"build with Chroma, switch to Qdrant before going live"</strong>.</p>
 
     <h2 id="kvs">Redis and Turso — KVS and edge SQLite</h2>
 
-    <p>For agent short-term memory, session context, and LLM response caching, Redis MCP is the default answer. KanseiLink measurements: <strong>105ms latency / 100% success / BBB grade (trust 0.7)</strong>. Setup uses <code>modelcontextprotocol/server-redis</code> and exposes keys, streams, pub/sub, and search.</p>
+    <p>For agent short-term memory, session context, and LLM response caching, Redis MCP is the default answer. KanseiLink measurements: <strong>105ms latency / BBB grade (trust 0.7)</strong> (success rate still being observed). Setup uses <code>modelcontextprotocol/server-redis</code> and exposes keys, streams, pub/sub, and search.</p>
 
-    <p>Turso (edge SQLite / libSQL) gained noticeable presence in 2026. It replicates with low latency from 30+ regions and supports embedded local replicas. KanseiLink shows <strong>100ms / 100% success / BB grade</strong>. There is no MCP server today (API only), but it is one to watch as a "local-first" DB for agents running on the edge.</p>
+    <p>Turso (edge SQLite / libSQL) gained noticeable presence in 2026. It replicates with low latency from 30+ regions and supports embedded local replicas. KanseiLink shows <strong>100ms / BB grade</strong> (success rate still being observed). There is no MCP server today (API only), but it is one to watch as a "local-first" DB for agents running on the edge.</p>
 
     <h2 id="supabase-neon">Supabase, Neon, PlanetScale — managed Postgres in 2026</h2>
 
@@ -457,7 +457,7 @@
 
     <p>MongoDB Atlas occupies the "document DB + vector search" position, with Atlas Search and Vector Search built in. There is a third-party MCP server (<code>mongodb-mcp-server</code>) operating through the Atlas Admin / Data API. Our AEO grade is BBB (connectable) with limited self-reported agent data, but it is a strong option when the goal is to bolt an agent onto an existing MongoDB-backed system.</p>
 
-    <p>For MySQL — OSS, RDS, Cloud SQL, PlanetScale — the practical baseline is "use <code>modelcontextprotocol/server-mysql</code> for schema introspection and read queries." KanseiLink measurements: <strong>108ms / 100% success / BBB grade</strong>. Writes and stored procedure calls are still better served by a thin in-house API at the application layer.</p>
+    <p>For MySQL — OSS, RDS, Cloud SQL, PlanetScale — the practical baseline is "use <code>modelcontextprotocol/server-mysql</code> for schema introspection and read queries." KanseiLink measurements: <strong>108ms / BBB grade</strong> (success rate still being observed). Writes and stored procedure calls are still better served by a thin in-house API at the application layer.</p>
 
     <h2 id="decision">Selection flow by use case</h2>
 
@@ -475,20 +475,20 @@
 
     <div class="cta-banner">
       <h3>Want to bring database AEO ratings into your team's review process?</h3>
-      <p>KanseiLink delivers measured success rates, latency, error categories, and known workarounds for 225+ SaaS — accessible directly through MCP. Database-tier choices can be grounded in agent-measured evidence.</p>
+      <p>KanseiLink delivers evaluated success rates, latency, error categories, and known workarounds for 225+ SaaS — accessible directly through MCP. Database-tier choices can be grounded in KanseiLink's evaluations and initial data.</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Talk to us about AEO data</a>
     </div>
 
     <h2 id="faq">FAQ</h2>
 
     <h3>Which database should AI agents start with?</h3>
-    <p>It depends on the workload. For structured operational data, Anthropic's official Postgres MCP (82ms / 100% / A). For RAG, the official Qdrant MCP (85ms / 100% / A, MIT). For prototypes, Chroma (100ms / 100% / A). For caching and session memory, Redis MCP (105ms / 100% / BBB).</p>
+    <p>It depends on the workload. For structured operational data, Anthropic's official Postgres MCP (82ms / A). For RAG, the official Qdrant MCP (85ms / A, MIT). For prototypes, Chroma (100ms / A). For caching and session memory, Redis MCP (105ms / BBB).</p>
 
     <h3>Which vector DB MCP is production-ready?</h3>
     <p>As of May 2026, the official Qdrant MCP server. FastEmbed by default, both local mode and managed Cloud supported. Chroma is the prototyping pick; for production scale, the official Qdrant has the edge.</p>
 
     <h3>I heard the Postgres MCP was 'archived'. Is it still usable?</h3>
-    <p>Yes. The reference implementation in <code>modelcontextprotocol/servers</code> has moved to "learning purposes / archived" status, but this signals "community-led from here," not "deprecated." Read-only and schema introspection are stable (KanseiLink: 100% success, 82ms). For writes and production ops, switch to community implementations like pgEdge MCP or Supabase MCP.</p>
+    <p>Yes. The reference implementation in <code>modelcontextprotocol/servers</code> has moved to "learning purposes / archived" status, but this signals "community-led from here," not "deprecated." Read-only and schema introspection are stable (KanseiLink probes: 82ms). For writes and production ops, switch to community implementations like pgEdge MCP or Supabase MCP.</p>
 
     <h3>How does Supabase MCP authentication work now?</h3>
     <p>The major 2026 change: Supabase Auth is now an OAuth 2.1 / OpenID Connect provider, and the MCP server has switched its default authentication to OAuth Dynamic Client Registration. PATs remain supported for CI/CD and non-interactive flows.</p>
@@ -498,7 +498,7 @@
 
     <div class="disclosure-box">
       <div class="label">Data Disclosure & Disclaimer</div>
-      <p>Numbers in this article come from KanseiLink's <code>search_services</code> / <code>get_insights</code> tools (April 2026 snapshot): PostgreSQL MCP (n=1, 82ms, 100%, A), Qdrant (n=1, 85ms, 100%, A), Chroma (n=1, 100ms, 100%, A), Redis (n=1, 105ms, 100%, BBB), MySQL (n=1, 108ms, 100%, BBB), Turso (n=1, 100ms, 100%, BB). Supabase, Neon, PlanetScale, and MongoDB Atlas had usage_count = 0, so no measured values are shown. The "archived" status of the Postgres MCP server reflects the official label in <code>github.com/modelcontextprotocol/servers</code>; the official Qdrant MCP server lives at <code>github.com/qdrant/mcp-server-qdrant</code> (MIT); Supabase's OAuth 2.1 MCP authentication is documented at <code>supabase.com/docs/guides/getting-started/mcp</code> (April 2026). Low-sample entries may shift as more data accumulates — always confirm the latest official documentation before production rollouts.</p>
+      <p>Numbers in this article come from KanseiLink's <code>search_services</code> / <code>get_insights</code> tools (April 2026 snapshot): PostgreSQL MCP (n=1, 82ms, A), Qdrant (n=1, 85ms, A), Chroma (n=1, 100ms, A), Redis (n=1, 105ms, BBB), MySQL (n=1, 108ms, BBB), Turso (n=1, 100ms, BB); success rates are treated as still being observed because every entry is n=1. Supabase, Neon, PlanetScale, and MongoDB Atlas had usage_count = 0, so no measured values are shown. The "archived" status of the Postgres MCP server reflects the official label in <code>github.com/modelcontextprotocol/servers</code>; the official Qdrant MCP server lives at <code>github.com/qdrant/mcp-server-qdrant</code> (MIT); Supabase's OAuth 2.1 MCP authentication is documented at <code>supabase.com/docs/guides/getting-started/mcp</code> (April 2026). Low-sample entries may shift as more data accumulates — always confirm the latest official documentation before production rollouts.</p>
     </div>
 
     <div class="related-section">

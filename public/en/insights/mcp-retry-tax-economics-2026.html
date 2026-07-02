@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Economics of the "Retry Tax" 2026 — How Low-Success MCP Servers Quietly Inflate Your API Bill | KanseiLink</title>
-  <meta name="description" content="An MCP server's success rate is a reliability metric — but it is also a cost metric. The expected number of attempts to reach one success is 1/p, so a 20%-success service burns about 4.5x the tokens of a 91% service for the same outcome. Drawing on 1,404 measured KanseiLink outcome reports, this piece dissects the retry-tax formula and a 4-layer reduction plan.">
+  <meta name="description" content="An MCP server's success rate is a reliability metric — but it is also a cost metric. The expected number of attempts to reach one success is 1/p, so a 20%-success service burns about 4.5x the tokens of a 91% service for the same outcome. Drawing on 1,404 cumulative KanseiLink outcome reports and hypothetical success-rate models, this piece dissects the retry-tax formula and a 4-layer reduction plan.">
   <meta name="keywords" content="MCP retry cost, agent cost optimization, success rate tokens, retry tax, prompt caching, Claude API pricing 2026, KanseiLink, AI agent operating cost">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="index, follow">
@@ -15,7 +15,7 @@
 
   <!-- OGP -->
   <meta property="og:title" content="The Economics of the &quot;Retry Tax&quot; 2026 — How Low-Success MCP Servers Quietly Inflate Your API Bill">
-  <meta property="og:description" content="Success rate is a cost metric. The expected attempts to one success is 1/p, so a 20% service burns ~4.5x the tokens of a 91% service. We dissect the retry tax with measured KanseiLink data.">
+  <meta property="og:description" content="Success rate is a cost metric. The expected attempts to one success is 1/p, so a 20% service burns ~4.5x the tokens of a 91% service. We dissect the retry tax with hypothetical success-rate models.">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/en/insights/mcp-retry-tax-economics-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -27,7 +27,7 @@
   <meta property="article:section" content="Cost ROI">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="The Economics of the Retry Tax 2026">
-  <meta name="twitter:description" content="Success rate is a cost metric. Expected attempts to one success is 1/p. Dissected with 1,404 measured KanseiLink outcome reports.">
+  <meta name="twitter:description" content="Success rate is a cost metric. Expected attempts to one success is 1/p. Dissected with 1,404 cumulative outcome reports and model-based estimates.">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -36,7 +36,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "The Economics of the \"Retry Tax\" 2026 — How Low-Success MCP Servers Quietly Inflate Your API Bill",
-    "description": "An MCP server's success rate is both a reliability metric and a cost metric. The expected number of attempts to reach one success is 1/p. Drawing on 1,404 measured KanseiLink outcome reports, this piece dissects the retry-tax formula and a 4-layer reduction plan.",
+    "description": "An MCP server's success rate is both a reliability metric and a cost metric. The expected number of attempts to reach one success is 1/p. Drawing on 1,404 cumulative KanseiLink outcome reports and hypothetical success-rate models, this piece dissects the retry-tax formula and a 4-layer reduction plan.",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-15",
@@ -65,7 +65,7 @@
         "name": "Why does a low success rate make token cost grow multiplicatively?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Because the cost of one failure is not just the input tokens of the tool call. On failure the agent (1) pulls the full error response into context, (2) reasons about the cause, and (3) chooses to retry or pick an alternative — extra LLM turns. The longer the conversation history grows, the heavier the input tokens of subsequent turns. Failures and retries also stack latency, so tokens, LLM call count, and wall-clock time all degrade at once. KanseiLink's audit_cost data estimates that switching from LINE WORKS (20% success) to Slack MCP (91%) yields about a 71% token reduction."
+          "text": "Because the cost of one failure is not just the input tokens of the tool call. On failure the agent (1) pulls the full error response into context, (2) reasons about the cause, and (3) chooses to retry or pick an alternative — extra LLM turns. The longer the conversation history grows, the heavier the input tokens of subsequent turns. Failures and retries also stack latency, so tokens, LLM call count, and wall-clock time all degrade at once. For example, assuming a switch from a 20%-success service to a 91%-success service, the model estimates about a 71% token reduction."
         }
       },
       {
@@ -89,7 +89,7 @@
         "name": "Where can I check success rates?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The KanseiLink MCP get_insights tool returns success_rate, avg_latency_ms, common_errors (with known workarounds), and confidence_score for a given service. search_services also returns each service's success_rate. These values aggregate measured agent outcome reports (1,404 cumulative as of May 2026) across 225+ Japanese SaaS services. Connect with: npx -y @kansei-link/mcp-server."
+          "text": "The KanseiLink MCP get_insights tool returns success_rate, avg_latency_ms, common_errors (with known workarounds), and confidence_score for a given service. search_services also returns each service's success_rate. These values aggregate agent outcome reports (1,404 cumulative as of May 2026) across 225+ Japanese SaaS services; measured success-rate values are still accumulating (observing). Connect with: npx -y @kansei-link/mcp-server."
         }
       }
     ]
@@ -335,7 +335,7 @@
     <div class="inner">
       <span class="tag">Cost ROI</span>
       <h1>The Economics of the "Retry Tax" 2026 — How Low-Success MCP Servers Quietly Inflate Your API Bill</h1>
-      <p class="subtitle">An MCP server's success rate is usually read as a reliability metric. It is also a cost metric. The expected number of attempts to reach one success is 1/p, so a gap in success rate translates directly into a gap in token consumption. Drawing on 1,404 measured KanseiLink outcome reports, we dissect the retry-tax formula and a 4-layer reduction plan.</p>
+      <p class="subtitle">An MCP server's success rate is usually read as a reliability metric. It is also a cost metric. The expected number of attempts to reach one success is 1/p, so a gap in success rate translates directly into a gap in token consumption. Drawing on 1,404 cumulative KanseiLink outcome reports and hypothetical success-rate models, we dissect the retry-tax formula and a 4-layer reduction plan.</p>
       <div class="article-meta">
         <span>2026-05-15</span>
         <span class="divider"></span>
@@ -353,7 +353,7 @@
       <ol>
         <li><a href="#why">Why read "success rate" as a financial metric</a></li>
         <li><a href="#formula">The retry-tax formula — expected attempts is 1/p</a></li>
-        <li><a href="#data">KanseiLink measured data — savings from four switches</a></li>
+        <li><a href="#data">Model cases — estimated savings from four switches</a></li>
         <li><a href="#multiply">The retry tax compounds multiplicatively</a></li>
         <li><a href="#reduce">Four layers to lower the retry tax</a></li>
         <li><a href="#faq">FAQ</a></li>
@@ -366,7 +366,7 @@
 
     <p>The reason is simple. An agent does not stop when a tool call fails. It reads the error, reasons about the cause, and decides whether to retry or take an alternative path. <strong>One failure spawns one or more additional LLM turns.</strong> And as the conversation history grows, the input tokens of every subsequent turn grow with it. A low-success service pushes up the bill the user sees — quietly, but reliably.</p>
 
-    <p>This article calls that extra cost the <strong>"Retry Tax."</strong> The retry tax can be estimated quantitatively from the measured agent outcome reports KanseiLink aggregates across 225+ Japanese SaaS services (1,404 cumulative as of May 2026).</p>
+    <p>This article calls that extra cost the <strong>"Retry Tax."</strong> The retry tax can be estimated quantitatively with a model that assumes a success rate p, against the backdrop of the agent outcome reports KanseiLink aggregates across 225+ Japanese SaaS services (1,404 cumulative as of May 2026).</p>
 
     <div class="insight-box">
       <div class="label">Editorial view, May 2026</div>
@@ -403,31 +403,31 @@
       <p>1/p is only the expected count of <strong>tool calls</strong>. The real retry tax is heavier. Each retry carries (1) the full error response pulled into context, (2) an LLM turn for cause analysis, and (3) subsequent turns burdened by an inflated conversation history. As shown below, the retry tax compounds across <strong>three axes — token volume, LLM call count, and wall-clock time</strong>.</p>
     </div>
 
-    <h2 id="data">KanseiLink measured data — savings from four switches</h2>
+    <h2 id="data">Model cases — estimated savings from four switches</h2>
 
-    <p>KanseiLink's <code>audit_cost</code> tool analyzes an agent's API spend across 4 layers (model selection, service substitution, architecture, infrastructure) and proposes optimizations. The "service substitution" proposals from the May 15, 2026 analysis (based on 1,404 cumulative outcome reports) make the real magnitude of the retry tax visible.</p>
+    <p>KanseiLink's <code>audit_cost</code> tool analyzes an agent's API spend across 4 layers (model selection, service substitution, architecture, infrastructure) and proposes optimizations. Running the "service substitution" layer through <strong>four model cases with assumed success rates p</strong> makes the real magnitude of the retry tax visible (the success rates below are assumptions; measured per-service success rates are still accumulating at KanseiLink — observing).</p>
 
     <table class="data-table">
       <thead>
         <tr>
-          <th>Current service</th>
-          <th>Success rate</th>
-          <th>Recommended switch</th>
-          <th>Post-switch rate</th>
+          <th>Current service (hypothetical)</th>
+          <th>Assumed success rate</th>
+          <th>Switch target (hypothetical)</th>
+          <th>Assumed post-switch rate</th>
           <th>Est. token reduction</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td>LINE WORKS</td><td><span class="success-low">20%</span></td><td>Slack MCP</td><td><span class="success-high">91%</span></td><td><span class="success-high">~71%</span></td></tr>
-        <tr><td>Talentio</td><td><span class="success-low">35%</span></td><td>KING OF TIME</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">~31%</span></td></tr>
-        <tr><td>SmartHR</td><td><span class="success-low">39%</span></td><td>KING OF TIME</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">~27%</span></td></tr>
-        <tr><td>Chatwork MCP</td><td><span class="success-mid">66%</span></td><td>Slack MCP</td><td><span class="success-high">91%</span></td><td><span class="success-mid">~25%</span></td></tr>
+        <tr><td>A business-chat SaaS</td><td><span class="success-low">20%</span></td><td>A high-success alternative MCP</td><td><span class="success-high">91%</span></td><td><span class="success-high">~71%</span></td></tr>
+        <tr><td>A recruiting SaaS</td><td><span class="success-low">35%</span></td><td>An alternative in the same category</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">~31%</span></td></tr>
+        <tr><td>An HR SaaS</td><td><span class="success-low">39%</span></td><td>An alternative in the same category</td><td><span class="success-mid">66%</span></td><td><span class="success-mid">~27%</span></td></tr>
+        <tr><td>A chat MCP</td><td><span class="success-mid">66%</span></td><td>A high-success alternative MCP</td><td><span class="success-high">91%</span></td><td><span class="success-mid">~25%</span></td></tr>
       </tbody>
     </table>
 
-    <p>The most extreme is <strong>LINE WORKS → Slack MCP</strong>: 20% to 91% success. Pull LINE WORKS via <code>get_insights</code> and you see that of its 5 outcome reports, only 1 succeeded — the rest are <code>search_miss</code> (the agent never reaches the intended resource). Slack MCP, by contrast, has 113 reports at 91% success, with the main error being 9 minor <code>api_error</code> events. For the same "send a message" task, that gap shows up as roughly a <strong>71% token reduction</strong>.</p>
+    <p>The most extreme is the first row. At an assumed 20% success rate, the expected number of attempts is about 5; at an assumed 91%, about 1.1. For the same "send a message" task, that gap shows up as roughly a <strong>71% token reduction</strong> in the model.</p>
 
-    <p>Watch the <strong>SmartHR</strong> case carefully. SmartHR is the market leader among Japanese HR SaaS, yet KanseiLink measures its success rate at 39% (92 reports). Its <code>common_errors</code> break down into 36 <code>api_error</code>, 10 <code>auth_expired</code>, and 7 <code>search_miss</code>. Market recognition and "how easy it is for an agent to call" are different things — and the retry tax does not care about brand recognition.</p>
+    <p>One more thing worth internalizing: <strong>market recognition and "how easy it is for an agent to call" are different things</strong>. Even a well-known SaaS can show a notable share of error reports in early agent-connection data (for example, one major HR SaaS shows 36 <code>api_error</code>, 10 <code>auth_expired</code>, and 7 <code>search_miss</code> across 92 reports). The retry tax does not care about brand recognition.</p>
 
     <div class="data-highlight">
       <h4>The retry tax in real numbers</h4>
@@ -438,11 +438,11 @@
         </div>
         <div class="metric-item">
           <span class="num green">71%</span>
-          <div class="label">Est. token reduction, LINE WORKS to Slack switch</div>
+          <div class="label">Est. token reduction, assumed 20% to 91% switch</div>
         </div>
         <div class="metric-item">
           <span class="num orange">2.3x</span>
-          <div class="label">Call cost at 39% success (SmartHR measured)</div>
+          <div class="label">Call cost at an assumed 39% success rate</div>
         </div>
       </div>
     </div>
@@ -454,7 +454,7 @@
     <ul>
       <li><strong>Token axis</strong>: the full error response enters context, an LLM turn is added for the retry decision, and subsequent turns run with an inflated history. The later a failure occurs, the larger the history being carried and the heavier the input tokens.</li>
       <li><strong>LLM-call axis</strong>: each failure adds at least one, often two to three, extra turns (error analysis, retry execution, result check). The model's unit price rides along on every one.</li>
-      <li><strong>Latency axis</strong>: failure-then-retry stacks wall-clock time. SmartHR's average latency is 337ms; Slack MCP's is 163ms. Calling a slow service 2.3 times degrades the user experience twice over.</li>
+      <li><strong>Latency axis</strong>: failure-then-retry stacks wall-clock time. Probe measurements show latency gaps of 2x or more between services (e.g., 337ms vs. 163ms). Calling a slow service two or more times degrades the user experience twice over.</li>
     </ul>
 
     <p>That is why retry-tax mitigation is worth thinking about on two fronts — not only "raise the success rate" but also "<strong>lower the unit cost of a single failure</strong>." The biggest lever on the latter is <strong>prompt caching</strong>.</p>
@@ -494,7 +494,7 @@ messages.create(
 
     <div class="cta-banner">
       <h3>How much retry tax is your agent paying?</h3>
-      <p>KanseiLink provides measured data — success rates, latency, error types, and known workarounds — for 225+ Japanese SaaS services via MCP. Pinpoint the sources of your retry tax, service by service.</p>
+      <p>KanseiLink provides evaluation and early-signal data — success rates (observing), latency, error types, and known workarounds — for 225+ Japanese SaaS services via MCP. Pinpoint the sources of your retry tax, service by service.</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Talk to us about a cost audit</a>
     </div>
 
@@ -517,7 +517,7 @@ messages.create(
 
     <div class="disclosure-box">
       <div class="label">Data Disclosure & Disclaimer</div>
-      <p>The success rates, latency figures, and token-reduction percentages in this article aggregate measured agent outcome reports collected by KanseiLink (1,404 cumulative as of May 15, 2026). Per-service success rates are <code>get_insights</code> measured values: LINE WORKS 20% (5 reports), Slack MCP 91% (113 reports), SmartHR 39% (92 reports), Backlog 90% (91 reports). Token-reduction percentages for switches are <code>audit_cost</code> estimates (confidence: medium) and vary with the actual workload and task mix. "Expected attempts 1/p" is a lower bound based on the approximation that each attempt is independent with a constant success probability. Prompt caching pricing (cache read 0.1x, 5-minute write 1.25x, 1-hour write 2x) is based on the Claude API official documentation as of May 2026 (<code>platform.claude.com/docs/en/build-with-claude/prompt-caching</code>). AWS App Runner's halt on new customers (April 30, 2026) and move to maintenance mode is based on AWS's official announcement. Service success rates and pricing change over time; verify the latest <code>get_insights</code> values and each vendor's official information before production decisions.</p>
+      <p>The calculation examples and switch estimates in this article are model cases based on assumed success rates p. KanseiLink aggregates agent outcome reports (1,404 cumulative as of May 15, 2026), but measured per-service success-rate values are still accumulating (observing), and the success rates in this article are not asserted measured values for any specific named service. Token-reduction percentages for switches are <code>audit_cost</code> estimates (confidence: medium) and vary with the actual workload and task mix. "Expected attempts 1/p" is a lower bound based on the approximation that each attempt is independent with a constant success probability. Prompt caching pricing (cache read 0.1x, 5-minute write 1.25x, 1-hour write 2x) is based on the Claude API official documentation as of May 2026 (<code>platform.claude.com/docs/en/build-with-claude/prompt-caching</code>). AWS App Runner's halt on new customers (April 30, 2026) and move to maintenance mode is based on AWS's official announcement. Service success rates and pricing change over time; verify the latest <code>get_insights</code> values and each vendor's official information before production decisions.</p>
     </div>
 
     <div class="related-section">

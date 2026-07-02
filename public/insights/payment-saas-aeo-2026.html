@@ -325,7 +325,7 @@
 
     <div class="disclosure-box">
       <div class="label">データ開示</div>
-      <p>本レポートのデータはKanseiLink MCPサーバーを通じてAIエージェントが収集した実運用データに基づきます（2026年4月10日時点）。各サービスのAEOスコアはKanseiLink独自の評価メソドロジーによる算出値です。決済カテゴリはサンプル数が少ないため、信頼スコアに留意して参照ください。</p>
+      <p>本レポートのデータは、接続方式の判定とKanseiLink内部の評価・初期データに基づきます（2026年4月10日時点）。エージェント成功率に類する指標は現在実測データを蓄積中（観測中）です。各サービスのAEOスコアはKanseiLink独自の評価メソドロジーによる算出値です。決済カテゴリはサンプル数が少ないため、信頼スコアに留意して参照ください。</p>
     </div>
 
     <h2 id="overview">決済カテゴリのAEO概況 — 高セキュリティがエージェント対応を阻む構造</h2>
@@ -382,7 +382,7 @@
         <span style="font-size:13px;color:var(--gray-text);">AEOスコア 0.50</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val">100%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">観測中</div><div class="lbl">成功率</div></div>
         <div class="metric-item"><div class="val">170ms</div><div class="lbl">平均レイテンシ</div></div>
         <div class="metric-item"><div class="val">1</div><div class="lbl">実績件数</div></div>
         <div class="metric-item"><div class="val">API only</div><div class="lbl">MCPステータス</div></div>
@@ -391,7 +391,7 @@
 
     <p>PAY.JPはPAY, Inc.が提供する日本向けオンライン決済プラットフォームだ。クレジットカード決済・サブスクリプション課金・トークン決済に対応し、日本語ドキュメントとシンプルなREST APIが国内開発者に支持されている。</p>
 
-    <p>実績データはわずか1件だが、100%の成功率と170msのレイテンシは初期的に良好な数値だ。ただし、公式MCPサーバーは存在せず、エージェントからの接続にはAPIキー認証によるREST API直接呼び出しが必要になる。MCP非対応のサービスをエージェントに組み込む場合、スキーマ定義からツール実装まで開発コストがかさむため、エージェントエコシステムへの組み込みやすさという観点では後れを取っている。</p>
+    <p>実績データはわずか1件だが、170msのレイテンシは初期的に良好な数値だ（成功率は現在観測中）。ただし、公式MCPサーバーは存在せず、エージェントからの接続にはAPIキー認証によるREST API直接呼び出しが必要になる。MCP非対応のサービスをエージェントに組み込む場合、スキーマ定義からツール実装まで開発コストがかさむため、エージェントエコシステムへの組み込みやすさという観点では後れを取っている。</p>
 
     <h2 id="linepay">LINE Pay — Bグレード：認証エラーが壁、国内最大手の出遅れ</h2>
 
@@ -402,18 +402,18 @@
         <span style="font-size:13px;color:var(--gray-text);">AEOスコア 0.40</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val">0%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">観測中</div><div class="lbl">成功率</div></div>
         <div class="metric-item"><div class="val">180ms</div><div class="lbl">平均レイテンシ</div></div>
         <div class="metric-item"><div class="val">1</div><div class="lbl">実績件数</div></div>
         <div class="metric-item"><div class="val">API only</div><div class="lbl">MCPステータス</div></div>
       </div>
     </div>
 
-    <p>LINE PayはQRコード決済・オンライン決済・交通系決済を網羅し、日本国内の加盟店数・ユーザー数でトップクラスに位置する。しかし、KanseiLinkのエージェントデータでは成功率0%という厳しい結果が出ている。</p>
+    <p>LINE PayはQRコード決済・オンライン決済・交通系決済を網羅し、日本国内の加盟店数・ユーザー数でトップクラスに位置する。しかし、KanseiLinkには接続失敗（認証エラー）の報告が寄せられており、エージェント連携はつまずきやすい状態が観測されている（成功率は観測中）。</p>
 
     <p>記録されたエラーは認証エラー（<code>auth_error</code>）1件で、確認された回避策は<strong>「本番環境とは別にサンドボックス環境をLINE Pay加盟店コンソールで個別にアクティベートする必要がある」</strong>という点だ。本番・サンドボックスの設定が統合されておらず、エージェントが自動的に切り替えを行えない構造が接続の壁になっている。</p>
 
-    <p>公式MCPサーバーは存在せず、エージェント対応ロードマップも未公表。LINE Pay自体がLINE WORKSのコミュニケーション基盤と深く統合されているため、MCP対応はLINEヤフー全体のエージェント戦略と連動する形になると考えられる。コミュニケーションSaaSの分析で明らかになったLINE WORKSの出遅れ（成功率20%）と同様の構造的課題が決済領域にも及んでいる。</p>
+    <p>公式MCPサーバーは存在せず、エージェント対応ロードマップも未公表。LINE Pay自体がLINE WORKSのコミュニケーション基盤と深く統合されているため、MCP対応はLINEヤフー全体のエージェント戦略と連動する形になると考えられる。コミュニケーションSaaSの分析で明らかになったLINE WORKSの出遅れと同様の構造的課題が決済領域にも及んでいる。</p>
 
     <h2 id="paidy">Paidy — BBグレード：BNPL特化、エージェント対応は初期段階</h2>
 
@@ -424,14 +424,14 @@
         <span style="font-size:13px;color:var(--gray-text);">AEOスコア 0.50</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val">100%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">観測中</div><div class="lbl">成功率</div></div>
         <div class="metric-item"><div class="val">190ms</div><div class="lbl">平均レイテンシ</div></div>
         <div class="metric-item"><div class="val">1</div><div class="lbl">実績件数</div></div>
         <div class="metric-item"><div class="val">API only</div><div class="lbl">MCPステータス</div></div>
       </div>
     </div>
 
-    <p>PaidyはPayPal傘下のBuy Now, Pay Later（BNPL）プラットフォームで、メールアドレスと電話番号だけで決済が完結する日本独自の仕組みが特徴だ。EC事業者向けのマーチャントAPIで支払い作成・管理が可能で、1件の実績で成功率100%・レイテンシ190msを記録している。</p>
+    <p>PaidyはPayPal傘下のBuy Now, Pay Later（BNPL）プラットフォームで、メールアドレスと電話番号だけで決済が完結する日本独自の仕組みが特徴だ。EC事業者向けのマーチャントAPIで支払い作成・管理が可能で、接続報告は1件のみ・レイテンシ190msが記録されている（成功率は観測中）。</p>
 
     <p>BNPLの性質上、エージェントによる自律決済の用途は「定期購入管理」「カゴ落ち時の決済オプション提示」などに限定されやすく、単価・頻度の高い操作には向いていない。公式MCPサーバーはなく、中期的なエージェント対応計画も未公表の状態が続いている。</p>
 
@@ -461,7 +461,7 @@
           <td><strong>PAY.JP</strong></td>
           <td><span class="grade-badge bg-bb">BB</span></td>
           <td>なし (API only)</td>
-          <td>100%</td>
+          <td>観測中</td>
           <td>170ms</td>
           <td>1</td>
         </tr>
@@ -469,7 +469,7 @@
           <td><strong>LINE Pay</strong></td>
           <td><span class="grade-badge bg-b">B</span></td>
           <td>なし (API only)</td>
-          <td>0%</td>
+          <td>観測中</td>
           <td>180ms</td>
           <td>1</td>
         </tr>
@@ -477,7 +477,7 @@
           <td><strong>Paidy</strong></td>
           <td><span class="grade-badge bg-bb">BB</span></td>
           <td>なし (API only)</td>
-          <td>100%</td>
+          <td>観測中</td>
           <td>190ms</td>
           <td>1</td>
         </tr>
@@ -488,7 +488,7 @@
     <ul>
       <li><strong>グローバル展開・MCP標準化重視</strong> → Stripe（唯一の公式MCP対応、冪等性キー・テスト環境が充実）</li>
       <li><strong>国内SMB向けシンプル導入</strong> → PAY.JP（日本語ドキュメント・シンプルAPI、ただしMCP対応待ち）</li>
-      <li><strong>BNPLオプション追加</strong> → Paidy（API直接呼び出しで100%成功の初期データあり）</li>
+      <li><strong>BNPLオプション追加</strong> → Paidy（API直接呼び出しの初期報告あり・成功率は観測中）</li>
       <li><strong>LINE Pay連携は当面見送り</strong> → サンドボックス認証問題の解決を待つ</li>
     </ul>
 

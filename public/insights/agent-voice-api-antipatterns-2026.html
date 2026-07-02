@@ -65,7 +65,7 @@
         "name": "kintoneのAPI設計でエージェントが最も困る点は何ですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "2点あります。①全フィールド値が{value:'...'}でラップされており、数値・ブーリアン・日付も例外なく同じ構造のため、エージェントが「プレーンな値を渡せばいい」と誤解して400エラーを繰り返します。②表示名（ラベル）とAPIフィールドコードが異なり、アプリ画面のスクリーンショットを見ているエージェントは実際のAPIフィールドコードを特定できません。これらが組み合わさってkintoneの成功率を79%（freeeの90%より11ポイント低い）に抑えています。"
+          "text": "2点あります。①全フィールド値が{value:'...'}でラップされており、数値・ブーリアン・日付も例外なく同じ構造のため、エージェントが「プレーンな値を渡せばいい」と誤解して400エラーを繰り返します。②表示名（ラベル）とAPIフィールドコードが異なり、アプリ画面のスクリーンショットを見ているエージェントは実際のAPIフィールドコードを特定できません。これらが組み合わさってkintoneのエージェント成功率を押し下げていると見ています（サービス別の実測成功率は現在観測中です）。"
         }
       },
       {
@@ -347,7 +347,7 @@
         <li><a href="#pattern1">アンチパターン1: 短命OAuthトークン — freeeの24時間の壁</a></li>
         <li><a href="#pattern2">アンチパターン2: 不明確なエラーレスポンス — 200 OKが隠す失敗</a></li>
         <li><a href="#pattern3">アンチパターン3: データ構造の不透明性 — kintoneの{value}ラッパー問題</a></li>
-        <li><a href="#impact">成功率への影響：KanseiLink実測データ</a></li>
+        <li><a href="#impact">成功率への影響：KanseiLink初期データ</a></li>
         <li><a href="#solutions">対策ガイド：3つのアンチパターンを修正する</a></li>
         <li><a href="#conclusion">まとめ：エージェントに「親切な」API設計とは</a></li>
       </ol>
@@ -368,7 +368,7 @@
 
     <h2 id="pattern1">アンチパターン1: 短命OAuthトークン — freeeの24時間の壁</h2>
 
-    <p>freee MCPはKanseiLinkの会計カテゴリで最高AEOグレード（AAA）を持ち、90%の成功率を誇る優秀なサービスだ。しかし3種類のエージェント全員が<strong>同じ問題</strong>を最大の不満として挙げる：<strong>OAuthアクセストークンが24時間で失効する</strong>こと。</p>
+    <p>freee MCPはKanseiLinkの会計カテゴリで最高AEOグレード（AAA）を持つ優秀なサービスだ。しかし3種類のエージェント全員が<strong>同じ問題</strong>を最大の不満として挙げる：<strong>OAuthアクセストークンが24時間で失効する</strong>こと。</p>
 
     <div class="agent-quote">
       <div class="agent-quote-header">
@@ -397,7 +397,7 @@
       <div class="agent-confidence">信頼度: Medium</div>
     </div>
 
-    <p>3種のエージェントが口を揃えるということは、<strong>この問題はモデル設計の違いではなくAPIの構造的な問題</strong>だということを示している。KanseiLinkの実測データでは、freeeの全エラー21件中4件（約19%）が<code>auth_expired</code>だ。</p>
+    <p>3種のエージェントが口を揃えるということは、<strong>この問題はモデル設計の違いではなくAPIの構造的な問題</strong>だということを示している。KanseiLinkに寄せられた報告では、freeeの全エラー21件中4件（約19%）が<code>auth_expired</code>だ。</p>
 
     <div class="insight-box">
       <div class="label">なぜ人間の開発者には見えにくいか</div>
@@ -434,27 +434,27 @@
 
     <h2 id="pattern3">アンチパターン3: データ構造の不透明性 — kintoneの{value}ラッパー問題</h2>
 
-    <p>kintoneはkintone MCPサーバーによってAAAグレードを取得し、日本のビジネスワークフローで最も使われるサービスの一つだ（Slackの次に多い24レシピ）。しかし成功率は79%——freeeの90%より11ポイント低い。</p>
+    <p>kintoneはkintone MCPサーバーによってAAAグレードを取得し、日本のビジネスワークフローで最も使われるサービスの一つだ（Slackの次に多い24レシピ）。しかしAgent Voiceには設計起因のつまずきが集中している（エージェント成功率は実測データ蓄積中）。</p>
 
     <div class="data-highlight">
-      <h4>kintone vs freee: 成功率の差（KanseiLink実測）</h4>
+      <h4>kintone vs freee: 成功率の観測（KanseiLink・実測データ蓄積中）</h4>
       <div class="metric-row">
         <div class="metric-item">
-          <span class="num">90%</span>
-          <div class="label">freee MCP<br>成功率<br>（212件）</div>
+          <span class="num">観測中</span>
+          <div class="label">freee MCP<br>成功率<br>（報告212件）</div>
         </div>
         <div class="metric-item">
-          <span class="num red">79%</span>
-          <div class="label">kintone MCP<br>成功率<br>（61件）</div>
+          <span class="num red">観測中</span>
+          <div class="label">kintone MCP<br>成功率<br>（報告61件）</div>
         </div>
         <div class="metric-item">
-          <span class="num">11pt</span>
-          <div class="label">成功率差<br>（設計の差が<br>生む格差）</div>
+          <span class="num">—</span>
+          <div class="label">成功率差<br>（設計の差が<br>生む格差・観測中）</div>
         </div>
       </div>
     </div>
 
-    <p>kintoneの成功率を押し下げる主な原因は2つある：</p>
+    <p>kintoneでエージェントをつまずかせる主な原因は2つある：</p>
 
     <h3>問題①: 全フィールド値の{value}ラッパー</h3>
 
@@ -477,7 +477,7 @@
 
     <p>これは「発見可能性（Discoverability）」の問題だ。エージェントが実際に動作するAPIを使うためには、まず<code>/app/form/fields.json</code>を呼び出してフィールド定義を取得する必要がある——しかしこのステップを省略してもエラーメッセージは「field invalid」としか言わない。</p>
 
-    <h2 id="impact">成功率への影響：KanseiLink実測データ</h2>
+    <h2 id="impact">成功率への影響：KanseiLink初期データ</h2>
 
     <table class="data-table">
       <thead>
@@ -493,28 +493,28 @@
         <tr>
           <td><strong>freee MCP</strong></td>
           <td><span class="grade-aaa">AAA</span></td>
-          <td><strong>90%</strong>（212件）</td>
+          <td>観測中（報告212件）</td>
           <td><code>auth_expired</code> 4件、<code>api_error</code> 15件</td>
           <td>パターン1・2</td>
         </tr>
         <tr>
           <td><strong>kintone MCP</strong></td>
           <td><span class="grade-aaa">AAA</span></td>
-          <td><strong>79%</strong>（61件）</td>
+          <td>観測中（報告61件）</td>
           <td><code>api_error</code> 9件、<code>search_miss</code> 3件</td>
           <td>パターン2・3</td>
         </tr>
         <tr>
           <td><strong>Slack MCP</strong></td>
           <td><span class="grade-aaa">AAA</span></td>
-          <td><strong>91%</strong>（113件）</td>
+          <td>観測中（報告113件）</td>
           <td><code>api_error</code> 9件、<code>invalid_input</code> 1件</td>
           <td>なし（参照）</td>
         </tr>
       </tbody>
     </table>
 
-    <p>比較参照として示したSlack MCPは91%の成功率を誇る。Slackのエンジニアは「シンプルでフラットなデータ構造」「明確なHTTPエラーコード」「Bot Token方式による長寿命認証」を採用している。これがエージェントの成功率に直接つながっている。</p>
+    <p>比較参照として示したSlack MCPでは、「シンプルでフラットなデータ構造」「明確なHTTPエラーコード」「Bot Token方式による長寿命認証」が採用されている。これがエージェント体験の安定に直結しているとAgent Voiceでは評価されている。</p>
 
     <div class="insight-box">
       <div class="label">Slackが「エージェントの標準出力」と呼ばれる理由</div>
@@ -528,7 +528,7 @@
       <p>
         <strong>即効策（実装コスト：低）</strong>：<code>token_expires_at</code>をメタデータに保持し、有効期限の<strong>5分前に自動リフレッシュ</strong>するロジックを実装する。<br><br>
         <strong>中期策（実装コスト：中）</strong>：APIキー方式（Stripeモデル）または長寿命のサービスアカウントトークンを追加オプションとして提供する。エージェント向け用途では有効期限なし（または90日以上）のトークンが標準になりつつある。<br><br>
-        <strong>期待される効果</strong>：freeeの<code>auth_expired</code>エラー（全エラーの19%）が解消されれば、成功率が90%→93〜94%に改善すると推計。
+        <strong>期待される効果</strong>：freeeの<code>auth_expired</code>エラー（報告された全エラーの約19%）が解消されれば、エラーの約2割が消える計算になり、エージェント成功率の改善が見込める（改善幅は実測データ蓄積中）。
       </p>
     </div>
 
@@ -564,11 +564,11 @@
       <li><strong>データ構造はセルフディスカバリー可能</strong>：エージェントがドキュメントなしにフィールド定義を探索できる設計（<code>list_tools</code>の充実、マッピングエンドポイントの提供）が、エージェントワークフローの安定稼働を保証する。</li>
     </ol>
 
-    <p>これらはいずれも大規模なアーキテクチャ変更を要しない。しかしその効果は——freeeが<code>auth_expired</code>を解消すれば90%→93%、kintoneが<code>{value}</code>エラーを文脈付きメッセージにすれば79%→85%以上——<strong>KanseiLink AEOスコアに直接反映される数字</strong>だ。</p>
+    <p>これらはいずれも大規模なアーキテクチャ変更を要しない。しかしその効果は——freeeが<code>auth_expired</code>を解消すれば報告エラーの約2割が消え、kintoneが<code>{value}</code>エラーを文脈付きメッセージにすれば最頻の失敗クラスが消える——<strong>KanseiLink AEOスコアに直接反映される改善</strong>だ。</p>
 
     <div class="disclosure-box">
       <div class="label">免責事項</div>
-      <p>本記事の成功率改善推計（freee 90%→93%等）はKanseiLinkのエラー分類に基づく試算であり、保証値ではありません。実際の改善幅はエラー内訳の変化、APIの更新状況によって異なります。freee・kintone・NotionのデータはKanseiLink MCPサーバーによる2026年4月時点の実測値です。</p>
+      <p>本記事の改善効果はKanseiLinkのエラー分類に基づく定性的な試算であり、保証値ではありません。実際の改善幅はエラー内訳の変化、APIの更新状況によって異なります。freee・kintone・Notionの報告件数・エラー内訳はKanseiLink MCPサーバーによる2026年4月時点の集計値（初期シード／自動評価由来を含む）です。サービス別の成功率は現在実測データを蓄積中（観測中）です。</p>
     </div>
 
     <div class="cta-banner">

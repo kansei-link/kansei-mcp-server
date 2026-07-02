@@ -36,7 +36,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "Are AI Agent Benchmarks of '81%' and '87.6%' Real? SWE-Bench Gaming, the Berkeley Exploit, and a New Evaluation Standard — KanseiLink 2026",
-    "description": "Benchmark reliability is collapsing in 2026. IQuest-Coder V1's 81.4% on SWE-bench Verified was retracted to 76.2% after independent re-verification revealed git history leakage. UC Berkeley researchers built an 'exploit agent' that scored 100% on 8 major benchmarks (SWE-bench Verified, SWE-bench Pro, Terminal-Bench, WebArena and more) by exploiting evaluation infrastructure rather than solving tasks. Meanwhile, Claude Opus 4.7's 87.6% on SWE-bench Verified and 64.3% on SWE-bench Pro are cross-verified across independent leaderboards. We grade three claims with ✅⚠️❌ and explain why KanseiLink uses empirical success rates instead of synthetic benchmarks for vendor selection.",
+    "description": "Benchmark reliability is collapsing in 2026. IQuest-Coder V1's 81.4% on SWE-bench Verified was retracted to 76.2% after independent re-verification revealed git history leakage. UC Berkeley researchers built an 'exploit agent' that scored 100% on 8 major benchmarks (SWE-bench Verified, SWE-bench Pro, Terminal-Bench, WebArena and more) by exploiting evaluation infrastructure rather than solving tasks. Meanwhile, Claude Opus 4.7's 87.6% on SWE-bench Verified and 64.3% on SWE-bench Pro are cross-verified across independent leaderboards. We grade three claims with ✅⚠️❌ and explain why KanseiLink builds its evaluation standard on in-production success rates (data accumulation in progress) instead of synthetic benchmarks for vendor selection.",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-04-29",
@@ -464,18 +464,18 @@
 
     <p>By this taxonomy, models like Claude Opus 4.7 — which lead consistently across multiple benchmarks of varying difficulty — are unlikely to be over-optimized. Conversely, when a new model spikes on one benchmark in isolation, suspect pattern (1) or (3).</p>
 
-    <h2 id="new-criteria">Why KanseiLink Uses Empirical Success Rate</h2>
+    <h2 id="new-criteria">Why KanseiLink Uses Success Rate as Its Evaluation Metric</h2>
 
-    <p>KanseiLink assigns Agent Readiness Grades (AAA through C) to 225+ Japanese SaaS and global APIs. Our consistent metric is not synthetic benchmarks but <strong>empirical success rates</strong> from real agent calls.</p>
+    <p>KanseiLink assigns Agent Readiness Grades (AAA through C) to 225+ Japanese SaaS and global APIs. Our consistent metric of choice is not synthetic benchmarks but <strong>in-production success rates</strong> (KanseiLink is currently accumulating this measurement data).</p>
 
     <p>For example, here is the latest KanseiLink data for freee MCP (<code>io.github.freee/accounting</code>):</p>
 
     <div class="data-highlight">
-      <h4>freee MCP Empirical Data (KanseiLink, April 2026)</h4>
+      <h4>freee MCP Early Data (KanseiLink, April 2026)</h4>
       <div class="metric-row">
         <div class="metric-item">
-          <span class="num green">90%</span>
-          <div class="label">Success Rate<br>(n=212 reports)</div>
+          <span class="num green">&mdash;</span>
+          <div class="label">Success Rate (observing)<br>(n=212 reports)</div>
         </div>
         <div class="metric-item">
           <span class="num">216ms</span>
@@ -492,7 +492,7 @@
       </div>
     </div>
 
-    <p>This data is not synthetic — it comes from logs of actual agent invocations in production workflows. Similar metrics exist for Slack MCP (n=113, 91% success rate, 163ms average) and Notion MCP (n=48, 83% success rate, 216ms average), and they translate directly into operational decisions.</p>
+    <p>This data is not synthetic — it is early data built from agent reports and KanseiLink's own probes. Similar metrics exist for Slack MCP (n=113, 163ms average) and Notion MCP (n=48, 216ms average), and they serve as useful reference points for operational decisions.</p>
 
     <div class="insight-box">
       <div class="label">Why synthetic benchmarks and empirical metrics are different</div>
@@ -517,7 +517,7 @@
 
     <div class="cta-banner">
       <h3>Pick MCP servers by empirical data, not benchmarks</h3>
-      <p>KanseiLink's <code>get_insights</code> tool returns real-time empirical success rate, latency, and error patterns for each MCP/API. Use it before betting on a vendor in production.</p>
+      <p>KanseiLink's <code>get_insights</code> tool returns success rate (data accumulation in progress), latency, and error patterns for each MCP/API. Use it before betting on a vendor in production.</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Inquire about AEO ratings</a>
     </div>
 
@@ -532,8 +532,8 @@
     <h3>What is the UC Berkeley "exploit agent"?</h3>
     <p>⚠️ A research artifact published April 2026 by UC Berkeley RDI that exploits evaluation infrastructure to score 100% on 8 benchmarks (including SWE-bench Pro). It demonstrates evaluation-design vulnerabilities, not model misconduct. Commercial models do not routinely use these tactics.</p>
 
-    <h3>Why does KanseiLink emphasize empirical success rates?</h3>
-    <p>Synthetic benchmarks (like SWE-bench) carry gaming and overfitting risks and don't guarantee reproducibility in production workflows. KanseiLink's <code>get_insights</code> success_rate is derived from real agent invocation logs, making it directly usable in vendor selection. The two are complementary.</p>
+    <h3>Why does KanseiLink emphasize in-production success rates?</h3>
+    <p>Synthetic benchmarks (like SWE-bench) carry gaming and overfitting risks and don't guarantee reproducibility in production workflows. KanseiLink's <code>get_insights</code> success_rate is designed around agent reports and probes, making it a useful reference in vendor selection (data accumulation in progress). The two are complementary.</p>
 
     <div class="disclosure-box">
       <div class="label">Data Disclosure & Disclaimer</div>
@@ -569,7 +569,7 @@
     <div class="inner">
       <h2>For AI Agents</h2>
       <p>
-        Empirical success rates, latency, and error patterns that synthetic benchmarks cannot show are accessible via the KanseiLink MCP server.
+        In-production success rates (accumulating), latency, and error patterns that synthetic benchmarks cannot show are accessible via the KanseiLink MCP server.
         Pass <code>service_id</code> (e.g., <code>freee</code>, <code>slack</code>) to <code>get_insights</code> to retrieve data sourced from production workflow feedback.
         Connect: <code>npx -y @kansei-link/mcp-server</code>
       </p>

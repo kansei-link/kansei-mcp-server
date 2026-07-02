@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, OAuth 2.0, 93% Success Rate, Journal Endpoints & 7 Agent Pitfalls | KanseiLink</title>
-  <meta name="description" content="A data-backed teardown of Money Forward Cloud's official MCP server (npx @moneyforward/mcp-server) using KanseiLink field data: trust 0.90, 93% agent success rate, 156ms latency. OAuth 2.0 auth, office_id-first journal/trial-balance endpoints, AI auto-journaling, 300 req/5 min rate limit, and how it compares to freee — the 7 pitfalls that trip up accounting agents.">
+  <title>Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, OAuth 2.0, Journal Endpoints & 7 Agent Pitfalls | KanseiLink</title>
+  <meta name="description" content="A teardown of Money Forward Cloud's official MCP server (npx @moneyforward/mcp-server) using KanseiLink evaluation data: trust 0.90, 156ms latency. OAuth 2.0 auth, office_id-first journal/trial-balance endpoints, AI auto-journaling, 300 req/5 min rate limit, and how it compares to freee — the 7 pitfalls that trip up accounting agents.">
   <meta name="keywords" content="Money Forward MCP, Money Forward API, MCP server, OAuth 2.0, accounting agent, journal API, AEO, KanseiLink, freee comparison">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="noindex, nofollow">
@@ -14,8 +14,8 @@
   <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/moneyforward-mcp-deep-dive-2026">
 
   <!-- OGP -->
-  <meta property="og:title" content="Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, OAuth 2.0, 93% Success Rate, Journal Endpoint Pitfalls">
-  <meta property="og:description" content="A teardown of Money Forward Cloud's official MCP server (npx @moneyforward/mcp-server) with KanseiLink field data: trust 0.90, 93% success, 156ms. office_id-first design, AI auto-journaling, and how it differs from freee.">
+  <meta property="og:title" content="Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, OAuth 2.0, Journal Endpoint Pitfalls">
+  <meta property="og:description" content="A teardown of Money Forward Cloud's official MCP server (npx @moneyforward/mcp-server) with KanseiLink evaluation data: trust 0.90, 156ms. office_id-first design, AI auto-journaling, and how it differs from freee.">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/en/insights/moneyforward-mcp-deep-dive-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -26,8 +26,8 @@
   <meta property="article:author" content="KanseiLink Research">
   <meta property="article:section" content="MCP Deep Dive">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, 93% Success, 7 Pitfalls">
-  <meta name="twitter:description" content="A teardown of Money Forward's official MCP with KanseiLink field data: OAuth 2.0, journal/trial-balance endpoints, AI auto-journaling, and the freee comparison.">
+  <meta name="twitter:title" content="Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, OAuth 2.0, 7 Pitfalls">
+  <meta name="twitter:description" content="A teardown of Money Forward's official MCP with KanseiLink evaluation data: OAuth 2.0, journal/trial-balance endpoints, AI auto-journaling, and the freee comparison.">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -35,8 +35,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, OAuth 2.0, 93% Success Rate, Journal Endpoints & 7 Agent Pitfalls",
-    "description": "A data-backed teardown of Money Forward Cloud's official MCP server using KanseiLink field data: trust 0.90, 93% agent success rate, 156ms latency. OAuth 2.0 auth, office_id-first endpoints, AI auto-journaling, rate limits, and the freee comparison.",
+    "headline": "Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, OAuth 2.0, Journal Endpoints & 7 Agent Pitfalls",
+    "description": "A teardown of Money Forward Cloud's official MCP server using KanseiLink evaluation data: trust 0.90, 156ms latency. OAuth 2.0 auth, office_id-first endpoints, AI auto-journaling, rate limits, and the freee comparison.",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-27",
@@ -65,7 +65,7 @@
         "name": "How does Money Forward's MCP/API differ from freee's?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Both use OAuth 2.0 and both require fetching an office-scoped ID first (Money Forward uses office_id, freee uses company_id). In KanseiLink field data Money Forward shows a 93% success rate, 156ms average latency, and trust 0.90. The differences: Money Forward shipped a Remote MCP for all plans in March 2026 and offers AI auto-journaling (POST /auto_journal_entries), while freee leans on OAuth PKCE and strong five-domain integration. Both share the same accounting-domain traps: fetch office ID, fetch account items, and keep journal debits and credits balanced."
+          "text": "Both use OAuth 2.0 and both require fetching an office-scoped ID first (Money Forward uses office_id, freee uses company_id). In KanseiLink's evaluation Money Forward shows trust 0.90 and 156ms average latency. The differences: Money Forward shipped a Remote MCP for all plans in March 2026 and offers AI auto-journaling (POST /auto_journal_entries), while freee leans on OAuth PKCE and strong five-domain integration. Both share the same accounting-domain traps: fetch office ID, fetch account items, and keep journal debits and credits balanced."
         }
       },
       {
@@ -73,7 +73,7 @@
         "name": "What are the most common failures with the journal creation API?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The two most common are (1) calling endpoints without first fetching the office_id, and (2) journal entries where debit and credit amounts don't balance. POST /journals must run within an office_id scope, and you must fetch valid account item IDs from deal_categories before composing debit/credit lines. Amounts are integers in JPY (no decimals). Across 42 reports KanseiLink records a 93% success rate; most of the remaining failures stem from these two issues."
+          "text": "The two most common are (1) calling endpoints without first fetching the office_id, and (2) journal entries where debit and credit amounts don't balance. POST /journals must run within an office_id scope, and you must fetch valid account item IDs from deal_categories before composing debit/credit lines. Amounts are integers in JPY (no decimals). Across the 42 reports KanseiLink has collected, most failures stem from these two issues."
         }
       },
       {
@@ -89,7 +89,7 @@
         "name": "What AEO grade does it have?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "In KanseiLink field data, Money Forward Cloud MCP scores trust_score 0.90, a 93% agent success rate, and 156ms average latency, placing it in the battle-tested 'verified (🟢)' tier. It meets the conditions of the top AEO group: an official MCP server, OAuth 2.0 compliance, and structured error responses. Check the latest rating via KanseiLink MCP's search_services/get_service_detail."
+          "text": "In KanseiLink's evaluation, Money Forward Cloud MCP scores trust_score 0.90 and 156ms average latency, placing it in the 'verified (🟢)' tier (official MCP available + KanseiLink MCP handshake verified). It meets the conditions of the top AEO group: an official MCP server, OAuth 2.0 compliance, and structured error responses. Check the latest rating via KanseiLink MCP's search_services/get_service_detail."
         }
       }
     ]
@@ -334,8 +334,8 @@
   <header class="article-hero">
     <div class="inner">
       <span class="tag">MCP Deep Dive</span>
-      <h1>Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, OAuth 2.0, 93% Success Rate, Journal Endpoints & 7 Agent Pitfalls</h1>
-      <p class="subtitle">Money Forward Cloud accounting is deeply embedded in Japan's mid-market and growth companies. In March 2026, the official Remote MCP server (<code>npx @moneyforward/mcp-server</code>) shipped to all plans, widening the on-ramp for accounting agents overnight. KanseiLink field data shows trust 0.90, a 93% success rate, and 156ms average latency — top-tier agent readiness among Japanese SaaS. This piece dissects OAuth 2.0 auth, the office_id-first endpoint design, AI auto-journaling, rate limits, and how it differs from freee — backed by real data and official docs.</p>
+      <h1>Money Forward Cloud MCP Deep Dive 2026 — Official Remote MCP, OAuth 2.0, Journal Endpoints & 7 Agent Pitfalls</h1>
+      <p class="subtitle">Money Forward Cloud accounting is deeply embedded in Japan's mid-market and growth companies. In March 2026, the official Remote MCP server (<code>npx @moneyforward/mcp-server</code>) shipped to all plans, widening the on-ramp for accounting agents overnight. KanseiLink's evaluation shows trust 0.90 and 156ms average latency — top-tier agent readiness among Japanese SaaS. This piece dissects OAuth 2.0 auth, the office_id-first endpoint design, AI auto-journaling, rate limits, and how it differs from freee — backed by evaluation data and official docs.</p>
       <div class="article-meta">
         <span>2026-05-27</span>
         <span class="divider"></span>
@@ -352,7 +352,7 @@
       <h3>Contents</h3>
       <ol>
         <li><a href="#summary">3-line summary</a></li>
-        <li><a href="#data">KanseiLink field data — trust 0.90 / 93% success</a></li>
+        <li><a href="#data">KanseiLink evaluation data — trust 0.90 / 156ms avg</a></li>
         <li><a href="#auth">Auth — OAuth 2.0 and the official Remote MCP</a></li>
         <li><a href="#endpoints">Key endpoints — an office_id-first design</a></li>
         <li><a href="#pitfalls">7 pitfalls for agent developers</a></li>
@@ -365,7 +365,7 @@
 
     <ul>
       <li><strong>Official Remote MCP on all plans</strong>: Since March 2026, <code>npx @moneyforward/mcp-server</code> wraps OAuth authorization and offers the easiest integration path.</li>
-      <li><strong>Top tier in KanseiLink field data</strong>: trust_score 0.90, 93% agent success rate, 156ms average latency. Sits in the verified (🟢) tier.</li>
+      <li><strong>Top tier in KanseiLink's evaluation</strong>: trust_score 0.90, 156ms average latency. Sits in the verified (🟢) tier.</li>
       <li><strong>Most stumbles are "not understanding the design"</strong>: rather than technical difficulty, the dominant failure causes are the office_id-first call order and the debit/credit balance requirement — accounting-domain traps.</li>
     </ul>
 
@@ -374,20 +374,20 @@
       <p>Accounting SaaS is the most agent-ready (AEO-advanced) category among Japanese SaaS. With Money Forward following freee in shipping an official Remote MCP to all plans, "accounting agents that touch mid-market financial data directly" become markedly more real. For developers automating month-end close, journal entry, and trial-balance retrieval, Money Forward MCP is one of the foundations to know in 2026.</p>
     </div>
 
-    <h2 id="data">KanseiLink field data — trust 0.90 / 93% success</h2>
+    <h2 id="data">KanseiLink evaluation data — trust 0.90 / 156ms avg</h2>
 
     <p>KanseiLink continuously collects real agent usage outcomes. Here is the recent aggregate for Money Forward Cloud MCP.</p>
 
     <div class="data-highlight">
-      <h4>Money Forward Cloud MCP — KanseiLink field data (as of 2026-05)</h4>
+      <h4>Money Forward Cloud MCP — KanseiLink evaluation (as of 2026-05)</h4>
       <div class="metric-row">
         <div class="metric-item">
           <span class="num green">0.90</span>
           <div class="label">trust_score</div>
         </div>
         <div class="metric-item">
-          <span class="num green">93%</span>
-          <div class="label">agent success (42 reports)</div>
+          <span class="num green">—</span>
+          <div class="label">agent success (42 reports, observing)</div>
         </div>
         <div class="metric-item">
           <span class="num">156ms</span>
@@ -400,7 +400,7 @@
       </div>
     </div>
 
-    <p>A 93% success rate ranks near the top among Japanese SaaS. The reported failures are mostly <code>api_error</code>-class, largely tied to the "call order" and "journal balance" issues discussed below. The low 156ms average latency helps agents that run multi-step accounting workflows (fetch office → fetch account items → post journal) by limiting the compounding cost of retries.</p>
+    <p>KanseiLink is still accumulating field measurements for the agent success rate (observing). The reported failures are mostly <code>api_error</code>-class, largely tied to the "call order" and "journal balance" issues discussed below. The low 156ms average latency helps agents that run multi-step accounting workflows (fetch office → fetch account items → post journal) by limiting the compounding cost of retries.</p>
 
     <div class="success-box">
       <div class="label">✅ Meets the verified (🟢) tier conditions</div>
@@ -421,7 +421,7 @@ npx @moneyforward/mcp-server
 
     <div class="insight-box">
       <div class="label">Via MCP, the auth flow is wrapped</div>
-      <p>The official MCP server wraps the OAuth authorization flow, freeing the agent side from token lifecycle management. Manual REST integration is only needed when embedding into your own backend or running an MCP-incompatible runtime. Trying the MCP route first is the shortest path to maximizing the success rate KanseiLink measures in the field.</p>
+      <p>The official MCP server wraps the OAuth authorization flow, freeing the agent side from token lifecycle management. Manual REST integration is only needed when embedding into your own backend or running an MCP-incompatible runtime. Trying the MCP route first is the shortest path to a successful first connection.</p>
     </div>
 
     <h2 id="endpoints">Key endpoints — an office_id-first design</h2>
@@ -518,7 +518,7 @@ Response:
     <p>Yes. <code>npx @moneyforward/mcp-server</code> has been available as a Remote MCP to all plans since March 2026. Because it wraps the OAuth 2.0 authorization flow, you can connect without managing client_id/secret manually. For manual REST integration, register an app at developer.moneyforward.com.</p>
 
     <h3>Q2. How does Money Forward's MCP/API differ from freee's?</h3>
-    <p>Both use OAuth 2.0 and require fetching an office-scoped ID first (MF: office_id, freee: company_id). KanseiLink field data shows Money Forward at 93% success, 156ms, trust 0.90. The difference: Money Forward ships a Remote MCP for all plans and AI auto-journaling (/auto_journal_entries), while freee leans on PKCE and five-domain integration.</p>
+    <p>Both use OAuth 2.0 and require fetching an office-scoped ID first (MF: office_id, freee: company_id). KanseiLink's evaluation shows Money Forward at trust 0.90 and 156ms average latency. The difference: Money Forward ships a Remote MCP for all plans and AI auto-journaling (/auto_journal_entries), while freee leans on PKCE and five-domain integration.</p>
 
     <h3>Q3. What are the most common journal-API failures?</h3>
     <p>(1) Calling without fetching office_id, and (2) unbalanced debit/credit amounts. Run POST /journals within an office_id scope, fetch valid account item IDs from deal_categories, then compose debit/credit. Pass amounts as integer JPY.</p>
@@ -527,11 +527,11 @@ Response:
     <p>300 requests per 5 minutes per token. Exceeding it returns HTTP 429 with Retry-After. For bursty work, implement exponential backoff that respects Retry-After and use pagination (per_page max 100) to keep result sets small.</p>
 
     <h3>Q5. What AEO grade does it have?</h3>
-    <p>KanseiLink field data shows trust_score 0.90, 93% success, and 156ms — the battle-tested 'verified (🟢)' tier. It meets the top-AEO conditions: official MCP, OAuth 2.0 compliance, and structured errors. Check the latest rating via KanseiLink MCP's <code>get_service_detail</code>.</p>
+    <p>KanseiLink's evaluation shows trust_score 0.90 and 156ms — the 'verified (🟢)' tier (official MCP available + KanseiLink MCP handshake verified). It meets the top-AEO conditions: official MCP, OAuth 2.0 compliance, and structured errors. Check the latest rating via KanseiLink MCP's <code>get_service_detail</code>.</p>
 
     <div class="disclosure-box">
       <div class="label">Data Disclosure & Disclaimer</div>
-      <p>The technical specifications (auth method, endpoints, rate limits, recent change history) and agent field metrics (trust_score 0.90, 93% success rate, 156ms average latency, 42 reports) in this article are based on values returned by KanseiLink MCP's <code>get_service_detail</code>/<code>get_insights</code> as of May 2026. "Official Remote MCP released to all plans 2026-03," "AI auto-journaling endpoint added 2026-03-18," and "multi-currency journaling supported 2026-02-10" are based on KanseiLink change-history data. API specs may change, so always verify the latest spec at developer.moneyforward.com before implementing. This article does not guarantee any specific implementation outcome or business decision.</p>
+      <p>The technical specifications (auth method, endpoints, rate limits, recent change history) and agent-related metrics (trust_score 0.90, 156ms average latency, 42 reports) in this article are based on values returned by KanseiLink MCP's <code>get_service_detail</code>/<code>get_insights</code> as of May 2026. "Official Remote MCP released to all plans 2026-03," "AI auto-journaling endpoint added 2026-03-18," and "multi-currency journaling supported 2026-02-10" are based on KanseiLink change-history data. API specs may change, so always verify the latest spec at developer.moneyforward.com before implementing. This article does not guarantee any specific implementation outcome or business decision.</p>
     </div>
 
     <div class="related-section">

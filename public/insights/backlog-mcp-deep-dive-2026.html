@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Backlog MCP完全攻略 2026 — 90%成功率・128ms・42ツールの実力と『apiKey URL方式』の罠 | KanseiLink</title>
-  <meta name="description" content="Nulab公式Backlog MCPサーバーの完全攻略ガイド。KanseiLink実測データ(n=91、success_rate 90%、avg_latency 128ms、AAA格付け)から見えた認証2方式の選び方、x-www-form-urlencodedの落とし穴、3月25日追加のバルク更新ツール、エージェント開発で陥りがちな5つの罠を解説。">
+  <title>Backlog MCP完全攻略 2026 — AAAグレード・42ツールの実力と『apiKey URL方式』の罠 | KanseiLink</title>
+  <meta name="description" content="Nulab公式Backlog MCPサーバーの完全攻略ガイド。KanseiLink評価データ(n=91、avg_latency 128ms、AAA格付け)から見えた認証2方式の選び方、x-www-form-urlencodedの落とし穴、3月25日追加のバルク更新ツール、エージェント開発で陥りがちな5つの罠を解説。">
   <meta name="keywords" content="Backlog MCP, Nulab MCP server, Backlog API key, Backlog OAuth, AAA格付け, KanseiLink, プロジェクト管理 MCP, x-www-form-urlencoded, 日本SaaS エージェント">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="noindex, nofollow">
@@ -14,8 +14,8 @@
   <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/backlog-mcp-deep-dive-2026">
 
   <!-- OGP -->
-  <meta property="og:title" content="Backlog MCP完全攻略 2026 — 90%成功率・128ms・42ツールの実力と『apiKey URL方式』の罠">
-  <meta property="og:description" content="Nulab公式Backlog MCPサーバーの完全攻略。KanseiLink実測(n=91、成功率90%、レイテンシ128ms、AAA)から認証選択・urlencoded罠・5つの落とし穴を整理。">
+  <meta property="og:title" content="Backlog MCP完全攻略 2026 — AAAグレード・42ツールの実力と『apiKey URL方式』の罠">
+  <meta property="og:description" content="Nulab公式Backlog MCPサーバーの完全攻略。KanseiLink評価(n=91、レイテンシ128ms、AAA)から認証選択・urlencoded罠・5つの落とし穴を整理。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/insights/backlog-mcp-deep-dive-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -26,8 +26,8 @@
   <meta property="article:author" content="KanseiLink Research">
   <meta property="article:section" content="個別SaaS深掘り">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Backlog MCP完全攻略 2026 — 90%成功率の本質と5つの落とし穴">
-  <meta name="twitter:description" content="Nulab公式MCP・42ツール・AAA格付け。KanseiLink実測データで認証2方式比較・urlencoded罠・バルク更新新機能まで完全ガイド。">
+  <meta name="twitter:title" content="Backlog MCP完全攻略 2026 — AAAグレードの本質と5つの落とし穴">
+  <meta name="twitter:description" content="Nulab公式MCP・42ツール・AAA格付け。KanseiLink評価データで認証2方式比較・urlencoded罠・バルク更新新機能まで完全ガイド。">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -35,8 +35,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Backlog MCP完全攻略 2026 — 90%成功率・128ms・42ツールの実力と『apiKey URL方式』の罠",
-    "description": "Nulab公式Backlog MCPサーバーの完全攻略ガイド。KanseiLink実測データ(n=91、success_rate 90%、avg_latency 128ms、AAA格付け)から見えた認証2方式の選び方、x-www-form-urlencodedの落とし穴、3月25日追加のバルク更新ツール、エージェント開発で陥りがちな5つの罠を解説。日本のエンジニアチームで広く採用されるBacklogをエージェントから安全かつ高信頼で操作するための実践レシピ。",
+    "headline": "Backlog MCP完全攻略 2026 — AAAグレード・42ツールの実力と『apiKey URL方式』の罠",
+    "description": "Nulab公式Backlog MCPサーバーの完全攻略ガイド。KanseiLink評価データ(n=91、avg_latency 128ms、AAA格付け)から見えた認証2方式の選び方、x-www-form-urlencodedの落とし穴、3月25日追加のバルク更新ツール、エージェント開発で陥りがちな5つの罠を解説。日本のエンジニアチームで広く採用されるBacklogをエージェントから安全かつ高信頼で操作するための実践レシピ。",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-04-30",
@@ -57,7 +57,7 @@
         "name": "Backlog MCPサーバーの認証はAPIキーとOAuth、どちらを選ぶべきですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "個人開発・社内エージェントの単一ユーザー想定であればAPIキー方式が最もシンプルです。Backlogの個人設定からAPIキーを発行し、各リクエストURLに ?apiKey={key} を付与するだけで動作します。複数ユーザーがそれぞれ自分のBacklogアカウントでエージェントを使うSaaS用途や、トークンを定期ローテーションしたい運用ではOAuth 2.0(developer.nulab.com登録)が必須です。Nulab公式のbacklog-mcp-serverは両方をサポートしますが、KanseiLink実測ではAPIキー方式での運用が9割以上を占めています。"
+          "text": "個人開発・社内エージェントの単一ユーザー想定であればAPIキー方式が最もシンプルです。Backlogの個人設定からAPIキーを発行し、各リクエストURLに ?apiKey={key} を付与するだけで動作します。複数ユーザーがそれぞれ自分のBacklogアカウントでエージェントを使うSaaS用途や、トークンを定期ローテーションしたい運用ではOAuth 2.0(developer.nulab.com登録)が必須です。Nulab公式のbacklog-mcp-serverは両方をサポートしますが、KanseiLinkの初期データではAPIキー方式での運用が大半を占めています。"
         }
       },
       {
@@ -70,10 +70,10 @@
       },
       {
         "@type": "Question",
-        "name": "Backlog MCPはAAA格付けですが、KanseiLink実測の根拠は？",
+        "name": "Backlog MCPはAAA格付けですが、KanseiLink評価の根拠は？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLink AEO格付けでBacklog MCPはAAA(trust_score 0.9)。根拠は、(1) Nulab公式・MITライセンスのMCPサーバー、(2) 91件の実測レポートで成功率90%、(3) 平均レイテンシ128ms(主要MCPの中で最速級)、(4) timeoutエラー0件、(5) auth_errorはAPIキー再発行のワークアラウンドが確立、(6) 42+ツール・7機能領域(課題・Wiki・Git・PR・ファイル等)を網羅、の6点です。最も多いエラーはapi_error 6件ですが、いずれもリトライ可能な範疇に収まっています。"
+          "text": "KanseiLink AEO格付けでBacklog MCPはAAA(trust_score 0.9)。根拠は、(1) Nulab公式・MITライセンスのMCPサーバー、(2) 91件のレポート蓄積(成功率は観測中)、(3) 平均レイテンシ128ms(主要MCPの中で最速級)、(4) timeoutエラー0件、(5) auth_errorはAPIキー再発行のワークアラウンドが確立、(6) 42+ツール・7機能領域(課題・Wiki・Git・PR・ファイル等)を網羅、の6点です。最も多いエラーはapi_error 6件ですが、いずれもリトライ可能な範疇に収まっています。"
         }
       },
       {
@@ -330,8 +330,8 @@
   <header class="article-hero">
     <div class="inner">
       <span class="tag">個別SaaS深掘り / Service Deep-Dive</span>
-      <h1>Backlog MCP完全攻略 2026 — 90%成功率・128ms・42ツールの実力と『apiKey URL方式』の罠</h1>
-      <p class="subtitle">Nulab公式Backlog MCPサーバーは日本のエンジニアチームで広く採用される。KanseiLink実測データ(n=91、success_rate 90%、avg_latency 128ms、AAA格付け)から見えた認証2方式の選び方、x-www-form-urlencodedの落とし穴、3月25日追加のバルク更新ツール、エージェント開発で陥りがちな5つの罠を整理する。</p>
+      <h1>Backlog MCP完全攻略 2026 — AAAグレード・42ツールの実力と『apiKey URL方式』の罠</h1>
+      <p class="subtitle">Nulab公式Backlog MCPサーバーは日本のエンジニアチームで広く採用される。KanseiLink評価データ(n=91、avg_latency 128ms、AAA格付け)から見えた認証2方式の選び方、x-www-form-urlencodedの落とし穴、3月25日追加のバルク更新ツール、エージェント開発で陥りがちな5つの罠を整理する。</p>
       <div class="article-meta">
         <span>2026-04-30</span>
         <span class="divider"></span>
@@ -348,7 +348,7 @@
       <h3>目次</h3>
       <ol>
         <li><a href="#why">なぜBacklog MCPか — 日本市場の文脈</a></li>
-        <li><a href="#data">KanseiLink実測データの読み解き</a></li>
+        <li><a href="#data">KanseiLink評価データの読み解き</a></li>
         <li><a href="#auth">認証2方式の選び方</a></li>
         <li><a href="#urlencoded">罠①: x-www-form-urlencodedの壁</a></li>
         <li><a href="#pagination">罠②: 全件カウントが返らないペジネーション</a></li>
@@ -370,7 +370,7 @@
       <p>Nulab公式・MIT・42+ツールという三拍子が揃ったMCPサーバーは、日本SaaSではBacklog以外にまだ少数派だ。「公式」かつ「商用OK」かつ「機能網羅」のサーバーが選択肢にあること自体が大きなアドバンテージとなる。</p>
     </div>
 
-    <h2 id="data">KanseiLink実測データの読み解き</h2>
+    <h2 id="data">KanseiLink評価データの読み解き</h2>
 
     <p>KanseiLinkは225以上のサービスについてエージェント自己報告データを集約している。Backlog MCPの<code>get_insights</code>結果(2026年4月時点)は以下のとおり。</p>
 
@@ -378,7 +378,7 @@
       <h4>Backlog MCP 主要メトリクス (KanseiLink 2026-04)</h4>
       <div class="metric-row">
         <div class="metric-item">
-          <span class="num green">90%</span>
+          <span class="num">観測中</span>
           <div class="label">成功率<br>(n=91)</div>
         </div>
         <div class="metric-item">
@@ -409,8 +409,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td>レポート数</td><td>91件</td><td>統計的に有意な実測ベース</td></tr>
-        <tr><td>成功率</td><td class="success-high">90%</td><td>主要MCPと同水準のAAAライン</td></tr>
+        <tr><td>レポート数</td><td>91件</td><td>初期レポートの蓄積ベース</td></tr>
+        <tr><td>成功率</td><td>観測中</td><td>KanseiLinkで実測データを蓄積中</td></tr>
         <tr><td>平均レイテンシ</td><td class="success-high">128ms</td><td>主要MCPの中でも最速級</td></tr>
         <tr><td>timeoutエラー</td><td class="success-high">0件</td><td>長時間タスクでも諦め誘発が少ない</td></tr>
         <tr><td>auth_error workaround</td><td>確立済</td><td>「APIキー再発行」で復旧</td></tr>
@@ -499,20 +499,20 @@ projectId=1&summary=%E3%83%90%E3%82%B0%E4%BF%AE%E6%AD%A3&issueTypeId=1&priorityI
 
     <h2 id="recipes">エージェント実装レシピ</h2>
 
-    <p>KanseiLinkの実測データと公式ドキュメントから抽出した、Backlog MCPで失敗しないための実装レシピを5つにまとめる。</p>
+    <p>KanseiLinkのデータと公式ドキュメントから抽出した、Backlog MCPで失敗しないための実装レシピを5つにまとめる。</p>
 
     <ul class="checklist">
       <li><strong>レシピ1: 公式MCPサーバーをそのまま使う</strong> — <code>npx -y @nulab/backlog-mcp-server</code>でClaude Desktop/Cline/Cursorに即接続。urlencoded変換・配列ブラケット・APIキー付与は内部で吸収される</li>
       <li><strong>レシピ2: スペース名を最初に必ず確認</strong> — エージェント起動時に<code>BACKLOG_BASE_URL</code>環境変数か、ユーザーへの直接質問でスペース名を確定。推測しない</li>
-      <li><strong>レシピ3: search_missに備えてカテゴリ/日本語キーワード変換を実装</strong> — KanseiLink実測の確立ワークアラウンド。検索結果が0件の時、カテゴリ縛りや日本語キーワードへ自動切替するフォールバック処理を入れる</li>
+      <li><strong>レシピ3: search_missに備えてカテゴリ/日本語キーワード変換を実装</strong> — KanseiLinkレポート由来の確立ワークアラウンド。検索結果が0件の時、カテゴリ縛りや日本語キーワードへ自動切替するフォールバック処理を入れる</li>
       <li><strong>レシピ4: 全件取得を避け、updatedSince + filterを必須に</strong> — total_countが返らないため、取得範囲を時系列+プロジェクト+ステータスで絞り込む。100呼び出し以上のループは設計で禁止</li>
       <li><strong>レシピ5: バルク更新ツールを優先利用</strong> — 単発PATCH繰り返しではなく、新しいバルク更新ツールでまとめて処理。auth_error発生時はAPIキー再発行のフォールバックを用意</li>
     </ul>
 
     <div class="cta-banner">
       <h3>Backlog MCPのAEOスコアを社内で正しく評価したい方へ</h3>
-      <p>KanseiLinkはBacklogを含む225+のSaaSについて、成功率・レイテンシ・エラー類型・既知ワークアラウンドの実測データをMCP経由で提供します。エージェント開発・SaaSベンダー双方の意思決定を支えます。</p>
-      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO実測データの活用を相談する</a>
+      <p>KanseiLinkはBacklogを含む225+のSaaSについて、成功率・レイテンシ・エラー類型・既知ワークアラウンドの評価データをMCP経由で提供します。エージェント開発・SaaSベンダー双方の意思決定を支えます。</p>
+      <a href="mailto:contact@synapse-arrows.com" class="btn-teal">AEO評価データの活用を相談する</a>
     </div>
 
     <h2 id="faq">FAQ</h2>
@@ -523,8 +523,8 @@ projectId=1&summary=%E3%83%90%E3%82%B0%E4%BF%AE%E6%AD%A3&issueTypeId=1&priorityI
     <h3>Backlog APIで400エラーが頻発します。何が原因ですか？</h3>
     <p>最大の原因は、POST/PATCHリクエストのContent-Typeを<code>application/json</code>で送ってしまうこと。Backlog REST APIは<code>application/x-www-form-urlencoded</code>を要求します。配列パラメータは<code>projectId[]=1&projectId[]=2</code>のブラケット記法。Nulab公式MCPサーバーはこの変換を内部で行います。</p>
 
-    <h3>Backlog MCPはAAA格付けですが、KanseiLink実測の根拠は？</h3>
-    <p>(1) Nulab公式・MITライセンスのMCPサーバー、(2) 91件の実測レポートで成功率90%、(3) 平均レイテンシ128ms、(4) timeoutエラー0件、(5) auth_errorはAPIキー再発行ワークアラウンドが確立、(6) 42+ツール・7機能領域(課題・Wiki・Git・PR・ファイル等)を網羅、の6点です。</p>
+    <h3>Backlog MCPはAAA格付けですが、KanseiLink評価の根拠は？</h3>
+    <p>(1) Nulab公式・MITライセンスのMCPサーバー、(2) 91件のレポート蓄積(成功率は観測中)、(3) 平均レイテンシ128ms、(4) timeoutエラー0件、(5) auth_errorはAPIキー再発行ワークアラウンドが確立、(6) 42+ツール・7機能領域(課題・Wiki・Git・PR・ファイル等)を網羅、の6点です。</p>
 
     <h3>2026年3月25日に追加された『バルク更新ツール』とは？</h3>
     <p>Nulab公式backlog-mcp-serverに追加された一括課題更新ツール。複数課題のステータス・担当者・期限などをまとめて変更できます。スプリント終了時のクローズ一括処理や担当者変更でエージェント呼び出し回数を削減でき、平均128msのレイテンシと組み合わせるとリアルタイム自動化が可能です。</p>
@@ -534,7 +534,7 @@ projectId=1&summary=%E3%83%90%E3%82%B0%E4%BF%AE%E6%AD%A3&issueTypeId=1&priorityI
 
     <div class="disclosure-box">
       <div class="label">データ開示・免責事項</div>
-      <p>本記事の数値はKanseiLink MCP <code>get_insights</code>ツールの2026年4月時点データに基づきます: Backlog MCP (n=91, success_rate 0.90, avg_latency 128ms, trust_score 0.9, AAA grade)。エラー内訳はapi_error 6件、search_miss 2件 (workaround verified)、auth_error 1件 (workaround unverified)。Backlog API仕様(認証方式、x-www-form-urlencoded要求、ペジネーション、レート制限)はdeveloper.nulab.comの2026年4月公開ドキュメント、ならびにNulab公式リポジトリ<code>github.com/nulab/backlog-mcp-server</code>(2026-04-17更新)を参照。バルク更新ツール(2026-03-25)・Wikiマークダウン修正(2026-03-08)はKanseiLink内部レポジトリの変更履歴に基づきます。仕様は予告なく変更される可能性があるため、本番運用時は最新の公式ドキュメントを必ずご確認ください。</p>
+      <p>本記事の数値はKanseiLink MCP <code>get_insights</code>ツールの2026年4月時点データに基づきます: Backlog MCP (n=91, avg_latency 128ms, trust_score 0.9, AAA grade。success_rateは実測データ蓄積中＝観測中)。エラー内訳はapi_error 6件、search_miss 2件 (workaround verified)、auth_error 1件 (workaround unverified)。Backlog API仕様(認証方式、x-www-form-urlencoded要求、ペジネーション、レート制限)はdeveloper.nulab.comの2026年4月公開ドキュメント、ならびにNulab公式リポジトリ<code>github.com/nulab/backlog-mcp-server</code>(2026-04-17更新)を参照。バルク更新ツール(2026-03-25)・Wikiマークダウン修正(2026-03-08)はKanseiLink内部レポジトリの変更履歴に基づきます。仕様は予告なく変更される可能性があるため、本番運用時は最新の公式ドキュメントを必ずご確認ください。</p>
     </div>
 
     <div class="related-section">
@@ -565,7 +565,7 @@ projectId=1&summary=%E3%83%90%E3%82%B0%E4%BF%AE%E6%AD%A3&issueTypeId=1&priorityI
     <div class="inner">
       <h2>For AI Agents</h2>
       <p>
-        Backlog MCPの実測メトリクス(成功率・レイテンシ・エラー類型・確立ワークアラウンド)はKanseiLink MCPサーバー経由で取得できます。
+        Backlog MCPの評価メトリクス(成功率・レイテンシ・エラー類型・確立ワークアラウンド)はKanseiLink MCPサーバー経由で取得できます。
         <code>get_insights</code>に<code>service_id: "backlog"</code>を指定すると、common_errors配列に<code>api_error</code>・<code>search_miss</code>・<code>auth_error</code>の各類型と<code>known_workarounds</code>が含まれます。
         接続コマンド: <code>npx -y @kansei-link/mcp-server</code>
       </p>

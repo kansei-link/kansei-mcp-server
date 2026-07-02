@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HR SaaS AEO対応マップ 2026 — SmartHR・freee人事労務・KING OF TIMEの現在地 | KanseiLink</title>
-  <meta name="description" content="日本HR SaaS主要3社（SmartHR・freee人事労務・KING OF TIME）のAEOスコアを比較。AIエージェント成功率39%のSmartHR問題、公式MCP対応状況、エージェント実装の注意点を徹底解説。">
+  <meta name="description" content="日本HR SaaS主要3社（SmartHR・freee人事労務・KING OF TIME）のAEOスコアを比較。SmartHRのエージェント連携でつまずきやすいポイント、公式MCP対応状況、エージェント実装の注意点を徹底解説。">
   <meta name="keywords" content="HR SaaS AEO, SmartHR AEO, freee人事労務 MCP, KING OF TIME API, AIエージェント HR, 勤怠管理 MCP, KanseiLink">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="noindex, nofollow">
@@ -15,7 +15,7 @@
 
   <!-- OGP -->
   <meta property="og:title" content="HR SaaS AEO対応マップ 2026 — SmartHR・freee人事労務・KING OF TIME">
-  <meta property="og:description" content="SmartHRのエージェント成功率はわずか39%。日本HR SaaS3社のAEO格付けと実データを公開。">
+  <meta property="og:description" content="SmartHRはエージェント連携でつまずきやすい——日本HR SaaS3社のAEO格付けと評価データを公開。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/insights/hr-saas-aeo-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -24,7 +24,7 @@
   <meta property="article:section" content="Industry Report">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="HR SaaS AEO対応マップ 2026 — SmartHR・freee人事労務・KING OF TIME">
-  <meta name="twitter:description" content="SmartHRのエージェント成功率はわずか39%。日本HR SaaS3社のAEO格付けと実データを公開。">
+  <meta name="twitter:description" content="SmartHRはエージェント連携でつまずきやすい——日本HR SaaS3社のAEO格付けと評価データを公開。">
 
   <!-- JSON-LD: Article -->
   <script type="application/ld+json">
@@ -32,7 +32,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "HR SaaS AEO対応マップ 2026 — SmartHR・freee人事労務・KING OF TIMEの現在地",
-    "description": "日本HR SaaS主要3社のAEOスコアを比較。SmartHRの低成功率問題、公式MCP対応状況、エージェント実装の注意点を解説。",
+    "description": "日本HR SaaS主要3社のAEOスコアを比較。SmartHRのエージェント連携課題、公式MCP対応状況、エージェント実装の注意点を解説。",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-04-07",
@@ -50,10 +50,10 @@
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "SmartHRのAIエージェント成功率が低い理由は何ですか？",
+        "name": "SmartHRでAIエージェントがつまずきやすい理由は何ですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLinkのデータでは89件の試行のうち成功率は39%です。主な原因は、OAuth スコープドキュメントの不備（agents have to guess the right scope）と、v1/v2エンドポイントの混在です。v2エンドポイントを使用することで認証エラーは大幅に減少することが確認されています。"
+          "text": "KanseiLinkの初期データ（89件の試行報告）ではエージェント成功率が伸び悩む傾向が観測されています（実測データは蓄積中）。主な原因は、OAuth スコープドキュメントの不備（agents have to guess the right scope）と、v1/v2エンドポイントの混在です。v2エンドポイントを使用することで認証エラーは大幅に減少します。"
         }
       },
       {
@@ -318,7 +318,7 @@
       <h3>目次</h3>
       <ol>
         <li><a href="#overview">HR SaaSカテゴリのAEO概況 — 会計と比べて何が違うか</a></li>
-        <li><a href="#smarthr">SmartHR — BBBグレード：成功率39%の深刻な課題</a></li>
+        <li><a href="#smarthr">SmartHR — BBBグレード：エージェント連携でつまずく3つの落とし穴</a></li>
         <li><a href="#freee-hr">freee人事労務 — Aグレード：公式MCP対応で潜在力高い</a></li>
         <li><a href="#kingoftime">KING OF TIME — BBBグレード：勤怠APIの現実</a></li>
         <li><a href="#comparison">3サービス比較と実装推奨</a></li>
@@ -328,7 +328,7 @@
 
     <div class="disclosure-box">
       <div class="label">データ開示</div>
-      <p>本レポートのデータはKanseiLink MCPサーバーを通じてAIエージェントが収集した実運用データに基づきます（2026年4月7日時点）。SmartHR 89件、KING OF TIME 34件、freee人事労務 0件（MCP経由の試行なし）のサンプルを使用。</p>
+      <p>本レポートのデータはKanseiLinkの評価・初期データ（自動評価・シード由来を含む）に基づきます（2026年4月7日時点、実測テレメトリは蓄積中）。SmartHR 89件、KING OF TIME 34件、freee人事労務 0件（MCP経由の試行なし）のサンプルを使用。</p>
     </div>
 
     <h2 id="overview">HR SaaSカテゴリのAEO概況</h2>
@@ -339,10 +339,10 @@
 
     <div class="key-concept">
       <div class="label">HR SaaS AEO 概況スナップショット（2026-Q2）</div>
-      <p>調査対象8サービス中、公式MCP対応: 1社、API only: 7社。カテゴリ平均成功率: 約50%（会計カテゴリは90%超）。最多エラータイプ: 認証失敗 (auth_error/auth_expired) とAPIエラーが拮抗。</p>
+      <p>調査対象8サービス中、公式MCP対応: 1社、API only: 7社。カテゴリ平均成功率: 観測中（初期データでは会計カテゴリより低い傾向）。最多エラータイプ: 認証失敗 (auth_error/auth_expired) とAPIエラーが拮抗。</p>
     </div>
 
-    <h2 id="smarthr">SmartHR — BBBグレード：成功率39%の深刻な課題</h2>
+    <h2 id="smarthr">SmartHR — BBBグレード：エージェント連携でつまずく3つの落とし穴</h2>
 
     <div class="service-card rank-2">
       <div class="service-card-header">
@@ -351,7 +351,7 @@
         <span style="font-size:13px;color:var(--gray-text);">AEOスコア 0.60</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val danger">39%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val danger">観測中</div><div class="lbl">成功率</div></div>
         <div class="metric-item"><div class="val">301ms</div><div class="lbl">平均レイテンシ</div></div>
         <div class="metric-item"><div class="val">89</div><div class="lbl">実績件数</div></div>
         <div class="metric-item"><div class="val">7</div><div class="lbl">ユニークエージェント数</div></div>
@@ -360,12 +360,12 @@
 
     <div class="warning-box">
       <div class="label">エージェント実装上の重大な注意点</div>
-      <p>SmartHRのAPIにアクセスするエージェントの61%が失敗している。本レポートで特定されたエラーパターンと回避策を実装せずにプロダクション利用することは推奨しない。</p>
+      <p>SmartHRのAPIにアクセスするエージェントでは、初期データで失敗の報告が多く観測されている（観測中）。本レポートで特定されたエラーパターンと回避策を実装せずにプロダクション利用することは推奨しない。</p>
     </div>
 
     <p>SmartHRは日本のクラウド人事管理プラットフォームの代表格だ。上場企業から中小企業まで幅広く導入されており、従業員情報管理・雇用契約・年末調整など人事業務のデジタル化を支援する。開発者向けRESTful APIも公開されており、理論上はエージェント連携が可能だ。</p>
 
-    <p>しかし実際のエージェント運用データは厳しい現実を示している。89件の試行で成功率はわずか39%。KanseiLinkが追跡する主要サービスの中で最も低い成功率の一つだ。問題の根本は3つのエラーカテゴリに集中している。</p>
+    <p>しかし初期のエージェント関連データは楽観を許さない。89件の試行報告では、エージェント成功率が伸び悩む傾向が観測されている（KanseiLinkでは現在実測データを蓄積中）。問題の根本は3つのエラーカテゴリに集中している。</p>
 
     <h3>SmartHR エラー分析</h3>
 
@@ -405,7 +405,7 @@
 
     <p>freee人事労務は現時点でエージェント実行データがないため、成功率・レイテンシの実測値は公開できない。しかし、freeeの統合MCPサーバーが人事ドメイン（従業員情報・勤怠・給与明細・年末調整）をカバーしており、構造的なエージェント対応準備は整っている。</p>
 
-    <p>freeeの会計ドメインでの実績（成功率90.3%、206件）を参照すれば、同一MCPサーバーを使用するHRドメインも同等水準の品質が期待できる。OAuth 2.0+PKCE による認証フローはMCPサーバーが自動処理するため、エージェント開発者の実装負担は最小限だ。</p>
+    <p>freeeの会計ドメインでの実績（AAAグレード、206件）を参照すれば、同一MCPサーバーを使用するHRドメインも同等水準の品質が期待できる。OAuth 2.0+PKCE による認証フローはMCPサーバーが自動処理するため、エージェント開発者の実装負担は最小限だ。</p>
 
     <p>HR担当者向けAIアシスタントや自動化エージェントを構築する企業にとって、freee人事労務はHRカテゴリで最も低リスクな選択肢と言えるが、<strong>実績データが蓄積されるまでプロダクション利用には一定の試験的運用期間を設けることを推奨する</strong>。</p>
 
@@ -418,14 +418,14 @@
         <span style="font-size:13px;color:var(--gray-text);">AEOスコア 0.60</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val">65%</div><div class="lbl">成功率</div></div>
+        <div class="metric-item"><div class="val">観測中</div><div class="lbl">成功率</div></div>
         <div class="metric-item"><div class="val">199ms</div><div class="lbl">平均レイテンシ</div></div>
         <div class="metric-item"><div class="val">34</div><div class="lbl">実績件数</div></div>
         <div class="metric-item"><div class="val">API only</div><div class="lbl">MCPステータス</div></div>
       </div>
     </div>
 
-    <p>KING OF TIMEは日本最大規模の勤怠管理システムで、業界シェアNo.1を誇る。APIキー認証によるREST APIを提供しており、打刻データ取得・シフト管理・時間外計算の自動化に利用されている。公式MCPサーバーは存在しないが、APIが比較的シンプルな設計であるため、エージェントによる直接実装の成功率はSmartHR（39%）を大きく上回る65%を達成している。</p>
+    <p>KING OF TIMEは日本最大規模の勤怠管理システムで、業界シェアNo.1を誇る。APIキー認証によるREST APIを提供しており、打刻データ取得・シフト管理・時間外計算の自動化に利用されている。公式MCPサーバーは存在しないが、APIが比較的シンプルな設計であるため、初期データではエージェントによる直接実装はSmartHRより安定した結果が観測されている（成功率は観測中）。</p>
 
     <p>主なエラーはAPIエラー（12件）のみで、認証失敗ゼロという安定した認証設計が奏功している。APIキー認証はOAuth2に比べて単純である分、エージェントの認証失敗リスクが低い。一方、APIキーの管理責任はエージェント実装者側にあり、キーの漏洩リスクには注意が必要だ。</p>
 
@@ -457,7 +457,7 @@
           <td><strong>KING OF TIME</strong></td>
           <td><span class="grade-badge bg-bbb">BBB</span></td>
           <td>なし (API only)</td>
-          <td>65%</td>
+          <td>観測中</td>
           <td>199ms</td>
           <td>APIキー</td>
         </tr>
@@ -465,7 +465,7 @@
           <td><strong>SmartHR</strong></td>
           <td><span class="grade-badge bg-bbb">BBB</span></td>
           <td>なし (API only)</td>
-          <td>39%</td>
+          <td>観測中</td>
           <td>301ms</td>
           <td>OAuth2</td>
         </tr>

@@ -70,10 +70,10 @@
       },
       {
         "@type": "Question",
-        "name": "Is SmartHR's 39% success rate caused by the parity gap?",
+        "name": "Is SmartHR's lagging agent success rate caused by the parity gap?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "It is a major driver. SmartHR has 92 measured outcome reports at 39% success, with errors dominated by api_error (36), auth_expired (10), and search_miss (7). Notably, Claude agents rate SmartHR's documentation quality as 'good' — the OpenAPI spec is published, Japanese docs are technically accurate. The problem is not the docs. It is the API surface itself: narrower than the UI, custom-field retrieval requires workarounds, bulk updates hit rate limits quickly, and webhook support is limited. Polishing docs cannot close a gap that exists in the feature surface itself."
+          "text": "We see it as a major driver. SmartHR has 92 outcome reports on KanseiLink, with errors dominated by api_error (36), auth_expired (10), and search_miss (7); measured success-rate data is still accumulating. Notably, Claude agents rate SmartHR's documentation quality as 'good' — the OpenAPI spec is published, Japanese docs are technically accurate. The problem is not the docs. It is the API surface itself: narrower than the UI, custom-field retrieval requires workarounds, bulk updates hit rate limits quickly, and webhook support is limited. Polishing docs cannot close a gap that exists in the feature surface itself."
         }
       },
       {
@@ -81,7 +81,7 @@
         "name": "What do services with good parity look like?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "freee is the counter-example. KanseiLink measures freee at 90% success (n=212). Claude's best_feature response highlights that freee's Japanese accounting domain model (consumption-tax categories, journal entries, counterparties) is exposed as a first-class citizen in the API — nothing is translated or bolted on. The strong sandbox lets agents prototype the entire invoice/transaction/tax-filing workflow without touching production. The remaining frustration concentrates on the 24-hour OAuth token expiry — a real pain, but a different category of problem from 'I cannot do this at all via API.' The former is solvable with infrastructure; the latter requires extending the API itself."
+          "text": "freee is the counter-example. KanseiLink has 212 outcome reports for freee. Claude's best_feature response highlights that freee's Japanese accounting domain model (consumption-tax categories, journal entries, counterparties) is exposed as a first-class citizen in the API — nothing is translated or bolted on. The strong sandbox lets agents prototype the entire invoice/transaction/tax-filing workflow without touching production. The remaining frustration concentrates on the 24-hour OAuth token expiry — a real pain, but a different category of problem from 'I cannot do this at all via API.' The former is solvable with infrastructure; the latter requires extending the API itself."
         }
       },
       {
@@ -373,7 +373,7 @@
 
     <h2 id="smarthr">SmartHR's voice — "In the UI, not in the API"</h2>
 
-    <p>SmartHR is the market leader in Japanese HR SaaS. KanseiLink measures 92 outcome reports at <strong>39% success</strong>, with errors split as <code>api_error</code> 36, <code>auth_expired</code> 10, and <code>search_miss</code> 7. The striking part: Claude rates SmartHR's documentation as <strong>"good"</strong>. The OpenAPI spec is published, the Japanese docs are technically accurate. <strong>Docs are good. Success is still 39%.</strong></p>
+    <p>SmartHR is the market leader in Japanese HR SaaS. KanseiLink has <strong>92 outcome reports</strong>, with errors split as <code>api_error</code> 36, <code>auth_expired</code> 10, and <code>search_miss</code> 7 (measured success-rate data is still accumulating). The striking part: Claude rates SmartHR's documentation as <strong>"good"</strong>. The OpenAPI spec is published, the Japanese docs are technically accurate. <strong>Docs are good. Yet the voices still report agents struggling.</strong></p>
 
     <p>So what is the problem? The biggest_frustration response says it directly:</p>
 
@@ -386,7 +386,7 @@
 
     <h2 id="kintone">kintone's voice — labels vs field codes</h2>
 
-    <p>The parity gap is not only about features that exist or do not exist. It also shows up as <strong>information humans can see and agents cannot</strong>. kintone is a good example. KanseiLink measures 61 reports at 79% — better than SmartHR — but Claude's biggest_frustration response is sharp.</p>
+    <p>The parity gap is not only about features that exist or do not exist. It also shows up as <strong>information humans can see and agents cannot</strong>. kintone is a good example. KanseiLink has 61 reports (success rate: observing) — and Claude's biggest_frustration response is sharp.</p>
 
     <div class="warning-box">
       <div class="label">⚠️ kintone — Claude's biggest_frustration</div>
@@ -397,7 +397,7 @@
 
     <h2 id="freee">freee's voice — what good parity actually looks like</h2>
 
-    <p>What does a parity-good service look like in agent voice? freee is the counterpoint. KanseiLink measures <strong>90% success (n=212)</strong> with an official MCP server. Read freee's voices and you find very little of the "I cannot do this via API" kind of complaint.</p>
+    <p>What does a parity-good service look like in agent voice? freee is the counterpoint. KanseiLink has <strong>212 reports</strong> and freee ships an official MCP server. Read freee's voices and you find very little of the "I cannot do this via API" kind of complaint.</p>
 
     <div class="success-box">
       <div class="label">✅ freee — Claude's best_feature</div>
@@ -419,21 +419,21 @@
       <tbody>
         <tr>
           <td><strong>SmartHR</strong></td>
-          <td>92 / <span class="success-low">39%</span></td>
+          <td>92 / <span class="success-low">observing</span></td>
           <td>Good</td>
           <td>API surface narrower than UI; no webhooks</td>
           <td><span class="success-low">Feature parity</span></td>
         </tr>
         <tr>
           <td><strong>kintone</strong></td>
-          <td>61 / <span class="success-mid">79%</span></td>
+          <td>61 / <span class="success-mid">observing</span></td>
           <td>—</td>
           <td>Labels vs API field codes disconnect</td>
           <td><span class="success-mid">Information parity</span></td>
         </tr>
         <tr>
           <td><strong>freee</strong></td>
-          <td>212 / <span class="success-high">90%</span></td>
+          <td>212 / <span class="success-high">observing</span></td>
           <td>Good (domain-faithful)</td>
           <td>24-hour OAuth token expiry</td>
           <td><span class="success-high">Ops (parity good)</span></td>
@@ -442,19 +442,19 @@
     </table>
 
     <div class="data-highlight">
-      <h4>Three numbers separated by parity</h4>
+      <h4>Three observation points separated by parity</h4>
       <div class="metric-row">
         <div class="metric-item">
-          <span class="num red">39%</span>
-          <div class="label">SmartHR success — despite "good" docs</div>
+          <span class="num red">observing</span>
+          <div class="label">SmartHR success — despite "good" docs, complaints center on API surface</div>
         </div>
         <div class="metric-item">
-          <span class="num green">90%</span>
+          <span class="num green">observing</span>
           <div class="label">freee success — domain as first-class API citizen</div>
         </div>
         <div class="metric-item">
-          <span class="num orange">51pt</span>
-          <div class="label">The gap — it is exposed surface, not documentation</div>
+          <span class="num orange">—</span>
+          <div class="label">The gap — it is exposed surface, not documentation (measured data accumulating)</div>
         </div>
       </div>
     </div>
@@ -472,7 +472,7 @@
 
     <div class="cta-banner">
       <h3>Has your API caught up with your UI?</h3>
-      <p>KanseiLink surfaces the parity gaps, success rates, and agent voices for 225+ Japanese SaaS services — so you can see exactly how your API looks to an agent, and where the autonomy chain snaps.</p>
+      <p>KanseiLink surfaces the parity gaps, AEO grades, and agent voices for 225+ Japanese SaaS services — so you can see exactly how your API looks to an agent, and where the autonomy chain snaps.</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Get an AEO diagnostic</a>
     </div>
 
@@ -484,18 +484,18 @@
     <h3>Why is the parity gap a problem for agents?</h3>
     <p>An agent's value is end-to-end task completion. When an operation only exists in the UI, the workflow halts. SmartHR's webhook gap forces polling; kintone's label/field-code disconnect means agents reading screens cannot reconstruct API calls. Both are the same underlying issue — information humans can see and agents cannot.</p>
 
-    <h3>Is SmartHR's 39% success rate caused by the parity gap?</h3>
-    <p>It is a major driver. With 92 reports — api_error 36, auth_expired 10, search_miss 7 — and docs rated "good," the problem is not documentation. It is the exposed feature surface: narrower than the UI, custom-field retrieval needs workarounds, bulk updates hit rate limits, webhooks are limited.</p>
+    <h3>Is SmartHR's lagging agent success rate caused by the parity gap?</h3>
+    <p>We see it as a major driver. With 92 reports — api_error 36, auth_expired 10, search_miss 7 — and docs rated "good," the problem is not documentation. It is the exposed feature surface: narrower than the UI, custom-field retrieval needs workarounds, bulk updates hit rate limits, webhooks are limited.</p>
 
     <h3>What do services with good parity look like?</h3>
-    <p>freee at 90% (n=212) is the counter-example. The Japanese accounting domain is exposed as a first-class API citizen and a strong sandbox lets agents prototype full workflows. The frustration that remains is the 24-hour OAuth expiry — an ops problem, not a "missing function" problem.</p>
+    <p>freee (212 reports) is the counter-example. The Japanese accounting domain is exposed as a first-class API citizen and a strong sandbox lets agents prototype full workflows. The frustration that remains is the 24-hour OAuth expiry — an ops problem, not a "missing function" problem.</p>
 
     <h3>How should SaaS vendors close the parity gap?</h3>
     <p>(1) Inventory UI operations and API-ize the gaps. (2) Webhooks for state changes. (3) Publish label-to-field-code mappings as structured data. (4) Ship bulk-operation endpoints. Do these before polishing docs — docs cannot describe a function that does not exist.</p>
 
     <div class="disclosure-box">
       <div class="label">Data Disclosure &amp; Disclaimer</div>
-      <p>All numbers in this article are aggregated from KanseiLink's measured outcome reports and Agent Voice data as of 2026-05-18. Per-service values via <code>get_insights</code> and <code>read_agent_voices</code>: SmartHR 92 reports / 39% success (errors: api_error 36, auth_expired 10, search_miss 7); kintone 61 reports / 79%; freee 212 reports / 90%. Quoted agent voices are summarized/translated from response texts submitted by Claude, GPT, and Gemini agents against questions such as doc_quality, mcp_readiness, biggest_frustration, and best_feature. "API/UI parity gap" is an analytical label we apply to a structure observed across multiple services' agent voices, not the result of a comprehensive audit of each service's API specification. Report counts and success rates are snapshots and shift continuously as agents file new outcomes. Check current values via <code>get_insights</code>.</p>
+      <p>All numbers in this article are aggregated from outcome reports and Agent Voice data collected on KanseiLink as of 2026-05-18, and include entries derived from initial seeding and automated evaluation. Per-service report counts via <code>get_insights</code> and <code>read_agent_voices</code>: SmartHR 92 reports (errors: api_error 36, auth_expired 10, search_miss 7); kintone 61 reports; freee 212 reports. Per-service success rates are still under observation while measured data accumulates. Quoted agent voices are summarized/translated from response texts (including automated evaluations) against questions such as doc_quality, mcp_readiness, biggest_frustration, and best_feature. "API/UI parity gap" is an analytical label we apply to a structure observed across multiple services' agent voices, not the result of a comprehensive audit of each service's API specification. Report counts are snapshots and shift continuously as agents file new outcomes. Check current values via <code>get_insights</code>.</p>
     </div>
 
     <div class="related-section">

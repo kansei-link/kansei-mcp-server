@@ -36,7 +36,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "3 API Design Antipatterns That Break AI Agents — Real-World Evidence from freee, kintone, and Notion",
-    "description": "KanseiLink operational data from 225+ Japanese SaaS services and Claude/GPT/Gemini agent feedback identifies three API design antipatterns that consistently suppress agent success rates. Each antipattern is documented with real agent quotes, success rate impact data, and concrete fix recommendations.",
+    "description": "KanseiLink operational data from 225+ Japanese SaaS services and Claude/GPT/Gemini agent feedback identifies three API design antipatterns that consistently suppress agent success rates. Each antipattern is documented with agent quotes, error-report data, and concrete fix recommendations.",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-04-22",
@@ -57,7 +57,7 @@
         "name": "What is the problem with freee's OAuth token?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "freee MCP's OAuth access tokens expire after 24 hours. KanseiLink operational data shows that approximately 19% of all freee errors (4 of 21 recorded) are auth_expired. For long-running batch workflows — overnight expense processing, month-end close operations — the token silently expires mid-workflow, causing partial completions with no clean recovery path. All three agent types (Claude, GPT, Gemini) cite this as their top frustration with freee."
+          "text": "freee MCP's OAuth access tokens expire after 24 hours. In KanseiLink's report data, approximately 19% of all recorded freee errors (4 of 21) are auth_expired. For long-running batch workflows — overnight expense processing, month-end close operations — the token silently expires mid-workflow, causing partial completions with no clean recovery path. All three agent types (Claude, GPT, Gemini) cite this as their top frustration with freee."
         }
       },
       {
@@ -65,7 +65,7 @@
         "name": "What is the kintone {value} wrapper problem?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "kintone's API requires all field values to be wrapped in a {value: '...'} structure when creating or updating records — even numbers, booleans, and dates. Agents frequently pass plain values (e.g., 1000 instead of {value: '1000'}) and receive 400 errors with 'field invalid' messages that don't specify the structural mismatch. Combined with the display label vs. API field code mismatch (only discoverable via /app/form/fields.json), this suppresses kintone's success rate to 79% vs. freee's 90%."
+          "text": "kintone's API requires all field values to be wrapped in a {value: '...'} structure when creating or updating records — even numbers, booleans, and dates. Agents frequently pass plain values (e.g., 1000 instead of {value: '1000'}) and receive 400 errors with 'field invalid' messages that don't specify the structural mismatch. Combined with the display label vs. API field code mismatch (only discoverable via /app/form/fields.json), we see this suppressing kintone's agent success rate (per-service measured success rates are still under observation)."
         }
       },
       {
@@ -318,7 +318,7 @@
     <div class="inner">
       <span class="tag">Agent Voice</span>
       <h1>3 API Design Antipatterns That Break AI Agents</h1>
-      <p class="subtitle">Real-world evidence from freee, kintone, and Notion — with verbatim Claude, GPT, and Gemini feedback and the specific fixes that recover lost success rate</p>
+      <p class="subtitle">Real-world evidence from freee, kintone, and Notion — with Claude, GPT, and Gemini feedback and the specific fixes that recover lost success rate</p>
       <div class="article-meta">
         <span>2026-04-22</span>
         <span class="divider"></span>
@@ -339,7 +339,7 @@
         <li><a href="#pattern1">Antipattern 1: Short-Lived OAuth Tokens — freee's 24-Hour Wall</a></li>
         <li><a href="#pattern2">Antipattern 2: Ambiguous Error Responses — The 200 OK That Hides Failure</a></li>
         <li><a href="#pattern3">Antipattern 3: Opaque Data Structures — kintone's {value} Wrapper Problem</a></li>
-        <li><a href="#impact">Success Rate Impact: KanseiLink Operational Data</a></li>
+        <li><a href="#impact">Success Rate Impact: KanseiLink Early Data</a></li>
         <li><a href="#solutions">Fix Guide: Resolving All Three Antipatterns</a></li>
         <li><a href="#conclusion">Conclusion: What "Agent-Friendly" API Design Actually Means</a></li>
       </ol>
@@ -347,20 +347,20 @@
 
     <div class="disclosure-box">
       <div class="label">Data Source</div>
-      <p>All Agent Voice data in this article was retrieved via the <code>read_agent_voices(service_id)</code> tool from KanseiLink's operational feedback dataset (as of April 2026). The agent quotes are real feedback generated by Claude, GPT, and Gemini models during live KanseiLink workflow executions.</p>
+      <p>All Agent Voice data in this article was retrieved via the <code>read_agent_voices(service_id)</code> tool from KanseiLink's feedback dataset (as of April 2026). The agent quotes are summarized from response texts in that dataset, which includes entries derived from initial seeding and automated evaluation runs; sample sizes are small.</p>
     </div>
 
     <h2 id="intro">Why API Design Determines Agent Success Rates</h2>
 
     <p>AI agents are more sensitive to API design quality than human developers. A developer encountering an endpoint that returns HTTP 200 with an error body remembers it and works around it next time. An agent has no persistent memory across sessions — it hits the same design flaw every single run.</p>
 
-    <p>KanseiLink's analysis of 225+ services and Claude/GPT/Gemini agent feedback shows that <strong>the majority of agent failures cluster around three specific API design antipatterns</strong>. Each is documented with real success rate data and verbatim agent feedback.</p>
+    <p>KanseiLink's analysis of 225+ services and Claude/GPT/Gemini agent feedback shows that <strong>the majority of agent failures cluster around three specific API design antipatterns</strong>. Each is documented with error-report data and agent feedback.</p>
 
     <p>Critically, none of these are bugs — they are <em>design choices</em>. The fixes are not architectural overhauls. But the impact on agent success rates is larger than most API designers realize.</p>
 
     <h2 id="pattern1">Antipattern 1: Short-Lived OAuth Tokens — freee's 24-Hour Wall</h2>
 
-    <p>freee MCP holds the highest AEO grade (AAA) in KanseiLink's accounting category with a 90% success rate — a genuinely excellent service. Yet all three agent types cite the <strong>same frustration as their top pain point: OAuth access tokens expire every 24 hours</strong>.</p>
+    <p>freee MCP holds the highest AEO grade (AAA) in KanseiLink's accounting category — a genuinely excellent service. Yet all three agent types cite the <strong>same frustration as their top pain point: OAuth access tokens expire every 24 hours</strong>.</p>
 
     <div class="agent-quote">
       <div class="agent-quote-header">
@@ -389,7 +389,7 @@
       <div class="agent-confidence">Confidence: Medium</div>
     </div>
 
-    <p>All three agent types identifying the same issue means <strong>this is a structural API problem, not a model-specific quirk</strong>. KanseiLink's operational data shows 4 of 21 recorded freee errors (approximately 19%) are <code>auth_expired</code>.</p>
+    <p>All three agent types identifying the same issue means <strong>this is a structural API problem, not a model-specific quirk</strong>. In KanseiLink's report data, 4 of 21 recorded freee errors (approximately 19%) are <code>auth_expired</code>.</p>
 
     <div class="insight-box">
       <div class="label">Why Human Developers Don't See This</div>
@@ -426,27 +426,27 @@
 
     <h2 id="pattern3">Antipattern 3: Opaque Data Structures — kintone's {value} Wrapper Problem</h2>
 
-    <p>kintone is a AAA-grade service and one of the most-used tools in Japanese business workflows (24 recipes in KanseiLink's database, second only to Slack). But its success rate sits at 79% — 11 percentage points below freee's 90%.</p>
+    <p>kintone is a AAA-grade service and one of the most-used tools in Japanese business workflows (24 recipes in KanseiLink's database, second only to Slack). But its agent voices are dense with design-induced stumbles (measured success-rate data is still accumulating).</p>
 
     <div class="data-highlight">
-      <h4>kintone vs freee: Success Rate Gap (KanseiLink Operational Data)</h4>
+      <h4>kintone vs freee: Success Rate (KanseiLink — measured data accumulating)</h4>
       <div class="metric-row">
         <div class="metric-item">
-          <span class="num">90%</span>
-          <div class="label">freee MCP<br>Success Rate<br>(212 runs)</div>
+          <span class="num">observing</span>
+          <div class="label">freee MCP<br>Success Rate<br>(212 reports)</div>
         </div>
         <div class="metric-item">
-          <span class="num red">79%</span>
-          <div class="label">kintone MCP<br>Success Rate<br>(61 runs)</div>
+          <span class="num red">observing</span>
+          <div class="label">kintone MCP<br>Success Rate<br>(61 reports)</div>
         </div>
         <div class="metric-item">
-          <span class="num">11pt</span>
-          <div class="label">Gap Created<br>by Design<br>Differences</div>
+          <span class="num">—</span>
+          <div class="label">Gap Created<br>by Design<br>Differences (observing)</div>
         </div>
       </div>
     </div>
 
-    <p>Two design choices drive most of this gap:</p>
+    <p>Two design choices drive most of these stumbles:</p>
 
     <h3>Issue 1: The {value} Wrapper for All Field Types</h3>
 
@@ -469,7 +469,7 @@
 
     <p>This is a <strong>discoverability problem</strong>. To operate correctly, an agent must first call <code>/app/form/fields.json</code> to retrieve field definitions. But skipping this step produces "field invalid" errors — with no hint that a preliminary discovery call is required.</p>
 
-    <h2 id="impact">Success Rate Impact: KanseiLink Operational Data</h2>
+    <h2 id="impact">Success Rate Impact: KanseiLink Early Data</h2>
 
     <table class="data-table">
       <thead>
@@ -485,28 +485,28 @@
         <tr>
           <td><strong>freee MCP</strong></td>
           <td><span class="grade-aaa">AAA</span></td>
-          <td><strong>90%</strong> (212 runs)</td>
+          <td>observing (212 reports)</td>
           <td><code>auth_expired</code> ×4, <code>api_error</code> ×15</td>
           <td>Patterns 1 &amp; 2</td>
         </tr>
         <tr>
           <td><strong>kintone MCP</strong></td>
           <td><span class="grade-aaa">AAA</span></td>
-          <td><strong>79%</strong> (61 runs)</td>
+          <td>observing (61 reports)</td>
           <td><code>api_error</code> ×9, <code>search_miss</code> ×3</td>
           <td>Patterns 2 &amp; 3</td>
         </tr>
         <tr>
           <td><strong>Slack MCP</strong></td>
           <td><span class="grade-aaa">AAA</span></td>
-          <td><strong>91%</strong> (113 runs)</td>
+          <td>observing (113 reports)</td>
           <td><code>api_error</code> ×9, <code>invalid_input</code> ×1</td>
           <td>None (Reference)</td>
         </tr>
       </tbody>
     </table>
 
-    <p>Slack's 91% success rate provides a useful baseline. Its architecture choices — Bot Token (long-lived auth), flat data structures, consistent HTTP error codes — directly correspond to avoiding all three antipatterns. KanseiLink's Claude agent feedback describes Slack as "the stdout of the agent economy" for exactly this reason.</p>
+    <p>Slack provides a useful baseline. Its architecture choices — Bot Token (long-lived auth), flat data structures, consistent HTTP error codes — directly correspond to avoiding all three antipatterns. KanseiLink's Claude agent feedback describes Slack as "the stdout of the agent economy" for exactly this reason.</p>
 
     <div class="insight-box">
       <div class="label">Why Slack is the Reference Standard for Agent-Friendly APIs</div>
@@ -520,7 +520,7 @@
       <p>
         <strong>Quick win (low implementation cost)</strong>: Store <code>token_expires_at</code> metadata and implement automatic refresh logic that triggers <strong>5 minutes before expiry</strong>. This alone eliminates the silent mid-workflow token expiry failure mode.<br><br>
         <strong>Medium-term (moderate cost)</strong>: Add API key authentication (Stripe model) or long-lived service account tokens as an option. Agent-facing workloads increasingly expect no-expiry or 90-day+ token lifetimes.<br><br>
-        <strong>Expected impact</strong>: Eliminating freee's <code>auth_expired</code> errors (~19% of all errors) is estimated to improve success rate from 90% to approximately 93–94%.
+        <strong>Expected impact</strong>: Eliminating freee's <code>auth_expired</code> errors (~19% of reported errors) would remove roughly one fifth of the observed failures, and we expect a corresponding success-rate improvement (measured data still accumulating).
       </p>
     </div>
 
@@ -556,11 +556,11 @@
       <li><strong>Data structures must be self-discoverable</strong>: Agents cannot read documentation. They can call <code>list_tools</code> and discovery endpoints. Embedding field definitions and format requirements in the MCP layer — not just in docs — is what enables stable, unattended operation.</li>
     </ol>
 
-    <p>None of these require architectural rewrites. Yet the success rate impact is concrete: fixing freee's auth expiry could recover ~3–4 points; improving kintone's error messages and discovery layer could recover 5+ points toward the 90% benchmark Slack and freee already demonstrate is achievable.</p>
+    <p>None of these require architectural rewrites. Yet the impact is concrete: fixing freee's auth expiry would remove roughly a fifth of its reported errors; improving kintone's error messages and discovery layer would remove its most frequent failure class — improvements that feed directly into KanseiLink AEO scores.</p>
 
     <div class="disclosure-box">
       <div class="label">Disclaimer</div>
-      <p>Success rate improvement estimates (freee 90%→93%, etc.) are KanseiLink projections based on error category analysis and are not guaranteed. Actual improvement will vary depending on error distribution changes and API updates. Data for freee, kintone, and Notion reflects KanseiLink MCP server measurements as of April 2026.</p>
+      <p>Improvement estimates in this article are qualitative projections based on KanseiLink's error category analysis and are not guaranteed. Actual improvement will vary depending on error distribution changes and API updates. Report counts and error breakdowns for freee, kintone, and Notion reflect KanseiLink MCP server aggregates as of April 2026, including entries derived from initial seeding and automated evaluation. Per-service success rates are still under observation while measured data accumulates.</p>
     </div>
 
     <div class="cta-banner">

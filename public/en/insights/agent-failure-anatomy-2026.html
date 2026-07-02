@@ -81,7 +81,7 @@
         "name": "Are failures concentrated in particular services?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Heavily. Of the 108 catalogued failures, SmartHR alone accounts for about 51% (55). For api_error specifically, 36 of all 75 (about 48%) are SmartHR. SmartHR has a low 39% success rate yet is used frequently (92 reports), so its absolute failure count dominates. By contrast Slack (91%), freee (90%), and Backlog (90%) keep absolute failures low."
+          "text": "Heavily. Of the 108 catalogued failures, SmartHR alone accounts for about 51% (55). For api_error specifically, 36 of all 75 (about 48%) are SmartHR. SmartHR's agent success rate has struggled in early data (observing) while it is used frequently (92 reports), so its absolute failure count dominates. By contrast Slack, freee, and Backlog keep absolute failures low."
         }
       },
       {
@@ -457,15 +457,15 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td><strong>SmartHR</strong></td><td>92</td><td><span class="success-low">39%</span></td><td><span class="success-low">~55</span></td><td>api_error 36 / auth 10 / search_miss 7</td></tr>
-        <tr><td>freee MCP</td><td>212</td><td><span class="success-high">90%</span></td><td>~21</td><td>api_error 15 / auth 4</td></tr>
-        <tr><td>kintone MCP</td><td>61</td><td><span class="success-mid">79%</span></td><td>~13</td><td>api_error 9 / search_miss 3</td></tr>
-        <tr><td>Slack MCP</td><td>113</td><td><span class="success-high">91%</span></td><td>~10</td><td>api_error 9</td></tr>
-        <tr><td>Backlog MCP</td><td>91</td><td><span class="success-high">90%</span></td><td>~9</td><td>api_error 6 / search_miss 2</td></tr>
+        <tr><td><strong>SmartHR</strong></td><td>92</td><td>observing</td><td><span class="success-low">~55</span></td><td>api_error 36 / auth 10 / search_miss 7</td></tr>
+        <tr><td>freee MCP</td><td>212</td><td>observing</td><td>~21</td><td>api_error 15 / auth 4</td></tr>
+        <tr><td>kintone MCP</td><td>61</td><td>observing</td><td>~13</td><td>api_error 9 / search_miss 3</td></tr>
+        <tr><td>Slack MCP</td><td>113</td><td>observing</td><td>~10</td><td>api_error 9</td></tr>
+        <tr><td>Backlog MCP</td><td>91</td><td>observing</td><td>~9</td><td>api_error 6 / search_miss 2</td></tr>
       </tbody>
     </table>
 
-    <p>SmartHR stays at a low 39% success rate yet is used frequently (92 reports). As Japan's HR SaaS market leader with few real substitutes, agents keep choosing it even as they fail — so its absolute failure count dominates. By contrast, Slack (91%), freee (90%), and Backlog (90%) keep absolute failures small despite high report volumes.</p>
+    <p>SmartHR's agent success rate has struggled in early data (observing), yet it is used frequently (92 reports). As Japan's HR SaaS market leader with few real substitutes, agents keep choosing it even as they fail — so its absolute failure count dominates. By contrast, Slack, freee, and Backlog keep absolute failures small despite high report volumes.</p>
 
     <div class="insight-box">
       <div class="label">Implication</div>
@@ -485,7 +485,7 @@
 
     <div class="cta-banner">
       <h3>Which failure is dropping agents for your service?</h3>
-      <p>KanseiLink visualizes success rates, failure-by-type breakdowns, and real search_miss examples for 225+ Japanese SaaS. See which errors you're losing agents on, and how much.</p>
+      <p>KanseiLink visualizes failure-by-type breakdowns, real search_miss examples, and early success-rate data (still accumulating) for 225+ Japanese SaaS. See which errors you're losing agents on, and how much.</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Talk to us about an AEO audit</a>
     </div>
 
@@ -501,14 +501,14 @@
     <p>A failure where the agent couldn't discover a service matching its intent — e.g., "issue a withholding tax slip" not surfacing SmartHR. It's a discoverability problem, not an API quality one, and is directly fixable by aligning descriptions and metadata with the agent's intent language (AEO).</p>
 
     <h3>Are failures concentrated in particular services?</h3>
-    <p>Heavily. Of 108 failures, SmartHR alone is ~51% (55), and 36 of 75 api_errors (~48%) are SmartHR — because it stays at a low 39% success rate while being used frequently.</p>
+    <p>Heavily. Of 108 failures, SmartHR alone is ~51% (55), and 36 of 75 api_errors (~48%) are SmartHR — because its agent success rate has struggled in early data (observing) while it keeps being used frequently.</p>
 
     <h3>What should vendors prioritize from this failure data?</h3>
     <p>(1) Improve discoverability to kill search_miss, (2) document the auth spec (token lifetime, refresh, recommended endpoint), (3) make errors machine-readable. search_miss in particular is the highest-ROI area.</p>
 
     <div class="disclosure-box">
       <div class="label">Data disclosure & disclaimer</div>
-      <p>Figures are aggregated via <code>get_insights</code> from live outcome reports KanseiLink collected from agents (snapshots as of each service's last_updated in April 2026). Scope is the 5 most-reported services: freee MCP (212 reports / 90% success; errors api_error 15, auth_expired 4, timeout 1, search_miss 1), Slack MCP (113 / 91%; api_error 9, invalid_input 1), SmartHR (92 / 39%; api_error 36, auth_expired 10, search_miss 7, timeout 1, invalid_input 1), Backlog MCP (91 / 90%; api_error 6, search_miss 2, auth_error 1), kintone MCP (61 / 79%; api_error 9, search_miss 3, invalid_input 1). "108 failures" is the simple sum of these error_type reports, and each share (api_error ~69% = 75/108, auth ~14% = 15/108, search_miss ~12% = 13/108) is its ratio. Per-service failure counts are approximations from (reports × (1 − success rate)) and may differ from reported error_type counts by ~1. Report counts vary continuously with agent activity. The prioritization of error types is an analytical interpretation of observed data and does not guarantee any service's future quality. Verify current values via each <code>get_insights</code>.</p>
+      <p>Figures are aggregated via <code>get_insights</code> from live outcome reports KanseiLink collected from agents (snapshots as of each service's last_updated in April 2026). Scope is the 5 most-reported services: freee MCP (212 reports; errors api_error 15, auth_expired 4, timeout 1, search_miss 1), Slack MCP (113; api_error 9, invalid_input 1), SmartHR (92; api_error 36, auth_expired 10, search_miss 7, timeout 1, invalid_input 1), Backlog MCP (91; api_error 6, search_miss 2, auth_error 1), kintone MCP (61; api_error 9, search_miss 3, invalid_input 1). "108 failures" is the simple sum of these error_type reports, and each share (api_error ~69% = 75/108, auth ~14% = 15/108, search_miss ~12% = 13/108) is its ratio. Per-service failure counts are approximations based on reported error_type counts. Per-service measured success rates are still accumulating at KanseiLink and are not asserted in this article (shown as "observing" in the table). Report counts vary continuously with agent activity. The prioritization of error types is an analytical interpretation of observed data and does not guarantee any service's future quality. Verify current values via each <code>get_insights</code>.</p>
     </div>
 
     <div class="related-section">

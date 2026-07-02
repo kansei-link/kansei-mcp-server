@@ -73,7 +73,7 @@
         "name": "What MCP success rate data does KanseiLink actually observe?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLink's operational data shows verified official MCP servers achieving 90-93% success rates: Slack MCP 91%, freee MCP 90%, MoneyForward Cloud MCP 93%, Backlog MCP 90%. Third-party MCP servers show significantly lower rates, with Salesforce Japan at 43%."
+          "text": "KanseiLink verifies official MCP servers via MCP handshake checks and rates services with a published methodology. Per-service success-rate measurements are still being accumulated (observing). Latency and error-pattern data — e.g. Slack MCP 163ms average latency across 113 calls, freee MCP 216ms across 212 calls — is available via get_insights()."
         }
       }
     ]
@@ -443,13 +443,13 @@
       </div>
       <div class="verdict-body">
         <p><strong>Primary source not found:</strong> As of April 15, 2026, no official Anthropic blog post, documentation page, or press release presenting a "40–60% development time reduction benchmark study" could be located. This figure is attributed to Anthropic across several industry articles, but tracing the citation chain does not lead to a primary source.</p>
-        <p><strong>Is the direction correct?</strong> MCP's standardized authentication, tool schema, and error handling do plausibly reduce the boilerplate work compared to bespoke REST integrations. KanseiLink's data also shows official MCP server adoption correlating with higher success rates, suggesting better implementation quality.</p>
+        <p><strong>Is the direction correct?</strong> MCP's standardized authentication, tool schema, and error handling do plausibly reduce the boilerplate work compared to bespoke REST integrations. In KanseiLink's ratings, services with official MCP servers also cluster at higher grades (success-rate measurements still accumulating), suggesting better implementation quality.</p>
         <p><strong>Recommendation:</strong> Do not use this specific figure in internal business cases without locating the primary source first. Better alternatives exist.</p>
         <div class="conditions">
           <h4>Verifiable alternatives to cite</h4>
           <ul>
             <li>Lucidworks: "up to 10x faster AI agent integration timelines" (source: GlobeNewswire, April 8, 2026 ✅)</li>
-            <li>KanseiLink data: official MCP servers average ~91% success rate vs third-party ~53%</li>
+            <li>KanseiLink ratings: services with official MCP servers cluster at top grades; third-party-reliant services lag (success rates: observing)</li>
           </ul>
         </div>
       </div>
@@ -492,7 +492,7 @@
       </div>
       <div class="verdict-body">
         <p><strong>Primary source issue:</strong> As of April 15, 2026, a single MIT study presenting a 95% failure rate figure could not be confirmed from official MIT publication channels. The statistic appears across multiple Gartner, McKinsey, and Forrester reports, each with different definitions of "pilot" and "failure."</p>
-        <p><strong>Is the direction accurate?</strong> Yes — Gartner's late 2025 prediction that only 40% of organizations would be using agentic AI by end of 2026 implies that 60% are either not trying or struggling. KanseiLink's data shows top-tier success rates concentrated in a handful of services, consistent with a long tail of underperformers.</p>
+        <p><strong>Is the direction accurate?</strong> Yes — Gartner's late 2025 prediction that only 40% of organizations would be using agentic AI by end of 2026 implies that 60% are either not trying or struggling. KanseiLink's ratings show top grades concentrated in a handful of services, consistent with a long tail of underperformers.</p>
         <p><strong>The danger of using this number:</strong> Citing 95% failure risk to stakeholders often produces the wrong outcome — "let's not try at all" rather than "let's start with a high-probability use case." A more actionable frame: <em>success rates vary enormously by service quality, use case selection, and implementation rigor.</em></p>
       </div>
     </div>
@@ -503,24 +503,24 @@
 
     <h3>Real Success Rates from Verified Services</h3>
 
-    <p>Measured success rates for KanseiLink's top-tier (verified / AAA grade) services:</p>
+    <p>Data for KanseiLink's top-tier (verified / high grade) services (success-rate measurements still accumulating — observing):</p>
     <ul>
-      <li><strong>Slack MCP</strong> (official / AAA): <strong>91% success rate</strong>, avg latency 163ms, 113 total calls</li>
-      <li><strong>freee MCP</strong> (official / AA): <strong>90% success rate</strong>, avg latency 216ms, 212 total calls</li>
-      <li><strong>MoneyForward Cloud MCP</strong> (official / AA): <strong>93% success rate</strong></li>
-      <li><strong>Backlog MCP</strong> (official / AA): <strong>90% success rate</strong>, avg latency 128ms, 91 total calls</li>
+      <li><strong>Slack MCP</strong> (official / AAA): avg latency 163ms, 113 total calls, success rate observing</li>
+      <li><strong>freee MCP</strong> (official / AA): avg latency 216ms, 212 total calls, success rate observing</li>
+      <li><strong>MoneyForward Cloud MCP</strong> (official / AA): latency measurement in progress, success rate observing</li>
+      <li><strong>Backlog MCP</strong> (official / AA): avg latency 128ms, 91 total calls, success rate observing</li>
     </ul>
 
-    <p>By contrast, lower-tier implementations show:</p>
+    <p>By contrast, some third-party implementations and lower-rated official MCPs lag in KanseiLink's ratings:</p>
     <ul>
-      <li><strong>Salesforce Japan</strong> (third-party MCP / C grade): <strong>43% success rate</strong></li>
-      <li><strong>Chatwork MCP</strong> (official / A grade): <strong>66% success rate</strong></li>
-      <li><strong>Garoon MCP</strong> (official / AA): <strong>67% success rate</strong></li>
+      <li><strong>Salesforce Japan</strong> (third-party MCP / C grade)</li>
+      <li><strong>Chatwork MCP</strong> (official / A grade)</li>
+      <li><strong>Garoon MCP</strong> (official / AA)</li>
     </ul>
 
     <div class="key-concept">
       <div class="label">KanseiLink Finding: The Most Reproducible Cost Reduction</div>
-      <p>The highest-ROI MCP decision is also the least glamorous: <strong>choose services with official MCP servers, configure authentication correctly, and implement proper error handling.</strong> Official MCP server success rate: ~91%. Third-party: ~53%. That 38-point gap, compounded across thousands of agent calls per month, is where real cost savings appear.</p>
+      <p>The highest-ROI MCP decision is also the least glamorous: <strong>choose services with official MCP servers, configure authentication correctly, and implement proper error handling.</strong> Services with official MCP servers cluster at top grades while third-party-reliant services lag. That gap, compounded across thousands of agent calls per month, is where real cost savings appear.</p>
     </div>
 
     <h3>Japan-Specific Cost Factors to Watch</h3>
@@ -541,7 +541,7 @@
       <p>
         <strong>① Verify the primary source:</strong> Find the press release, official doc, or peer-reviewed study. Reject any "industry research says" figure that can't be traced.<br><br>
         <strong>② Match conditions to your context:</strong> Read the fine print. How many servers? How many tools? What existing integration cost baseline? If your situation doesn't match, the number doesn't apply.<br><br>
-        <strong>③ Use observed data wherever possible:</strong> KanseiLink's per-service success rates, latency data, and error patterns are more useful for decision-making than aggregated ROI surveys. "freee MCP: 90% success rate, auth_expired the main risk" beats "average ROI 171%."
+        <strong>③ Use observed data wherever possible:</strong> KanseiLink's per-service latency data and error patterns are more useful for decision-making than aggregated ROI surveys. "freee MCP: 216ms average latency, auth_expired the main risk" beats "average ROI 171%."
       </p>
     </div>
 
@@ -635,3 +635,4 @@ document.querySelectorAll('.nav-links a').forEach(function(link) {
 <script src="/js/paywall.js"></script>
 </body>
 </html>
+           

@@ -325,7 +325,7 @@
 
     <div class="disclosure-box">
       <div class="label">Data Disclosure</div>
-      <p>The data in this report is based on real operational data collected by AI agents through the KanseiLink MCP server (as of April 10, 2026). The AEO Score for each service is calculated using KanseiLink's proprietary evaluation methodology. Note that the Payment category has a small sample size, so please consider the confidence score when referencing these results.</p>
+      <p>The data in this report is based on connection-method checks and KanseiLink's internal evaluation and early data (as of April 10, 2026). Success-rate metrics are still being observed as measurement data accumulates. The AEO Score for each service is calculated using KanseiLink's proprietary evaluation methodology. Note that the Payment category has a small sample size, so please consider the confidence score when referencing these results.</p>
     </div>
 
     <h2 id="overview">AEO Landscape for the Payment Category — How High Security Blocks Agent Adoption</h2>
@@ -382,7 +382,7 @@
         <span style="font-size:13px;color:var(--gray-text);">AEO Score 0.50</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val">100%</div><div class="lbl">Success Rate</div></div>
+        <div class="metric-item"><div class="val">—</div><div class="lbl">Success Rate</div></div>
         <div class="metric-item"><div class="val">170ms</div><div class="lbl">Avg Latency</div></div>
         <div class="metric-item"><div class="val">1</div><div class="lbl">Recorded Calls</div></div>
         <div class="metric-item"><div class="val">API only</div><div class="lbl">MCP Status</div></div>
@@ -391,7 +391,7 @@
 
     <p>PAY.JP is an online payment platform for the Japanese market provided by PAY, Inc. It supports credit card payments, subscription billing, and token-based payments, and is popular among domestic developers thanks to its Japanese-language documentation and simple REST API.</p>
 
-    <p>While the track record is just 1 call, the 100% success rate and 170ms latency are promising initial figures. However, there is no official MCP server, and connecting from an agent requires direct REST API calls using API key authentication. When integrating a non-MCP service into an agent, the development cost of schema definitions and tool implementation adds up, putting PAY.JP behind in terms of ease of integration into the agent ecosystem.</p>
+    <p>While the track record is just 1 call, the 170ms latency is a promising initial figure (success-rate data is still being observed). However, there is no official MCP server, and connecting from an agent requires direct REST API calls using API key authentication. When integrating a non-MCP service into an agent, the development cost of schema definitions and tool implementation adds up, putting PAY.JP behind in terms of ease of integration into the agent ecosystem.</p>
 
     <h2 id="linepay">LINE Pay — B Grade: Authentication Errors as a Barrier, Japan's Largest Player Falling Behind</h2>
 
@@ -402,18 +402,18 @@
         <span style="font-size:13px;color:var(--gray-text);">AEO Score 0.40</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val">0%</div><div class="lbl">Success Rate</div></div>
+        <div class="metric-item"><div class="val">—</div><div class="lbl">Success Rate</div></div>
         <div class="metric-item"><div class="val">180ms</div><div class="lbl">Avg Latency</div></div>
         <div class="metric-item"><div class="val">1</div><div class="lbl">Recorded Calls</div></div>
         <div class="metric-item"><div class="val">API only</div><div class="lbl">MCP Status</div></div>
       </div>
     </div>
 
-    <p>LINE Pay covers QR code payments, online payments, and transit payments, and ranks among the top in Japan in terms of merchant and user numbers. However, KanseiLink's agent data shows a harsh result of 0% success rate.</p>
+    <p>LINE Pay covers QR code payments, online payments, and transit payments, and ranks among the top in Japan in terms of merchant and user numbers. However, KanseiLink has received a report of a failed connection (authentication error), suggesting agent integration is currently prone to stumbling (success-rate data is still being observed).</p>
 
     <p>The recorded error was an authentication error (<code>auth_error</code>), and the confirmed workaround is that <strong>"the sandbox environment must be activated separately from the production environment in the LINE Pay merchant console."</strong> The production and sandbox configurations are not unified, creating a structural barrier where agents cannot automatically switch between them.</p>
 
-    <p>There is no official MCP server, and no agent-readiness roadmap has been published. Since LINE Pay itself is deeply integrated with the LINE WORKS communication platform, MCP support is likely to be tied to LY Corporation's broader agent strategy. The same structural challenges seen in the communication SaaS analysis — where LINE WORKS lagged behind with a 20% success rate — extend into the payment domain as well.</p>
+    <p>There is no official MCP server, and no agent-readiness roadmap has been published. Since LINE Pay itself is deeply integrated with the LINE WORKS communication platform, MCP support is likely to be tied to LY Corporation's broader agent strategy. The same structural challenges seen in the communication SaaS analysis — where LINE WORKS lagged behind — extend into the payment domain as well.</p>
 
     <h2 id="paidy">Paidy — BB Grade: BNPL Specialist, Agent Readiness at Early Stage</h2>
 
@@ -424,14 +424,14 @@
         <span style="font-size:13px;color:var(--gray-text);">AEO Score 0.50</span>
       </div>
       <div class="metric-row">
-        <div class="metric-item"><div class="val">100%</div><div class="lbl">Success Rate</div></div>
+        <div class="metric-item"><div class="val">—</div><div class="lbl">Success Rate</div></div>
         <div class="metric-item"><div class="val">190ms</div><div class="lbl">Avg Latency</div></div>
         <div class="metric-item"><div class="val">1</div><div class="lbl">Recorded Calls</div></div>
         <div class="metric-item"><div class="val">API only</div><div class="lbl">MCP Status</div></div>
       </div>
     </div>
 
-    <p>Paidy is a Buy Now, Pay Later (BNPL) platform under PayPal, characterized by a Japan-specific system where payments can be completed with just an email address and phone number. Its merchant API enables payment creation and management, recording a 100% success rate and 190ms latency from a single call.</p>
+    <p>Paidy is a Buy Now, Pay Later (BNPL) platform under PayPal, characterized by a Japan-specific system where payments can be completed with just an email address and phone number. Its merchant API enables payment creation and management, with a single connection report and 190ms recorded latency so far (success-rate data is still being observed).</p>
 
     <p>Due to the nature of BNPL, use cases for autonomous agent payments tend to be limited to "recurring purchase management" and "presenting payment options for cart abandonment," making it less suited for high-value, high-frequency operations. There is no official MCP server, and no mid-term agent readiness plan has been announced.</p>
 
@@ -461,7 +461,7 @@
           <td><strong>PAY.JP</strong></td>
           <td><span class="grade-badge bg-bb">BB</span></td>
           <td>None (API only)</td>
-          <td>100%</td>
+          <td>observing</td>
           <td>170ms</td>
           <td>1</td>
         </tr>
@@ -477,7 +477,7 @@
           <td><strong>Paidy</strong></td>
           <td><span class="grade-badge bg-bb">BB</span></td>
           <td>None (API only)</td>
-          <td>100%</td>
+          <td>observing</td>
           <td>190ms</td>
           <td>1</td>
         </tr>

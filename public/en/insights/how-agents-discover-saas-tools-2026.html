@@ -73,7 +73,7 @@
         "name": "What is the success rate difference between Official MCP and API-only services?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLink data across 11,000+ services shows a significant gap. Services with official first-party MCP servers achieve success rates between 63% and 91%. Services that are API-only (no MCP server, but accessible through generic API tools) average around 49% success rate. Services with no MCP server and no accessible API are effectively invisible to agents — they have a 0% discovery rate because agents cannot find them through tool search at all."
+          "text": "KanseiLink's evaluation across 11,000+ services shows a significant gap. Services with official first-party MCP servers grade markedly higher on agent readiness, while API-only services (no MCP server, but accessible through generic API tools) grade lower — KanseiLink is currently accumulating live success-rate measurement data for both tiers. Services with no MCP server and no accessible API are effectively invisible to agents — they have a 0% discovery rate because agents cannot find them through tool search at all."
         }
       },
       {
@@ -538,7 +538,7 @@
 
     <h2 id="data-shows">What Does the Data Show? Official MCP vs. API-Only vs. Nothing</h2>
 
-    <p>We compared success rates across three tiers of agent accessibility. The gaps are large and consistent.</p>
+    <p>We compared agent accessibility across three tiers. The gaps in AEO grade are large and consistent (success-rate measurement data is currently being accumulated).</p>
 
     <table class="data-table">
       <thead>
@@ -552,21 +552,21 @@
       <tbody>
         <tr>
           <td><strong>Official MCP server</strong> (first-party, maintained)</td>
-          <td>63% &ndash; 91%</td>
+          <td>observing</td>
           <td>freee</td>
-          <td><span class="grade-badge grade-aaa">AAA</span> 90.3%</td>
+          <td><span class="grade-badge grade-aaa">AAA</span></td>
         </tr>
         <tr>
           <td><strong>API-only</strong> (no MCP, but API accessible via wrappers)</td>
-          <td>~49% average</td>
+          <td>observing</td>
           <td>Sansan</td>
-          <td><span class="grade-badge grade-aa">AA</span> 60%</td>
+          <td><span class="grade-badge grade-aa">AA</span></td>
         </tr>
         <tr>
           <td><strong>No MCP, limited API</strong></td>
-          <td>Below 50%</td>
+          <td>observing</td>
           <td>Salesforce (via community)</td>
-          <td><span class="grade-badge grade-bb">BB</span> 43%</td>
+          <td><span class="grade-badge grade-bb">BB</span></td>
         </tr>
         <tr>
           <td><strong>No MCP, no API access</strong></td>
@@ -577,14 +577,14 @@
       </tbody>
     </table>
 
-    <p>The pattern is clear. freee, which publishes and maintains an official MCP server with well-structured schemas, hits a 90.3% success rate and earns an AAA grade. Services that rely on community-built wrappers or generic API connectors see significantly lower success rates — not because their underlying product is worse, but because the agent-facing interface is weaker.</p>
+    <p>The pattern is clear. freee, which publishes and maintains an official MCP server with well-structured schemas, earns an AAA grade. Services that rely on community-built wrappers or generic API connectors grade markedly lower — not because their underlying product is worse, but because the agent-facing interface is weaker.</p>
 
     <div class="warning-box">
       <div class="label">Critical Gap</div>
-      <p>The difference between an official MCP server (63-91% success) and API-only access (~49%) is not a rounding error. It represents roughly half your potential agent-driven usage being lost to auth failures, schema mismatches, and search misses. And that's the gap between services that are at least <em>somewhat</em> accessible. Services with no MCP server and no API are simply invisible.</p>
+      <p>The difference between an official MCP server and API-only access is not a rounding error. Early observations point to a substantial share of potential agent-driven usage being lost to auth failures, schema mismatches, and search misses. And that's the gap between services that are at least <em>somewhat</em> accessible. Services with no MCP server and no API are simply invisible.</p>
     </div>
 
-    <p>Salesforce is an instructive case. It's the world's largest CRM by revenue. Every human decision-maker knows the name. But at a BB grade with a 43% agent success rate, it gets outperformed by smaller competitors with cleaner MCP implementations. In the agent economy, brand power doesn't compensate for poor tool accessibility.</p>
+    <p>Salesforce is an instructive case. It's the world's largest CRM by revenue. Every human decision-maker knows the name. But at a BB grade, it gets outperformed by smaller competitors with cleaner MCP implementations. In the agent economy, brand power doesn't compensate for poor tool accessibility.</p>
 
 
     <h2 id="search-miss">Why Is search_miss the Failure That Matters Most?</h2>
@@ -608,7 +608,7 @@
     <p>Based on our data across 11,000+ services, here are the concrete steps that move the needle on agent discoverability:</p>
 
     <h3>1. Publish an official MCP server</h3>
-    <p>This is the single highest-impact action. Services with official MCP servers achieve 63-91% success rates. Those without are either working through unreliable community wrappers or invisible entirely. Your MCP server is your storefront in the agent economy.</p>
+    <p>This is the single highest-impact action. Services with official MCP servers consistently earn the highest agent-readiness grades in KanseiLink's evaluation. Those without are either working through unreliable community wrappers or invisible entirely. Your MCP server is your storefront in the agent economy.</p>
 
     <h3>2. Write descriptions for agents, not humans</h3>
     <p>Your marketing tagline ("Revolutionize your workflow!") is useless to an agent. Write tool descriptions that state what the tool does, what data it accepts, and what it returns. Be specific and literal. "Create a new sales invoice with line items, tax calculation, and PDF generation" beats "Powerful invoicing solution for modern businesses."</p>
@@ -644,7 +644,7 @@
     <p><code>search_miss</code> occurs when an agent searches for a tool but your service never appears in the results. It's the most damaging failure pattern because it's completely invisible — no error logs, no API calls, no evidence of any kind on your end. You cannot fix what you cannot see. KanseiLink is currently the only tool that tracks <code>search_miss</code> patterns at the ecosystem level.</p>
 
     <h3>Does my company need an MCP server?</h3>
-    <p>If you want agents to find and use your service, yes. Our data shows that official MCP servers achieve 63-91% success rates, while API-only services average around 49%. Services without MCP servers or accessible APIs are effectively invisible to agents. You can also improve discoverability through <code>llms.txt</code> and Google ARD, but an MCP server is the most direct and highest-impact path.</p>
+    <p>If you want agents to find and use your service, yes. Our evaluation shows that official MCP servers grade markedly higher on agent readiness than API-only services (success-rate measurement data is currently being accumulated). Services without MCP servers or accessible APIs are effectively invisible to agents. You can also improve discoverability through <code>llms.txt</code> and Google ARD, but an MCP server is the most direct and highest-impact path.</p>
 
     <h3>Does SEO help with agent tool discovery?</h3>
     <p>Traditional SEO has almost no direct impact on agent tool discovery. Agents don't use Google to find tools. However, strong SEO indirectly helps because it increases the chance that your service appears in LLM training data, which makes agents more likely to know your brand when forming search queries. The direct optimization surface is your MCP schema and tool descriptions — not your website content or backlinks.</p>
