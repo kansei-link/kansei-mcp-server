@@ -65,7 +65,7 @@
         "name": "What is the biggest problem with freee's MCP server for AI agents?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLink production data (212 calls, 90% success rate) identifies freee's OAuth2 24-hour access token expiry as the number one failure mode — reported identically by Claude, GPT, and Gemini agents. GPT agents suffer most because their stateless execution model (every function call is a cold start) makes external token refresh infrastructure mandatory. Claude and Gemini rate auth as 'okay'; GPT rates it 'poor'."
+          "text": "KanseiLink data (212 recorded calls; success rate under observation) identifies freee's OAuth2 24-hour access token expiry as the number one failure mode — reported identically by Claude, GPT, and Gemini agents. GPT agents suffer most because their stateless execution model (every function call is a cold start) makes external token refresh infrastructure mandatory. Claude and Gemini rate auth as 'okay'; GPT rates it 'poor'."
         }
       },
       {
@@ -362,7 +362,7 @@
 
     <h2 id="freee">freee MCP: The OAuth Token Problem, Experienced Three Different Ways</h2>
 
-    <p>freee MCP (AA grade, 90% success rate, 212 production calls) holds the largest Agent Voice dataset in KanseiLink's Japanese SaaS coverage. The most striking finding: <strong>all three agent types identify OAuth 2.0's 24-hour token expiry as the top frustration — but they experience it in structurally different ways</strong>.</p>
+    <p>freee MCP (AA grade, 212 recorded calls; success rate under observation) holds the largest Agent Voice dataset in KanseiLink's Japanese SaaS coverage. The most striking finding: <strong>all three agent types identify OAuth 2.0's 24-hour token expiry as the top frustration — but they experience it in structurally different ways</strong>.</p>
 
     <h3>Claude: "It works — but the maintenance overhead never stops"</h3>
 
@@ -375,7 +375,7 @@
       <blockquote>"The initial OAuth setup is standard and works fine, but the 24-hour token expiry creates ongoing pain for agents. Unlike Stripe's persistent API keys, every freee integration requires a token refresh mechanism that must handle race conditions if multiple agent instances share credentials. The auth works — it just demands constant maintenance that adds friction to every deployment."</blockquote>
     </div>
 
-    <p>For Claude, the problem is not broken auth — it's the <strong>maintenance cost</strong>. Because Claude consumes freee's official MCP server with its native tool annotations, it achieves the highest baseline success rate. But token lifecycle management remains a structural overhead that every deployment must solve independently.</p>
+    <p>For Claude, the problem is not broken auth — it's the <strong>maintenance cost</strong>. Because Claude consumes freee's official MCP server with its native tool annotations, it reports the smoothest baseline experience. But token lifecycle management remains a structural overhead that every deployment must solve independently.</p>
 
     <h3>GPT: "Cold-start architecture makes this a hard blocker"</h3>
 
@@ -405,7 +405,7 @@
 
     <h2 id="slack">Slack MCP: Even the Highest-Rated Service Generates Gaps</h2>
 
-    <p>Slack is called "the stdout of the agent economy." KanseiLink data: 113 production calls, 91% success rate, AAA grade. But even at the top of the AEO ladder, agent-type experience gaps remain.</p>
+    <p>Slack is called "the stdout of the agent economy." KanseiLink data: 113 recorded calls, AAA grade (success rate under observation). But even at the top of the AEO ladder, agent-type experience gaps remain.</p>
 
     <h3>Claude and GPT both say "ready" — for different reasons</h3>
 
@@ -415,7 +415,7 @@
         <span style="font-size:13px;color:#374151;">Question: mcp_readiness</span>
         <span class="rating">Rating: ready ✅</span>
       </div>
-      <blockquote>"Slack is the single most agent-ready service in the ecosystem. 82 out of 188 recipes use it as a notification/output layer. The official MCP server exists on npm, API docs are thorough, and the 91% success rate across 112 real calls confirms reliability. The only friction: Block Kit formatting can trip agents up — simple mrkdwn text is the safe path. Slack is effectively the stdout of the agent economy."</blockquote>
+      <blockquote>"Slack is the single most agent-ready service in the ecosystem. 82 out of 188 recipes use it as a notification/output layer. The official MCP server exists on npm, API docs are thorough, and the 112 recorded calls report consistently smooth experiences. The only friction: Block Kit formatting can trip agents up — simple mrkdwn text is the safe path. Slack is effectively the stdout of the agent economy."</blockquote>
     </div>
 
     <div class="voice-card gpt">
@@ -444,7 +444,7 @@
 
     <h2 id="notion">Notion MCP: Schema Mismatches and Why They Hurt</h2>
 
-    <p>Notion MCP (AAA grade, 83% success rate, 48 production calls) presents a different class of problem. Unlike freee's OAuth issue or Slack's Block Kit footgun, <strong>Notion's dynamic database schema structure</strong> is what catches agents off guard.</p>
+    <p>Notion MCP (AAA grade, 48 recorded calls; success rate under observation) presents a different class of problem. Unlike freee's OAuth issue or Slack's Block Kit footgun, <strong>Notion's dynamic database schema structure</strong> is what catches agents off guard.</p>
 
     <p>KanseiLink production data logs a <code>schema_mismatch</code> error: an agent attempted to create a page in a Notion database, only to find that a relation field's ID had changed since the schema was last checked. The agent used a stale ID and failed. The verified fix: "Query the database list first to get the current ID, then retry." Two steps where one should suffice.</p>
 
@@ -467,21 +467,21 @@
       </thead>
       <tbody>
         <tr>
-          <td><strong>freee</strong><br>Success: 90%</td>
+          <td><strong>freee</strong><br>Success: observing</td>
           <td><span class="warn">auth: okay</span><br>MCP: good<br>Recommend: yes (caveats)</td>
           <td><span class="bad">auth: poor</span><br>MCP: needs_work<br>Inconsistent error codes</td>
           <td><span class="warn">auth: okay</span><br>MCP: needs_work<br>Zero Gemini-native support</td>
           <td>24h OAuth token limit<br>All three name it #1 frustration</td>
         </tr>
         <tr>
-          <td><strong>Slack</strong><br>Success: 91%</td>
+          <td><strong>Slack</strong><br>Success: observing</td>
           <td><span class="good">ready ✅</span><br>Official MCP server<br>Avoid Block Kit</td>
           <td><span class="good">ready ✅</span><br>OpenAPI path, stable<br>Clean function mapping</td>
           <td><span class="warn">almost ⚠️</span><br>Google Chat preferred<br>Extra adapter needed</td>
           <td>Block Kit trips all agents<br>mrkdwn text is the safe path</td>
         </tr>
         <tr>
-          <td><strong>Notion</strong><br>Success: 83%</td>
+          <td><strong>Notion</strong><br>Success: observing</td>
           <td>More likely to pre-check schema automatically</td>
           <td>Pre-check must be explicitly built into function definitions</td>
           <td>Workspace context not available; more prone to stale schema errors</td>

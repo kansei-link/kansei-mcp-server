@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Moment Agents Give Up — Common Failure Patterns of Timeouts and Long-Running Tasks Across MCPs and APIs (KanseiLink Empirical Data 2026) | KanseiLink</title>
-  <meta name="description" content="In 2026, AI agent evaluation has shifted from 'peak capability' to 'endurance.' KanseiLink's empirical data across 225+ services reveals when and why agents give up on MCPs/APIs. From freee's 800ms workaround case, Slack's low-latency design, and Notion's schema_mismatch pattern, we extract 5 design principles that prevent agents from giving up.">
+  <title>The Moment Agents Give Up — Common Failure Patterns of Timeouts and Long-Running Tasks Across MCPs and APIs (KanseiLink Early Data 2026) | KanseiLink</title>
+  <meta name="description" content="In 2026, AI agent evaluation has shifted from 'peak capability' to 'endurance.' KanseiLink's early data across 225+ services reveals when and why agents give up on MCPs/APIs. From freee's 800ms workaround case, Slack's low-latency design, and Notion's schema_mismatch pattern, we extract 5 design principles that prevent agents from giving up.">
   <meta name="keywords" content="agent timeout, MCP long-running task failure, agent endurance 2026, freee timeout case, KanseiLink Agent Voice, pagination design, MCP reliability">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="index, follow">
@@ -15,7 +15,7 @@
 
   <!-- OGP -->
   <meta property="og:title" content="The Moment Agents Give Up — Failure Patterns of Timeouts and Long-Running Tasks">
-  <meta property="og:description" content="KanseiLink empirical data reveals when agents give up on MCPs/APIs. From freee's 800ms workaround to 5 design principles that prevent abandonment.">
+  <meta property="og:description" content="KanseiLink early data reveals when agents give up on MCPs/APIs. From freee's 800ms workaround to 5 design principles that prevent abandonment.">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/en/insights/agent-voice-timeout-giveup-patterns-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -27,7 +27,7 @@
   <meta property="article:section" content="Agent Voice">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="The Moment Agents Give Up — Timeout & Long-Running Task Failure Patterns">
-  <meta name="twitter:description" content="Real failure data from KanseiLink: freee 800ms workaround, Slack 163ms design, Notion schema_mismatch — and 5 principles to prevent agent giveup.">
+  <meta name="twitter:description" content="Early failure data from KanseiLink: freee 800ms workaround, Slack 163ms design, Notion schema_mismatch — and 5 principles to prevent agent giveup.">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -35,8 +35,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "The Moment Agents Give Up — Common Failure Patterns of Timeouts and Long-Running Tasks Across MCPs and APIs (KanseiLink Empirical Data 2026)",
-    "description": "In 2026, as Anthropic's 'Measuring AI Agent Autonomy' research signals, agent evaluation has shifted from peak capability to endurance. Drawing on KanseiLink's 225+ service and 373+ report empirical dataset, we analyze when and why agents give up on MCPs and APIs during long-running tasks. We examine the 800ms workaround case in freee MCP (n=212, 90% success), Slack MCP's low-latency 163ms design (n=113, 91% success), and Notion MCP's schema_mismatch pattern (n=48, 83% success), and derive 5 design principles that prevent agent abandonment.",
+    "headline": "The Moment Agents Give Up — Common Failure Patterns of Timeouts and Long-Running Tasks Across MCPs and APIs (KanseiLink Early Data 2026)",
+    "description": "In 2026, as Anthropic's 'Measuring AI Agent Autonomy' research signals, agent evaluation has shifted from peak capability to endurance. Drawing on KanseiLink's 225+ service and 373+ report early dataset, we analyze when and why agents give up on MCPs and APIs during long-running tasks. We examine the 800ms workaround case in freee MCP (n=212), Slack MCP's low-latency 163ms design (n=113), and Notion MCP's schema_mismatch pattern (n=48), and derive 5 design principles that prevent agent abandonment.",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-04-29",
@@ -57,7 +57,7 @@
         "name": "What does it mean for an agent to 'give up'?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "An agent gives up when (1) a single API call exceeds the timeout threshold (typically 10-30 seconds) and retries are stopped, (2) consecutive errors or schema_mismatch make the agent abandon the tool and switch to a different tool/approach, or (3) the agent reports 'failed' to the user and proceeds to the next subtask. KanseiLink empirical data shows freee MCP recorded one timeout error, which was resolved through a 'narrow scope to under 800ms' workaround."
+          "text": "An agent gives up when (1) a single API call exceeds the timeout threshold (typically 10-30 seconds) and retries are stopped, (2) consecutive errors or schema_mismatch make the agent abandon the tool and switch to a different tool/approach, or (3) the agent reports 'failed' to the user and proceeds to the next subtask. KanseiLink data shows freee MCP recorded one timeout error, which was resolved through a 'narrow scope to under 800ms' workaround."
         }
       },
       {
@@ -73,7 +73,7 @@
         "name": "What should vendors do first to prevent agent giveup?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The top priority is ensuring default response time under 1 second. KanseiLink data shows Slack MCP (avg 163ms), freee MCP (avg 216ms), and Notion MCP (avg 216ms) — all low-latency services maintain higher success rates. Add to this: (2) make pagination and filter parameters required-by-default, (3) embed 'next parameter to try' in JSON error responses, and (4) provide idempotent retry keys. These four steps form the foundation of anti-giveup design."
+          "text": "The top priority is ensuring default response time under 1 second. KanseiLink's measured latency shows Slack MCP (avg 163ms), freee MCP (avg 216ms), and Notion MCP (avg 216ms) — all low-latency services maintain strong evaluations. Add to this: (2) make pagination and filter parameters required-by-default, (3) embed 'next parameter to try' in JSON error responses, and (4) provide idempotent retry keys. These four steps form the foundation of anti-giveup design."
         }
       }
     ]
@@ -325,7 +325,7 @@
     <div class="inner">
       <span class="tag">Agent Voice</span>
       <h1>The Moment Agents Give Up — Common Failure Patterns of Timeouts and Long-Running Tasks Across MCPs and APIs</h1>
-      <p class="subtitle">In 2026, AI agent evaluation has shifted from "peak capability" to "endurance." KanseiLink's empirical data across 225+ services reveals the moment agents give up on MCPs/APIs. From freee's 800ms workaround case, Slack's low-latency 163ms design, and Notion's schema_mismatch pattern, we extract 5 design principles that prevent agents from giving up.</p>
+      <p class="subtitle">In 2026, AI agent evaluation has shifted from "peak capability" to "endurance." KanseiLink's early data across 225+ services reveals the moment agents give up on MCPs/APIs. From freee's 800ms workaround case, Slack's low-latency 163ms design, and Notion's schema_mismatch pattern, we extract 5 design principles that prevent agents from giving up.</p>
       <div class="article-meta">
         <span>2026-04-29</span>
         <span class="divider"></span>
@@ -343,7 +343,7 @@
       <h3>Table of Contents</h3>
       <ol>
         <li><a href="#shift">Why "Anti-Giveup Design" Now — A Shift in Evaluation Axis</a></li>
-        <li><a href="#data">KanseiLink Empirical: "Giveup Points" Across Major MCPs</a></li>
+        <li><a href="#data">KanseiLink Early Data: "Giveup Points" Across Major MCPs</a></li>
         <li><a href="#freee-case">Case 1: freee MCP's "800ms Workaround"</a></li>
         <li><a href="#slack-case">Case 2: Why Slack MCP Sustains 163ms Average</a></li>
         <li><a href="#notion-case">Case 3: Notion MCP's schema_mismatch Pattern</a></li>
@@ -367,9 +367,9 @@
       <p class="voice-source">— KanseiLink Agent Voice (free_voice / biggest_frustration category summary)</p>
     </div>
 
-    <h2 id="data">KanseiLink Empirical: "Giveup Points" Across Major MCPs</h2>
+    <h2 id="data">KanseiLink Early Data: "Giveup Points" Across Major MCPs</h2>
 
-    <p>Empirical data from KanseiLink's <code>get_insights</code> tool, side by side for three major services:</p>
+    <p>Data from KanseiLink's <code>get_insights</code> tool, side by side for three major services (success rates: measured data accumulating):</p>
 
     <table class="data-table">
       <thead>
@@ -384,21 +384,21 @@
       <tbody>
         <tr>
           <td><strong>freee MCP</strong></td>
-          <td class="success-high">90%</td>
+          <td class="success-high">observing</td>
           <td class="success-high">216ms</td>
           <td>n=212</td>
           <td>api_error (15), auth_expired (4), timeout (1)</td>
         </tr>
         <tr>
           <td><strong>Slack MCP</strong></td>
-          <td class="success-high">91%</td>
+          <td class="success-high">observing</td>
           <td class="success-high">163ms</td>
           <td>n=113</td>
           <td>api_error (9), invalid_input (1)</td>
         </tr>
         <tr>
           <td><strong>Notion MCP</strong></td>
-          <td class="success-mid">83%</td>
+          <td class="success-mid">observing</td>
           <td class="success-high">216ms</td>
           <td>n=48</td>
           <td>api_error (6), search_miss (1), schema_mismatch (1)</td>
@@ -406,7 +406,7 @@
       </tbody>
     </table>
 
-    <p>On the surface all three look similar — sub-220ms average latency, 80–90% success rate. But the <strong>error breakdown</strong> exposes very different giveup profiles. Slack's errors center on input issues, resolved by parameter correction rather than retry. freee's signature pattern is auth expiry with one timeout case. Notion carries a schema_mismatch error class — interpretive failures where the agent struggles to determine "what went wrong."</p>
+    <p>On the surface all three look similar — sub-220ms average latency. But the <strong>error breakdown</strong> exposes very different giveup profiles. Slack's errors center on input issues, resolved by parameter correction rather than retry. freee's signature pattern is auth expiry with one timeout case. Notion carries a schema_mismatch error class — interpretive failures where the agent struggles to determine "what went wrong."</p>
 
     <div class="data-highlight">
       <h4>Notable Pattern: Agent Behavior by Error Type</h4>
@@ -445,7 +445,7 @@
 
     <h2 id="slack-case">Case 2: Why Slack MCP Sustains 163ms Average</h2>
 
-    <p>Slack MCP (n=113, 91% success) records the lowest average latency among the three services — 163ms — and zero timeout errors. This endurance is no accident.</p>
+    <p>Slack MCP (n=113) records the lowest average latency among the three services — 163ms — and zero timeout errors. This endurance is no accident.</p>
 
     <p>Slack's API architecture consistently enforces (1) mandatory pagination on channel/user search, (2) explicit defaults for the <code>limit</code> parameter (typically 100 records), and (3) a <code>response_metadata.next_cursor</code> field surfaced in HTTP responses. The combination structurally prevents agents from accidentally issuing "fetch all" queries — and the timeout risk is suppressed by design rather than by best-effort retries.</p>
 
@@ -461,7 +461,7 @@
 
     <h2 id="notion-case">Case 3: Notion MCP's schema_mismatch Pattern</h2>
 
-    <p>Notion MCP (n=48, 83% success) shows the lowest success rate of the three and records a <code>schema_mismatch</code> error — a classic giveup-trigger class. The empirical log:</p>
+    <p>Notion MCP (n=48) records a <code>schema_mismatch</code> error — a classic giveup-trigger class (success rate: under observation). The recorded log:</p>
 
     <div class="voice-quote">
       <div class="voice-label">Agent's Resolution Log</div>

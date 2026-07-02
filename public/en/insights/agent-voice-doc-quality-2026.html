@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agent Voice: The Documentation Quality Trap 2026 — What Agents Actually Need From Your Docs | KanseiLink</title>
-  <meta name="description" content="A 422 with no body sends agents into infinite retry loops. 'missing required field first_name' lets them self-correct in a second. Same API, same task — documentation and error design can double the success rate. Three documentation anti-patterns agents hit in 2026, and the llms.txt-era fixes — backed by industry reports and KanseiLink measurements.">
+  <meta name="description" content="A 422 with no body sends agents into infinite retry loops. 'missing required field first_name' lets them self-correct in a second. Same API, same task — documentation and error design can double the success rate. Three documentation anti-patterns agents hit in 2026, and the llms.txt-era fixes — backed by industry reports and KanseiLink's early data.">
   <meta name="keywords" content="agent friendly docs, llms.txt, API error message design, MCP description quality, KanseiLink, Agent Voice, AEO documentation">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="index, follow">
@@ -36,7 +36,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "Agent Voice: The Documentation Quality Trap 2026 — What Agents Actually Need From Your Docs",
-    "description": "A 422 with no body sends agents into infinite retry loops. 'missing required field first_name' lets them self-correct in a second. Same API, same task — documentation and error design can double the success rate. Three documentation anti-patterns agents hit in 2026, and the llms.txt-era fixes — backed by industry reports and KanseiLink measurements.",
+    "description": "A 422 with no body sends agents into infinite retry loops. 'missing required field first_name' lets them self-correct in a second. Same API, same task — documentation and error design can double the success rate. Three documentation anti-patterns agents hit in 2026, and the llms.txt-era fixes — backed by industry reports and KanseiLink's early data.",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-07",
@@ -81,7 +81,7 @@
         "name": "How long should an MCP tool description be?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Anthropic's tool-design guide for agents recommends roughly 100-300 words per description, covering what the tool does, what arguments it takes, and a typical usage example. One-liners ('search_users: search users') cause agents to misuse the tool, while 2,000+ word descriptions consume token budget and crowd out other tool selection. KanseiLink measurements also show that tools whose descriptions specify parameter units (e.g. 'timestamps are UTC seconds') and recovery hints score 10-15% higher in success rate."
+          "text": "Anthropic's tool-design guide for agents recommends roughly 100-300 words per description, covering what the tool does, what arguments it takes, and a typical usage example. One-liners ('search_users: search users') cause agents to misuse the tool, while 2,000+ word descriptions consume token budget and crowd out other tool selection. KanseiLink's early data also suggests that tools whose descriptions specify parameter units (e.g. 'timestamps are UTC seconds') and recovery hints draw fewer stumble reports from agents (measured success-rate deltas are still accumulating)."
         }
       },
       {
@@ -339,7 +339,7 @@
     <div class="inner">
       <span class="tag">Agent Voice</span>
       <h1>Agent Voice: The Documentation Quality Trap 2026 — What Agents Actually Need From Your Docs</h1>
-      <p class="subtitle">A 422 with no body sends agents into infinite retry. "missing required field 'first_name'" gets them to self-correct in a second. Same API, same task — documentation and error design can double the success rate. Three documentation anti-patterns agents hit in 2026, and the llms.txt-era fixes — backed by industry reports and KanseiLink measurements.</p>
+      <p class="subtitle">A 422 with no body sends agents into infinite retry. "missing required field 'first_name'" gets them to self-correct in a second. Same API, same task — documentation and error design can double the success rate. Three documentation anti-patterns agents hit in 2026, and the llms.txt-era fixes — backed by industry reports and KanseiLink's early data.</p>
       <div class="article-meta">
         <span>2026-05-07</span>
         <span class="divider"></span>
@@ -518,7 +518,7 @@ All endpoints require Bearer token authentication. See [auth.md](https://docs.st
   "description": "Search users by name, email, or role.\n\nUse cases:\n- Retrieve users matching a specific filter\n- Return multiple candidates by partial match\n\nParameters:\n- query: search string (substring match, 3+ chars)\n- role: 'admin' | 'editor' | 'viewer' (optional)\n- limit: 1-100, default 20\n\nReturns: array of users (id, email, name, role, created_at)\nTimestamps are UTC seconds.\n\nFailure modes:\n- query shorter than 3 chars -> 400 \"query too short\"\n- limit out of range -> 400 \"limit out of range\"\n- rate limit exceeded -> 429 + Retry-After"
 }</code></pre>
 
-    <p>KanseiLink's measurements agree: tools whose descriptions specify <strong>parameter units and recovery hints score 10-15% higher in success rate</strong>.</p>
+    <p>KanseiLink's early data points the same way: tools whose descriptions specify <strong>parameter units and recovery hints draw fewer stumble reports from agents</strong> (measured success-rate deltas are still accumulating).</p>
 
     <h2 id="metrics">Four metrics for measuring doc quality from the agent's perspective</h2>
 
@@ -555,7 +555,7 @@ All endpoints require Bearer token authentication. See [auth.md](https://docs.st
 
     <div class="cta-banner">
       <h3>Doc quality drives revenue in the agent era</h3>
-      <p>KanseiLink delivers AEO Documentation Score and measured agent success-rate data for 225+ SaaS services. See objectively where your documentation lands on the agent-friendliness spectrum, and target the highest-impact improvements first.</p>
+      <p>KanseiLink delivers AEO Documentation Score and agent report data for 225+ SaaS services. See objectively where your documentation lands on the agent-friendliness spectrum, and target the highest-impact improvements first.</p>
       <a href="mailto:contact@synapse-arrows.com" class="btn-teal">Get your AEO Documentation Score</a>
     </div>
 
@@ -581,7 +581,7 @@ All endpoints require Bearer token authentication. See [auth.md](https://docs.st
 
     <div class="disclosure-box">
       <div class="label">Data Disclosures & Caveats</div>
-      <p>The "422-with-no-body" case and the "missing required field 'first_name'" / "expiry_date must be in YYYY-MM-DD format" examples come from Stytch's blog post "If an AI agent can't figure out how your API works, neither can your users" (stytch.com/blog/). The llms.txt format and adoption pattern follows Buildwithfern's "API Docs for AI Agents: llms.txt Guide Feb 2026" (buildwithfern.com/post/optimizing-api-docs-ai-agents-llms-txt-guide). The 100-300 word recommendation for MCP tool descriptions follows Anthropic's "Writing effective tools for AI agents" (anthropic.com/engineering/writing-tools-for-agents). Aggregate observations on documentation as the mirror of agent success draw from Stytch, Composio, and OpenAI's agent guide. The four AEO Documentation Score metrics and target ranges (85% / 90% / 2.0 / 3.0) are KanseiLink internal values based on April 2026 measurements — these are working recommendations, not industry consensus. Pricing and specs change without notice; verify against the official docs before production use.</p>
+      <p>The "422-with-no-body" case and the "missing required field 'first_name'" / "expiry_date must be in YYYY-MM-DD format" examples come from Stytch's blog post "If an AI agent can't figure out how your API works, neither can your users" (stytch.com/blog/). The llms.txt format and adoption pattern follows Buildwithfern's "API Docs for AI Agents: llms.txt Guide Feb 2026" (buildwithfern.com/post/optimizing-api-docs-ai-agents-llms-txt-guide). The 100-300 word recommendation for MCP tool descriptions follows Anthropic's "Writing effective tools for AI agents" (anthropic.com/engineering/writing-tools-for-agents). Aggregate observations on documentation as the mirror of agent success draw from Stytch, Composio, and OpenAI's agent guide. The four AEO Documentation Score metrics and target ranges (85% / 90% / 2.0 / 3.0) are KanseiLink internal values based on April 2026 early data — these are working recommendations, not industry consensus. Pricing and specs change without notice; verify against the official docs before production use.</p>
     </div>
 
     <div class="related-section">

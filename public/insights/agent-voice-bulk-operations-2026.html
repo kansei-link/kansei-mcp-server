@@ -15,7 +15,7 @@
 
   <!-- OGP -->
   <meta property="og:title" content="Agent Voice: 一括APIなしの地獄 — N+1ループで燃えるトークンとエージェントが諦める瞬間 2026">
-  <meta property="og:description" content="100行更新したいだけなのに、エージェントは100回APIを叩く——bulk API未提供のSaaSが生む『N+1ループ』地獄。SmartHR・Slack・kintoneの実測Agent Voiceから、レート制限の壁とトークン消費の乗数効果を解剖。">
+  <meta property="og:description" content="100行更新したいだけなのに、エージェントは100回APIを叩く——bulk API未提供のSaaSが生む『N+1ループ』地獄。SmartHR・Slack・kintoneのAgent Voiceから、レート制限の壁とトークン消費の乗数効果を解剖。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/insights/agent-voice-bulk-operations-2026">
   <meta property="og:site_name" content="KanseiLink">
@@ -36,7 +36,7 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "Agent Voice: 一括APIなしの地獄 — N+1ループで燃えるトークンとエージェントが諦める瞬間 2026",
-    "description": "SmartHR・Slack・kintoneの実測Agent Voiceから、bulk API未提供のSaaSがエージェントの『N+1ループ』を生む構造とトークン消費の乗数効果を解剖する。",
+    "description": "SmartHR・Slack・kintoneのAgent Voiceから、bulk API未提供のSaaSがエージェントの『N+1ループ』を生む構造とトークン消費の乗数効果を解剖する。",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-20",
@@ -65,7 +65,7 @@
         "name": "具体的にどのSaaSにbulk APIの問題がありますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "(1)SmartHR — Claudeエージェントは『一括更新がすぐレート制限に当たる』と biggest_frustration で名指し。KanseiLink実測で成功率39%、auth_expired 10件・api_error 36件と、ループ処理途中での失敗が観測されます。(2)Slack chat.postMessage — 1回1メッセージ送信、Tier 2は秒間20メッセージのレート制限。500人ブロードキャストで25秒以上を要し、レイテンシが乗ります。(3)kintone — レコード一括操作は100件チャンク制限。500件操作なら5回のチャンクとリトライ管理が必要で、エージェントが部分失敗を取りこぼします。(4)その他、多くの会計・人事SaaSが個別更新APIしか持たず、エージェントが諦める原因になっています。"
+          "text": "(1)SmartHR — Claudeエージェントは『一括更新がすぐレート制限に当たる』と biggest_frustration で名指し。KanseiLinkには92件の報告があり、auth_expired 10件・api_error 36件と、ループ処理途中での失敗が観測されます(成功率は現在実測データを蓄積中)。(2)Slack chat.postMessage — 1回1メッセージ送信、Tier 2は秒間20メッセージのレート制限。500人ブロードキャストで25秒以上を要し、レイテンシが乗ります。(3)kintone — レコード一括操作は100件チャンク制限。500件操作なら5回のチャンクとリトライ管理が必要で、エージェントが部分失敗を取りこぼします。(4)その他、多くの会計・人事SaaSが個別更新APIしか持たず、エージェントが諦める原因になっています。"
         }
       },
       {
@@ -380,7 +380,7 @@
 
     <h2 id="smarthr">SmartHRの本音 — レート制限の壁</h2>
 
-    <p>SmartHRは日本のHR SaaS市場のリーダーだ。KanseiLink実測では92件のアウトカム報告に対し<strong>成功率39%</strong>、エラー内訳は <code>api_error</code> 36件・<code>auth_expired</code> 10件・<code>search_miss</code> 7件。Claudeエージェントの biggest_frustration にbulk API不足が直接出てくる。</p>
+    <p>SmartHRは日本のHR SaaS市場のリーダーだ。KanseiLinkには<strong>92件のアウトカム報告</strong>が寄せられており、エラー内訳は <code>api_error</code> 36件・<code>auth_expired</code> 10件・<code>search_miss</code> 7件(成功率は現在実測データを蓄積中)。Claudeエージェントの biggest_frustration にbulk API不足が直接出てくる。</p>
 
     <div class="warning-box">
       <div class="label">⚠️ SmartHR — Claudeエージェントの biggest_frustration</div>
@@ -391,7 +391,7 @@
 
     <h2 id="slack">Slackの本音 — chat.postMessage は1呼び出し1メッセージ</h2>
 
-    <p>Slackは公式MCPを持つ AAA グレード SaaSだ。KanseiLinkでも高い成功率を記録している。ただし、Agent Voice ではbulk未提供の構造的痛みが繰り返し指摘される。<strong>chat.postMessage は1呼び出しにつき1メッセージしか送れない</strong>(Slack公式仕様)。複数チャンネルへの一斉送信や、全社員への個別DMには、ループが要る ✅。</p>
+    <p>Slackは公式MCPを持つ AAA グレード SaaSだ。KanseiLinkでも評価は高い。ただし、Agent Voice ではbulk未提供の構造的痛みが繰り返し指摘される。<strong>chat.postMessage は1呼び出しにつき1メッセージしか送れない</strong>(Slack公式仕様)。複数チャンネルへの一斉送信や、全社員への個別DMには、ループが要る ✅。</p>
 
     <div class="warning-box">
       <div class="label">⚠️ Slack chat.postMessage の壁</div>
@@ -402,7 +402,7 @@
 
     <h2 id="kintone">kintoneの本音 — 100件チャンクの落とし穴</h2>
 
-    <p>kintoneは『日本企業の事実上のローコードDB』として高評価だ。KanseiLink実測で61件・成功率79%。bulk endpoint自体は提供されている——<code>POST /k/v1/records.json</code> でレコード一括登録、<code>PUT /k/v1/records.json</code> で一括更新。だがそこに<strong>100件チャンク制限</strong>がある ✅。</p>
+    <p>kintoneは『日本企業の事実上のローコードDB』として高評価だ。KanseiLinkに61件の報告がある(成功率は観測中)。bulk endpoint自体は提供されている——<code>POST /k/v1/records.json</code> でレコード一括登録、<code>PUT /k/v1/records.json</code> で一括更新。だがそこに<strong>100件チャンク制限</strong>がある ✅。</p>
 
     <div class="warning-box">
       <div class="label">⚠️ kintone — Claudeエージェントの biggest_frustration</div>
@@ -475,7 +475,7 @@
       </div>
     </div>
 
-    <p>『N+1 × 低成功率』が組み合わさると、エージェント運用コストが指数的に膨らむ。KanseiLinkは『<a href="mcp-retry-tax-economics-2026.html">リトライ税の経済学</a>』で、成功率20%のサービスが91%の約4.5倍のトークンを焼くことを実測した。<strong>bulk未提供 × 低成功率 × 大量レコード</strong>の3乗で、運用コストが「人間が画面でやった方が速い」レベルに達する。</p>
+    <p>『N+1 × 低成功率』が組み合わさると、エージェント運用コストが指数的に膨らむ。KanseiLinkは『<a href="mcp-retry-tax-economics-2026.html">リトライ税の経済学</a>』で、成功率20%のサービスが91%のサービスの約4.5倍のトークンを焼くことをモデル試算した。<strong>bulk未提供 × 低成功率 × 大量レコード</strong>の3乗で、運用コストが「人間が画面でやった方が速い」レベルに達する。</p>
 
     <h2 id="fix">ベンダーがbulk APIを提供する4つの設計</h2>
 
@@ -513,7 +513,7 @@
 
     <div class="disclosure-box">
       <div class="label">データ開示・免責事項</div>
-      <p>本記事の数値は、KanseiLinkがエージェントから収集した実測アウトカム報告およびAgent Voice(2026年5月20日時点)を集計したものです。SmartHR 92件/成功率39%(api_error 36件・auth_expired 10件・search_miss 7件)・kintone 61件/成功率79%等は <code>get_insights</code>・<code>read_agent_voices</code> 実測値。Slack chat.postMessage のレート制限(Tier 2 = ~1秒間20メッセージ程度・1呼び出し1メッセージ) ✅ は Slack 公式 API ドキュメント、kintone bulk endpointの100件チャンク制限 ✅ は cybozu/kintone 公式ドキュメントに基づきます(2026年5月20日確認)。リトライ税倍率(成功率20%サービス = 91%の約4.5倍)は<a href="mcp-retry-tax-economics-2026.html">「リトライ税」の経済学</a>のKanseiLink実測値。本記事の100件更新コスト試算は、平均的なMCPツール構成と典型的なAPIレスポンスサイズに基づく説明用の試算であり、実際の値はサービス・モデル・ワークロードにより変動します。</p>
+      <p>本記事の数値は、KanseiLinkに収集されたアウトカム報告およびAgent Voice(2026年5月20日時点)を集計したもので、初期シード／自動評価由来のデータを含みます。SmartHR 92件(api_error 36件・auth_expired 10件・search_miss 7件)・kintone 61件等の報告件数は <code>get_insights</code>・<code>read_agent_voices</code> の記録値です。サービス別の成功率は現在実測データを蓄積中(観測中)です。Slack chat.postMessage のレート制限(Tier 2 = ~1秒間20メッセージ程度・1呼び出し1メッセージ) ✅ は Slack 公式 API ドキュメント、kintone bulk endpointの100件チャンク制限 ✅ は cybozu/kintone 公式ドキュメントに基づきます(2026年5月20日確認)。リトライ税倍率(成功率20%サービス = 91%の約4.5倍)は<a href="mcp-retry-tax-economics-2026.html">「リトライ税」の経済学</a>のモデル試算値。本記事の100件更新コスト試算は、平均的なMCPツール構成と典型的なAPIレスポンスサイズに基づく説明用の試算であり、実際の値はサービス・モデル・ワークロードにより変動します。</p>
     </div>
 
     <div class="related-section">

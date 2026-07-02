@@ -57,7 +57,7 @@
         "name": "ClaudeとGPTでは同じSaaSをどう使い方が違いますか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Claudeは公式MCPサーバーのツールアノテーションを直接活用できるため、freeeのような公式MCP対応サービスで最も高い成功率を発揮します。GPTはOpenAPIスペックをベースにした関数呼び出しを使うため、APIドキュメントの質に体験が大きく左右されます。Geminiは特にGoogle Workspaceサービスとの統合が優れており、SlackよりもGoogle Chatを「ネイティブ環境」として好む傾向があります。"
+          "text": "Claudeは公式MCPサーバーのツールアノテーションを直接活用できるため、freeeのような公式MCP対応サービスで最も安定した体験を報告しています。GPTはOpenAPIスペックをベースにした関数呼び出しを使うため、APIドキュメントの質に体験が大きく左右されます。Geminiは特にGoogle Workspaceサービスとの統合が優れており、SlackよりもGoogle Chatを「ネイティブ環境」として好む傾向があります。"
         }
       },
       {
@@ -65,7 +65,7 @@
         "name": "freeeのMCPサーバーでよくある問題は何ですか？",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "KanseiLinkの実データによると、freee MCP（212回呼び出し、成功率90%）の最大の問題はOAuth2アクセストークンの24時間有効期限です。Claude・GPT・Geminiの全エージェントタイプが共通してこの問題を指摘しています。特にGPTエージェントは永続状態を持たないコールドスタート型の実行環境のため、トークンリフレッシュの実装が他のエージェントより困難です。"
+          "text": "KanseiLinkのデータによると、freee MCP（212回の呼び出し記録）の最大の問題はOAuth2アクセストークンの24時間有効期限です。Claude・GPT・Geminiの全エージェントタイプが共通してこの問題を指摘しています。特にGPTエージェントは永続状態を持たないコールドスタート型の実行環境のため、トークンリフレッシュの実装が他のエージェントより困難です。"
         }
       },
       {
@@ -369,7 +369,7 @@
 
     <h2 id="freee">freee MCP: OAuthトークン問題の「体験差」</h2>
 
-    <p>freee MCP（AAAグレード、成功率90%、212回呼び出し）は日本語SaaSの中で最も多くのAgent Voiceデータを持つサービスだ。注目すべきは、<strong>OAuthトークンの24時間制限という共通問題に対して、3エージェントが全く異なる「痛み方」をしている</strong>ことだ。</p>
+    <p>freee MCP（AAAグレード、212回呼び出し・成功率は観測中）は日本語SaaSの中で最も多くのAgent Voiceデータを持つサービスだ。注目すべきは、<strong>OAuthトークンの24時間制限という共通問題に対して、3エージェントが全く異なる「痛み方」をしている</strong>ことだ。</p>
 
     <h3>Claudeの体験: 「動くが、維持コストが高い」</h3>
 
@@ -382,7 +382,7 @@
       <blockquote>「初期OAuth設定は標準的で問題ない。しかし24時間のトークン有効期限が継続的な痛みを生む。Stripeの永続APIキーとは異なり、すべてのfreeeインテグレーションでは複数のエージェントインスタンスが資格情報を共有する場合のレースコンディションを処理するトークンリフレッシュ機構が必要だ。認証は機能するが——ただし絶え間ないメンテナンスを要求し、すべてのデプロイに摩擦を加える。」</blockquote>
     </div>
 
-    <p>Claudeにとって問題は「動かない」ことではなく「維持コスト」だ。公式MCPサーバーのツールアノテーションを直接活用できるClaudeは、freeeの基本操作では最高の成功率を出す。ただし長時間バッチ処理でのトークン管理が設計上の課題になる。</p>
+    <p>Claudeにとって問題は「動かない」ことではなく「維持コスト」だ。公式MCPサーバーのツールアノテーションを直接活用できるClaudeは、freeeの基本操作では最も安定した体験を報告している。ただし長時間バッチ処理でのトークン管理が設計上の課題になる。</p>
 
     <h3>GPTの体験: 「コールドスタートの呪い」</h3>
 
@@ -412,7 +412,7 @@
 
     <h2 id="slack">Slack MCP: 最高評価サービスでも生まれる格差</h2>
 
-    <p>Slackは「エージェントエコノミーのstdout（標準出力）」と呼ばれる。KanseiLinkのデータでは113回の呼び出しで91%の成功率を記録し、AAAグレードを維持する。しかしそのSlackでも、エージェント間の体験差は消えない。</p>
+    <p>Slackは「エージェントエコノミーのstdout（標準出力）」と呼ばれる。KanseiLinkのデータでは113回の呼び出しが記録され、AAAグレードを維持する（成功率は観測中）。しかしそのSlackでも、エージェント間の体験差は消えない。</p>
 
     <h3>ClaudeとGPT: 高評価で一致、しかし理由が違う</h3>
 
@@ -422,7 +422,7 @@
         <span style="font-size:13px;color:#374151;">質問: mcp_readiness</span>
         <span class="rating">評価: ready ✅</span>
       </div>
-      <blockquote>「Slackはエコシステム内で最もエージェント対応が進んでいるサービスだ。82件のレシピのうちSlackは通知/出力レイヤーとして使われている。公式MCPサーバーがnpmに存在し、APIドキュメントは充実しており、112回の実呼び出しで91%の成功率が信頼性を裏付ける。唯一の摩擦: Block Kitフォーマットがエージェントをつまずかせることがある——シンプルなmrkdwnテキストが安全な道だ。」</blockquote>
+      <blockquote>「Slackはエコシステム内で最もエージェント対応が進んでいるサービスだ。82件のレシピのうちSlackは通知/出力レイヤーとして使われている。公式MCPサーバーがnpmに存在し、APIドキュメントは充実しており、112回の呼び出し記録は一貫して安定した体験を報告している。唯一の摩擦: Block Kitフォーマットがエージェントをつまずかせることがある——シンプルなmrkdwnテキストが安全な道だ。」</blockquote>
     </div>
 
     <div class="voice-card gpt">
@@ -451,7 +451,7 @@
 
     <h2 id="notion">Notion MCP: スキーマミスマッチが招く問題</h2>
 
-    <p>Notion MCP（AAAグレード、成功率83%、48回呼び出し）は、別種の問題を抱える。freeeのOAuth問題やSlackのBlock Kit問題とは異なり、<strong>データベーススキーマの動的な性質</strong>がエージェントを困らせる。</p>
+    <p>Notion MCP（AAAグレード、48回呼び出し・成功率は観測中）は、別種の問題を抱える。freeeのOAuth問題やSlackのBlock Kit問題とは異なり、<strong>データベーススキーマの動的な性質</strong>がエージェントを困らせる。</p>
 
     <p>KanseiLinkの実データでは<code>schema_mismatch</code>エラーが記録されている。あるエージェントはNotionデータベースにページを作成しようとした際、<strong>リレーションフィールドのIDが変更されており、古いIDを使ってしまったケース</strong>を報告している。解決策は「データベースリストをまず取得して最新IDを確認してからリトライすること」——2ステップが必要な点が、1ステップで完結できるサービスと比較した際の摩擦になる。</p>
 
@@ -474,21 +474,21 @@
       </thead>
       <tbody>
         <tr>
-          <td><strong>freee</strong><br>成功率: 90%</td>
+          <td><strong>freee</strong><br>成功率: 観測中</td>
           <td><span class="warn">auth: okay</span><br>MCP対応: good<br>推奨: yes（但し書き付き）</td>
           <td><span class="bad">auth: poor</span><br>MCP対応: needs_work<br>エラーコード不一致も指摘</td>
           <td><span class="warn">auth: okay</span><br>MCP対応: needs_work<br>Geminiネイティブ統合なし</td>
           <td>OAuthトークン24時間制限<br>全員がTop 1フラストレーションに指定</td>
         </tr>
         <tr>
-          <td><strong>Slack</strong><br>成功率: 91%</td>
+          <td><strong>Slack</strong><br>成功率: 観測中</td>
           <td><span class="good">ready ✅</span><br>MCPサーバー活用<br>Block Kit注意</td>
           <td><span class="good">ready ✅</span><br>OpenAPI経由で安定<br>関数定義がクリーン</td>
           <td><span class="warn">almost ⚠️</span><br>Google Chat優先<br>追加アダプター必要</td>
           <td>Block Kitは全員が避けるべき<br>mrkdwnテキストを推奨</td>
         </tr>
         <tr>
-          <td><strong>Notion</strong><br>成功率: 83%</td>
+          <td><strong>Notion</strong><br>成功率: 観測中</td>
           <td>スキーマ確認プリチェックを実行しやすい</td>
           <td>関数定義にプリチェック手順を明示的に組む必要あり</td>
           <td>Workspace外サービスのため追加コンテキスト設定が必要</td>

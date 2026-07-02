@@ -39,9 +39,21 @@ const entries = xml.match(/<url>[\s\S]*?<\/url>/g) || [];
 const kept = [];
 let dropped = [], touched = 0;
 
-for (const entry of entries) {
-  const loc = (entry.match(/<loc>(.*?)<\/loc>/) || [])[1];
-  if (!loc) continue;
+// insights URLは extensionless に正規化（canonicalタグの主流形式に一致させる）
+function normalizeLoc(loc) {
+  return loc
+    .replace(/^(https:\/\/kansei-link\.com\/(?:en\/)?insights)\/index\.html$/, '$1/')
+    .replace(/^(https:\/\/kansei-link\.com\/(?:en\/)?insights\/[a-z0-9-]+)\.html$/, '$1');
+}
+
+const seenLocs = new Set();
+for (const rawEntry of entries) {
+  const rawLoc = (rawEntry.match(/<loc>(.*?)<\/loc>/) || [])[1];
+  if (!rawLoc) continue;
+  const loc = normalizeLoc(rawLoc);
+  if (seenLocs.has(loc)) continue;
+  seenLocs.add(loc);
+  const entry = rawEntry.replace(`<loc>${rawLoc}</loc>`, `<loc>${loc}</loc>`);
   const file = locToFile(loc);
   if (existsSync(file)) {
     const html = readFileSync(file, 'utf8');
@@ -79,7 +91,7 @@ for (const rel of ['insights', 'en/insights']) {
     if (/name=["']robots["']\s+content=["']noindex/i.test(html)) continue;
     const loc = f === 'index.html'
       ? `https://kansei-link.com/${rel}/`
-      : `https://kansei-link.com/${rel}/${f}`;
+      : `https://kansei-link.com/${rel}/${f.replace(/\.html$/, '')}`;
     if (keptLocs.has(loc)) continue;
     kept.push(`<url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n  </url>`);
     added.push(loc);
