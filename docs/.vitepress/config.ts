@@ -6,7 +6,12 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+    ['meta', { name: 'google-site-verification', content: 'Hag98isHABdrjl_MlcNaBYn4vCdFcjqEEmZ8LGpoQto' }],
   ],
+
+  sitemap: {
+    hostname: 'https://docs.kansei-link.com',
+  },
 
   themeConfig: {
     logo: '/logo.svg',
