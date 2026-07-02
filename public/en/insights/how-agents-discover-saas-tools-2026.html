@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How AI Agents Actually Discover SaaS Tools: A Data-Driven Analysis | KanseiLink 2026</title>
+  <meta name="description" content="How do AI agents find and select SaaS tools? Not through Google — through semantic tool search over MCP schemas. We analyzed 11,000+ services to map the real agent discovery pipeline, failure patterns, and what determines selection.">
+  <meta name="keywords" content="AI agent tool discovery, agent SaaS selection, MCP tool search, how agents find tools, agent discovery data, Agent AEO, MCP server ranking, search_miss">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/how-agents-discover-saas-tools-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/how-agents-discover-saas-tools-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/how-agents-discover-saas-tools-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/en/insights/how-agents-discover-saas-tools-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="How AI Agents Actually Discover SaaS Tools: A Data-Driven Analysis">
+  <meta property="og:description" content="Agents don't Google your product. They run semantic searches over MCP schemas. We mapped the real discovery pipeline across 11,000+ SaaS services — here's what the data shows.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/how-agents-discover-saas-tools-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-06-30">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Agent AEO">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How AI Agents Actually Discover SaaS Tools — KanseiLink">
+  <meta name="twitter:description" content="We analyzed 11,000+ SaaS services to map how AI agents actually find tools. Spoiler: it's not Google, and keyword matching doesn't work.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "How AI Agents Actually Discover SaaS Tools: A Data-Driven Analysis",
+    "description": "AI agents discover SaaS tools through semantic search over MCP schemas, not through Google or keyword matching. This data-driven analysis maps the complete agent decision pipeline across 11,000+ services, identifies four failure patterns, and shows why search_miss is the most damaging failure mode in the agent economy.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-06-30",
+    "dateModified": "2026-06-30",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/how-agents-discover-saas-tools-2026",
+    "keywords": ["AI agent tool discovery", "agent SaaS selection", "MCP tool search", "how agents find tools", "agent discovery data", "Agent AEO", "search_miss"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do AI agents search for SaaS tools?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AI agents search for SaaS tools using semantic matching over MCP (Model Context Protocol) server schemas — not through Google or keyword search. When an agent receives a task like 'create an invoice,' it queries its available tool registries by intent. The agent's runtime matches the task description against tool names, descriptions, and parameter schemas to find relevant services. This is fundamentally different from human search: there is no search engine results page, no ads, and no click-through. The agent either finds your service or it doesn't."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is search_miss and why is it the biggest agent discovery problem?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "search_miss occurs when an AI agent searches for a tool to accomplish a task, but the intended service never appears in the results. It is the most damaging failure pattern because it is completely invisible — it generates no error logs, no API calls, no server-side evidence of any kind. The service provider has no way to know they were skipped. KanseiLink data shows that search_miss is the number one invisible failure mode, affecting services that lack MCP servers or have poorly written tool descriptions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the success rate difference between Official MCP and API-only services?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLink data across 11,000+ services shows a significant gap. Services with official first-party MCP servers achieve success rates between 63% and 91%. Services that are API-only (no MCP server, but accessible through generic API tools) average around 49% success rate. Services with no MCP server and no accessible API are effectively invisible to agents — they have a 0% discovery rate because agents cannot find them through tool search at all."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are the four agent failure patterns?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "KanseiLink tracks four distinct failure patterns in agent-to-SaaS interactions: (1) auth_failure — the agent finds the service but cannot authenticate due to token expiration, OAuth complexity, or missing credentials; (2) schema_mismatch — the agent calls the tool but sends parameters in the wrong format because the schema documentation is unclear; (3) search_miss — the agent never finds the service at all during tool search; (4) version_conflict — the agent finds an outdated MCP server version that no longer matches the current API. Of these, search_miss is the most damaging because it is entirely invisible to the service provider."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How can SaaS companies improve their agent discoverability?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "SaaS companies can improve agent discoverability through several concrete steps: (1) Publish an official MCP server with clear, descriptive tool names that match common user intent phrases; (2) Write tool descriptions that explain what the tool does in plain language, not marketing copy; (3) Design clean parameter schemas with descriptive field names and helpful defaults; (4) Support simple auth flows — API keys or OAuth with clear scoping; (5) Add llms.txt and mcp.json to your domain for automated discovery; (6) Monitor your Agent AEO grade on KanseiLink to track how agents actually interact with your service."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does SEO help with agent tool discovery?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Traditional SEO has almost no direct impact on agent tool discovery. AI agents do not use Google to find tools — they search MCP registries and tool schemas using semantic matching. However, strong SEO indirectly helps because it increases the likelihood that your service appears in LLM training data, which makes agents more likely to know your brand exists when formulating search queries. The direct optimization surface for agent discovery is your MCP server schema, tool descriptions, and parameter definitions — not your website content or backlink profile."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "How AI Agents Discover SaaS Tools", "item": "https://kansei-link.com/en/insights/how-agents-discover-saas-tools-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+      --grade-aaa: #065F46;
+      --grade-aa: #059669;
+      --grade-a: #0891B2;
+      --grade-bbb: #D97706;
+      --grade-bb: #EA580C;
+      --grade-b: #DC2626;
+      --grade-c: #991B1B;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 15px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+
+    .grade-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 13px; font-weight: 700; color: var(--white); letter-spacing: 0.5px; }
+    .grade-aaa { background: var(--grade-aaa); }
+    .grade-aa { background: var(--grade-aa); }
+    .grade-a { background: var(--grade-a); }
+    .grade-bbb { background: var(--grade-bbb); }
+    .grade-bb { background: var(--grade-bb); }
+    .grade-b { background: var(--grade-b); }
+    .grade-c { background: var(--grade-c); }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    .pipeline-step { background: var(--gray-light); border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 14px; }
+    .pipeline-step .step-num { background: var(--blue); color: var(--white); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .pipeline-step .step-content { flex: 1; }
+    .pipeline-step .step-title { font-weight: 600; color: var(--black); font-size: 15px; margin-bottom: 4px; }
+    .pipeline-step .step-desc { font-size: 14px; color: var(--gray-text); line-height: 1.5; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 13px; }
+      .data-table th, .data-table td { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      How AI Agents Discover SaaS Tools
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Agent AEO</span>
+      <h1>How AI Agents Actually Discover SaaS Tools: A Data-Driven Analysis</h1>
+      <p class="subtitle">Agents don't Google your product. They run semantic searches over MCP schemas. We mapped the real discovery pipeline across 11,000+ SaaS services to show exactly what determines whether an agent finds you, skips you, or never knows you exist.</p>
+      <div class="article-meta">
+        <span>2026-06-30</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>11 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#pipeline">The Agent Decision Pipeline</a></li>
+        <li><a href="#how-search">How Do AI Agents Search for Tools?</a></li>
+        <li><a href="#how-evaluate">How Do Agents Evaluate What They Find?</a></li>
+        <li><a href="#how-select">How Do Agents Decide Which Tool to Use?</a></li>
+        <li><a href="#failure-patterns">The Four Failure Patterns</a></li>
+        <li><a href="#data-shows">What the Data Shows: Official MCP vs. API-Only vs. Nothing</a></li>
+        <li><a href="#search-miss">Why search_miss Is the Failure That Matters Most</a></li>
+        <li><a href="#checklist">What SaaS Companies Can Do Today</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+
+    <p>There is a persistent misconception about how AI agents find the tools they use. If you've spent time thinking about AI visibility, you probably assume the process looks something like web search: the agent receives a query, searches an index, and returns ranked results based on relevance signals.</p>
+
+    <p>The reality is stranger and more consequential. We track agent interactions across 11,000+ SaaS services at KanseiLink, and the data reveals a discovery process that is fundamentally different from anything in the human web. Understanding this process is no longer optional for SaaS companies that want to exist in the agent economy.</p>
+
+    <div class="data-highlight">
+      <h4>KanseiLink Discovery Data</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num">11K+</span>
+          <div class="label">SaaS services tracked</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">73K+</span>
+          <div class="label">MCP servers<br>in ecosystem</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">97M+</span>
+          <div class="label">MCP SDK downloads<br>per month</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">#1</span>
+          <div class="label">Invisible failure:<br>search_miss</div>
+        </div>
+      </div>
+    </div>
+
+
+    <h2 id="pipeline">The Agent Decision Pipeline</h2>
+
+    <p>When a user tells an AI agent to do something involving a SaaS tool, the agent doesn't jump straight to API calls. It walks through a structured decision pipeline. Every step is a filter. Fail at any step, and your service drops out of consideration silently.</p>
+
+    <div class="pipeline-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">Need Recognition</div>
+        <div class="step-desc">The agent parses the user's request and identifies what kind of tool it needs. "Create an invoice for Acme Corp" becomes the intent: <em>invoicing tool, create operation</em>.</div>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">Tool Search</div>
+        <div class="step-desc">The agent queries available MCP servers and tool registries using semantic matching. This is not keyword search. It matches intent against tool descriptions.</div>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">Evaluate Candidates</div>
+        <div class="step-desc">The agent examines each candidate's schema, description quality, parameter definitions, and authentication requirements.</div>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">Select and Execute</div>
+        <div class="step-desc">The agent picks the best match, formats the correct parameters, authenticates, and calls the tool.</div>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <div class="step-title">Report Outcome</div>
+        <div class="step-desc">The agent returns results to the user. Failures at any step feed back into future tool selection decisions.</div>
+      </div>
+    </div>
+
+    <p>Here's what makes this pipeline different from human search: <strong>there is no second page of results.</strong> The agent doesn't browse. It doesn't comparison-shop. It evaluates candidates in a single pass, picks one, and moves on. If your service doesn't surface during Step 2, the rest of the pipeline never runs for you.</p>
+
+
+    <h2 id="how-search">How Do AI Agents Search for Tools?</h2>
+
+    <p>This is where most assumptions break down. AI agents do not use Google. They do not crawl web pages. They do not read marketing copy or case studies. When an agent searches for a tool, it runs a <strong>semantic search over MCP server schemas</strong>.</p>
+
+    <p>MCP (Model Context Protocol) is the standard that lets AI agents connect to external tools. Each MCP server publishes a schema that describes its tools: what they're called, what they do, and what parameters they accept. When an agent needs a tool, it searches across these schemas.</p>
+
+    <p>The critical difference from keyword search: <strong>semantic matching evaluates meaning, not exact words.</strong> An agent looking for "create an invoice" will match against a tool described as "generate a billing document" because the semantic meaning overlaps. But it won't match against a tool called <code>post_transaction</code> with no description, even if that tool does exactly what the agent needs.</p>
+
+    <div class="insight-box">
+      <div class="label">Key Finding</div>
+      <p>Tool Search in the MCP ecosystem uses semantic matching, not keyword matching. This means a well-described tool with a clear name will outrank a technically superior tool with a cryptic name and no description. <strong>How you describe your tool matters more than what your tool does.</strong></p>
+    </div>
+
+    <p>The practical implication: stuffing your tool names with keywords doesn't help. Writing clear, intent-aligned descriptions does. An agent searching for "accounting software" will find a tool described as "Cloud accounting platform for small businesses — manage invoices, expenses, and financial reports" before it finds one named <code>xero_api_v3_wrapper</code> with an empty description field.</p>
+
+
+    <h2 id="how-evaluate">How Do Agents Evaluate What They Find?</h2>
+
+    <p>Once the search returns candidates, the agent evaluates them. This evaluation happens in milliseconds, with no human involvement. Three factors dominate:</p>
+
+    <h3>1. Description quality</h3>
+    <p>The agent reads the tool's description to confirm it matches the user's intent. Vague descriptions like "Business management platform" lose to specific ones like "Create, send, and track invoices for Japanese businesses. Supports tax-inclusive pricing and e-invoice compliance." The more precisely a description matches the agent's parsed intent, the higher it ranks.</p>
+
+    <h3>2. Schema clarity</h3>
+    <p>The agent inspects parameter schemas before making a call. Clean schemas with descriptive field names (<code>customer_name</code>, <code>invoice_amount</code>, <code>due_date</code>) are straightforward to populate. Schemas with ambiguous fields (<code>param1</code>, <code>data</code>, <code>options</code>) force the agent to guess, increasing the chance of a <code>schema_mismatch</code> failure.</p>
+
+    <h3>3. Auth complexity</h3>
+    <p>Agents evaluate authentication requirements before attempting a connection. Simple API key auth is easy. OAuth 2.0 with scoped permissions is manageable. Multi-step OAuth with browser redirects, manual consent screens, or session-based tokens is a wall. If the agent can't authenticate programmatically, it drops the candidate and moves to the next option.</p>
+
+    <div class="insight-box">
+      <div class="label">What We See in the Data</div>
+      <p>Services with clear descriptions, well-structured schemas, and simple auth patterns are selected 2-3x more often than technically equivalent services with poor metadata. The agent doesn't care about your brand. It cares about whether it can understand your tool and use it on the first try.</p>
+    </div>
+
+
+    <h2 id="how-select">How Do Agents Decide Which Tool to Use?</h2>
+
+    <p>When multiple candidates survive search and evaluation, the agent makes a selection. Our data points to three primary ranking factors:</p>
+
+    <ul>
+      <li><strong>Name match:</strong> Does the tool name clearly signal what it does? A tool named <code>create_invoice</code> beats <code>biz_op_handler</code> for an invoicing task every time.</li>
+      <li><strong>Description relevance:</strong> How closely does the tool description match the user's intent? This is the semantic similarity score from Step 2, refined during evaluation.</li>
+      <li><strong>Past success signals:</strong> Has this tool been used successfully before in similar contexts? Agents that track execution history will prefer tools with proven track records. This is where KanseiLink's report data feeds back into the ecosystem.</li>
+    </ul>
+
+    <p>Notice what's absent from this list: pricing, market share, brand recognition, customer reviews, analyst ratings. None of these factors exist in the agent's decision space. The agent has no concept of Gartner quadrants or G2 scores. It operates entirely on structural and behavioral signals.</p>
+
+
+    <h2 id="failure-patterns">What Are the Four Agent Failure Patterns?</h2>
+
+    <p>KanseiLink tracks four distinct failure patterns in agent-to-SaaS interactions. Each has different causes, different visibility, and requires different fixes.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Failure Pattern</th>
+          <th>What Happens</th>
+          <th>Visible to Provider?</th>
+          <th>Root Cause</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>auth_failure</strong></td>
+          <td>Agent finds your tool but can't authenticate</td>
+          <td>Yes (in server logs)</td>
+          <td>Expired tokens, complex OAuth flows, missing credentials</td>
+        </tr>
+        <tr>
+          <td><strong>schema_mismatch</strong></td>
+          <td>Agent calls your tool with wrong parameter format</td>
+          <td>Yes (400/422 errors)</td>
+          <td>Unclear field names, undocumented required fields, inconsistent types</td>
+        </tr>
+        <tr>
+          <td><strong>version_conflict</strong></td>
+          <td>Agent connects to outdated MCP server version</td>
+          <td>Partially (deprecated endpoint hits)</td>
+          <td>Stale community-maintained servers, breaking API changes</td>
+        </tr>
+        <tr>
+          <td><strong>search_miss</strong></td>
+          <td>Agent never finds your service at all</td>
+          <td>No — completely invisible</td>
+          <td>No MCP server, poor descriptions, missing from registries</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>The first three failures are problems you can detect. They show up in your logs, your error dashboards, your monitoring. They're painful but fixable.</p>
+
+    <p>The fourth one — <code>search_miss</code> — is different. And it's the one that should worry you most.</p>
+
+
+    <h2 id="data-shows">What Does the Data Show? Official MCP vs. API-Only vs. Nothing</h2>
+
+    <p>We compared success rates across three tiers of agent accessibility. The gaps are large and consistent.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Integration Tier</th>
+          <th>Success Rate Range</th>
+          <th>Example Service</th>
+          <th>Grade</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Official MCP server</strong> (first-party, maintained)</td>
+          <td>63% &ndash; 91%</td>
+          <td>freee</td>
+          <td><span class="grade-badge grade-aaa">AAA</span> 90.3%</td>
+        </tr>
+        <tr>
+          <td><strong>API-only</strong> (no MCP, but API accessible via wrappers)</td>
+          <td>~49% average</td>
+          <td>Sansan</td>
+          <td><span class="grade-badge grade-aa">AA</span> 60%</td>
+        </tr>
+        <tr>
+          <td><strong>No MCP, limited API</strong></td>
+          <td>Below 50%</td>
+          <td>Salesforce (via community)</td>
+          <td><span class="grade-badge grade-bb">BB</span> 43%</td>
+        </tr>
+        <tr>
+          <td><strong>No MCP, no API access</strong></td>
+          <td>Effectively 0%</td>
+          <td>(Many niche SaaS)</td>
+          <td><span class="grade-badge grade-c">C</span> Invisible</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>The pattern is clear. freee, which publishes and maintains an official MCP server with well-structured schemas, hits a 90.3% success rate and earns an AAA grade. Services that rely on community-built wrappers or generic API connectors see significantly lower success rates — not because their underlying product is worse, but because the agent-facing interface is weaker.</p>
+
+    <div class="warning-box">
+      <div class="label">Critical Gap</div>
+      <p>The difference between an official MCP server (63-91% success) and API-only access (~49%) is not a rounding error. It represents roughly half your potential agent-driven usage being lost to auth failures, schema mismatches, and search misses. And that's the gap between services that are at least <em>somewhat</em> accessible. Services with no MCP server and no API are simply invisible.</p>
+    </div>
+
+    <p>Salesforce is an instructive case. It's the world's largest CRM by revenue. Every human decision-maker knows the name. But at a BB grade with a 43% agent success rate, it gets outperformed by smaller competitors with cleaner MCP implementations. In the agent economy, brand power doesn't compensate for poor tool accessibility.</p>
+
+
+    <h2 id="search-miss">Why Is search_miss the Failure That Matters Most?</h2>
+
+    <p>Of the four failure patterns, <code>search_miss</code> is the only one that generates zero signal on the provider's side. When an agent encounters an <code>auth_failure</code>, you see it in your server logs. When a <code>schema_mismatch</code> happens, you get a 400 error. When there's a <code>version_conflict</code>, you might notice calls hitting deprecated endpoints.</p>
+
+    <p>With <code>search_miss</code>, nothing happens. The agent searched for a tool. Your service wasn't in the results. The agent picked something else. You never knew.</p>
+
+    <p>This is the agent-economy equivalent of not being indexed by Google. In the early web, businesses that weren't in the search index simply didn't exist for online customers. The same thing is happening now with MCP registries. If your service isn't registered, or if your tool descriptions don't match the intents agents search for, you're not in the index. You're invisible.</p>
+
+    <div class="insight-box">
+      <div class="label">The Scale of the Problem</div>
+      <p>With 73,000+ MCP servers registered and 97 million+ monthly SDK downloads, the agent ecosystem is already large enough that being absent from it has real business consequences. search_miss isn't a future problem. It's happening now, and you can't see it without external data from tools like KanseiLink.</p>
+    </div>
+
+    <p>The key insight: <strong>search_miss is not a technical failure. It's a discoverability failure.</strong> Fixing it doesn't require better engineering. It requires better positioning — publishing an MCP server, writing clear descriptions, and registering in the right directories.</p>
+
+
+    <h2 id="checklist">What Can SaaS Companies Do Today?</h2>
+
+    <p>Based on our data across 11,000+ services, here are the concrete steps that move the needle on agent discoverability:</p>
+
+    <h3>1. Publish an official MCP server</h3>
+    <p>This is the single highest-impact action. Services with official MCP servers achieve 63-91% success rates. Those without are either working through unreliable community wrappers or invisible entirely. Your MCP server is your storefront in the agent economy.</p>
+
+    <h3>2. Write descriptions for agents, not humans</h3>
+    <p>Your marketing tagline ("Revolutionize your workflow!") is useless to an agent. Write tool descriptions that state what the tool does, what data it accepts, and what it returns. Be specific and literal. "Create a new sales invoice with line items, tax calculation, and PDF generation" beats "Powerful invoicing solution for modern businesses."</p>
+
+    <h3>3. Design clean parameter schemas</h3>
+    <p>Use descriptive field names. Include clear type annotations. Add helpful <code>description</code> fields for each parameter. Set sensible defaults. Every ambiguous field increases the probability of <code>schema_mismatch</code>.</p>
+
+    <h3>4. Simplify authentication</h3>
+    <p>API keys are the easiest for agents to handle. OAuth 2.0 with clear scoping works well. Multi-step flows with browser redirects are agent-hostile. If you must use complex auth, document the exact flow in your MCP server's metadata.</p>
+
+    <h3>5. Add llms.txt and mcp.json to your domain</h3>
+    <p>These discovery files tell agents where to find your MCP server. <code>llms.txt</code> provides human-readable integration guidance. <code>mcp.json</code> provides machine-readable configuration. Both increase your chances of being found through automated discovery.</p>
+
+    <h3>6. Register in MCP directories</h3>
+    <p>Publish your server to the MCP registry, Smithery, Glama, and other directories where agents search for tools. Being registered is the minimum requirement for appearing in tool search results.</p>
+
+    <h3>7. Monitor your Agent AEO grade</h3>
+    <p>Internal observability tells you what happens after agents reach you. Agent AEO analytics tell you what happens <em>before</em> they reach you — or whether they reach you at all. KanseiLink provides this external intelligence layer.</p>
+
+    <div class="cta-banner">
+      <h3>Check Your Agent AEO Grade</h3>
+      <p>KanseiLink rates 11,000+ SaaS services on agent discoverability, selection success, and integration health.</p>
+      <a href="../../en/index.html" class="btn-teal">View AEO Ratings</a>
+    </div>
+
+
+    <h2 id="faq">Frequently Asked Questions</h2>
+
+    <h3>How do AI agents search for SaaS tools?</h3>
+    <p>AI agents search for tools using semantic matching over MCP server schemas — not Google, not keyword search. When an agent receives a task like "create an invoice," it queries available tool registries by matching the task's intent against tool names, descriptions, and parameter schemas. The process is entirely automated and happens in milliseconds. There are no search results pages, no ads, and no browsing. The agent either finds your service or it doesn't.</p>
+
+    <h3>What is search_miss and why should I care about it?</h3>
+    <p><code>search_miss</code> occurs when an agent searches for a tool but your service never appears in the results. It's the most damaging failure pattern because it's completely invisible — no error logs, no API calls, no evidence of any kind on your end. You cannot fix what you cannot see. KanseiLink is currently the only tool that tracks <code>search_miss</code> patterns at the ecosystem level.</p>
+
+    <h3>Does my company need an MCP server?</h3>
+    <p>If you want agents to find and use your service, yes. Our data shows that official MCP servers achieve 63-91% success rates, while API-only services average around 49%. Services without MCP servers or accessible APIs are effectively invisible to agents. You can also improve discoverability through <code>llms.txt</code> and Google ARD, but an MCP server is the most direct and highest-impact path.</p>
+
+    <h3>Does SEO help with agent tool discovery?</h3>
+    <p>Traditional SEO has almost no direct impact on agent tool discovery. Agents don't use Google to find tools. However, strong SEO indirectly helps because it increases the chance that your service appears in LLM training data, which makes agents more likely to know your brand when forming search queries. The direct optimization surface is your MCP schema and tool descriptions — not your website content or backlinks.</p>
+
+    <h3>What's the difference between Agent AEO and traditional AEO?</h3>
+    <p>Traditional AEO tracks whether your brand gets mentioned when a human asks ChatGPT a question. Agent AEO tracks whether your service gets selected when an AI agent autonomously searches for a tool to accomplish a task. The mechanism is different (MCP Tool Search vs. LLM knowledge), the optimization surface is different (schemas vs. content), and the failure modes are different (<code>search_miss</code> vs. low citation rate).</p>
+
+    <h3>How often should I update my MCP server?</h3>
+    <p>At minimum, update your MCP server whenever your API changes. <code>version_conflict</code> is one of the four tracked failure patterns — it happens when agents connect to outdated servers that no longer match the current API. Beyond that, regularly improving your tool descriptions and parameter schemas based on actual agent usage patterns will steadily improve your success rate.</p>
+
+
+    <!-- Related Articles -->
+    <div class="related-section">
+      <h2>Related Insights</h2>
+      <div class="related-grid">
+        <a href="what-is-agent-aeo-2026.html" class="related-card">
+          <div class="tag">Agent AEO</div>
+          <h4>What Is Agent AEO? The Missing Layer in AI Visibility</h4>
+        </a>
+        <a href="how-claude-chooses-mcp-servers-2026.html" class="related-card">
+          <div class="tag">Technical Deep Dive</div>
+          <h4>How Claude Chooses MCP Servers</h4>
+        </a>
+        <a href="saas-agent-discoverable-llmstxt-mcpjson-ard-2026.html" class="related-card">
+          <div class="tag">Implementation Guide</div>
+          <h4>Making SaaS Agent-Discoverable: llms.txt, mcp.json, and ARD</h4>
+        </a>
+        <a href="aeo-saas-products-vs-content-2026.html" class="related-card">
+          <div class="tag">Strategy</div>
+          <h4>AEO for SaaS Products vs. Content</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>Agent AEO intelligence for the MCP ecosystem. Tracking how AI agents discover and select SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../pricing.html">Pricing</a>
+          <a href="https://www.npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="index.html">Insights</a>
+          <a href="../../index.html#methodology">Methodology</a>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+        </div>
+        <div class="footer-links">
+          <h4>Company</h4>
+          <a href="../../about.html">About</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact</a>
+          <a href="https://x.com/KanseiLink" target="_blank">@KanseiLink</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>MIT License</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

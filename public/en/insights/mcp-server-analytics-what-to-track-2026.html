@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Server Analytics: What to Track and Why Most Dashboards Miss the Point | KanseiLink 2026</title>
+  <meta name="description" content="Most MCP analytics tools track internal health — session replays, error rates, latency. But the metrics that actually predict growth are external: do agents find you? A practical breakdown of the three layers of MCP analytics.">
+  <meta name="keywords" content="MCP analytics, MCP monitoring, agent discoverability metrics, MCP server performance, agent usage tracking, MCP observability, MCPcat, KanseiLink, Agent AEO metrics">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/mcp-server-analytics-what-to-track-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/mcp-server-analytics-what-to-track-2026">
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/insights/mcp-server-analytics-what-to-track-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/en/insights/mcp-server-analytics-what-to-track-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="MCP Server Analytics: What to Track and Why Most Dashboards Miss the Point">
+  <meta property="og:description" content="Internal health metrics won't tell you if agents can find your server. Here's the three-layer analytics framework that separates MCP winners from invisible servers.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/mcp-server-analytics-what-to-track-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-06-30">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="MCP Analytics">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCP Server Analytics: What to Track and Why Most Dashboards Miss the Point">
+  <meta name="twitter:description" content="Internal metrics won't tell you if agents can find your server. The three layers of MCP analytics, and why only one predicts growth.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "MCP Server Analytics: What to Track and Why Most Dashboards Miss the Point",
+    "description": "Most MCP analytics tools track internal server health — session replays, error rates, latency. But the metrics that actually predict growth are external: can agents find you, do they select you, and do they succeed? This article breaks down the three layers of MCP analytics and identifies the four metrics that matter most.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-06-30",
+    "dateModified": "2026-06-30",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/mcp-server-analytics-what-to-track-2026",
+    "keywords": ["MCP analytics", "MCP monitoring", "agent discoverability", "MCP server performance", "agent usage tracking", "MCPcat", "KanseiLink", "Agent AEO"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What metrics should I track for my MCP server?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Track three layers: (1) Internal health — uptime, error rates, latency, and session quality using tools like MCPcat or OpenTelemetry; (2) Usage patterns — which tools agents call, parameter patterns, and success/failure ratios; (3) External discoverability — whether agents find your server during Tool Search, your selection rate vs. competitors, and search_miss events. Most teams only track layer 1, but layer 3 is what predicts growth."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between internal and external MCP analytics?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Internal analytics track what happens after an agent connects to your server — request counts, error rates, latency, session replays. External analytics track what happens before connection — whether agents discover your server during search, how often they select you versus competitors, and how many agents searched for your capability but never found you (search_miss). Internal analytics tools include MCPcat and Speakeasy. External analytics are tracked by KanseiLink."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do most MCP dashboards miss the point?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Most MCP dashboards focus on server health — the same metrics you'd track for any API (uptime, latency, error rates). These are necessary but insufficient. They show you what happens with traffic you already have, but tell you nothing about traffic you're missing. In an ecosystem of 73,000+ servers, the biggest risk isn't that your server goes down — it's that agents never find it in the first place. That invisible failure doesn't appear in any internal dashboard."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is MCPcat different from KanseiLink?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCPcat is an internal observability platform for MCP server operators. It provides session replay, error tracking, and debugging tools for calls that reach your server. KanseiLink tracks the external layer — whether agents can find your server during Tool Search, which competitors get selected instead, and what intent patterns lead to your server being missed. MCPcat answers 'is my server working?' KanseiLink answers 'are agents finding my server?'"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is search_miss and why does it matter for MCP analytics?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "search_miss occurs when an AI agent searches for a capability your server provides but your server doesn't appear in the results. It's the most damaging analytics blind spot because it generates zero signal in your server logs — no request, no error, no event. The agent simply selects a competitor or gives up. KanseiLink tracks search_miss as part of its Agent AEO analytics, making this invisible failure visible for the first time."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are the four metrics that predict MCP server growth?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The four metrics are: (1) Discovery rate — what percentage of relevant agent searches surface your server; (2) Selection rate — when agents find you, how often they choose you over alternatives; (3) Success rate — what percentage of agent calls complete successfully; (4) search_miss rate — how often agents search for your capability but never find you. Most teams only track metric 3. Metrics 1, 2, and 4 are external and require tools like KanseiLink."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "MCP Server Analytics", "item": "https://kansei-link.com/en/insights/mcp-server-analytics-what-to-track-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.25; letter-spacing: -1px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 18px; opacity: 0.85; line-height: 1.6; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 26px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 20px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.8; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.7; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .num.red { color: #DC2626; }
+    .metric-item .num.green { color: #059669; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.4; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 15px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 24px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.4; }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 26px; letter-spacing: -0.5px; }
+      .article-hero .subtitle { font-size: 16px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+      .data-table { font-size: 13px; }
+      .data-table th, .data-table td { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../en/index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../en/index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../en/index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Get in touch</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../en/index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      MCP Server Analytics
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">MCP Analytics</span>
+      <h1>MCP Server Analytics: What to Track and Why Most Dashboards Miss the Point</h1>
+      <p class="subtitle">You can have perfect uptime, sub-100ms latency, and zero errors. None of that matters if agents never find your server. Here's the analytics framework that separates visible MCP servers from invisible ones.</p>
+      <div class="article-meta">
+        <span>2026-06-30</span>
+        <span class="divider"></span>
+        <span>By KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>10 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#three-layers">The Three Layers of MCP Analytics</a></li>
+        <li><a href="#layer-1">Layer 1: Internal Health Metrics</a></li>
+        <li><a href="#layer-2">Layer 2: Usage Pattern Metrics</a></li>
+        <li><a href="#layer-3">Layer 3: External Discoverability Metrics</a></li>
+        <li><a href="#four-metrics">The Four Metrics That Actually Predict Growth</a></li>
+        <li><a href="#comparison">Comparison: Internal vs. External Analytics Tools</a></li>
+        <li><a href="#build-vs-buy">What to Build vs. What to Buy</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+
+    <h2 id="three-layers">The Three Layers of MCP Analytics</h2>
+
+    <p>If you run an MCP server, you probably have some form of monitoring in place. Maybe you set up OpenTelemetry traces. Maybe you use MCPcat for session replays. Maybe you just check your error logs every few days.</p>
+
+    <p>Here's the problem: almost every MCP analytics setup tracks the same thing. They tell you what happens <em>after</em> an agent connects to your server. That's useful, but it's only one-third of the picture.</p>
+
+    <p>The MCP ecosystem has grown to <strong>73,000+ registered servers</strong> with <strong>97 million+ monthly SDK downloads</strong>. When an agent needs a capability, it doesn't go straight to your server. It searches. It evaluates options. It makes a selection decision. Then, and only then, does it connect.</p>
+
+    <p>Think of it like a restaurant. Internal analytics tell you whether the food was good and the kitchen ran smoothly. But they don't tell you how many people walked past your restaurant, read the menu in the window, and chose the place next door instead.</p>
+
+    <p>MCP analytics break down into three distinct layers, and most teams are only watching one of them.</p>
+
+    <div class="data-highlight">
+      <h4>The Analytics Gap</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num green">95%</span>
+          <div class="label">MCP operators tracking<br>internal health</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">~40%</span>
+          <div class="label">Tracking detailed<br>usage patterns</div>
+        </div>
+        <div class="metric-item">
+          <span class="num red">&lt;5%</span>
+          <div class="label">Tracking external<br>discoverability</div>
+        </div>
+      </div>
+    </div>
+
+
+    <h2 id="layer-1">What Do Internal Health Metrics Tell You?</h2>
+
+    <p>Layer 1 is the foundation. These are the metrics you'd track for any API or service, adapted for the MCP protocol. If your server isn't reliable, nothing else matters.</p>
+
+    <h3>What gets tracked in Layer 1</h3>
+
+    <ul>
+      <li><strong>Uptime and availability</strong> — Is your server responding? KanseiLink's health surveys find that 52% of registered MCP servers are non-functional at any given time. Just staying up puts you ahead of half the ecosystem.</li>
+      <li><strong>Latency</strong> — How fast do your tools respond? Agent frameworks typically apply timeout windows of 30-60 seconds. Responses above 10 seconds significantly increase abandonment.</li>
+      <li><strong>Error rates</strong> — What percentage of tool calls fail? Our data shows a strong correlation: servers with error rates above 15% see selection rates drop by 3-4x over 30 days as agents learn to avoid them.</li>
+      <li><strong>Session replays</strong> — What did the full agent-server conversation look like? This is where tools like MCPcat shine, letting you replay individual interactions step by step.</li>
+    </ul>
+
+    <h3>Tools for Layer 1</h3>
+
+    <p><strong>MCPcat</strong> is the most prominent dedicated tool, offering session replay and error tracking specifically for MCP servers. <strong>Speakeasy</strong> provides SDK generation with built-in telemetry. <strong>OpenTelemetry</strong> integrations (via the MCP SDK's built-in OTel support) let you pipe MCP traces into existing observability stacks like Datadog or Grafana.</p>
+
+    <div class="insight-box">
+      <div class="label">Practical Note</div>
+      <p>Layer 1 metrics answer a simple question: <strong>"Is my server working?"</strong> This is table stakes. If your error rate is above 10% or your P95 latency exceeds 5 seconds, fix those before worrying about anything else. But once these are solid, they stop being useful growth indicators.</p>
+    </div>
+
+
+    <h2 id="layer-2">What Do Usage Pattern Metrics Reveal?</h2>
+
+    <p>Layer 2 goes deeper. Instead of just tracking whether calls succeed, it tracks <em>what</em> agents are doing with your server and <em>how</em> they're doing it.</p>
+
+    <h3>What gets tracked in Layer 2</h3>
+
+    <ul>
+      <li><strong>Tool call distribution</strong> — Which of your tools are agents actually calling? Most servers have a long tail: 2-3 tools get 80% of traffic, and the rest are barely touched. This tells you where to invest in quality.</li>
+      <li><strong>Parameter patterns</strong> — What values do agents pass? Are they using your tool the way you designed it, or working around limitations? Unexpected parameter combinations often reveal gaps in your tool descriptions.</li>
+      <li><strong>Call sequences</strong> — Do agents use your tools in multi-step workflows? If agents consistently call tool A then tool B, that's a signal you might need a combined tool that does both in one call.</li>
+      <li><strong>Success/failure by tool</strong> — One tool might have a 98% success rate while another sits at 60%. Aggregated server-level metrics hide this kind of variance.</li>
+      <li><strong>Agent diversity</strong> — Are you being used by Claude Code, Cursor, Windsurf, custom agents, or just one platform? Concentration risk matters.</li>
+    </ul>
+
+    <h3>Tools for Layer 2</h3>
+
+    <p>Most Layer 2 data requires custom instrumentation. The MCP SDK supports logging and tracing hooks, and you can pipe these into any analytics platform. <strong>MCPcat</strong> captures some of this through its session replay feature. <strong>Helicone</strong> and <strong>Langsmith</strong> can track LLM-adjacent metrics if you're running an MCP-connected agent framework. But there's no turnkey "MCP usage analytics" product yet — most teams build this layer themselves.</p>
+
+    <div class="warning-box">
+      <div class="label">Common Pitfall</div>
+      <p>Teams often look at total request count as a growth metric. But request count without context is misleading. A single agent retrying a failed call 10 times looks like 10x the traffic of a successful one-shot call. Track <strong>unique successful sessions</strong> rather than raw request volume.</p>
+    </div>
+
+
+    <h2 id="layer-3">Why Is External Discoverability the Blind Spot?</h2>
+
+    <p>This is where most MCP analytics setups fall apart. Layers 1 and 2 measure traffic you already have. Layer 3 measures traffic you're missing — and it turns out, that's usually the bigger number.</p>
+
+    <h3>How agent discovery actually works</h3>
+
+    <p>When an AI agent receives a task like "create an invoice in Stripe," it doesn't go directly to the Stripe MCP server. It performs a <strong>Tool Search</strong> — a semantic matching operation that ranks available servers by how well their names and descriptions match the agent's intent. In Anthropic's Claude, this is handled by the ToolSearch mechanism. In other frameworks, similar discovery layers exist.</p>
+
+    <p>This discovery step happens <em>before</em> your server receives any request. And here's the critical part: <strong>if your server doesn't appear in the search results, there is zero signal in your analytics.</strong> No request. No error. No log entry. The agent simply selects something else or tells the user it can't complete the task.</p>
+
+    <h3>What Layer 3 tracks</h3>
+
+    <ul>
+      <li><strong>Discovery rate</strong> — Of all the agent searches relevant to your capability, what percentage surfaces your server? If agents search for "create invoice" 1,000 times a day and your accounting MCP server appears in 200 of those searches, your discovery rate is 20%.</li>
+      <li><strong>search_miss events</strong> — How often do agents search for something your server can do, but your server doesn't appear in results? This is the invisible failure mode. KanseiLink coined the term "search_miss" to describe it.</li>
+      <li><strong>Competitive selection</strong> — When agents find multiple options for the same capability, which one do they pick? And why? Description quality, past success rates, and schema clarity all factor into agent selection logic.</li>
+      <li><strong>Intent-to-capability mapping</strong> — What language do agents use when searching for your capability? If agents search for "send payment" but your tool is described as "execute financial transaction," there's a semantic gap that costs you discovery.</li>
+    </ul>
+
+    <div class="insight-box">
+      <div class="label">The Core Problem</div>
+      <p>Layer 3 data is <strong>structurally invisible to server operators</strong>. You can't track a search that never reached you. This is why external analytics — platforms that sit at the discovery layer and observe the search-select-execute pipeline from the outside — are the missing piece. This is what KanseiLink's Agent AEO analytics are built to provide.</p>
+    </div>
+
+
+    <h2 id="four-metrics">What Four Metrics Actually Predict MCP Server Growth?</h2>
+
+    <p>Across the three layers, four specific metrics correlate most strongly with sustained growth in agent usage. If you could only track four numbers, these are the ones that matter.</p>
+
+    <h3>1. Discovery Rate</h3>
+    <p><strong>Definition:</strong> The percentage of relevant agent searches that surface your server in results.</p>
+    <p><strong>Why it matters:</strong> This is the top of the funnel. If agents can't find you, nothing downstream matters. A server with 100% uptime and 5ms latency but a 10% discovery rate is invisible to 90% of potential users.</p>
+    <p><strong>How to improve:</strong> Optimize your server name and description for semantic matching. Use verb-based, functional language ("creates invoices, tracks payments") rather than brand-forward language ("Acme's enterprise platform"). Implement <code>llms.txt</code> and emerging discovery standards.</p>
+
+    <h3>2. Selection Rate</h3>
+    <p><strong>Definition:</strong> When agents find your server alongside alternatives, how often they choose you.</p>
+    <p><strong>Why it matters:</strong> Discovery without selection is wasted visibility. In categories with 5-10 competing servers, selection rate is determined by description specificity, tool schema clarity, and accumulated success signals.</p>
+    <p><strong>How to improve:</strong> Write tool descriptions that match how agents think about tasks, not how humans market products. Provide specific parameter descriptions with examples. Agents favor servers with clear, constrained tool definitions over servers that promise everything vaguely.</p>
+
+    <h3>3. Success Rate</h3>
+    <p><strong>Definition:</strong> The percentage of agent calls that complete the intended task without error.</p>
+    <p><strong>Why it matters:</strong> This is the only Layer 1 metric that directly feeds back into future selection. Agent frameworks track historical success rates and use them to rank servers in future searches. A server that works 98% of the time will be favored over one that works 80% of the time, even if the second one has a better description.</p>
+    <p><strong>How to improve:</strong> Return clear error messages when things fail. Agents use error quality to decide whether to retry or switch to an alternative. A good error message ("authentication token expired, re-authenticate with OAuth") keeps the agent trying. A bad one ("internal server error") causes immediate abandonment.</p>
+
+    <h3>4. search_miss Rate</h3>
+    <p><strong>Definition:</strong> How often agents search for a capability your server provides but your server is absent from results.</p>
+    <p><strong>Why it matters:</strong> This is the most actionable external metric because it represents a known, fixable gap. Every search_miss is a concrete instance where your server's description didn't match an agent's intent query. Fix the semantic gap, and those misses become discoveries.</p>
+    <p><strong>How to improve:</strong> Use KanseiLink's Agent AEO analytics to identify the specific intent patterns that trigger search_miss for your category. Then update your server description and tool schemas to cover those patterns.</p>
+
+    <div class="data-highlight">
+      <h4>Where Each Metric Lives</h4>
+      <div class="metric-row">
+        <div class="metric-item">
+          <span class="num">L3</span>
+          <div class="label">Discovery Rate<br>(External)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">L3</span>
+          <div class="label">Selection Rate<br>(External)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">L1</span>
+          <div class="label">Success Rate<br>(Internal)</div>
+        </div>
+        <div class="metric-item">
+          <span class="num">L3</span>
+          <div class="label">search_miss Rate<br>(External)</div>
+        </div>
+      </div>
+    </div>
+
+    <p>Three of the four growth-predictive metrics are external. That's why internal-only dashboards miss the point. You can build the best internal observability stack in the world and still have no idea whether agents are finding you.</p>
+
+
+    <h2 id="comparison">How Do Internal and External Analytics Tools Compare?</h2>
+
+    <p>The current MCP analytics landscape is split between tools that look inward and tools that look outward. Here's how they compare.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>Internal Tools</th>
+          <th>External Tools</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Examples</strong></td>
+          <td>MCPcat, Speakeasy, OpenTelemetry, Helicone</td>
+          <td>KanseiLink</td>
+        </tr>
+        <tr>
+          <td><strong>Primary question</strong></td>
+          <td>"Is my server working?"</td>
+          <td>"Are agents finding my server?"</td>
+        </tr>
+        <tr>
+          <td><strong>Data source</strong></td>
+          <td>Server-side logs, traces, sessions</td>
+          <td>Agent-side search behavior, registry data</td>
+        </tr>
+        <tr>
+          <td><strong>Uptime/latency</strong></td>
+          <td>Yes</td>
+          <td>Yes (via health surveys)</td>
+        </tr>
+        <tr>
+          <td><strong>Error tracking</strong></td>
+          <td>Detailed (with stack traces)</td>
+          <td>Outcome-level (success/fail)</td>
+        </tr>
+        <tr>
+          <td><strong>Session replay</strong></td>
+          <td>Yes (MCPcat)</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td><strong>Discovery rate</strong></td>
+          <td>No</td>
+          <td>Yes</td>
+        </tr>
+        <tr>
+          <td><strong>search_miss tracking</strong></td>
+          <td>No (structurally impossible)</td>
+          <td>Yes</td>
+        </tr>
+        <tr>
+          <td><strong>Competitive selection</strong></td>
+          <td>No</td>
+          <td>Yes</td>
+        </tr>
+        <tr>
+          <td><strong>AEO grading</strong></td>
+          <td>No</td>
+          <td>Yes (8-tier rating)</td>
+        </tr>
+        <tr>
+          <td><strong>Integration effort</strong></td>
+          <td>SDK-level (code changes)</td>
+          <td>Zero-integration (registry-based)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>The key takeaway: <strong>these tools are complementary, not competing.</strong> Internal tools give you debugging power and operational confidence. External tools give you growth intelligence and competitive positioning. A mature MCP analytics setup needs both.</p>
+
+
+    <h2 id="build-vs-buy">Should You Build or Buy Your MCP Analytics?</h2>
+
+    <p>Given the three layers, here's a practical framework for deciding what to build yourself and what to use a product for.</p>
+
+    <h3>Build: Layer 1 basics</h3>
+    <p>The MCP SDK has built-in support for OpenTelemetry tracing. If you already run Datadog, Grafana, or a similar observability stack, piping MCP traces into it is straightforward. For most teams, this takes a day or two of work and covers uptime, latency, and error rate tracking. You don't need a dedicated product for this.</p>
+
+    <h3>Buy or build: Layer 2 usage analytics</h3>
+    <p>Tool call distribution and parameter patterns require custom instrumentation, but the data stays within your control. If you have 3-5 tools, a simple logging wrapper is enough. If you have 20+ tools with complex call sequences, MCPcat's session replay becomes genuinely valuable for understanding how agents use your server in practice.</p>
+
+    <h3>Buy: Layer 3 external discoverability</h3>
+    <p>You cannot build Layer 3 analytics yourself. By definition, search_miss events happen outside your server — you have no data to instrument. Discovery rate requires visibility across the agent-side search layer, not your server-side logs. Competitive selection data requires tracking multiple servers simultaneously. This is where external platforms like KanseiLink provide data that is structurally unavailable from any internal source.</p>
+
+    <div class="warning-box">
+      <div class="label">Common Mistake</div>
+      <p>Teams often assume that because they have solid internal monitoring, they have "analytics covered." This is like saying you understand your restaurant's performance because you track kitchen efficiency — without ever counting the people who walk past without entering. The external layer is not optional; it's where growth signals live.</p>
+    </div>
+
+    <div class="cta-banner">
+      <h3>Check Your Agent AEO Grade</h3>
+      <p>KanseiLink rates 11,000+ SaaS services on agent discoverability, selection success, and integration health. See where you stand.</p>
+      <a href="../../en/index.html" class="btn-teal">View AEO Ratings</a>
+    </div>
+
+
+    <h2 id="faq">Frequently Asked Questions</h2>
+
+    <h3>What metrics should I track for my MCP server?</h3>
+    <p>Track three layers: (1) Internal health — uptime, error rates, latency, and session quality using tools like MCPcat or OpenTelemetry. (2) Usage patterns — which tools agents call, parameter patterns, and success/failure ratios. (3) External discoverability — whether agents find your server during Tool Search, your selection rate vs. competitors, and search_miss events. Most teams only track layer 1, but layer 3 is what predicts growth.</p>
+
+    <h3>What is the difference between internal and external MCP analytics?</h3>
+    <p>Internal analytics track what happens after an agent connects to your server — request counts, error rates, latency, session replays. External analytics track what happens before connection — whether agents discover your server during search, how often they select you versus competitors, and how many agents searched for your capability but never found you. Internal tools include MCPcat and Speakeasy. External analytics are tracked by KanseiLink.</p>
+
+    <h3>Why do most MCP dashboards miss the point?</h3>
+    <p>Most dashboards focus on server health — the same metrics you'd track for any API. These are necessary but insufficient. They show what happens with traffic you already have, but tell you nothing about traffic you're missing. In an ecosystem of 73,000+ servers, the biggest risk isn't server downtime — it's that agents never find you. That invisible failure doesn't appear in any internal dashboard.</p>
+
+    <h3>How is MCPcat different from KanseiLink?</h3>
+    <p>MCPcat is an internal observability platform for MCP server operators. It provides session replay, error tracking, and debugging tools for calls that reach your server. KanseiLink tracks the external layer — whether agents can find your server during Tool Search, which competitors get selected instead, and what intent patterns lead to your server being missed. MCPcat answers "is my server working?" KanseiLink answers "are agents finding my server?"</p>
+
+    <h3>What is search_miss and why does it matter?</h3>
+    <p>search_miss occurs when an AI agent searches for a capability your server provides but your server doesn't appear in the results. It's the most damaging analytics blind spot because it generates zero signal in your server logs. The agent simply selects a competitor or gives up. KanseiLink tracks search_miss as part of its Agent AEO analytics, making this invisible failure visible for the first time.</p>
+
+    <h3>Can I track discovery rate with my own server logs?</h3>
+    <p>No. Discovery rate measures what happens at the agent-side search layer, before any request reaches your server. Your logs only see calls that already found you. Tracking discovery requires visibility across the search-select-execute pipeline from the agent's perspective — which is fundamentally external data. This is why platforms like KanseiLink exist: they sit at the discovery layer and observe what your server logs structurally cannot.</p>
+
+
+    <!-- Related Articles -->
+    <div class="related-section">
+      <h2>Related Insights</h2>
+      <div class="related-grid">
+        <a href="what-is-agent-aeo-2026.html" class="related-card">
+          <div class="tag">Agent AEO</div>
+          <h4>What Is Agent AEO? The Missing Layer in AI Visibility</h4>
+        </a>
+        <a href="how-claude-chooses-mcp-servers-2026.html" class="related-card">
+          <div class="tag">Agent Behavior</div>
+          <h4>How Claude Chooses MCP Servers: Inside the Agent Selection Process</h4>
+        </a>
+        <a href="aeo-saas-products-vs-content-2026.html" class="related-card">
+          <div class="tag">AEO Strategy</div>
+          <h4>AEO for SaaS: Products vs. Content — What Agents Actually Evaluate</h4>
+        </a>
+        <a href="mcp-server-health-52-percent-dead-2026.html" class="related-card">
+          <div class="tag">Data Analysis</div>
+          <h4>52% of MCP Servers Are Dead: What Server Health Data Reveals</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>Agent AEO intelligence for the MCP ecosystem. Tracking how AI agents discover and select SaaS services.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../../en/index.html">AEO Ratings</a>
+          <a href="../../pricing.html">Pricing</a>
+          <a href="https://www.npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="index.html">Insights</a>
+          <a href="../../en/index.html#methodology">Methodology</a>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+        </div>
+        <div class="footer-links">
+          <h4>Company</h4>
+          <a href="../../about.html">About</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact</a>
+          <a href="https://x.com/KanseiLink" target="_blank">@KanseiLink</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>MIT License</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

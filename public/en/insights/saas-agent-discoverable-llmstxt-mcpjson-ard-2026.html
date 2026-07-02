@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Complete Guide to Making Your SaaS Agent-Discoverable: llms.txt, mcp.json, and Google ARD | KanseiLink 2026</title>
+  <meta name="description" content="Three new standards are reshaping how AI agents find SaaS products: llms.txt (AI-readable site description), MCP Server Card (mcp.json), and Google ARD (Agentic Resource Discovery). This is the first guide that covers all three — what they are, how they work together, and how to implement them.">
+  <meta name="keywords" content="llms.txt, mcp.json, MCP Server Card, Google ARD, Agentic Resource Discovery, agent-discoverable SaaS, AI agent discovery, llms.txt implementation, mcp.json spec, agent-ready SaaS, KanseiLink, MCP discoverability">
+  <meta name="author" content="KanseiLink Research">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://kansei-link.com/en/insights/saas-agent-discoverable-llmstxt-mcpjson-ard-2026">
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/saas-agent-discoverable-llmstxt-mcpjson-ard-2026">
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/en/insights/saas-agent-discoverable-llmstxt-mcpjson-ard-2026">
+
+  <!-- OGP -->
+  <meta property="og:title" content="Making Your SaaS Agent-Discoverable: llms.txt + mcp.json + Google ARD">
+  <meta property="og:description" content="Three new standards. Zero unified guides — until now. How to make your SaaS findable by AI agents using llms.txt, MCP Server Card, and Google ARD.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://kansei-link.com/en/insights/saas-agent-discoverable-llmstxt-mcpjson-ard-2026">
+  <meta property="og:site_name" content="KanseiLink">
+  <meta property="og:image" content="https://kansei-link.com/img/ogp-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="article:published_time" content="2026-06-30">
+  <meta property="article:author" content="KanseiLink Research">
+  <meta property="article:section" content="Technical Guide">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="llms.txt + mcp.json + Google ARD: The Agent Discoverability Stack — KanseiLink">
+  <meta name="twitter:description" content="Three new standards define how AI agents find SaaS. No guide covers all three. This one does.">
+  <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
+
+  <!-- JSON-LD: Article -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "The Complete Guide to Making Your SaaS Agent-Discoverable: llms.txt, mcp.json, and Google ARD",
+    "description": "Three new standards are reshaping how AI agents discover SaaS products. llms.txt makes your site readable by AI models. MCP Server Card (mcp.json) provides machine-readable metadata for your MCP server. Google ARD (Agentic Resource Discovery) opens your API to agent-driven workflows. This is the first guide that explains all three, how they interact, and step-by-step implementation.",
+    "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
+    "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
+    "datePublished": "2026-06-30",
+    "dateModified": "2026-06-30",
+    "mainEntityOfPage": "https://kansei-link.com/en/insights/saas-agent-discoverable-llmstxt-mcpjson-ard-2026",
+    "inLanguage": "en",
+    "keywords": ["llms.txt", "mcp.json", "MCP Server Card", "Google ARD", "Agentic Resource Discovery", "agent discoverability", "agent-ready SaaS", "KanseiLink"]
+  }
+  </script>
+
+  <!-- JSON-LD: FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is llms.txt and why do SaaS companies need it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "llms.txt is a plain text file placed at the root of your website (e.g., yoursite.com/llms.txt) that describes your service in a format optimized for AI models to read. Think of it as robots.txt for AI — robots.txt tells crawlers what they can access, llms.txt tells AI models what your service does. It was proposed by Jeremy Howard (co-founder of fast.ai and Answer.AI) in late 2024 and has gained rapid adoption. As of mid-2026, Cloudflare, Shopify, Stripe, and hundreds of other sites have deployed llms.txt files. The format uses Markdown with a specific structure: a brief description, then sections for key capabilities, documentation links, and usage examples. For SaaS companies, llms.txt helps AI agents understand your service's purpose and capabilities before they even interact with your API."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is MCP Server Card (mcp.json)?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MCP Server Card (commonly referenced as mcp.json) is a proposed machine-readable metadata file for MCP servers. While the specification is still being developed within the MCP working group as of mid-2026, its purpose is to provide standardized information about an MCP server: what it does, what tools it exposes, authentication requirements, rate limits, and provider information. Think of it as the 'package.json' for MCP servers — a single file that tells agents and registries everything they need to know. Early implementations include fields like server name, description, author, supported transports (stdio, HTTP+SSE), tool summaries, and compatibility information."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is Google ARD (Agentic Resource Discovery)?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Google ARD (Agentic Resource Discovery) is Google's protocol for making APIs discoverable by AI agents. Announced as part of Google's Agent2Agent (A2A) protocol initiative, ARD extends the concept of API discoverability beyond traditional OpenAPI/Swagger specifications. ARD provides a standardized way for agents to discover what APIs are available, what they can do, and how to authenticate — at runtime, not just at documentation time. The key difference from existing API catalogs is that ARD is designed for agent-to-agent communication, where one agent discovers and uses another agent's capabilities without human involvement."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need all three standards or can I start with one?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Start with one and expand. Priority depends on your situation: If you have a website but no MCP server, start with llms.txt — it's the simplest to implement (one Markdown file) and immediately improves how AI models understand your service. If you already have an MCP server, focus on your tool descriptions and prepare for mcp.json as the spec stabilizes. If you have a public API and operate at scale, Google ARD is worth investigating. The three standards aren't competing — they serve different layers of the same discoverability stack. llms.txt is about website-level understanding, mcp.json is about MCP server metadata, and ARD is about API-level agent interoperability."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does Shopify's MCP implementation relate to these standards?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's May 2026 native MCP integration is one of the most significant early adopter case studies. Shopify rolled out MCP support directly into its platform, allowing AI agents to interact with Shopify stores — managing products, processing orders, and handling customer data. This is notable because Shopify didn't just publish an MCP server; they integrated it as a first-class feature of their platform. They also deployed llms.txt on their documentation site. Shopify's approach demonstrates the full discoverability stack in practice: llms.txt for website-level AI understanding, MCP for agent interaction, and OpenAPI specs for their existing REST API."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the relationship between llms.txt and llms-full.txt?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "llms.txt is the concise version — a summary of your service designed to fit within an AI model's context window. llms-full.txt is the expanded version with complete documentation content. The convention is: llms.txt gives the overview (what you do, key features, links to docs), while llms-full.txt contains detailed reference material. Most AI agents will read llms.txt first to decide if the service is relevant, then optionally fetch llms-full.txt for implementation details. For SaaS companies, start with llms.txt. Only create llms-full.txt if your documentation is complex enough to warrant a separate detailed file."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: HowTo -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to implement llms.txt for your SaaS product",
+    "description": "Step-by-step guide to creating and deploying an llms.txt file that makes your SaaS product discoverable by AI agents",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "position": 1,
+        "name": "Create the file",
+        "text": "Create a file named llms.txt in your website's root directory. Use Markdown format. Start with a one-line title (# Your Service Name), followed by a brief description paragraph explaining what your service does."
+      },
+      {
+        "@type": "HowToStep",
+        "position": 2,
+        "name": "Add capability sections",
+        "text": "Add sections describing key capabilities. Use ## headings for categories. List features using bullet points with [title](url): description format. Focus on what users do with your product, not internal architecture."
+      },
+      {
+        "@type": "HowToStep",
+        "position": 3,
+        "name": "Link to documentation",
+        "text": "Include links to your API documentation, getting started guides, and authentication docs. Use the format: - [API Reference](https://docs.yoursite.com/api): Complete REST API documentation."
+      },
+      {
+        "@type": "HowToStep",
+        "position": 4,
+        "name": "Deploy and verify",
+        "text": "Deploy the file at yoursite.com/llms.txt. Verify it loads correctly. Test with curl: curl https://yoursite.com/llms.txt. Check that the content renders as valid Markdown."
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://kansei-link.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Insights", "item": "https://kansei-link.com/en/insights/" },
+      { "@type": "ListItem", "position": 3, "name": "Agent Discoverability Guide", "item": "https://kansei-link.com/en/insights/saas-agent-discoverable-llmstxt-mcpjson-ard-2026" }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --blue: #1A3FD6;
+      --blue-light: #7882DC;
+      --teal: #00C4B3;
+      --black: #000000;
+      --white: #FFFFFF;
+      --lavender: #F4F5FD;
+      --gray-light: #F5F5F5;
+      --gray-mid: #E5E7EB;
+      --gray-text: #6B7280;
+      --gray-dark: #374151;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.8;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .utility-bar { background: var(--white); border-bottom: 1px solid var(--gray-mid); padding: 8px 0; font-size: 14px; }
+    .utility-bar .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: flex-end; gap: 24px; }
+    .utility-bar a { color: var(--black); text-decoration: none; }
+    .utility-bar a:hover { text-decoration: underline; }
+    .utility-bar .sep { color: var(--gray-mid); }
+
+    .main-nav { background: var(--white); border-bottom: 1px solid var(--gray-mid); position: sticky; top: 0; z-index: 100; }
+    .main-nav .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; height: 64px; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--blue); text-decoration: none; letter-spacing: -1px; margin-right: 48px; display: flex; align-items: center; gap: 8px; }
+    .logo-icon-svg { height: 28px; width: auto; }
+    .nav-links { display: flex; list-style: none; gap: 4px; flex: 1; }
+    .nav-links a { display: block; padding: 8px 16px; color: var(--gray-dark); text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px; transition: background 0.15s; }
+    .nav-links a:hover, .nav-links a.active { background: var(--lavender); color: var(--blue); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .btn-primary { background: var(--blue); color: var(--white); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+    .btn-primary:hover { background: #1535b8; }
+    .btn-teal { background: var(--teal); color: var(--white); padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; display: inline-block; }
+    .btn-teal:hover { background: #00a89a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+    .hamburger span { width: 24px; height: 2px; background: var(--black); border-radius: 2px; display: block; }
+    .mobile-only { display: none; }
+
+    .breadcrumb-bar { background: var(--gray-light); border-bottom: 1px solid var(--gray-mid); padding: 10px 0; font-size: 13px; }
+    .breadcrumb-bar .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; gap: 8px; color: var(--gray-text); }
+    .breadcrumb-bar a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-bar a:hover { text-decoration: underline; }
+    .breadcrumb-bar .sep { color: var(--gray-mid); }
+
+    .article-hero { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); padding: 64px 0 56px; color: var(--white); }
+    .article-hero .inner { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+    .article-hero .tag { display: inline-block; background: rgba(255,255,255,0.15); color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 12px; border-radius: 4px; margin-bottom: 20px; }
+    .article-hero h1 { font-size: 30px; font-weight: 800; line-height: 1.35; letter-spacing: -0.5px; margin-bottom: 16px; color: var(--white); }
+    .article-hero .subtitle { font-size: 17px; opacity: 0.85; line-height: 1.7; margin-bottom: 24px; }
+    .article-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; opacity: 0.7; flex-wrap: wrap; }
+    .article-meta .divider { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+
+    .article-body { max-width: 800px; margin: 0 auto; padding: 56px 40px 80px; }
+    .article-body h2 { font-size: 24px; font-weight: 700; color: var(--black); margin: 48px 0 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-mid); letter-spacing: -0.5px; }
+    .article-body h3 { font-size: 19px; font-weight: 600; color: var(--black); margin: 32px 0 12px; }
+    .article-body p { margin-bottom: 20px; color: var(--gray-dark); line-height: 1.9; }
+    .article-body ul, .article-body ol { margin: 0 0 20px 24px; color: var(--gray-dark); }
+    .article-body li { margin-bottom: 8px; line-height: 1.8; }
+    .article-body strong { color: var(--black); font-weight: 600; }
+    .article-body a { color: var(--blue); text-decoration: underline; }
+    .article-body code { background: var(--gray-light); padding: 2px 8px; border-radius: 4px; font-size: 14px; border: 1px solid var(--gray-mid); }
+    .article-body pre { background: #1a1a2e; color: #e0e0e0; padding: 20px 24px; border-radius: 8px; overflow-x: auto; margin: 20px 0 28px; font-size: 13px; line-height: 1.7; }
+    .article-body pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+    .pre-label { font-size: 12px; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+    .toc-box { background: var(--lavender); border: 1px solid var(--blue-light); border-radius: 8px; padding: 24px 28px; margin-bottom: 40px; }
+    .toc-box h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .toc-box ol { margin-left: 20px; }
+    .toc-box li { margin-bottom: 6px; }
+    .toc-box a { color: var(--blue); font-size: 14px; text-decoration: none; }
+    .toc-box a:hover { text-decoration: underline; }
+
+    .data-highlight { background: var(--lavender); border-radius: 12px; padding: 28px 32px; margin: 28px 0; border: 1px solid var(--gray-mid); }
+    .data-highlight h4 { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .metric-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 120px; text-align: center; }
+    .metric-item .num { font-size: 34px; font-weight: 800; color: var(--blue); display: block; letter-spacing: -2px; }
+    .metric-item .label { font-size: 12px; color: var(--gray-text); margin-top: 4px; line-height: 1.5; }
+
+    .insight-box { background: var(--lavender); border-left: 4px solid var(--blue); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .insight-box .label { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .insight-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .warning-box { background: #FEF2F2; border-left: 4px solid #DC2626; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .warning-box .label { font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .warning-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .success-box { background: #F0FDF4; border-left: 4px solid #059669; border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 28px 0; }
+    .success-box .label { font-size: 12px; font-weight: 700; color: #065F46; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .success-box p { margin-bottom: 0; font-size: 15px; color: var(--gray-dark); }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 28px 0; font-size: 15px; }
+    .data-table th { background: var(--black); color: var(--white); padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px; letter-spacing: 0.5px; }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--gray-mid); color: var(--gray-dark); vertical-align: top; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-light); }
+
+    .standard-card { border: 2px solid var(--gray-mid); border-radius: 12px; padding: 28px 32px; margin: 28px 0; }
+    .standard-card h3 { margin-top: 0; }
+    .standard-card .status-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 12px; vertical-align: middle; }
+    .status-live { background: #D1FAE5; color: #065F46; }
+    .status-draft { background: #FEF3C7; color: #92400E; }
+    .status-early { background: #DBEAFE; color: #1E40AF; }
+
+    .stack-diagram { background: var(--lavender); border-radius: 12px; padding: 32px; margin: 32px 0; text-align: center; }
+    .stack-layer { background: var(--white); border: 2px solid var(--blue-light); border-radius: 8px; padding: 16px 24px; margin: 8px auto; max-width: 500px; font-weight: 600; font-size: 15px; color: var(--blue); }
+    .stack-arrow { color: var(--gray-text); font-size: 20px; margin: 4px 0; }
+    .stack-label { font-size: 12px; color: var(--gray-text); margin-top: 2px; font-weight: 400; }
+
+    .cta-banner { background: linear-gradient(135deg, #0a1628 0%, #1A3FD6 100%); border-radius: 12px; padding: 48px 40px; margin: 56px 0; text-align: center; color: var(--white); }
+    .cta-banner h3 { font-size: 22px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+    .cta-banner p { font-size: 16px; opacity: 0.85; margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+    .related-section { border-top: 2px solid var(--gray-mid); padding-top: 48px; margin-top: 56px; }
+    .related-section h2 { font-size: 22px; font-weight: 600; color: var(--black); margin-bottom: 24px; border-bottom: none; padding-bottom: 0; margin-top: 0; }
+    .related-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .related-card { background: var(--gray-light); border-radius: 8px; padding: 24px; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s; display: block; }
+    .related-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .related-card .tag { font-size: 12px; font-weight: 500; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .related-card h4 { font-size: 16px; font-weight: 600; color: var(--black); line-height: 1.5; }
+
+    .footer { background: var(--black); color: var(--white); padding: 48px 0 32px; }
+    .footer .inner { max-width: 1440px; margin: 0 auto; padding: 0 40px; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 32px; margin-bottom: 32px; }
+    .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: var(--teal); margin-bottom: 8px; }
+    .footer-brand p { font-size: 13px; color: #9CA3AF; max-width: 300px; }
+    .footer-links h4 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+    .footer-links a { display: block; color: var(--white); text-decoration: none; font-size: 14px; margin-bottom: 8px; }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; font-size: 13px; color: #9CA3AF; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+    @media (max-width: 900px) {
+      .article-hero .inner, .article-body { padding: 0 20px; }
+      .article-hero { padding: 48px 0 40px; }
+      .article-hero h1 { font-size: 22px; }
+      .article-hero .subtitle { font-size: 15px; }
+      .article-body { padding: 32px 20px 60px; }
+      .breadcrumb-bar .inner { padding: 0 16px; }
+      .main-nav .inner, .utility-bar .inner, .footer .inner { padding: 0 16px; }
+      .hamburger { display: flex; }
+      .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: var(--white); border-bottom: 1px solid var(--gray-mid); flex-direction: column; padding: 16px; gap: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 99; }
+      .nav-links.nav-open { display: flex; }
+      .nav-links a { padding: 12px 16px; font-size: 15px; }
+      .nav-links a:hover { background: var(--lavender); border-radius: 8px; }
+      .nav-right .btn-primary { display: none; }
+      .mobile-only { display: list-item; }
+      .main-nav .inner { justify-content: space-between; }
+      .related-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .cta-banner { padding: 32px 24px; }
+      .metric-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Utility Bar -->
+  <div class="utility-bar">
+    <div class="inner">
+      <a href="mailto:contact@synapse-arrows.com">Support</a>
+      <span class="sep">|</span>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
+  <nav class="main-nav">
+    <div class="inner">
+      <a href="../../index.html" class="logo">
+        <img src="../../img/kansei-logo.png" alt="KanseiLink" class="logo-icon-svg">
+        KanseiLink
+      </a>
+      <ul class="nav-links">
+        <li><a href="../../index.html">AEO Ratings</a></li>
+        <li><a href="index.html" class="active">Insights</a></li>
+        <li><a href="../../index.html#methodology">Methodology</a></li>
+        <li><a href="../../pricing.html">Pricing</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li class="mobile-only"><a href="mailto:contact@synapse-arrows.com">Contact</a></li>
+      </ul>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('nav-open')">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-right">
+        <a href="mailto:contact@synapse-arrows.com" class="btn-primary">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-bar">
+    <div class="inner">
+      <a href="../../index.html">Home</a>
+      <span class="sep">&rsaquo;</span>
+      <a href="index.html">Insights</a>
+      <span class="sep">&rsaquo;</span>
+      Agent Discoverability Guide
+    </div>
+  </div>
+
+  <!-- Article Hero -->
+  <header class="article-hero">
+    <div class="inner">
+      <span class="tag">Technical Guide</span>
+      <h1>The Complete Guide to Making Your SaaS Agent-Discoverable:<br>llms.txt, mcp.json, and Google ARD</h1>
+      <p class="subtitle">Three new standards are quietly reshaping how AI agents find software. No single guide covers all three — what they do, how they interact, and which one to implement first. This one does.</p>
+      <div class="article-meta">
+        <span>2026-06-30</span>
+        <span class="divider"></span>
+        <span>KanseiLink Research</span>
+        <span class="divider"></span>
+        <span>12 min read</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Body -->
+  <article class="article-body">
+
+    <div class="toc-box">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#three-specs">Three Specs, One Problem</a></li>
+        <li><a href="#stack">The Agent Discoverability Stack</a></li>
+        <li><a href="#llmstxt">llms.txt — Making Your Website AI-Readable</a></li>
+        <li><a href="#mcpjson">MCP Server Card (mcp.json) — Metadata for Your MCP Server</a></li>
+        <li><a href="#ard">Google ARD — Agentic Resource Discovery</a></li>
+        <li><a href="#comparison">Side-by-Side: Which Standard Does What</a></li>
+        <li><a href="#shopify">Case Study: Shopify's Full-Stack Approach</a></li>
+        <li><a href="#implementation">Implementation Priority: Where to Start</a></li>
+        <li><a href="#measure">How to Measure If It's Working</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+
+    <h2 id="three-specs">Three Specs, One Problem</h2>
+
+    <p>Here's the situation. You run a SaaS product. You have an API. Maybe you even published an MCP server. But when someone tells Claude or ChatGPT "do X with my accounting software," your product doesn't come up.</p>
+
+    <p>The reason isn't that your API is bad. It's that AI agents don't know your API exists — or they can't figure out what it does fast enough to choose it over a competitor.</p>
+
+    <p>Three new standards are trying to fix this problem. They emerged independently, from different organizations, solving different pieces of the same puzzle:</p>
+
+    <ul>
+      <li><strong>llms.txt</strong> — proposed by Jeremy Howard (fast.ai / Answer.AI) in late 2024. A Markdown file at your website root that tells AI models what your service does. Think of it as robots.txt for the AI era.</li>
+      <li><strong>MCP Server Card (mcp.json)</strong> — being developed within the MCP working group. Machine-readable metadata about your MCP server: what tools it offers, how to authenticate, what it's for.</li>
+      <li><strong>Google ARD (Agentic Resource Discovery)</strong> — part of Google's Agent2Agent (A2A) protocol initiative. A way for agents to discover and use APIs at runtime, without a human reading docs first.</li>
+    </ul>
+
+    <p>Each of these has its own website, its own community, and its own adoption curve. Nobody has written a guide that explains all three in one place and helps you decide what to implement. That's what this article is.</p>
+
+
+    <h2 id="stack">The Agent Discoverability Stack</h2>
+
+    <p>These three standards aren't competing. They operate at different layers of the same stack:</p>
+
+    <div class="stack-diagram">
+      <div class="stack-layer">
+        Google ARD<br>
+        <span class="stack-label">API-level: agent-to-agent interoperability</span>
+      </div>
+      <div class="stack-arrow">&darr;</div>
+      <div class="stack-layer">
+        MCP Server Card (mcp.json)<br>
+        <span class="stack-label">Server-level: MCP server metadata</span>
+      </div>
+      <div class="stack-arrow">&darr;</div>
+      <div class="stack-layer">
+        llms.txt<br>
+        <span class="stack-label">Website-level: AI-readable service description</span>
+      </div>
+    </div>
+
+    <p><strong>llms.txt</strong> sits at the bottom. It's the broadest — any website can have one, regardless of whether you have an MCP server or API. It answers: "What does this service do?"</p>
+
+    <p><strong>mcp.json</strong> is the middle layer, specific to MCP. If you've published an MCP server, this file tells agents and registries what your server offers. It answers: "What tools does this MCP server have?"</p>
+
+    <p><strong>Google ARD</strong> is the top layer, focused on runtime API discovery between agents. It answers: "How can another agent use this API right now, without reading docs?"</p>
+
+    <p>You don't need all three on day one. But understanding where each fits helps you plan.</p>
+
+
+    <h2 id="llmstxt">llms.txt — Making Your Website AI-Readable</h2>
+
+    <div class="standard-card">
+      <h3>llms.txt <span class="status-badge status-live">Live &amp; Adopted</span></h3>
+      <p style="margin-bottom: 16px; color: var(--gray-dark);">
+        <strong>Origin:</strong> Jeremy Howard (fast.ai / Answer.AI), October 2024<br>
+        <strong>Spec:</strong> <a href="https://llmstxt.org">llmstxt.org</a><br>
+        <strong>Format:</strong> Markdown file at <code>/llms.txt</code><br>
+        <strong>Adoption:</strong> Cloudflare, Shopify, Stripe, Vercel, Anthropic, and hundreds more
+      </p>
+    </div>
+
+    <h3>What it is</h3>
+    <p>llms.txt is a plain text file written in Markdown, placed at the root of your website. When an AI model or agent visits your site, it can read this file to quickly understand what your service does, what its key features are, and where to find documentation.</p>
+
+    <p>The analogy to robots.txt is deliberate. Just as robots.txt tells search engine crawlers how to interact with your site, llms.txt tells AI models how to understand your service. But where robots.txt is restrictive ("don't crawl this"), llms.txt is informative ("here's what we do").</p>
+
+    <h3>Why it matters</h3>
+    <p>AI models have a context window. They can't read your entire website, documentation, and blog to figure out what you do. llms.txt gives them a pre-digested summary — the equivalent of a human reading your "About" page and top-level docs in 30 seconds.</p>
+
+    <p>Without llms.txt, an AI model relies on its training data (often months old) and whatever it can scrape from your homepage. With llms.txt, it gets a current, authoritative description straight from you.</p>
+
+    <h3>How to implement it</h3>
+    <p>Create a file at <code>yoursite.com/llms.txt</code> with this structure:</p>
+
+    <div class="pre-label">Example: llms.txt for an invoicing SaaS</div>
+    <pre><code># InvoiceFlow
+
+> InvoiceFlow is a cloud invoicing platform for small businesses.
+> Create, send, and track invoices. Automate payment reminders.
+> Integrates with Stripe, QuickBooks, and Xero.
+
+## Key Features
+
+- [Create Invoices](https://invoiceflow.com/docs/invoices): Generate PDF invoices with line items, tax, and payment terms
+- [Payment Tracking](https://invoiceflow.com/docs/payments): Track payment status and send automated reminders
+- [Integrations](https://invoiceflow.com/docs/integrations): Connect with Stripe, QuickBooks, Xero, and 20+ accounting tools
+- [API Reference](https://invoiceflow.com/docs/api): RESTful API for programmatic invoice management
+
+## Getting Started
+
+- [Quickstart Guide](https://invoiceflow.com/docs/quickstart): Create your first invoice in 5 minutes
+- [Authentication](https://invoiceflow.com/docs/auth): API key and OAuth2 setup
+- [MCP Server](https://invoiceflow.com/docs/mcp): Connect AI agents via MCP</code></pre>
+
+    <p>Key principles:</p>
+    <ul>
+      <li><strong>Start with a one-liner.</strong> The blockquote (> line) is your elevator pitch. AI models read this first.</li>
+      <li><strong>Use action words.</strong> "Create, send, and track invoices" — not "invoice management solution."</li>
+      <li><strong>Link to real docs.</strong> Every bullet should have a URL. The AI can follow these if it needs more detail.</li>
+      <li><strong>Keep it short.</strong> llms.txt should fit in a model's context window comfortably. Under 500 lines.</li>
+    </ul>
+
+    <h3>llms.txt vs llms-full.txt</h3>
+    <p>The convention includes an optional companion file: <code>llms-full.txt</code>. This is the expanded version — full documentation content, detailed API references, example code. The agent reads llms.txt first to decide if the service is relevant, then fetches llms-full.txt for deep implementation detail.</p>
+
+    <p>Start with llms.txt. Only create llms-full.txt if your docs are complex enough to warrant it.</p>
+
+    <div class="insight-box">
+      <div class="label">Adoption check</div>
+      <p>You can check if any site has an llms.txt by visiting <code>https://[domain]/llms.txt</code>. Try it on Stripe, Cloudflare, or Anthropic. Cloudflare also built <a href="https://isitagentready.com">isitagentready.com</a> — a free tool that checks whether a site has llms.txt and other agent-readiness signals.</p>
+    </div>
+
+
+    <h2 id="mcpjson">MCP Server Card (mcp.json) — Metadata for Your MCP Server</h2>
+
+    <div class="standard-card">
+      <h3>MCP Server Card <span class="status-badge status-draft">Spec In Progress</span></h3>
+      <p style="margin-bottom: 16px; color: var(--gray-dark);">
+        <strong>Origin:</strong> MCP Working Group (under Linux Foundation's Agentic AI Foundation)<br>
+        <strong>Status:</strong> Draft specification, mid-2026<br>
+        <strong>Format:</strong> JSON file — commonly <code>mcp.json</code> or embedded in server manifest<br>
+        <strong>Adoption:</strong> Early implementations in registry platforms
+      </p>
+    </div>
+
+    <h3>What it is</h3>
+    <p>MCP Server Card is a proposed standard for machine-readable metadata about an MCP server. If llms.txt describes your website to AI models, mcp.json describes your MCP server to agent platforms and registries.</p>
+
+    <p>Think of it as <code>package.json</code> for MCP servers. One file that tells everything: who made this server, what it does, what tools it exposes, how to authenticate, what transports it supports (stdio, HTTP+SSE, Streamable HTTP), and what version it's on.</p>
+
+    <h3>Why it matters</h3>
+    <p>Right now, MCP server metadata is scattered. Your server's name and description live in the server manifest. Your authentication requirements live in your README. Your tool list lives in the code. There's no single, machine-readable file that an agent or registry can fetch to understand everything about your server.</p>
+
+    <p>When mcp.json stabilizes, it will be the file that registries like Smithery, Glama, and the Official MCP Registry read to categorize, index, and present your server to agents.</p>
+
+    <h3>What to expect in the spec</h3>
+    <p>While the final specification is still being drafted, early implementations and working group discussions point to these fields:</p>
+
+    <div class="pre-label">Likely mcp.json structure (draft, subject to change)</div>
+    <pre><code>{
+  "name": "invoiceflow-accounting",
+  "displayName": "InvoiceFlow",
+  "description": "Create, send, and track invoices for small businesses. Supports PDF generation, payment reminders, and integration with Stripe, QuickBooks, and Xero.",
+  "version": "1.2.0",
+  "author": {
+    "name": "InvoiceFlow Inc.",
+    "url": "https://invoiceflow.com"
+  },
+  "repository": "https://github.com/invoiceflow/mcp-server",
+  "transports": ["stdio", "streamable-http"],
+  "authentication": {
+    "type": "oauth2",
+    "docsUrl": "https://invoiceflow.com/docs/auth"
+  },
+  "tools": [
+    {
+      "name": "create_invoice",
+      "summary": "Create and send a PDF invoice to a client"
+    },
+    {
+      "name": "list_invoices",
+      "summary": "List all invoices with optional status filter"
+    },
+    {
+      "name": "track_payment",
+      "summary": "Check payment status and send reminders"
+    }
+  ],
+  "categories": ["accounting", "invoicing", "billing"],
+  "pricing": "freemium",
+  "rateLimits": {
+    "requestsPerMinute": 60
+  }
+}</code></pre>
+
+    <div class="warning-box">
+      <div class="label">Important caveat</div>
+      <p>The mcp.json spec is not finalized. The structure above is based on working group discussions and early implementations — it will likely change. Don't build production tooling around these field names yet. Do prepare your content: the description, tool summaries, and authentication docs you'll need regardless of the final format.</p>
+    </div>
+
+
+    <h2 id="ard">Google ARD — Agentic Resource Discovery</h2>
+
+    <div class="standard-card">
+      <h3>Google ARD <span class="status-badge status-early">Early Stage</span></h3>
+      <p style="margin-bottom: 16px; color: var(--gray-dark);">
+        <strong>Origin:</strong> Google, part of the Agent2Agent (A2A) protocol<br>
+        <strong>Status:</strong> Announced, early implementation phase<br>
+        <strong>Format:</strong> Protocol-level API discovery<br>
+        <strong>Adoption:</strong> Google Cloud ecosystem; broader adoption emerging
+      </p>
+    </div>
+
+    <h3>What it is</h3>
+    <p>ARD (Agentic Resource Discovery) is Google's approach to letting AI agents discover and use APIs at runtime. Where llms.txt is a static file and mcp.json is server metadata, ARD is a protocol — a way for one agent to ask another "what can you do?" and get a machine-readable answer, live.</p>
+
+    <p>ARD is part of Google's broader A2A (Agent-to-Agent) initiative, which defines how AI agents communicate with each other. The core idea: agents shouldn't need a human to read API documentation. They should be able to discover, negotiate, and use APIs through standardized machine-to-machine protocols.</p>
+
+    <h3>Why it matters</h3>
+    <p>llms.txt and mcp.json are fundamentally static — you write them once, update them when features change. ARD is dynamic. An agent can query an ARD endpoint and get the current list of available capabilities, including any that were added since the last static file was published.</p>
+
+    <p>For SaaS companies operating at scale with rapidly evolving APIs, this matters. If you deploy a new feature on Monday, ARD-compatible agents can discover it on Monday. With llms.txt, the file needs to be manually updated.</p>
+
+    <h3>What to do about it now</h3>
+    <p>ARD is the earliest-stage of the three standards. For most SaaS companies, the immediate action is:</p>
+    <ul>
+      <li><strong>Ensure your API has a clean OpenAPI (Swagger) specification.</strong> ARD builds on existing API description standards. If your OpenAPI spec is well-written, you're already partially prepared.</li>
+      <li><strong>Watch the A2A protocol development.</strong> Google's A2A GitHub repo tracks the evolution.</li>
+      <li><strong>Don't build for ARD yet</strong> unless you're in the Google Cloud ecosystem and have a direct need. Focus on llms.txt and your MCP server descriptions first.</li>
+    </ul>
+
+
+    <h2 id="comparison">Side-by-Side: Which Standard Does What</h2>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>llms.txt</th>
+          <th>mcp.json</th>
+          <th>Google ARD</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Layer</strong></td>
+          <td>Website</td>
+          <td>MCP server</td>
+          <td>API protocol</td>
+        </tr>
+        <tr>
+          <td><strong>Format</strong></td>
+          <td>Markdown</td>
+          <td>JSON</td>
+          <td>Protocol endpoint</td>
+        </tr>
+        <tr>
+          <td><strong>Status</strong></td>
+          <td>Widely adopted</td>
+          <td>Spec drafting</td>
+          <td>Early stage</td>
+        </tr>
+        <tr>
+          <td><strong>Effort to implement</strong></td>
+          <td>30 minutes</td>
+          <td>1-2 hours (when spec is ready)</td>
+          <td>Days to weeks</td>
+        </tr>
+        <tr>
+          <td><strong>Requires MCP server?</strong></td>
+          <td>No</td>
+          <td>Yes</td>
+          <td>No (requires API)</td>
+        </tr>
+        <tr>
+          <td><strong>Who reads it</strong></td>
+          <td>AI models (ChatGPT, Claude, Gemini, Perplexity)</td>
+          <td>Agent platforms, MCP registries</td>
+          <td>Other agents via A2A</td>
+        </tr>
+        <tr>
+          <td><strong>Updates</strong></td>
+          <td>Manual (edit file)</td>
+          <td>Manual or auto-generated</td>
+          <td>Dynamic (runtime)</td>
+        </tr>
+        <tr>
+          <td><strong>Key adopters</strong></td>
+          <td>Cloudflare, Stripe, Shopify, Vercel, Anthropic</td>
+          <td>MCP Working Group, early registries</td>
+          <td>Google Cloud ecosystem</td>
+        </tr>
+      </tbody>
+    </table>
+
+
+    <h2 id="shopify">Case Study: Shopify's Full-Stack Approach</h2>
+
+    <p>Shopify's May 2026 MCP integration is the clearest example of comprehensive agent discoverability in practice.</p>
+
+    <p>What Shopify did:</p>
+    <ul>
+      <li><strong>MCP as a platform feature.</strong> Not a third-party plugin or community project — Shopify built MCP support directly into the platform. Any Shopify store can be accessed by AI agents through their official MCP server.</li>
+      <li><strong>llms.txt on their docs site.</strong> Shopify deployed llms.txt on their developer documentation, giving AI models a structured summary of the Shopify platform, API capabilities, and developer resources.</li>
+      <li><strong>OpenAPI spec maintained.</strong> Their existing REST and GraphQL APIs have well-maintained specifications, positioning them for ARD-style discovery when the protocol matures.</li>
+      <li><strong>Tool descriptions optimized for agent search.</strong> Their MCP tools use task-oriented descriptions ("List all products in the store," "Create a discount code") rather than API-endpoint descriptions ("GET /admin/api/products.json").</li>
+    </ul>
+
+    <p>The result: when a developer tells Claude "add a 20% discount to my Shopify store," Claude can find and use the Shopify MCP server reliably. The entire stack — from llms.txt understanding to MCP tool selection to API execution — works together.</p>
+
+    <div class="insight-box">
+      <div class="label">The lesson</div>
+      <p>Shopify didn't pick one standard over another. They deployed everything that was ready, in priority order: MCP server with good descriptions first (highest impact), llms.txt second (easy to add), OpenAPI third (already existed). That's the right approach — each layer reinforces the others.</p>
+    </div>
+
+
+    <h2 id="implementation">Implementation Priority: Where to Start</h2>
+
+    <p>If you're a SaaS company reading this and wondering what to do Monday morning, here's the priority order:</p>
+
+    <h3>Priority 1: Fix what you already have (Today)</h3>
+    <p>Before adding new files, fix the discoverability signals you already control:</p>
+    <ul>
+      <li>If you have an MCP server: rewrite your server description and tool descriptions using the patterns from our <a href="how-claude-chooses-mcp-servers-2026.html">Tool Search guide</a></li>
+      <li>If you have an API: ensure your OpenAPI spec has clear, task-oriented operation descriptions</li>
+      <li>Check your current <a href="what-is-agent-aeo-2026.html">Agent AEO</a> grade on KanseiLink</li>
+    </ul>
+
+    <h3>Priority 2: Deploy llms.txt (This week)</h3>
+    <p>This is the highest-return, lowest-effort action. One Markdown file, 30 minutes of writing. It immediately improves how every major AI model understands your service. Follow the template above.</p>
+
+    <h3>Priority 3: Prepare for mcp.json (This quarter)</h3>
+    <p>Don't write a mcp.json file yet — the spec isn't stable. Instead, prepare the content:</p>
+    <ul>
+      <li>Write clear one-line summaries for each of your MCP tools</li>
+      <li>Document your authentication requirements in a structured way</li>
+      <li>Categorize your service (accounting? CRM? communication?)</li>
+      <li>When the spec stabilizes, you'll be able to generate the file in an hour</li>
+    </ul>
+
+    <h3>Priority 4: Monitor Google ARD (This year)</h3>
+    <p>Unless you're building specifically for Google Cloud agent ecosystems, ARD isn't actionable yet. The best preparation is maintaining a clean OpenAPI spec and following A2A protocol development.</p>
+
+    <div class="success-box">
+      <div class="label">Quick win</div>
+      <p>Right now, go to <code>yoursite.com/llms.txt</code>. If you get a 404, you have a 30-minute task that will make your SaaS more discoverable across every major AI platform. No SDK, no configuration, no deployment pipeline — just one Markdown file.</p>
+    </div>
+
+
+    <h2 id="measure">How to Measure If It's Working</h2>
+
+    <p>Deploying these files is step one. Knowing whether they're working is step two.</p>
+
+    <h3>What you can measure today</h3>
+    <ul>
+      <li><strong>llms.txt access logs.</strong> Check your server logs for requests to <code>/llms.txt</code>. AI model crawlers (GPTBot, ClaudeBot, Google-Extended, PerplexityBot) will show up. If they're fetching the file, it's being read.</li>
+      <li><strong>MCP server selection rate.</strong> If you have analytics on your MCP server (via MCPcat or similar), track how many agent sessions include your server. Compare before and after description optimization.</li>
+      <li><strong>Agent AEO grade.</strong> KanseiLink rates your service on an 8-tier scale (AAA to D) based on agent discoverability. Track this over time to see if your optimization is working.</li>
+    </ul>
+
+    <h3>What you can't measure yet (and why it matters)</h3>
+    <ul>
+      <li><strong>search_miss — when agents looked for you but didn't find you.</strong> This is the blind spot. Your server logs won't show requests that never arrived. KanseiLink's <a href="what-is-agent-aeo-2026.html">Agent AEO</a> analysis is designed to fill this gap — tracking the space between "an agent needed a service like yours" and "your server received a request."</li>
+      <li><strong>Cross-platform coverage.</strong> Are you discoverable on Claude's Tool Search? On OpenAI's Agents SDK? On Cursor? Each platform has its own discovery mechanism. Multi-surface monitoring is still in its infancy.</li>
+    </ul>
+
+
+    <div class="cta-banner">
+      <h3>Check Your Agent Discoverability</h3>
+      <p>KanseiLink rates 11,000+ services on agent discoverability — MCP support, description quality, and selection patterns. See where you stand.</p>
+      <a href="../../index.html" class="btn-teal">View AEO Ratings</a>
+    </div>
+
+
+    <h2 id="faq">FAQ</h2>
+
+    <h3>Do I need an MCP server to benefit from llms.txt?</h3>
+    <p>No. llms.txt works at the website level. Even if you only have a REST API and no MCP server, deploying llms.txt helps AI models understand what your service does. When a user asks ChatGPT or Claude about your product category, a well-written llms.txt increases the chance your service is accurately described in the response.</p>
+
+    <h3>Is llms.txt the same as robots.txt?</h3>
+    <p>No. robots.txt controls crawler access ("don't index these pages"). llms.txt provides information ("here's what we do"). They serve complementary purposes. You can have both on the same site, and you should — robots.txt to manage crawling, llms.txt to manage understanding.</p>
+
+    <h3>Will Google use llms.txt for search ranking?</h3>
+    <p>Google has not confirmed using llms.txt as a ranking signal for traditional search. However, Google's AI Overviews (Gemini-powered search results) can use llms.txt to better understand your service. For AI-generated search results — which is where the search market is heading — llms.txt is increasingly relevant.</p>
+
+    <h3>What if mcp.json changes after I implement it?</h3>
+    <p>That's exactly why the advice is "prepare your content, don't write the file yet." The description text, tool summaries, and categorization you prepare now will be valid regardless of format changes. When the spec stabilizes, assembling the JSON file from prepared content takes minutes.</p>
+
+    <h3>Can llms.txt hurt my search ranking?</h3>
+    <p>No. llms.txt is a separate file that search engines can index but treat as supplementary content. It doesn't replace or interfere with your existing SEO. Think of it as adding a new channel of discoverability, not modifying an existing one.</p>
+
+    <h3>What about Schema.org and JSON-LD — do those matter for agent discoverability?</h3>
+    <p>Yes, especially for AI-powered search. Schema.org structured data (Article, FAQPage, HowTo, Product, SoftwareApplication) helps Google AI Overviews, Bing Copilot, and Perplexity extract and cite information from your pages. This complements llms.txt — Schema.org structures individual pages, llms.txt provides a site-level overview.</p>
+
+
+    <!-- Related Articles -->
+    <div class="related-section">
+      <h2>Related Articles</h2>
+      <div class="related-grid">
+        <a href="what-is-agent-aeo-2026.html" class="related-card">
+          <div class="tag">Agent AEO</div>
+          <h4>What Is Agent AEO? The Missing Layer in AI Visibility</h4>
+        </a>
+        <a href="how-claude-chooses-mcp-servers-2026.html" class="related-card">
+          <div class="tag">MCP Technical</div>
+          <h4>How Does Claude Choose Which MCP Server to Use?</h4>
+        </a>
+        <a href="agent-voice-discoverability-2026.html" class="related-card">
+          <div class="tag">Agent Voice</div>
+          <h4>The MCP Discoverability Crisis: How search_miss Silently Kills Agent Adoption</h4>
+        </a>
+      </div>
+    </div>
+
+  </article>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="inner">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">KanseiLink</div>
+          <p>The intelligence layer for AI agent tool discovery. 11,000+ services rated.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="../../index.html">AEO Ratings</a>
+          <a href="../../pricing.html">Pricing</a>
+          <a href="https://www.npmjs.com/package/@kansei-link/mcp-server" target="_blank">npm</a>
+        </div>
+        <div class="footer-links">
+          <h4>Resources</h4>
+          <a href="index.html">Insights</a>
+          <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank">GitHub</a>
+        </div>
+        <div class="footer-links">
+          <h4>Company</h4>
+          <a href="../../about.html">About</a>
+          <a href="mailto:contact@synapse-arrows.com">Contact</a>
+          <a href="https://x.com/KanseiLink" target="_blank">@KanseiLink</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 Synapse Arrows PTE. LTD. All rights reserved.</span>
+        <span>MIT License</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

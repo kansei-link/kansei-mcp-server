@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ログイン | KanseiLink</title>
+  <meta name="robots" content="noindex">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --teal: #00bfa5; --bg: #f8fafb; --text: #1a2332; --gray: #6b7280; --danger: #dc2626; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 0; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 40px 36px; max-width: 520px; width: 92%; }
+    h1 { font-size: 22px; margin-bottom: 8px; text-align: center; }
+    p { color: var(--gray); line-height: 1.7; margin-bottom: 16px; font-size: 14.5px; }
+    .btn { display: inline-block; padding: 11px 24px; background: var(--teal); color: #fff; border: none; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14.5px; cursor: pointer; }
+    .btn:hover { opacity: 0.9; }
+    .btn.secondary { background: #eef2ff; color: #1A3FD6; }
+    .btn.tiny { padding: 6px 12px; font-size: 12.5px; font-weight: 600; }
+    .btn.danger { background: #fee2e2; color: var(--danger); }
+    input[type=email] { width: 100%; padding: 11px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-bottom: 12px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+    .msg { padding: 10px 14px; border-radius: 8px; font-size: 13.5px; line-height: 1.6; margin: 12px 0; display: none; }
+    .msg.ok { background: #f0fdfa; border: 1px solid #99f6e4; color: #134e4a; display: block; }
+    .msg.err { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; display: block; }
+    .keybox { background: #111827; color: #6ee7b7; font-family: monospace; font-size: 13px; padding: 12px; border-radius: 8px; word-break: break-all; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #e5e7eb; }
+    .section { border-top: 1px solid #e5e7eb; margin-top: 24px; padding-top: 20px; }
+    .hidden { display: none !important; }
+    .muted { font-size: 12.5px; color: var(--gray); }
+    .lang { text-align: center; margin-top: 18px; font-size: 13px; }
+    .lang a { color: var(--teal); text-decoration: none; }
+  </style>
+  <link rel="alternate" hreflang="ja" href="https://kansei-link.com/subscription/login.html" />
+  <link rel="alternate" hreflang="en" href="https://kansei-link.com/en/subscription/login.html" />
+  <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/subscription/login.html" />
+</head>
+<body>
+  <div class="card">
+    <h1>KanseiLink アカウント</h1>
+
+    <!-- State: signed out -->
+    <div id="signed-out">
+      <p>登録時のメールアドレスにログインリンクをお送りします。リンクを開くと、この端末でプレミアムコンテンツが解放されます（パスワード不要）。</p>
+      <input type="email" id="email-input" placeholder="you@example.com" autocomplete="email">
+      <button class="btn" id="send-link-btn">ログインリンクを送信</button>
+      <div class="msg" id="signed-out-msg"></div>
+      <p class="muted" style="margin-top:14px;">まだ登録していない場合は <a href="/pricing.html" style="color:var(--teal);">料金プラン</a> から。決済直後は自動でログインされるため、この画面は不要です。</p>
+    </div>
+
+    <!-- State: verifying magic link -->
+    <div id="verifying" class="hidden">
+      <p>ログインリンクを確認しています…</p>
+    </div>
+
+    <!-- State: signed in -->
+    <div id="signed-in" class="hidden">
+      <div class="msg ok">ログイン中: <strong id="account-email"></strong>（プラン: <span id="account-tier">-</span>）</div>
+      <div class="row">
+        <a class="btn" href="/insights/">レポートを読む</a>
+        <button class="btn secondary" id="portal-btn">サブスクリプション管理</button>
+        <button class="btn danger tiny" id="logout-btn" style="align-self:center;">ログアウト</button>
+      </div>
+
+      <div class="section">
+        <h1 style="font-size:17px;text-align:left;margin-bottom:6px;">API キー（MCP / API 用）</h1>
+        <p class="muted">
+          MCPサーバー・APIでプレミアムデータを使うためのキーです。発行したキーは
+          <code>KANSEI_API_KEY</code> 環境変数（stdio）または <code>x-api-key</code> ヘッダー（HTTP）に設定します。
+        </p>
+        <button class="btn tiny" id="create-key-btn">新しいAPIキーを発行</button>
+        <div class="msg" id="key-msg"></div>
+        <div id="new-key" class="hidden">
+          <p style="margin:10px 0 0;color:var(--danger);font-size:13px;font-weight:600;">このキーは一度しか表示されません。今すぐコピーして保存してください。</p>
+          <div class="keybox" id="new-key-value"></div>
+          <button class="btn tiny secondary" id="copy-key-btn">コピー</button>
+        </div>
+        <table id="key-table" class="hidden">
+          <thead><tr><th>キー</th><th>作成日</th><th>最終使用</th><th></th></tr></thead>
+          <tbody id="key-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="lang"><a href="/en/subscription/login.html">English</a></div>
+  </div>
+
+  <script>
+    (function () {
+      var API_BASE = window.KANSEI_API_BASE || "https://kansei-link-mcp-production-b054.up.railway.app";
+      var $ = function (id) { return document.getElementById(id); };
+
+      function show(state) {
+        ["signed-out", "verifying", "signed-in"].forEach(function (s) {
+          $(s).classList.toggle("hidden", s !== state);
+        });
+      }
+      function creds() {
+        return { email: localStorage.getItem("kl_email") || "", token: localStorage.getItem("kl_token") || "" };
+      }
+      function api(method, path, body) {
+        return fetch(API_BASE + path, {
+          method: method,
+          headers: { "Content-Type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined
+        }).then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); });
+      }
+      function setMsg(el, text, kind) {
+        el.textContent = text;
+        el.className = "msg " + kind;
+      }
+
+      // ─── Signed-in panel ───
+      function renderKeys(keys) {
+        var rows = $("key-rows");
+        rows.innerHTML = "";
+        $("key-table").classList.toggle("hidden", !keys.length);
+        keys.forEach(function (k) {
+          var tr = document.createElement("tr");
+          tr.innerHTML = "<td><code>" + k.key_prefix + "…</code></td>" +
+            "<td>" + (k.created_at || "").slice(0, 10) + "</td>" +
+            "<td>" + (k.last_used_at ? k.last_used_at.slice(0, 10) : "—") + "</td>" +
+            "<td><button class='btn danger tiny' data-revoke='" + k.key_prefix + "'>無効化</button></td>";
+          rows.appendChild(tr);
+        });
+      }
+
+      function loadAccount() {
+        var c = creds();
+        $("account-email").textContent = c.email;
+        api("POST", "/api/keys", { email: c.email, token: c.token, action: "list" }).then(function (r) {
+          if (r.status === 401) { // stale token (e.g. secret rotation) — sign in again
+            localStorage.removeItem("kl_token");
+            show("signed-out");
+            setMsg($("signed-out-msg"), "セッションが無効になりました。もう一度ログインリンクを送信してください。", "err");
+            return;
+          }
+          if (r.body && r.body.ok) {
+            $("account-tier").textContent = r.body.tier || "free";
+            renderKeys(r.body.keys || []);
+          }
+        }).catch(function () {});
+        show("signed-in");
+      }
+
+      // ─── Magic-link verification (?code=) ───
+      var params = new URLSearchParams(window.location.search);
+      var code = params.get("code");
+      if (code) {
+        show("verifying");
+        history.replaceState({}, "", window.location.pathname); // strip one-time code from URL/history
+        api("POST", "/api/auth/verify", { code: code }).then(function (r) {
+          if (r.status === 200 && r.body.token) {
+            localStorage.setItem("kl_email", r.body.email);
+            localStorage.setItem("kl_token", r.body.token);
+            localStorage.removeItem("kl_access");
+            loadAccount();
+          } else {
+            show("signed-out");
+            setMsg($("signed-out-msg"), "リンクが無効か期限切れです（有効期限15分・1回のみ）。もう一度送信してください。", "err");
+          }
+        }).catch(function () {
+          show("signed-out");
+          setMsg($("signed-out-msg"), "通信エラーが発生しました。再度お試しください。", "err");
+        });
+      } else if (creds().token && creds().email) {
+        loadAccount();
+      } else {
+        show("signed-out");
+      }
+
+      // ─── Events ───
+      $("send-link-btn").addEventListener("click", function () {
+        var email = ($("email-input").value || "").trim();
+        if (email.indexOf("@") < 1) {
+          setMsg($("signed-out-msg"), "メールアドレスを入力してください。", "err");
+          return;
+        }
+        localStorage.setItem("kl_email", email);
+        api("POST", "/api/auth/request-link", { email: email }).then(function (r) {
+          setMsg($("signed-out-msg"),
+            "ご登録のメールアドレスであれば、ログインリンクをお送りしました。メールをご確認ください（15分有効）。",
+            r.status === 200 ? "ok" : "err");
+        }).catch(function () {
+          setMsg($("signed-out-msg"), "通信エラーが発生しました。再度お試しください。", "err");
+        });
+      });
+
+      $("portal-btn").addEventListener("click", function () {
+        var c = creds();
+        api("POST", "/api/portal", { email: c.email, token: c.token }).then(function (r) {
+          if (r.body && r.body.url) window.location.href = r.body.url;
+        }).catch(function () {});
+      });
+
+      $("logout-btn").addEventListener("click", function () {
+        localStorage.removeItem("kl_token");
+        localStorage.removeItem("kl_email");
+        localStorage.removeItem("kl_access");
+        show("signed-out");
+      });
+
+      $("create-key-btn").addEventListener("click", function () {
+        var c = creds();
+        api("POST", "/api/keys", { email: c.email, token: c.token, action: "create" }).then(function (r) {
+          if (r.status === 200 && r.body.key) {
+            $("new-key").classList.remove("hidden");
+            $("new-key-value").textContent = r.body.key;
+            setMsg($("key-msg"), "発行しました。", "ok");
+            api("POST", "/api/keys", { email: c.email, token: c.token, action: "list" }).then(function (l) {
+              if (l.body && l.body.ok) renderKeys(l.body.keys || []);
+            });
+          } else {
+            setMsg($("key-msg"), r.body.error || "発行に失敗しました。", "err");
+          }
+        }).catch(function () { setMsg($("key-msg"), "通信エラーが発生しました。", "err"); });
+      });
+
+      $("copy-key-btn").addEventListener("click", function () {
+        navigator.clipboard.writeText($("new-key-value").textContent).then(function () {
+          setMsg($("key-msg"), "コピーしました。", "ok");
+        });
+      });
+
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-revoke]");
+        if (!btn) return;
+        var c = creds();
+        api("POST", "/api/keys", { email: c.email, token: c.token, action: "revoke", key_prefix: btn.getAttribute("data-revoke") }).then(function () {
+          api("POST", "/api/keys", { email: c.email, token: c.token, action: "list" }).then(function (l) {
+            if (l.body && l.body.ok) renderKeys(l.body.keys || []);
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
