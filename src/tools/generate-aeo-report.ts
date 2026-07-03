@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { kanseiAppLink } from "../utils/app-link.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
+import { classifyReliabilitySource } from "../utils/reliability-source.js";
 
 /**
  * AEO (Agent Engine Optimization) Score Report Generator
@@ -125,10 +126,9 @@ export function generateAeoReport(
       .map((g) => g.service_id)
   );
 
-  // Get agent stats
-  const statsMap = new Map<string, StatsRow>();
-  const stats = db.prepare("SELECT service_id, total_calls, success_rate FROM service_stats").all() as StatsRow[];
-  for (const s of stats) statsMap.set(s.service_id, s);
+  // Agent stats are now read PER-SERVICE via classifyReliabilitySource so that
+  // only measured (live) reports — not seed/eval/probe rows — drive the bonuses
+  // and any success-rate language (audit 2026-06-16).
 
   // Count services per category (for specialist detection)
   const categoryTagCounts = new Map<string, number>();
@@ -169,12 +169,15 @@ export function generateAeoReport(
     const tags = (s.tags || "").split(",").map((t) => t.trim()).filter(Boolean);
     const isSpecialist = tags.length > 0 && tags.length <= 5;
 
-    // Bonus: Agent data exists
-    const agentStats = statsMap.get(s.id);
-    const hasAgentData = agentStats && agentStats.total_calls >= 1;
+    // Bonus: Agent data exists — MEASURED (live) reports only, not synthetic
+    // probe/seed/eval rows. classifyReliabilitySource buckets outcomes into live
+    // vs internal-estimate and exposes the live-only rate.
+    const rel = classifyReliabilitySource(db, s.id);
+    const hasAgentData = rel.measured;
 
-    // Bonus: High success rate
-    const highSuccessRate = agentStats && agentStats.total_calls >= 3 && agentStats.success_rate >= 0.8;
+    // Bonus: High success rate — only from MEASURED live reports, never seed/eval
+    const highSuccessRate =
+      rel.measured && rel.live_reports >= 3 && (rel.live_success_rate ?? 0) >= 0.8;
 
     const totalScore = Math.min(
       1.0,
@@ -221,10 +224,15 @@ export function generateAeoReport(
           "No agent usage data yet. Encourage agent developers to try your service and report outcomes."
         );
       }
-      if (agentStats && agentStats.total_calls >= 3 && agentStats.success_rate < 0.5) {
+      // Audit 2026-06-16: never emit a per-vendor numeric success rate in a
+      // public report — most of it is seed/eval/probe-derived, and publishing
+      // "Service X succeeds Y%" about a NAMED vendor from synthetic data is a
+      // defamation / 信用毀損 risk. Only a soft, non-numeric note, and only when
+      // there is MEASURED live data.
+      if (rel.measured && rel.live_reports >= 3 && (rel.live_success_rate ?? 1) < 0.5) {
         recommendations.push(
-          `Agent success rate is ${Math.round(agentStats.success_rate * 100)}%. ` +
-            "Review common errors and improve error messages / documentation."
+          `Measured agent success has been low in our limited sample (n=${rel.live_reports}); ` +
+            "review common errors and improve error messages / docs. (A signal, not a verdict.)"
         );
       }
     }
@@ -279,6 +287,11 @@ export function generateAeoReport(
       description:
         "Agent Engine Optimization (AEO) Score measures how ready a SaaS service is " +
         "for the AI agent economy. Higher scores = easier for agents to discover and use.",
+      disclaimer:
+        "Scores are a READINESS heuristic derived from connection method (MCP/API), " +
+        "docs/auth-guide presence, and KanseiLink's internal eval/seed data — NOT a " +
+        "measurement of a vendor's real-world reliability. Per-vendor success rates are " +
+        "excluded unless backed by measured live agent reports. Treat as a prior, not a verdict.",
       scoring: {
         base: "Official MCP (0.5) > Third-party MCP (0.4) > API only (0.3) > No API (0.1)",
         bonuses: "+0.1 each: API docs, auth guide, category specialist, agent usage data, high success rate",

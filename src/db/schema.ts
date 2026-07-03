@@ -460,6 +460,48 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_crawl_runs_started ON crawl_runs(started_at DESC);
   `);
 
+  // ─── Tier enforcement (API keys, magic-link login, premium web content) ───
+  // API keys let MCP/stdio/HTTP clients prove a paid subscription. Only the
+  // SHA-256 hash is stored — the plaintext key is shown once at issue time.
+  // Tier is NOT cached on the key: it is resolved live from `subscriptions`
+  // by email, so cancellations downgrade keys automatically.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key_hash TEXT NOT NULL UNIQUE,        -- sha256 hex of the full key
+      key_prefix TEXT NOT NULL,             -- first chars (kl_xxxxxxxx) for display/revoke
+      email TEXT NOT NULL,                  -- joins to subscriptions.email for live tier
+      label TEXT,
+      revoked INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      last_used_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_api_keys_email ON api_keys(email);
+
+    -- One-time magic-link login codes. Only the hash is stored; codes expire
+    -- after 15 minutes and are single-use (used_at set on redemption).
+    CREATE TABLE IF NOT EXISTS login_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code_hash TEXT NOT NULL UNIQUE,
+      email TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      expires_at TEXT NOT NULL,
+      used_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_login_codes_email ON login_codes(email);
+
+    -- Premium article sections served via /api/premium. Content lives ONLY in
+    -- this DB (Railway volume) — the repo is public, so committing the HTML
+    -- would defeat the gate. Uploaded via POST /admin/premium-content.
+    CREATE TABLE IF NOT EXISTS premium_content (
+      article_id TEXT PRIMARY KEY,          -- e.g. "insights/accounting-saas-aeo-2026"
+      tier TEXT NOT NULL DEFAULT 'pro',     -- minimum tier required
+      lang TEXT NOT NULL DEFAULT 'ja',
+      html TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
   // Linksee-memory opt-in telemetry (privacy-preserving)
   //   - anonymous UUID from user (generated on first opt-in)
   //   - only aggregated / hashed signals, NEVER conversation content

@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { maskPii } from "../utils/pii-masker.js";
+import { wrapUntrusted } from "../utils/untrusted.js";
 
 /**
  * agent_voice: Structured interview for agents about their experience.
@@ -353,7 +354,10 @@ export function readAgentVoices(
 
   query += " ORDER BY created_at DESC LIMIT 50";
 
-  const responses = db.prepare(query).all(...params) as any[];
+  const responses = (db.prepare(query).all(...params) as any[]).map((r) => ({
+    ...r,
+    response_text: wrapUntrusted(r.response_text, 500),
+  }));
 
   // Aggregate choice distributions per question
   const choiceDistribution = db

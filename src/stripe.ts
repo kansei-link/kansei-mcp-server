@@ -31,7 +31,7 @@ export function accessTokenFor(email: string): string | null {
   return createHmac("sha256", secret).update(email.trim().toLowerCase()).digest("hex").slice(0, 32);
 }
 
-function tokenMatches(provided: string, expected: string | null): boolean {
+export function tokenMatches(provided: string, expected: string | null): boolean {
   if (!expected || !provided || provided.length !== expected.length) return false;
   try {
     return timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
@@ -169,7 +169,7 @@ interface AccessResult {
 // Look up a subscription by (already-authorized) email and shape the public result.
 // `active:false / tier:"free"` is the SAME response for "no subscription" and "not authorized",
 // so an unauthorized caller cannot tell whether an email is a customer.
-function accessResultForEmail(email: string): AccessResult {
+export function accessResultForEmail(email: string): AccessResult {
   const row = getDb().prepare(`
     SELECT tier, status, service_ids, current_period_end, cancel_at_period_end
     FROM subscriptions

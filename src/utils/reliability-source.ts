@@ -25,6 +25,14 @@ import type Database from "better-sqlite3";
 // whitelist 'anonymous'. Real reports are 'anonymous' today, but workstream D
 // will add distinct anonymized per-agent identifiers — those must count as
 // live automatically, which the blacklist achieves for free.
+//
+// ⚠️ The blacklist MUST stay exhaustive. Every internal writer (probe, miner,
+// seed, eval, self-test, fixtures) belongs in SYNTHETIC_AGENT_HASHES — otherwise
+// its rows leak into the "measured live" success_rate and inflate the public
+// per-vendor numbers (this was the 2026-06-16 audit finding). Known residual:
+// cold-start rows written under 'anonymous' on 2026-04-04 are seed, not field
+// reports, and cannot be separated by hash alone — surface rates conservatively
+// until distinct per-agent hashes land.
 // ---------------------------------------------------------------------------
 
 /**
@@ -36,6 +44,18 @@ export const SYNTHETIC_AGENT_HASHES = [
   "test-harness-v1",
   "agent-army",
   "scout_agent",
+  // Added 2026-06-16 (audit): these internal writers were leaking through the
+  // old 3-hash blacklist and being counted as "live measured" success.
+  "health-probe", // HTTP / JSON-RPC reachability probe — not real agent usage
+  "github-issues-miner", // scraped GitHub issue state — not real agent usage
+  "self-test-fleet", // internal self-tests
+  "agent1",
+  "agent2",
+  "agent3",
+  "agent4",
+  "agent5",
+  "agent6",
+  "test-agent", // hand fixtures
 ] as const;
 
 export type ReliabilityBasis = "live" | "mixed" | "estimated" | "none";

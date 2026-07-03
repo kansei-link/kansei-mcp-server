@@ -6,6 +6,7 @@ import {
   classifyReliabilitySource,
   gradeLabel,
 } from "../utils/reliability-source.js";
+import { wrapUntrusted } from "../utils/untrusted.js";
 
 interface ServiceRow {
   id: string;
@@ -233,7 +234,7 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
         }
 
         const fix: Record<string, unknown> = {
-          workaround: w.workaround,
+          workaround: wrapUntrusted(w.workaround),
           reported_by: `${w.total_reports} agent(s)`,
           verification,
         };
@@ -485,7 +486,7 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
   if (provenWorkarounds.length > 0) {
     fieldInsights.proven_fixes = provenWorkarounds.map((w) => ({
       error: w.error_type,
-      fix: w.workaround,
+      fix: wrapUntrusted(w.workaround),
       confidence: w.times_reported >= 3 ? "high" : w.times_reported >= 2 ? "medium" : "low",
       reported_by: `${w.times_reported} agent(s)`,
     }));
@@ -502,16 +503,16 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
 
   if (agentFeedback.length > 0) {
     fieldInsights.community_notes = agentFeedback.map((f) => ({
-      subject: f.subject,
-      note: f.body.length > 300 ? f.body.substring(0, 300) + "..." : f.body,
+      subject: wrapUntrusted(f.subject, 200),
+      note: wrapUntrusted(f.body, 300),
       date: f.created_at,
     }));
   }
 
   if (recentSuccessPatterns.length > 0) {
     fieldInsights.recent_success_patterns = recentSuccessPatterns.map((s) => ({
-      context: s.context_masked,
-      approach: s.workaround ?? "Standard flow",
+      context: wrapUntrusted(s.context_masked),
+      approach: s.workaround ? wrapUntrusted(s.workaround) : "Standard flow",
       date: s.created_at,
     }));
   }

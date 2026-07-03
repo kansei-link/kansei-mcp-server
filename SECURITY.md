@@ -39,19 +39,22 @@ All text submitted via `context` field is processed through PII masking before s
 
 ## What ships where
 
-- The **npm package** (`@kansei-link/mcp-server`, stdio server) makes **no outbound network calls by default** — it serves a local bundled SQLite dataset.
-- The **hosted HTTP facade** (Railway) exposes the dashboard read APIs, Stripe billing, and the opt-in `report-outcome` / `telemetry` sinks.
+- The **npm package** (`@kansei-link/mcp-server`, stdio server) makes **no outbound network calls by default** — it serves a local bundled SQLite dataset. The single exception is opt-in: if you set `KANSEI_API_KEY`, the server validates that key against `GET /api/validate-key` (tier check only, cached 10 min; no usage data is sent).
+- The **hosted HTTP facade** (Railway) exposes the dashboard read APIs, Stripe billing, auth/entitlements, and the opt-in `report-outcome` / `telemetry` sinks.
 
 ## Billing & Access Endpoints (hosted facade)
 
 - **Stripe webhooks** (`/webhooks/stripe`) are verified with `stripe.webhooks.constructEvent` (HMAC signature) over the raw request body.
 - **`/api/checkout`** accepts only price IDs configured via `STRIPE_PRICE_*` (a client cannot substitute an arbitrary or different valid price).
-- **`/api/access`** is read-only content gating, keyed by email — it returns only a tier + expiry (no payment data). It is intentionally not token-gated at launch, so existing subscribers aren't locked out; the residual risk is a low-stakes "is this email a customer" read. **Magic-link email login** is the planned post-launch upgrade that closes this read-enumeration (a Stripe-verified token issuer, `/api/access-token?session_id=...`, already exists as the bridge).
-- **`/api/portal`** (manage/cancel billing — high-impact) **is** token-gated: it requires the per-email `HMAC(email, secret)` token, so it cannot be used to take over or enumerate billing.
-- **`/admin/*`** endpoints require a `CRAWLER_SECRET` bearer token.
+- **`/api/access`** is a low-stakes tier/expiry read keyed by email (no payment data, no content). Actual premium **content** is never unlockable by email alone — see `/api/premium` below.
+- **Magic-link email login** (`/api/auth/request-link` → emailed one-time code → `/api/auth/verify`) issues the per-email access token by proving inbox control. Codes are stored **hashed**, expire in 15 minutes, are single-use, and the request endpoint answers identically for customers and non-customers (no enumeration). Outbound mail goes through Resend only when `RESEND_API_KEY` is configured.
+- **`/api/portal`** (manage/cancel billing — high-impact) **is** token-gated: it requires the per-email `HMAC(email, secret)` token, so it cannot be used to take over or enumerate billing. The same token gates **`/api/keys`** (API key create/list/revoke).
+- **`/api/premium`** serves gated article sections to (email + access token) or a valid API key of sufficient tier. The premium HTML lives **only in the server DB** — the public repo and the static GitHub Pages HTML do not contain it.
+- **API keys** (`kl_…`) entitle MCP/HTTP clients to paid tiers. Only SHA-256 hashes are stored; the plaintext is shown once at issue time. Tier is resolved live from the subscription, so cancellation downgrades keys automatically. `GET /api/validate-key` returns tier only — never the owning email.
+- **`/admin/*`** endpoints (including `premium-content` upload) require a `CRAWLER_SECRET` bearer token.
 - CORS is scoped to a single configured origin; credentials are not exposed.
 
-Server secrets are environment variables only (never committed): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_*`, `CRAWLER_SECRET`, `ACCESS_TOKEN_SECRET` (optional — falls back to `STRIPE_WEBHOOK_SECRET`), `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`. See `.env.example`.
+Server secrets are environment variables only (never committed): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_*`, `CRAWLER_SECRET`, `ACCESS_TOKEN_SECRET` (optional — falls back to `STRIPE_WEBHOOK_SECRET`), `RESEND_API_KEY` (magic-link email delivery), `EMAIL_FROM`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`. See `.env.example`.
 
 ## Trust Model
 

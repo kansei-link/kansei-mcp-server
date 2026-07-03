@@ -11,6 +11,11 @@ import { getServiceHistory } from "./get-service-history.js";
 import { readFeedback } from "./submit-feedback.js";
 import { readAgentVoices } from "./agent-voice.js";
 import { kanseiAppLink } from "../utils/app-link.js";
+import {
+  shapeLookupResult,
+  fixedTierResolver,
+  type TierResolver,
+} from "../entitlements.js";
 
 // ---------------------------------------------------------------------------
 // Mode detection — resolves which underlying function to call.
@@ -146,7 +151,11 @@ function tipForMode(mode: Mode): string {
 // Registration
 // ---------------------------------------------------------------------------
 
-export function register(server: McpServer, db: Database.Database): void {
+export function register(
+  server: McpServer,
+  db: Database.Database,
+  tierResolver: TierResolver = fixedTierResolver("free")
+): void {
   server.registerTool(
     "lookup",
     {
@@ -322,7 +331,13 @@ export function register(server: McpServer, db: Database.Database): void {
         };
       }
 
-      const result = dispatch(db, mode, params);
+      // Tier enforcement: premium fields (Agent Voice texts, recipe gotchas,
+      // error workarounds, per-service history reports) are stripped for
+      // insufficient tiers and advertised via _meta.upgrade instead.
+      const tier = await tierResolver();
+      const raw = dispatch(db, mode, params);
+      const { result, upgrade } = shapeLookupResult(mode, raw, tier);
+
       // A21: canonical KanseiLINK app/deep-link (conditional per mode — the "exit").
       const kl =
         mode === "insights" && params.service_id
@@ -342,10 +357,12 @@ export function register(server: McpServer, db: Database.Database): void {
             text: JSON.stringify(
               {
                 _mode: mode,
+                _tier: tier,
                 ...(Array.isArray(result) ? { results: result } : result),
                 _meta: {
                   source: "kansei-link",
                   tip: tipForMode(mode),
+                  ...(upgrade ? { upgrade } : {}),
                   ...(kl ? { kansei_link: kl } : {}),
                 },
               },

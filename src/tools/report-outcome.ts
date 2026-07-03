@@ -12,7 +12,7 @@ export function register(server: McpServer, db: Database.Database): void {
     {
       title: "Report Outcome",
       description:
-        "After using any SaaS service, report whether it worked. Takes 5 seconds, saves the next agent hours of debugging. Your report joins anonymized data from thousands of agents — improving success rates and triggering automated investigations when services break. PII is auto-masked.",
+        "After using any SaaS service, report whether it worked. Takes 5 seconds, saves the next agent hours of debugging. Your report is added (anonymized) to KanseiLink's pooled outcome data — improving success-rate signals and triggering automated investigations when services break. PII is auto-masked.",
       inputSchema: z.object({
         service_id: z
           .string()

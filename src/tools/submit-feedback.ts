@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { maskPii } from "../utils/pii-masker.js";
+import { wrapUntrusted } from "../utils/untrusted.js";
 
 /**
  * Agent Feedback Box ("Moltbook")
@@ -257,7 +258,11 @@ function readFeedback(
   query += " ORDER BY CASE priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END, created_at DESC LIMIT ?";
   params.push(opts.limit);
 
-  const feedback = db.prepare(query).all(...params) as FeedbackRow[];
+  const feedback = (db.prepare(query).all(...params) as FeedbackRow[]).map((f) => ({
+    ...f,
+    subject: wrapUntrusted(f.subject, 200),
+    body: wrapUntrusted(f.body, 500),
+  }));
 
   // Summary
   const summary = db

@@ -22,6 +22,8 @@ import { createServer } from "./server.js";
 import { getDb, closeDb } from "./db/connection.js";
 import { initializeDb } from "./db/schema.js";
 import { seedDatabase } from "./db/seed.js";
+import { classifyReliabilitySource } from "./utils/reliability-source.js";
+import { wrapUntrusted } from "./utils/untrusted.js";
 import {
   handleStripeWebhook,
   handleAccessCheck,
@@ -29,6 +31,16 @@ import {
   handleCreateCheckout,
   handleCustomerPortal,
 } from "./stripe.js";
+import {
+  handleAuthRequestLink,
+  handleAuthVerify,
+  handleApiKeys,
+  handleValidateKey,
+  handlePremiumContent,
+  handlePremiumUpload,
+  handlePremiumInventory,
+} from "./auth.js";
+import { resolveApiKey, fixedTierResolver } from "./entitlements.js";
 import { runCrawler } from "./crawler/run.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -88,6 +100,21 @@ const apiLimiter = rateLimit({
 // Stripe webhook needs raw body for signature verification — must be before express.json()
 app.post("/webhooks/stripe", express.raw({ type: "application/json" }), handleStripeWebhook);
 
+// Premium-content upload carries ~200KB+ of article HTML — needs its own
+// parser limit, so it must also be registered before the global (100kb)
+// express.json(). Secret check first; the body is parsed only for callers
+// that already hold CRAWLER_SECRET.
+// (requireAdminSecret is a hoisted function declaration defined below.)
+app.post(
+  "/admin/premium-content",
+  (req: Request, res: Response, next) => {
+    if (!requireAdminSecret(req, res)) return;
+    next();
+  },
+  express.json({ limit: "8mb" }),
+  handlePremiumUpload
+);
+
 // JSON body parser for all other routes
 app.use(express.json());
 
@@ -96,7 +123,7 @@ app.use("/api", (_req: Request, res: Response, next) => {
   const origin = process.env.KANSEI_PUBLIC_URL ?? "https://kansei-link.com";
   res.header("Access-Control-Allow-Origin", origin);
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
+  res.header("Access-Control-Allow-Headers", "Content-Type, x-access-token, x-api-key");
   if (_req.method === "OPTIONS") {
     res.sendStatus(204);
     return;
@@ -119,6 +146,22 @@ app.get("/api/access", apiLimiter, handleAccessCheck);
 app.get("/api/access-token", apiLimiter, handleAccessTokenIssue);
 app.post("/api/checkout", apiLimiter, handleCreateCheckout);
 app.post("/api/portal", apiLimiter, handleCustomerPortal);
+
+// ─── Auth & Entitlements (magic-link login, API keys, premium content) ────
+// Magic-link requests get an extra-tight limiter: each request can trigger an
+// outbound email, so 5/min/IP on top of the per-email throttle in auth.ts.
+const magicLinkLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many sign-in requests, please try again later." },
+});
+app.post("/api/auth/request-link", magicLinkLimiter, handleAuthRequestLink);
+app.post("/api/auth/verify", apiLimiter, handleAuthVerify);
+app.post("/api/keys", apiLimiter, handleApiKeys);
+app.get("/api/validate-key", apiLimiter, handleValidateKey);
+app.get("/api/premium", apiLimiter, handlePremiumContent);
 
 // ─── Dashboard Data API ───────────────────────────────────────────
 app.get("/api/dashboard/stats", apiLimiter, (_req: Request, res: Response) => {
@@ -177,17 +220,30 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 1000);
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const services = db.prepare(`
+    const rows = db.prepare(`
       SELECT s.id, s.name, s.category, s.axr_grade, s.axr_score,
              s.mcp_status, s.mcp_endpoint,
-             COALESCE(ss.success_rate, 0) as success_rate,
              COALESCE(ss.avg_latency_ms, 0) as avg_latency_ms
       FROM services s
       LEFT JOIN service_stats ss ON s.id = ss.service_id
       WHERE s.axr_score IS NOT NULL
       ORDER BY s.axr_score DESC
       LIMIT ? OFFSET ?
-    `).all(limit, offset);
+    `).all(limit, offset) as Array<{ id: string; [k: string]: unknown }>;
+
+    // Audit 2026-06-16: never publish a per-vendor success rate that is blended
+    // with seed/eval/probe data. Expose a number ONLY when measured from live
+    // agent reports, else null.
+    const services = rows.map((s) => {
+      const rel = classifyReliabilitySource(db, s.id);
+      return {
+        ...s,
+        success_rate: rel.measured
+          ? Math.round((rel.live_success_rate ?? 0) * 100) / 100
+          : null,
+        success_rate_measured: rel.measured,
+      };
+    });
 
     const total = (db.prepare(`SELECT COUNT(*) as c FROM services WHERE axr_score IS NOT NULL`).get() as any).c;
 
@@ -210,7 +266,7 @@ app.get("/api/dashboard/voices", apiLimiter, (_req: Request, res: Response) => {
       return;
     }
 
-    const voices = db.prepare(`
+    const voices = (db.prepare(`
       SELECT v.service_id, s.name as service_name, s.axr_grade,
              v.agent_type, v.question_id, v.response_choice, v.response_text,
              v.confidence, v.created_at
@@ -218,7 +274,10 @@ app.get("/api/dashboard/voices", apiLimiter, (_req: Request, res: Response) => {
       JOIN services s ON v.service_id = s.id
       ORDER BY v.created_at DESC
       LIMIT 20
-    `).all();
+    `).all() as Array<{ response_text: string; [k: string]: unknown }>).map((v) => ({
+      ...v,
+      response_text: wrapUntrusted(v.response_text, 500),
+    }));
 
     res.json({ voices });
   } catch (e: any) {
@@ -680,6 +739,11 @@ app.post("/admin/run-crawler", async (req: Request, res: Response) => {
     });
 });
 
+app.get("/admin/premium-content", (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+  handlePremiumInventory(req, res);
+});
+
 /**
  * GET /admin/last-crawl-run
  *   Headers:  Authorization: Bearer <CRAWLER_SECRET>
@@ -703,9 +767,19 @@ app.get("/admin/last-crawl-run", (req: Request, res: Response) => {
   res.json({ running: crawlerRunning, last_run: row || null });
 });
 
-// MCP endpoint — stateless: each request gets a fresh server
+// MCP endpoint — stateless: each request gets a fresh server.
+// Tier comes from the x-api-key header (or "Authorization: Bearer kl_…");
+// no/invalid key → free tier (tools still work, premium fields stripped).
 app.post("/mcp", async (req: Request, res: Response) => {
-  const server = createServer();
+  const authHeader = req.header("authorization") || "";
+  const rawKey =
+    (req.header("x-api-key") as string) ||
+    (authHeader.startsWith("Bearer kl_") ? authHeader.slice(7) : "");
+  const tier = rawKey ? resolveApiKey(getDb(), rawKey)?.tier ?? "free" : "free";
+
+  // Public endpoint: NEVER expose the internal admin tools (inspect/analyze)
+  // here, regardless of server env — arbitrary clients hit this route.
+  const server = createServer({ tierResolver: fixedTierResolver(tier), exposeAdminTools: false });
   try {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless

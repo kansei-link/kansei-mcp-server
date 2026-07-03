@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { z } from "zod";
 import { calculateConfidence } from "../utils/confidence.js";
 import { kanseiAppLink } from "../utils/app-link.js";
+import { wrapUntrusted } from "../utils/untrusted.js";
 
 interface StatsRow {
   service_id: string;
@@ -194,7 +195,7 @@ export function getInsights(db: Database.Database, serviceId: string): object {
           verification = "unverified";
         }
         return {
-          fix: w.workaround,
+          fix: wrapUntrusted(w.workaround),
           reported_count: w.count,
           verification,
           ...(isStale ? { last_verified_days_ago: w.newest_days } : {}),

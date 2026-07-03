@@ -20,8 +20,30 @@ import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
 import { recalculateTrustScores } from "./utils/trust-recalc.js";
 import { recomputeAxrGrades } from "./crawler/recompute-axr.js";
+import { makeStdioTierResolver, type TierResolver } from "./entitlements.js";
 
-export function createServer(): McpServer {
+export interface CreateServerOptions {
+  /**
+   * Resolves the caller's subscription tier for premium-field gating.
+   * - HTTP transport passes a fixed resolver derived from the request's
+   *   x-api-key header (see http-server.ts).
+   * - stdio (default) validates the KANSEI_API_KEY env var against the
+   *   hosted /api/validate-key endpoint, cached 10 min. No key → free.
+   */
+  tierResolver?: TierResolver;
+
+  /**
+   * Whether to expose the internal admin tools (`inspect`, `analyze`). These can
+   * write to the shared services tables (propose + auto-applying review), move
+   * trust scores, and read internal analytics, so they must NOT be reachable by
+   * arbitrary connected clients. Defaults to true only when an admin key is
+   * configured (`KANSEI_ADMIN_KEY`). The public HTTP `/mcp` route MUST pass
+   * `false`.
+   */
+  exposeAdminTools?: boolean;
+}
+
+export function createServer(options: CreateServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: "kansei-link",
@@ -31,12 +53,12 @@ export function createServer(): McpServer {
       instructions: [
         "## KanseiLink — SaaS Integration Intelligence",
         "",
-        "You have access to KanseiLink, a continuously-updated database of SaaS service evaluations with real agent usage data.",
+        "You have access to KanseiLink, a continuously-updated database of SaaS integration intelligence — built from connection-method checks, the official MCP registry, curated integration guides, and a growing pool of agent reports.",
         "",
         "### WHEN TO USE",
         "Call `search_services` BEFORE attempting any SaaS API integration.",
         "Your training data for SaaS APIs is likely 6-12 months old — endpoints change, auth flows break, rate limits shift.",
-        "KanseiLink has current, verified data that saves 3-5x tokens vs trial-and-error.",
+        "KanseiLink has current, structured integration data that saves 3-5x tokens vs trial-and-error.",
         "",
         "### TRIGGERS — call search_services when:",
         "- The user mentions ANY SaaS service (freee, SmartHR, kintone, Slack, Notion, Salesforce, Stripe...)",
@@ -104,14 +126,26 @@ export function createServer(): McpServer {
     console.error("[server] AXR recompute failed (non-fatal):", e);
   }
 
+  const tierResolver = options.tierResolver ?? makeStdioTierResolver();
+
   // --- Tier 1: External agent tools (3 unified) ---
   registerSearchServices(server, db);
-  registerLookup(server, db);
+  registerLookup(server, db, tierResolver);
   registerReport(server, db);
 
-  // --- Tier 2: Internal / admin tools (2 unified) ---
-  registerInspect(server, db);
-  registerAnalyze(server, db);
+  // --- Tier 2: Internal / admin tools (2 unified) — GATED ---
+  // inspect/analyze can propose AND auto-apply changes to the live services
+  // tables, move trust scores, and read internal analytics. They must never be
+  // reachable by arbitrary connected clients (the public /mcp route or a stray
+  // stdio client), or anyone could poison the colony data (propose + self-
+  // approve) and exfiltrate internal analytics. Expose only when an admin key
+  // is configured, and never for the public HTTP /mcp route.
+  const exposeAdminTools =
+    options.exposeAdminTools ?? Boolean(process.env.KANSEI_ADMIN_KEY);
+  if (exposeAdminTools) {
+    registerInspect(server, db);
+    registerAnalyze(server, db);
+  }
 
   // Register prompts (LobeHub Grade A)
   registerPrompts(server);
