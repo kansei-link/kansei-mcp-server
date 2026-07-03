@@ -1,6 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
+import { classifyReliabilitySource } from "../utils/reliability-source.js";
+
+// Telemetry gate (2026-07-03, re-audit of the 2026-06-16 finding):
+// a public per-vendor success_rate may ONLY be emitted when it is computed
+// from genuine live field reports (non-synthetic agent hashes) with at least
+// this many samples. Everything else surfaces as null ("観測中"/"observing").
+// service_stats.success_rate is a synthetic-contaminated blend — never emit it.
+const MIN_LIVE_REPORTS_FOR_PUBLIC_RATE = 30;
 
 /**
  * AEO Readiness Ranking Article Generator
@@ -22,6 +30,7 @@ interface ServiceRow {
   api_auth_method: string | null;
   trust_score: number;
   tags: string | null;
+  mcp_tool_count: number | null;
 }
 
 interface StatsRow {
@@ -130,7 +139,7 @@ function generateArticle(
 ): string | object {
   // --- Data collection ---
   const services = db
-    .prepare("SELECT id, name, category, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, tags FROM services")
+    .prepare("SELECT id, name, category, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, tags, mcp_tool_count FROM services")
     .all() as ServiceRow[];
 
   const guidesSet = new Set(
@@ -142,13 +151,35 @@ function generateArticle(
     statsMap.set(s.service_id, s);
   }
 
+  // MCPハンドシェイク検証済みサービス: health-probe の JSON-RPC initialize が
+  // 成功した実測記録を持つもの（到達性プローブは synthetic 扱いだが、
+  // 「ハンドシェイクが通った」という事実自体は実測で真）。
+  const handshakeVerified = new Set(
+    (db
+      .prepare(
+        "SELECT DISTINCT service_id FROM outcomes WHERE agent_id_hash = 'health-probe' AND success = 1"
+      )
+      .all() as { service_id: string }[]).map((r) => r.service_id)
+  );
+
   // Recipe count per service
   const recipes = db.prepare("SELECT id, steps, required_services FROM recipes").all() as RecipeRow[];
   const recipeCountMap = new Map<string, number>();
   for (const recipe of recipes) {
-    const reqServices = JSON.parse(recipe.required_services) as string[];
-    const steps = JSON.parse(recipe.steps) as Array<{ service_id: string }>;
-    const allIds = new Set([...reqServices, ...steps.map(s => s.service_id)]);
+    // steps は配列/オブジェクト/不正JSONの3形態が混在する（2026-06-18監査で
+    // steps.map クラッシュを確認）。壊れた行で全体を落とさない。
+    let reqServices: string[] = [];
+    let stepIds: string[] = [];
+    try {
+      const req = JSON.parse(recipe.required_services ?? "[]");
+      if (Array.isArray(req)) reqServices = req.filter((x): x is string => typeof x === "string");
+    } catch { /* skip malformed */ }
+    try {
+      const parsed = JSON.parse(recipe.steps ?? "[]");
+      const arr = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.steps) ? parsed.steps : [];
+      stepIds = arr.map((st: { service_id?: string }) => st?.service_id).filter((x: unknown): x is string => typeof x === "string");
+    } catch { /* skip malformed */ }
+    const allIds = new Set([...reqServices, ...stepIds]);
     for (const sid of allIds) {
       recipeCountMap.set(sid, (recipeCountMap.get(sid) || 0) + 1);
     }
@@ -174,7 +205,14 @@ function generateArticle(
     const isSpecialist = tags.length > 0 && tags.length <= 5;
     const stats = statsMap.get(s.id);
     const hasAgentData = stats && stats.total_calls >= 1;
-    const highSuccess = stats && stats.total_calls >= 3 && stats.success_rate >= 0.8;
+    // Gate: score bonuses and public rates use LIVE reports only, never the
+    // blended service_stats number (seed/probe/eval contamination).
+    const rel = stats ? classifyReliabilitySource(db, s.id) : null;
+    const gatedRate =
+      rel && rel.measured && rel.live_reports >= MIN_LIVE_REPORTS_FOR_PUBLIC_RATE
+        ? rel.live_success_rate
+        : null;
+    const highSuccess = gatedRate !== null && gatedRate >= 0.8;
 
     const score = Math.min(1.0,
       baseScore +
@@ -187,8 +225,16 @@ function generateArticle(
 
     const aeoScore = Math.round(score * 100) / 100;
 
+    // "verified" now matches the published definition: official MCP that
+    // passed KanseiLink's MCP handshake (tool list retrieved). It is NOT a
+    // success-rate claim (the old >=0.8-blended-rate criterion was built on
+    // contaminated data).
     let agentReady: "verified" | "connectable" | "info_only";
-    if ((s.mcp_endpoint || s.api_url) && stats && stats.total_calls >= 3 && stats.success_rate >= 0.8) {
+    if (
+      s.mcp_endpoint &&
+      s.mcp_status === "official" &&
+      ((s.mcp_tool_count ?? 0) > 0 || handshakeVerified.has(s.id))
+    ) {
       agentReady = "verified";
     } else if (s.mcp_endpoint || s.api_url) {
       agentReady = "connectable";
@@ -206,7 +252,7 @@ function generateArticle(
       agent_ready: agentReady,
       recipe_count: recipeCountMap.get(s.id) || 0,
       mcp_type: mcpType,
-      success_rate: stats ? Math.round(stats.success_rate * 100) : null,
+      success_rate: gatedRate !== null ? Math.round(gatedRate * 100) : null,
       total_agent_calls: stats?.total_calls || 0,
       change_indicator: "new", // First edition
     };
@@ -270,13 +316,14 @@ function generateArticle(
           }])
       ),
       methodology: {
-        scoring: "Base (MCP type: 0.1-0.5) + Bonuses (API docs, auth guide, specialist, agent data, success rate: +0.1 each)",
+        scoring: "Base (MCP type: 0.1-0.5) + Bonuses (API docs, auth guide, specialist, agent data, gated live success rate: +0.1 each)",
         grades: { AAA: "0.9+", AA: "0.8+", A: "0.7+", BBB: "0.6+", BB: "0.5+", B: "0.4+", C: "0.3+", D: "<0.3" },
         agent_ready: {
-          verified: "MCP/API exists + 3+ agent calls + ≥80% success rate",
-          connectable: "MCP/API exists but unproven or low success",
+          verified: "Official MCP server + KanseiLink MCP handshake verified (tool list retrieved)",
+          connectable: "MCP/API exists but not handshake-verified as official",
           info_only: "No API or MCP available",
         },
+        success_rate_policy: `Per-vendor success_rate is published only when computed from ${MIN_LIVE_REPORTS_FOR_PUBLIC_RATE}+ genuine live agent reports (synthetic/seed/probe/eval sources excluded); otherwise null (observing).`,
       },
     };
   }
@@ -378,12 +425,12 @@ function generateArticle(
   md += `- 認証セットアップガイド\n`;
   md += `- カテゴリ特化型サービス\n`;
   md += `- エージェント利用実績あり\n`;
-  md += `- エージェント成功率 80%以上\n\n`;
+  md += `- 実測成功率が高水準（実エージェント報告${MIN_LIVE_REPORTS_FOR_PUBLIC_RATE}件以上で80%以上の場合のみ加点。内部シード/プローブ/自動評価は集計から除外）\n\n`;
 
   md += `### Agent Ready ステータス\n\n`;
   md += `| ステータス | 条件 |\n|-----------|------|\n`;
-  md += `| 🟢 Verified | MCP/API + エージェント3回以上利用 + 成功率80%以上 |\n`;
-  md += `| 🟡 Connectable | MCP/APIあり、未検証または成功率低 |\n`;
+  md += `| 🟢 Verified | 公式MCPサーバー提供 + KanseiLinkのMCPハンドシェイク検証済み（ツール一覧取得成功） |\n`;
+  md += `| 🟡 Connectable | MCP/APIはあるが公式ハンドシェイク未検証 |\n`;
   md += `| ⚪ Info Only | API・MCPなし |\n\n`;
 
   md += `### グレード\n\n`;
