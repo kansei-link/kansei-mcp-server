@@ -13,8 +13,18 @@
  */
 import Database from "better-sqlite3";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const DB_PATH = resolve(import.meta.dirname, "../../kansei-link.db");
+
+export interface ProbeSummary {
+  probed: number;
+  alive: number;
+  handshake: number;
+  auth_required: number;
+  dead: number;
+  archived_new: number;
+}
 
 interface ProbeResult {
   service_id: string;
@@ -121,16 +131,16 @@ async function probeEndpoint(serviceId: string, endpoint: string): Promise<Probe
   return result;
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const dryRun = args.includes("--dry-run");
-  const limitIdx = args.indexOf("--limit");
-  const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 50;
+export async function runHealthProbe(
+  db: Database.Database,
+  opts: { limit?: number; dryRun?: boolean } = {}
+): Promise<ProbeSummary> {
+  const limit = opts.limit ?? 50;
+  const dryRun = opts.dryRun ?? false;
 
-  const db = new Database(DB_PATH);
-  db.pragma("journal_mode = WAL");
-
-  // Get hosted endpoints to probe (highest trust first)
+  // Get hosted endpoints to probe (highest trust first).
+  // Archived rows are excluded — endpoint death is already recorded there;
+  // resurrection checks are a manual re-sweep concern, not the weekly probe's.
   const targets = db
     .prepare(
       `SELECT id, name, mcp_endpoint, trust_score FROM services
@@ -138,6 +148,7 @@ async function main() {
          AND mcp_endpoint NOT LIKE '%github.com%'
          AND mcp_endpoint NOT LIKE '%github.io%'
          AND mcp_endpoint NOT LIKE '%{%'
+         AND COALESCE(archived, 0) = 0
        ORDER BY trust_score DESC
        LIMIT ?`
     )
@@ -149,8 +160,7 @@ async function main() {
     targets.forEach((t) =>
       console.error(`  [${t.trust_score.toFixed(2)}] ${t.id} => ${t.mcp_endpoint.slice(0, 60)}`)
     );
-    db.close();
-    return;
+    return { probed: 0, alive: 0, handshake: 0, auth_required: 0, dead: 0, archived_new: 0 };
   }
 
   // Probe concurrently (max 20 at a time)
@@ -223,9 +233,26 @@ async function main() {
     "UPDATE services SET trust_score = MIN(trust_score, ?) WHERE id = ?"
   );
 
+  // POST 404/410 on the registered endpoint = endpoint gone. Same archive
+  // semantics as the 2026-07-06 full sweep: hide from rankings, keep the row,
+  // record before-values in the changelog so it's reversible.
+  const getBeforeValues = db.prepare(
+    "SELECT trust_score, axr_score, axr_grade FROM services WHERE id = ?"
+  );
+  const archiveService = db.prepare(
+    `UPDATE services
+     SET archived = 1, trust_score = 0.0, axr_score = NULL, axr_grade = NULL
+     WHERE id = ?`
+  );
+  const insertDeprecation = db.prepare(
+    `INSERT INTO service_changelog (service_id, change_date, change_type, summary, details)
+     VALUES (?, date('now'), 'deprecated', ?, ?)`
+  );
+
   let statusUpdated = 0;
   let trustBoosted = 0;
   let trustDowngraded = 0;
+  let archivedNew = 0;
   const tx = db.transaction(() => {
     for (const r of results) {
       // Update mcp_status
@@ -241,6 +268,18 @@ async function main() {
         // Reachable (may need auth) → boost to 0.45
         const b = updateTrust.run(0.45, r.service_id, 0.45);
         if (b.changes > 0) trustBoosted++;
+      } else if (r.http_status === 404 || r.http_status === 410) {
+        const before = getBeforeValues.get(r.service_id) as
+          | { trust_score: number; axr_score: number | null; axr_grade: string | null }
+          | undefined;
+        archiveService.run(r.service_id);
+        insertDeprecation.run(
+          r.service_id,
+          `Endpoint gone (POST initialize ${r.http_status}) — archived by weekly health probe`,
+          JSON.stringify({ endpoint: r.endpoint, http_status: r.http_status, before })
+        );
+        archivedNew++;
+        statusUpdated++;
       } else if (r.error === "dns_fail" || r.error === "connection_refused") {
         updateMcpStatus.run("dead", r.service_id);
         statusUpdated++;
@@ -268,13 +307,42 @@ async function main() {
   });
   tx();
 
-  console.error(`\n  DB updated: ${statusUpdated} mcp_status changes, ${trustBoosted} trust boosted, ${trustDowngraded} trust downgraded`);
+  console.error(`\n  DB updated: ${statusUpdated} mcp_status changes, ${trustBoosted} trust boosted, ${trustDowngraded} trust downgraded, ${archivedNew} archived (endpoint gone)`);
   console.error("═══════════════════════════════════════");
 
-  db.close();
+  return {
+    probed: results.length,
+    alive: alive.length,
+    handshake: handshake.length,
+    auth_required: authRequired.length,
+    dead: dead.length,
+    archived_new: archivedNew,
+  };
 }
 
-main().catch((err) => {
-  console.error("[health-probe] Fatal:", err);
-  process.exit(1);
-});
+async function main() {
+  const args = process.argv.slice(2);
+  const dryRun = args.includes("--dry-run");
+  const limitIdx = args.indexOf("--limit");
+  const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 50;
+
+  const db = new Database(DB_PATH);
+  db.pragma("journal_mode = WAL");
+  try {
+    await runHealthProbe(db, { limit, dryRun });
+  } finally {
+    db.close();
+  }
+}
+
+// Only run the CLI when executed directly (this module is also imported
+// by the daily crawler's weekly probe stage).
+const isMain =
+  process.argv[1] != null &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+if (isMain) {
+  main().catch((err) => {
+    console.error("[health-probe] Fatal:", err);
+    process.exit(1);
+  });
+}

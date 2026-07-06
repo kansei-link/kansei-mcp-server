@@ -992,6 +992,7 @@ function categorySearch(
     FROM services s
     LEFT JOIN service_stats ss ON s.id = ss.service_id
     WHERE s.category IN (${placeholders})
+      AND COALESCE(s.archived, 0) = 0
     ORDER BY s.trust_score DESC
     LIMIT ?
   `;
@@ -1029,6 +1030,7 @@ function ftsSearch(
       JOIN services s ON s.rowid = fts.rowid
       LEFT JOIN service_stats ss ON s.id = ss.service_id
       WHERE services_fts MATCH ?
+        AND COALESCE(s.archived, 0) = 0
     `;
     const params: unknown[] = [tokens];
 
@@ -1097,6 +1099,7 @@ function trigramSearch(
         JOIN services s ON s.rowid = fts.rowid
         LEFT JOIN service_stats ss ON s.id = ss.service_id
         WHERE services_fts_trigram MATCH ?
+          AND COALESCE(s.archived, 0) = 0
       `;
       const params: unknown[] = [matchExpr];
 
@@ -1135,6 +1138,7 @@ function trigramSearch(
       FROM services s
       LEFT JOIN service_stats ss ON s.id = ss.service_id
       WHERE (${conditions.join(" OR ")})
+        AND COALESCE(s.archived, 0) = 0
     `;
     if (category) {
       query += ` AND s.category = ?`;
@@ -1221,6 +1225,7 @@ function likeSearch(
     FROM services s
     LEFT JOIN service_stats ss ON s.id = ss.service_id
     WHERE (${conditions.join(" OR ")})
+      AND COALESCE(s.archived, 0) = 0
   `;
 
   if (category) {

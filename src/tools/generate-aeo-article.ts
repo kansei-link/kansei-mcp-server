@@ -139,7 +139,7 @@ function generateArticle(
 ): string | object {
   // --- Data collection ---
   const services = db
-    .prepare("SELECT id, name, category, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, tags, mcp_tool_count FROM services")
+    .prepare("SELECT id, name, category, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, tags, mcp_tool_count FROM services WHERE COALESCE(archived, 0) = 0")
     .all() as ServiceRow[];
 
   const guidesSet = new Set(

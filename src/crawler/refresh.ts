@@ -220,7 +220,10 @@ export async function refreshExistingServices(
                 { repo: item.repo }
               );
             }
-            newArchived = isArchived ? 1 : 0;
+            // Only ever set archived=1 from here — never auto-un-archive.
+            // Rows may be archived for endpoint-death reasons (e.g. the
+            // 2026-07-06 sweep) that repo existence can't refute.
+            newArchived = isArchived ? 1 : undefined;
 
             if (meta.description && meta.description !== item.svc.description) {
               const before = item.svc.description?.slice(0, 120) ?? "";

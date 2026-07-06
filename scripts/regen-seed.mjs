@@ -34,7 +34,7 @@ const serviceRows = db
   .prepare(
     `SELECT id, name, namespace, description, category, tags,
             mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score,
-            axr_score, axr_grade, axr_dims, axr_facade
+            axr_score, axr_grade, axr_dims, axr_facade, archived
      FROM services
      ORDER BY id ASC`
   )
@@ -64,6 +64,7 @@ const services = serviceRows.map((r) => {
     }
   }
   if (r.axr_facade !== null && r.axr_facade !== undefined) out.axr_facade = r.axr_facade;
+  if (r.archived) out.archived = 1;
   return out;
 });
 

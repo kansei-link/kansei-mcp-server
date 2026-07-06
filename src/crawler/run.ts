@@ -26,11 +26,14 @@ import { refreshExistingServices } from "./refresh.js";
 import { snapshotAllServices } from "./snapshot.js";
 import { recomputeAxrGrades } from "./recompute-axr.js";
 import { detectRecipeDrift } from "./drift.js";
+import { runHealthProbe } from "./health-probe.js";
 
 export interface CrawlerOptions {
   dryRun?: boolean;
   sinceDays?: number;
   maxResults?: number;
+  /** Force the MCP health probe stage on/off. Default: Sundays only. */
+  probe?: boolean;
 }
 
 export interface CrawlerSummary {
@@ -73,7 +76,12 @@ export async function runCrawler(
   const sinceDays = options.sinceDays ?? 90;
   const maxResults = options.maxResults ?? 300;
 
-  console.log(`[crawler] start | dryRun=${dryRun} sinceDays=${sinceDays} max=${maxResults}`);
+  // Weekly MCP health probe: full POST-initialize sweep of hosted endpoints.
+  // Cheap (~3 min for ~4k endpoints) but archives 404/410 rows, so weekly is
+  // the right cadence for the daily crawler. Sundays, or forced via options.
+  const probeDay = options.probe ?? new Date().getDay() === 0;
+
+  console.log(`[crawler] start | dryRun=${dryRun} sinceDays=${sinceDays} max=${maxResults} probe=${probeDay}`);
   const runInsert = db.prepare(`
     INSERT INTO crawl_runs (status, sources_crawled)
     VALUES ('running', ?)
@@ -88,6 +96,7 @@ export async function runCrawler(
       "refresh",
       "snapshot",
       "drift",
+      ...(probeDay ? ["probe"] : []),
       "axr",
     ])
   );
@@ -120,7 +129,7 @@ export async function runCrawler(
     // tend to announce on X / PR TIMES / Zenn instead of tagging GitHub
     // repos with `mcp-server`. See src/data/jp-watchlist.txt for the
     // Michie-curated entry point.
-    console.log("[crawler] step 1/10: discovering from 5 sources (global + JP)");
+    console.log("[crawler] step 1/11: discovering from 5 sources (global + JP)");
     const [githubResults, awesomeResults, watchlistResults, zennResults, jpOrgResults] =
       await Promise.all([
         crawlGitHubTopics({ sinceDays, maxResults }).catch((e) => {
@@ -157,7 +166,7 @@ export async function runCrawler(
     );
 
     // 2. Dedupe
-    console.log("[crawler] step 2/10: deduping against existing services + queue");
+    console.log("[crawler] step 2/11: deduping against existing services + queue");
     const dedupe = dedupeAgainstDb(db, allCandidates);
     summaryOut.fresh = dedupe.fresh.length;
     summaryOut.duplicates = dedupe.duplicates.length;
@@ -185,7 +194,7 @@ export async function runCrawler(
     }
 
     // 3. Enrich (fetch README, star counts for awesome-list entries)
-    console.log("[crawler] step 3/10: enriching via GitHub API");
+    console.log("[crawler] step 3/11: enriching via GitHub API");
     const enriched = await enrichCandidates(dedupe.fresh);
     console.log(`[crawler]   enriched: ${enriched.length}`);
 
@@ -207,12 +216,12 @@ export async function runCrawler(
     );
 
     // 4. Classify
-    console.log("[crawler] step 4/10: LLM classification");
+    console.log("[crawler] step 4/11: LLM classification");
     const classified = await classifyCandidates(mainstream);
     console.log(`[crawler]   classified: ${classified.length}`);
 
     // 5. Score + triage
-    console.log("[crawler] step 5/10: scoring + tier triage");
+    console.log("[crawler] step 5/11: scoring + tier triage");
     const scored = scoreAll(classified);
     const byTier = scored.reduce(
       (acc, c) => {
@@ -225,19 +234,19 @@ export async function runCrawler(
 
     // 6. Ingest
     if (!dryRun) {
-      console.log("[crawler] step 6/10: ingesting into DB");
+      console.log("[crawler] step 6/11: ingesting into DB");
       const ingest = ingestCandidates(db, scored);
       summaryOut.auto_accepted = ingest.autoAccepted;
       summaryOut.queued_for_review = ingest.queuedForReview;
       summaryOut.rejected = ingest.rejected;
       summaryOut.ingested_service_ids = ingest.ingestedServiceIds;
     } else {
-      console.log("[crawler] step 6/10: dry-run — skipping DB writes");
+      console.log("[crawler] step 6/11: dry-run — skipping DB writes");
     }
 
     // 7. Refresh
     if (!dryRun) {
-      console.log("[crawler] step 7/10: refreshing existing service metadata");
+      console.log("[crawler] step 7/11: refreshing existing service metadata");
       try {
         const r = await refreshExistingServices(db);
         summaryOut.refresh = {
@@ -257,12 +266,12 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 7/10: dry-run — skipping refresh");
+      console.log("[crawler] step 7/11: dry-run — skipping refresh");
     }
 
     // 8. Daily snapshots
     if (!dryRun) {
-      console.log("[crawler] step 8/10: writing daily snapshots");
+      console.log("[crawler] step 8/11: writing daily snapshots");
       try {
         const snap = snapshotAllServices(db);
         summaryOut.snapshot = {
@@ -279,12 +288,12 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 8/10: dry-run — skipping snapshot");
+      console.log("[crawler] step 8/11: dry-run — skipping snapshot");
     }
 
     // 9. Recipe drift detection
     if (!dryRun) {
-      console.log("[crawler] step 9/10: recipe drift detection");
+      console.log("[crawler] step 9/11: recipe drift detection");
       try {
         const d = detectRecipeDrift(db);
         summaryOut.drift = d;
@@ -297,17 +306,35 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 9/10: dry-run — skipping drift detection");
+      console.log("[crawler] step 9/11: dry-run — skipping drift detection");
     }
 
-    // 10. AXR (Agent Experience Rating) dynamic recompute
+    // 10. Weekly MCP health probe (POST initialize sweep of hosted endpoints).
+    // Runs before AXR so fresh reachability/handshake data feeds the grades.
+    if (!dryRun && probeDay) {
+      console.log("[crawler] step 10/11: weekly MCP health probe");
+      try {
+        const p = await runHealthProbe(db, { limit: 10000 });
+        console.log(
+          `[crawler]   probed: ${p.probed}, alive: ${p.alive}, handshake: ${p.handshake}, auth: ${p.auth_required}, dead: ${p.dead}, archived: ${p.archived_new}`
+        );
+      } catch (e) {
+        const msg = `probe: ${(e as Error).message}`;
+        errors.push(msg);
+        console.error(`[crawler]   ${msg}`);
+      }
+    } else {
+      console.log(`[crawler] step 10/11: ${dryRun ? "dry-run" : "not probe day"} — skipping health probe`);
+    }
+
+    // 11. AXR (Agent Experience Rating) dynamic recompute
     //
     // Keeps axr_score/axr_grade honest: hardcoded seed values drift away from
     // reality as total_calls / success_rate / trust_score evolve. Without this
     // step, services retain "AAA" from seed even after agents find them
     // unreliable. Safe & cheap: no external calls, pure SQL.
     if (!dryRun) {
-      console.log("[crawler] step 10/10: recomputing AXR grades");
+      console.log("[crawler] step 11/11: recomputing AXR grades");
       try {
         const axr = recomputeAxrGrades(db);
         const dist = Object.entries(axr.grade_distribution)
@@ -327,7 +354,7 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 10/10: dry-run — skipping AXR recompute");
+      console.log("[crawler] step 11/11: dry-run — skipping AXR recompute");
     }
 
     summaryOut.status = errors.length > 0 ? "success_with_errors" : "success";

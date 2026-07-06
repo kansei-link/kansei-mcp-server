@@ -30,14 +30,17 @@ interface ServiceSeed {
   axr_grade?: string;
   axr_dims?: number[];
   axr_facade?: number;
+  /** 1 = endpoint confirmed dead (liveness sweep / weekly probe). Hidden from search. */
+  archived?: number;
 }
 
 interface RecipeSeed {
   id: string;
   goal: string;
   description: string;
-  steps: unknown[];
-  required_services: string[];
+  /** Array in recipes-new-75.json, pre-stringified JSON in recipes-seed.json */
+  steps: unknown[] | string;
+  required_services: string[] | string;
   /**
    * Accumulated cross-service wiring warnings (Tier-B KanseiLink moat).
    * Optional in the seed file — empty arrays are normalized at load time.
@@ -147,6 +150,26 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   let autoVoices: VoiceSeed[] = [];
   try {
     autoVoices = loadJson<VoiceSeed[]>("voices-seed.json");
+  } catch {
+    /* file optional */
+  }
+
+  // Aggregated usage stats from the same outcomes pool that voices-seed is
+  // synthesized from (scripts/export-stats-seed.mjs). Without this, fresh
+  // deploys show "No usage data yet" in insights while voices for the same
+  // service quote a success rate — a visible contradiction. Backfill only
+  // fills rows still at total_calls = 0 so live-accumulated stats always win.
+  interface StatsSeed {
+    service_id: string;
+    total_calls: number;
+    success_rate: number;
+    avg_latency_ms: number;
+    unique_agents: number;
+    last_updated: string | null;
+  }
+  let autoStats: StatsSeed[] = [];
+  try {
+    autoStats = loadJson<StatsSeed[]>("service-stats-seed.json");
   } catch {
     /* file optional */
   }
@@ -266,8 +289,8 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   //   mcp_status, api_url ARE still overwritten — those are authoritative
   //   from the seed source of truth.
   const insertService = db.prepare(`
-    INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, axr_score, axr_grade, axr_dims, axr_facade)
-    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score, @axr_score, @axr_grade, @axr_dims, @axr_facade)
+    INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, axr_score, axr_grade, axr_dims, axr_facade, archived)
+    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score, @axr_score, @axr_grade, @axr_dims, @axr_facade, @archived)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       namespace = excluded.namespace,
@@ -278,7 +301,8 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
       mcp_status = excluded.mcp_status,
       api_url = excluded.api_url,
       axr_dims = excluded.axr_dims,
-      axr_facade = excluded.axr_facade
+      axr_facade = excluded.axr_facade,
+      archived = MAX(COALESCE(services.archived, 0), excluded.archived)
   `);
 
   // Read existing tags so the seed loop can UNION (not overwrite) them — the
@@ -322,6 +346,16 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     VALUES (@service_id, @agent_type, @agent_id, @question_id, @response_choice, @response_text, @confidence)
   `);
 
+  const backfillStats = db.prepare(`
+    UPDATE service_stats
+    SET total_calls = @total_calls,
+        success_rate = @success_rate,
+        avg_latency_ms = @avg_latency_ms,
+        unique_agents = @unique_agents,
+        last_updated = @last_updated
+    WHERE service_id = @service_id AND total_calls = 0
+  `);
+
   const insertApiGuide = db.prepare(`
     INSERT OR IGNORE INTO service_api_guides (service_id, base_url, api_version, auth_overview, auth_token_url, auth_scopes, auth_setup_hint, sandbox_url, key_endpoints, request_content_type, pagination_style, rate_limit, error_format, quickstart_example, agent_tips, docs_url)
     VALUES (@service_id, @base_url, @api_version, @auth_overview, @auth_token_url, @auth_scopes, @auth_setup_hint, @sandbox_url, @key_endpoints, @request_content_type, @pagination_style, @rate_limit, @error_format, @quickstart_example, @agent_tips, @docs_url)
@@ -342,6 +376,7 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         axr_grade: service.axr_grade ?? null,
         axr_dims: service.axr_dims ? JSON.stringify(service.axr_dims) : null,
         axr_facade: service.axr_facade ?? 0,
+        archived: service.archived ?? 0,
       });
       insertStats.run({ service_id: service.id });
     }
@@ -349,8 +384,18 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     for (const recipe of recipes) {
       insertRecipe.run({
         ...recipe,
-        steps: JSON.stringify(recipe.steps),
-        required_services: JSON.stringify(recipe.required_services),
+        // Seed files are inconsistent: recipes-seed.json carries steps /
+        // required_services as pre-stringified JSON, recipes-new-75.json as
+        // real arrays. Stringifying a string double-encodes it and breaks
+        // every JSON.parse(recipe.steps) consumer (find-combinations etc.).
+        steps:
+          typeof recipe.steps === "string"
+            ? recipe.steps
+            : JSON.stringify(recipe.steps),
+        required_services:
+          typeof recipe.required_services === "string"
+            ? recipe.required_services
+            : JSON.stringify(recipe.required_services),
         gotchas: JSON.stringify(Array.isArray(recipe.gotchas) ? recipe.gotchas : []),
       });
     }
@@ -371,6 +416,10 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         question_id: voice.question_id,
       });
       insertAggregatedVoice.run(voice);
+    }
+
+    for (const stat of autoStats) {
+      backfillStats.run(stat);
     }
 
     for (const guide of apiGuides) {
@@ -448,6 +497,46 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     }
   }
   if (hidden > 0) console.log(`[seed] hid ${hidden} MCP-infrastructure services from rankings`);
+
+  // One-off data migration (2026-07-06 sweep): guide prose referenced
+  // fabricated npm package names (e.g. npx @freee/mcp-server does not exist).
+  // Guides seed via INSERT OR IGNORE, so existing deploy volumes never pick
+  // up the corrected seed text — patch them in place. Idempotent: replacing
+  // an absent substring is a no-op. Every replacement registry/handshake-
+  // verified on 2026-07-06 (see DECISIONS.md sweep entry).
+  const GUIDE_TEXT_FIXES: Array<[string, string]> = [
+    ["npx -y @github/mcp-server", "https://api.githubcopilot.com/mcp/"],
+    ["npx @freee/mcp-server", "npx freee-mcp"],
+    ["npx @moneyforward/mcp-server", "https://beta.mcp.developers.biz.moneyforward.com/mcp/ca/v3"],
+    ["npx @anthropic/brave-search-mcp", "npx @brave/brave-search-mcp-server"],
+    ["npx @github/mcp-server", "https://api.githubcopilot.com/mcp/"],
+    ["npx @microsoft/teams-mcp", "npx @softeria/ms-365-mcp-server"],
+    ["npx @gitlab/mcp-server", "https://gitlab.com/api/v4/mcp"],
+    ["npx @anthropic/postgres-mcp", "npx @modelcontextprotocol/server-postgres"],
+    ["npx @qdrant/mcp-server", "uvx mcp-server-qdrant"],
+    ["npx supabase-mcp-server", "npx @supabase/mcp-server-supabase"],
+  ];
+  const guideTextCols = [
+    "auth_overview",
+    "auth_setup_hint",
+    "quickstart_example",
+    "agent_tips",
+    "key_endpoints",
+  ];
+  let guideFixes = 0;
+  for (const [from, to] of GUIDE_TEXT_FIXES) {
+    for (const col of guideTextCols) {
+      const r = db
+        .prepare(
+          `UPDATE service_api_guides
+           SET ${col} = replace(${col}, ?, ?), updated_at = datetime('now')
+           WHERE ${col} LIKE '%' || ? || '%'`
+        )
+        .run(from, to, from);
+      guideFixes += r.changes;
+    }
+  }
+  if (guideFixes > 0) console.log(`[seed] patched ${guideFixes} guide fields with corrected MCP endpoints`);
 
   // Rebuild FTS indexes
   db.exec("INSERT INTO services_fts(services_fts) VALUES ('rebuild')");
