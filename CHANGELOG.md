@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.1.1 (2026-07-06)
+
+### Fixed
+- **`npx @kansei-link/mcp-server` could not start at all** — npm resolves the
+  default binary of a scoped package by its unscoped name (`mcp-server`), but
+  the `bin` map only contained `kansei-link-mcp` and friends, so every version
+  to date failed with "could not determine executable to run". Added a
+  `mcp-server` bin alias pointing at `dist/index.js`.
+- Recipes seed double-JSON-encoding — `find_combinations` no longer crashes
+  with `steps.filter is not a function`.
+- Search results now exclude `archived` (endpoint-dead) services.
+- Fresh deploys backfill `service_stats` from `service-stats-seed.json`, so
+  `get_insights` no longer contradicts aggregated agent voices.
+
 ## v0.8.0 (2026-04-04)
 
 ### Remote MCP Server (HTTP Transport)
