@@ -13,44 +13,51 @@
 > `recall("KanseiLINK")` from Linksee Memory for the "なぜ？" answer.
 
 Last updated: **2026-07-06** (manual — Claude + Michie)
-Next expected update: after site-checker deploy to Railway + GitHub Pages
+Next expected update: after Railway deploy of the sweep session's code + seed changes
 
-> **2026-07-06 session**: Added Site AEO Checker (URL-based scan) as SMB
+> **2026-07-06 session A**: Added Site AEO Checker (URL-based scan) as SMB
 > outreach lead device — `POST /api/site-check` + `public/site-checker/`.
 > See DECISIONS.md 2026-07-06 entry. DEPLOYED (commit 4474847): Railway
 > API live (verified: synapsearrows.com scores 90/AAA in production,
 > report 17cb467fd8d6), page live at kansei-link.com/site-checker/.
-> The sections below this line still reflect the 2026-04-21 snapshot.
+
+> **2026-07-06 session B (11k liveness sweep)**: Probed all 11,081 services
+> (POST-initialize / GitHub GraphQL / npm registry, 183s). Strict liveness
+> 76.2%. Archived 1,154 endpoint-dead services (reversible via changelog),
+> corrected 379 endpoints (306 GitHub renames, 25 moved transports, 48
+> fabricated npx names incl. freee/slack/stripe-jp). Fixed: crawler
+> un-archive clobber, search ignoring `archived`, recipes double-JSON
+> (find_combinations crash), insights↔voices contradiction (stats seed),
+> weekly probe stage 10/11. See DECISIONS.md 2026-07-06 sweep entry.
+> **NOT yet deployed to Railway.**
 
 ---
 
-## Production Health Snapshot
+## Production Health Snapshot (local DB, 2026-07-06 post-sweep)
 
 | Surface | Status | Detail |
 |---|---|---|
-| Railway API | 🟢 online | `kansei-link-mcp-production.up.railway.app` |
-| `services_total` | 🟢 376 | 337 visible after infra filter |
-| `recipes_total` | 🟢 188 | |
-| `voices` (aggregated) | 🟢 37 | |
-| `changelog` | 🟢 182 | last 180 days |
-| Railway deploy | 🟢 synced | at commit 33622e3 |
-| GitHub Pages (kansei-link.com) | 🟢 synced | at commit 33622e3 |
-| Linksee Memory (local) | 🟢 | 11 memories added today (7 pinned) |
-| Stripe Pro tier link | 🟡 not-yet-live | target: before 4/28 |
-| Reddit r/ClaudeAI | ⚪ not-yet-posted | tonight 21:00 JST |
+| Local DB (`kansei-link.db`) | 🟢 authoritative | 11,151 services / **9,997 active** / 1,154 archived |
+| Endpoint liveness (measured 7/6) | 🟢 76.2% strict | POST-initialize verified; 84.7% counting auth-gated/406 |
+| `recipes_total` | 🟢 200 | double-encoding repaired — find_combinations works again |
+| `service_stats` seeded | 🟢 1,019 rows | service-stats-seed.json closes insights↔voices contradiction on fresh deploys |
+| Weekly health probe | 🟢 wired | crawler stage 10/11, Sundays (`--probe` / `options.probe` to force) |
+| Railway deploy | 🔴 **stale for sweep changes** | needs deploy: archived-filter search, probe stage, recipes/seed fixes |
+| Daily crawler (local) | 🟢 running | run #34 on 7/6; refresh no longer un-archives |
 
-## AXR Grade Distribution (337 visible services)
+## AXR Grade Distribution (9,997 active services, 2026-07-06)
 
 | Grade | Count |
 |---|---|
-| AAA | 6 |
-| AA | 8 |
-| A | 28 |
-| BBB | 53 |
-| BB | 132 |
-| D | 110 |
+| AAA | 10 |
+| AA | 23 |
+| A | 60 |
+| BBB | 1,129 |
+| BB | 541 |
+| B | 6,566 |
+| D | 1,668 |
 
-110 community entries graded D are awaiting evidence accumulation (total_calls ≥ 3 with success_rate ≥ 0.8 graduates to higher grades automatically via recompute-axr).
+Archived rows (1,154) carry axr NULL / trust 0 and are excluded from search, rankings, and readiness counts as of session B.
 
 ---
 
