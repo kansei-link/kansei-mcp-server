@@ -12,8 +12,14 @@
 > Read this file for the "結局何やるの？" answer;
 > `recall("KanseiLINK")` from Linksee Memory for the "なぜ？" answer.
 
-Last updated: **2026-04-21 13:20 JST**  (manual — Claude + Michie)
-Next expected update: 2026-04-21 evening after Reddit launch
+Last updated: **2026-07-06** (manual — Claude + Michie)
+Next expected update: after site-checker deploy to Railway + GitHub Pages
+
+> **2026-07-06 session**: Added Site AEO Checker (URL-based scan) as SMB
+> outreach lead device — `POST /api/site-check` + `public/site-checker/`.
+> See DECISIONS.md 2026-07-06 entry. NOT yet deployed (needs Railway
+> deploy for the API + Pages sync for the page). The sections below this
+> line still reflect the 2026-04-21 snapshot.
 
 ---
 

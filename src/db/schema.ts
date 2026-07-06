@@ -533,6 +533,24 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_linksee_tel_received ON linksee_telemetry(received_at DESC);
   `);
 
+  // Site AEO checks: scan results from the URL-based site checker
+  // (public/site-checker/). Each row is one scan; `id` is a short random
+  // token so results are shareable via ?r=<id> without enumeration.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS site_checks (
+      id TEXT PRIMARY KEY,                    -- short random token (12 hex chars)
+      url TEXT NOT NULL,                      -- normalized target URL
+      score INTEGER NOT NULL,                 -- 0-100
+      grade TEXT NOT NULL,                    -- AAA/AA/A/BBB/BB/B/CCC (same scale as services)
+      findings TEXT NOT NULL,                 -- JSON array of {id, severity, label, advice}
+      raw_signals TEXT DEFAULT '{}',          -- JSON of raw check values (for later re-scoring)
+      ip_hash TEXT,                           -- hashed requester IP, abuse detection only
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_site_checks_url ON site_checks(url);
+    CREATE INDEX IF NOT EXISTS idx_site_checks_created ON site_checks(created_at DESC);
+  `);
+
   // FTS5 virtual table for full-text search on services
   // Check if it already exists first (CREATE VIRTUAL TABLE IF NOT EXISTS not supported in all SQLite builds)
   const ftsExists = db

@@ -120,5 +120,16 @@ OPEN: Weekly review of what got hidden to catch false positives (e.g. if a legit
 
 ---
 
+## 2026-07-06 — Site AEO Checker (URL-based scan) as SMB outreach lead device
+CONTEXT: New B2B motion: scan SMB websites for AI-agent visibility, send prospects a personalized report link, convert replies into AEO consulting engagements (Achieve Link / Synapse Arrows). The existing /checker/ only looks up SaaS services already in the KanseiLink DB — it cannot evaluate an arbitrary website.
+DECISION: Add `POST /api/site-check` + `GET /api/site-check/:id` (src/site-check.ts) on the Railway server and a new static page `public/site-checker/`. Server-side scan (no LLM calls, marginal cost ~0): robots.txt AI-bot blocks (GPTBot/ClaudeBot/PerplexityBot/...), JSON-LD presence + business-relevant @types, raw-HTML text volume (JS-render dependence), contact-info machine-readability, title/description/canonical/OGP/sitemap/llms.txt. Score 0-100 mapped to the same AAA..CCC grade scale as services. Results persist in new `site_checks` table with a 12-hex-char id → shareable report URL `/site-checker/?r=<id>` (this is the personalization hook for outreach emails; `?url=` auto-scans). Safety: SSRF guard (private-IP/localhost/DNS re-check per redirect hop), 10s timeouts, 3MB body cap, dedicated 5/min/IP limiter.
+REASON: Pre-generated per-prospect report links convert far better than "type your URL here" — and every finding doubles as the personalized 改善ポイント for the email body. Zero marginal cost per scan keeps the funnel free to operate. Verified: kansei-link.com scores 90/AAA (dogfood), example.com 35/B.
+REVERSIBILITY: High — remove routes + page; site_checks table is additive.
+COMMITS: (this commit)
+ADDENDUM (same session, pre-commit): (a) All finding copy rewritten for non-technical SMB readers — free scan states WHAT is wrong + business impact; the HOW-TO is explicitly reserved for the full report (funnel design per Michie). (b) Added unscored "entity_links" teaser finding: detects sameAs/hasMap links to Googleマップ/食べログ/ぐるなび/ホットペッパー/SNS/Wikipedia in JSON-LD — the "AI cross-verifies your business against Google Maps & review portals" hook for restaurants/local businesses. Unscored (0 pts) to keep score compatibility (synapsearrows.com stays 90/AAA). NAP-consistency verification via Google Places API (~$0.02/lookup) deferred to the paid full report. Third-party portal scraping (食べログ等) rejected — ToS risk + fragile.
+OPEN: (1) mail-outreach layer (list building, 特定電子メール法 guardrails: published-address-only, opt-out line, 営業お断り exclusion, separate sending domain) is deliberately NOT built yet — separate decision when we get there. (2) "AIからこう見える" simulated-answer teaser (needs LLM) deferred. (3) full-report PDF generation deferred — CTA currently mailto-based. (4) Google Places NAP-consistency check for full report tier.
+
+---
+
 <!-- Add new decisions above this line. Never edit existing entries;
      correct with a new entry that references the old one by date. -->

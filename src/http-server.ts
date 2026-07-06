@@ -42,6 +42,7 @@ import {
 } from "./auth.js";
 import { resolveApiKey, fixedTierResolver } from "./entitlements.js";
 import { runCrawler } from "./crawler/run.js";
+import { handleSiteCheck, handleSiteCheckGet } from "./site-check.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
@@ -142,6 +143,19 @@ app.get("/api/config", (_req: Request, res: Response) => {
     },
   });
 });
+// ─── Site AEO Checker (URL-based scan for public/site-checker/) ────
+// Each scan makes up to ~4 outbound fetches to the target site, so it
+// gets a tighter limiter than the general API bucket.
+const siteCheckLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many scans, please wait a minute and try again." },
+});
+app.post("/api/site-check", siteCheckLimiter, handleSiteCheck);
+app.get("/api/site-check/:id", apiLimiter, handleSiteCheckGet);
+
 app.get("/api/access", apiLimiter, handleAccessCheck);
 app.get("/api/access-token", apiLimiter, handleAccessTokenIssue);
 app.post("/api/checkout", apiLimiter, handleCreateCheckout);
