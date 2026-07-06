@@ -1,10 +1,14 @@
 # KanseiLink MCP Server
 
+[![npm version](https://img.shields.io/npm/v/%40kansei-link%2Fmcp-server)](https://www.npmjs.com/package/@kansei-link/mcp-server) [![npm downloads](https://img.shields.io/npm/dm/%40kansei-link%2Fmcp-server)](https://www.npmjs.com/package/@kansei-link/mcp-server) [![GitHub stars](https://img.shields.io/github/stars/kansei-link/kansei-mcp-server?style=social)](https://github.com/kansei-link/kansei-mcp-server)
+
 > Local-first MCP navigator for AI agents. Find, evaluate, and compose MCP tools -- 80% fewer tokens vs trial-and-error.
 
 Your agent wastes thousands of tokens every time it hits a new MCP service: searching docs, guessing auth flows, recovering from errors. KanseiLink eliminates that loop with a local SQLite DB of pre-evaluated services, trust scores, and step-by-step recipes.
 
 **Token savings: 89-97% measured across 7 services** (avg ~16,800 tokens without → ~950 with KanseiLink).
+
+If KanseiLink saves your agent tokens, [give it a star ⭐](https://github.com/kansei-link/kansei-mcp-server) — 700+ developers install it from npm every month, and stars are how the next one finds it.
 
 ## Quick Start
 
