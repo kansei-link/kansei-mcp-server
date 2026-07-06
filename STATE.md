@@ -17,9 +17,10 @@ Next expected update: after site-checker deploy to Railway + GitHub Pages
 
 > **2026-07-06 session**: Added Site AEO Checker (URL-based scan) as SMB
 > outreach lead device — `POST /api/site-check` + `public/site-checker/`.
-> See DECISIONS.md 2026-07-06 entry. NOT yet deployed (needs Railway
-> deploy for the API + Pages sync for the page). The sections below this
-> line still reflect the 2026-04-21 snapshot.
+> See DECISIONS.md 2026-07-06 entry. DEPLOYED (commit 4474847): Railway
+> API live (verified: synapsearrows.com scores 90/AAA in production,
+> report 17cb467fd8d6), page live at kansei-link.com/site-checker/.
+> The sections below this line still reflect the 2026-04-21 snapshot.
 
 ---
 
