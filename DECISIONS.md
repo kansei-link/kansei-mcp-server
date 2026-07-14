@@ -141,5 +141,29 @@ OPEN: (1) production Railway deploy of new dist + seed files (local DB is author
 
 ---
 
+## 2026-07-14 — AI Discoverability quarterly scan pipeline (ARI評価モデル仕様v1 §②)
+CONTEXT: ARI 5-domain model finalized (ARI評価モデル仕様_v1_2026-07-14.md in parent workspace: Access=接続の契約 / Discoverability=到達と理解 / Execution=実測の完了 / Trust=統制と運用 / Compatibility=モデル依存性; single-home rule + mandatory source labels 公開シグナル/プローブ実測/実利用テレメトリ). The 2026-07-13 31-company AEO pillar measurement needed to become a repeatable pipeline over the DB.
+DECISION: scripts/discoverability-scan.mjs — quarterly scan of AXR≥70 (all 93) + top-160 BBB = 253 services. Measures llms.txt / robots.txt AI-bot policy (9 bots) / JSON-LD on product+developer domains (public_signal) and docs reachability under honest UA KanseiLink-ARI-Scanner/1.1 (probe). Output: data/discoverability/scan-DATE{.json,-summary.md} + new DB table discoverability_scans (PK service_id+scanned_at, time series).
+Two honesty guards built in after dry-run findings: (a) domain_kind=api-endpoint — wildcard Disallow:/ on API-base domains (e.g. api.freee.co.jp, a §F DB backlog symptom) is NEVER counted as AI-blocking; (b) PLATFORM_DOMAINS (github.com etc.) — platform llms.txt/robots are not attributed to hosted services (first run falsely showed 64% llms.txt adoption; corrected run: 79/167=47% over own-domain services only, 86 platform-hosted excluded from those denominators).
+First-run findings (2026-07-14): docs 403 to declared scanner: Make/Salesforce JP/Sansan/Segment/Amazon SP-API/カオナビ (6); explicit AI-bot blocks in robots: Brex/Figma(7 bots)/PLAUD (3); docs 404/dead: 32 incl. MF Cloud・freeeサイン・HRMOS・Langfuse・Firecrawl — mixed vendor issues and stale DB api_url (§F backlog), triage before publishing any of it.
+REASON: Discoverability is the fastest-to-market ARI pillar (100% external data), and the scan doubles as a DB-quality audit. Source labels enforced at collection time, not editorially after.
+REVERSIBILITY: High — additive table + script; rerun overwrites same-date rows only.
+COMMITS: (this session)
+OPEN: (1) wire into run.ts as a quarterly stage or Windows cron; (2) triage the 32 docs-404 rows into vendor-fact vs stale-api_url (pending_updates); (3) 11 api-endpoint api_urls need real docs URLs (§F); (4) LLM-citation probe (ChatGPT/Perplexity打鍵) as the second Discoverability signal — reuse scripts/ai-answer-audit.mjs battery runner; (5) feed llms_txt/bots/docs_status into recompute-axr.ts as labeled Discoverability sub-score (next quarter, after triage).
+
+---
+
+## 2026-07-14 — Discoverability follow-through: 404 triage / LLM citation baseline / axr_dims subscore
+CONTEXT: Follow-up to same-day scan pipeline entry (OPEN items 2, 4, 5).
+DECISION: (1) **Triage of 32 docs-404** (scripts/triage-docs-404.mjs → data/discoverability/triage-2026-07-14.json): 24 GitHub-hosted = repo gone/private per api.github.com → archive proposals; 8 own-domain = stale DB api_url, replacements probe-verified 200 (MF moved to developers.biz.moneyforward.com — found via web search; freeeサイン reference path needs human eyes, api_url set to developer portal root). All 32 registered as pending_updates by proposer claude-discoverability-triage-20260714 (8 update + 24 archive) — NOT applied directly; review via inspect/ops-cycle. Notable: biz.moneyforward.com/api/ 403s our declared scanner (Discoverability finding, not just staleness).
+(2) **LLM citation probe v1** (data/discoverability/citation-battery-v1.json, 12 Q: 6 self-citation + 6 category recommendation; runner=scripts/ai-answer-audit.mjs): anthropic 12/12 OK; openai key QUOTA-EXCEEDED (Michie billing); gemini/perplexity keys missing. Baseline: KanseiLink self-citation 0/6 (honest zero — expected); category recs correlate with ARI top grades BUT models also recommend 弥生/GMOサイン whose specs agents cannot reach — "AIが推薦するのにAIが使えない" gap = next-issue story candidate + validates separating Discoverability from Access. Results: citation-battery-v1-results.{json,md}, baseline note: citation-baseline-2026-07-14.md. Label: probe (API-model knowledge, NOT live AI-search citation; Perplexity key needed for real citation measurement).
+(3) **Discoverability subscore → services.axr_dims** (scripts/apply-discoverability-subscore.mjs): 167 scored 0-100 (llms product 25/dev 15, JSON-LD 15, docs reachable 30, bots open 15), 86 platform-hosted null. **axr_score/axr_grade untouched — published grades change only at quarterly issues (rating integrity)**; subscore is informational until 2026 Autumn formula revision. Sanity: Slack 85, freee 60, Sansan 30 (docs 403), MF 15 (stale URL, recovers after fix+rescan).
+REASON: Complete the ①triage→②second signal→③storage chain so the Autumn issue can flip Discoverability from "next issue" to a scored pillar with clean provenance.
+REVERSIBILITY: High — proposals pending review; axr_dims additive JSON; scripts idempotent (triage proposer guard).
+COMMITS: (this session)
+OPEN: (1) Michie: review 32 pending_updates (esp. freeeサイン reference path); (2) Michie: OpenAI key billing + add PERPLEXITY/GEMINI keys for real-citation measurement; (3) rescan after api_url fixes approved (subscores for MF etc. will correct); (4) Autumn issue: fold subscore into AXR formula with weights decided then.
+
+---
+
 <!-- Add new decisions above this line. Never edit existing entries;
      correct with a new entry that references the old one by date. -->
