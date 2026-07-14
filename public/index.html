@@ -956,7 +956,7 @@
       <span>Ratings & Research</span> / Agent Readiness
     </div>
     <h1 data-en="The rating agency for the AI agent era">AIエージェント時代の評価機関</h1>
-    <p class="subtitle" data-en="Agent Readiness — the competitive edge of being chosen by AI.">Agent Readinessは、AIに選ばれる競争力。</p>
+    <p class="subtitle" data-en="Agent Readiness — the competitive edge of being chosen by AI">Agent Readinessは、AIに選ばれる競争力</p>
     <p style="font-size:17px;line-height:1.8;max-width:640px;margin-bottom:32px" data-en="We independently rate the Agent Readiness of companies and software, based on public facts and measured data.">企業やソフトウェアのAgent Readinessを、公開情報と実測データに基づき独立して評価・格付けします。</p>
     <a href="agent-readiness-index.html" class="btn-primary" data-en="View the Agent Readiness Index 2026">Agent Readiness Index 2026 を見る</a>
   </div>
@@ -965,21 +965,21 @@
 <!-- FLAGSHIP: AGENT READINESS INDEX -->
 <section class="section-lavender" id="ari">
   <div class="container">
-    <h2 class="s-title" data-en="Flagship — Agent Readiness Index 2026 Summer (β)">旗艦格付け — Agent Readiness Index 2026 Summer (β)</h2>
+    <h2 class="s-title" data-en="The latest issue — Agent Readiness Index 2026 Summer (β)">最新号 — Agent Readiness Index 2026 Summer (β)</h2>
     <p class="s-body" data-en="Are Japan's leading SaaS ready to be chosen by AI? We verified 31 major Japanese SaaS against vendor primary sources and rated 26 from AAA to D. Methodology fully disclosed.">日本の主要SaaSは、AIに選ばれる準備ができているか。31社をベンダー一次情報と突合して検証し、26社をAAA〜Dで格付けしました。算定式は全公開しています。</p>
     <div class="features-grid" style="margin-top:24px">
       <div class="feature">
-        <span class="stat-num">31社</span>
+        <span class="stat-num" data-en="31">31社</span>
         <h3 data-en="Verified">検証</h3>
         <p data-en="Every fact checked against vendor primary sources (2026-07-13).">全ファクトを各社の一次情報と突合（2026-07-13）。</p>
       </div>
       <div class="feature">
-        <span class="stat-num">26社</span>
+        <span class="stat-num" data-en="26">26社</span>
         <h3 data-en="Rated AAA–D">AAA〜Dで格付け</h3>
         <p data-en="Rules-based AXR methodology. No LLM judgment involved.">ルールベースのAXR算定式。LLMの主観判断は不使用。</p>
       </div>
       <div class="feature">
-        <span class="stat-num">5社</span>
+        <span class="stat-num" data-en="5">5社</span>
         <h3 data-en="Unreachable by AI">AIが入口にたどり着けない</h3>
         <p data-en="Developer docs not publicly available — invisible to agents.">開発者向けリファレンスが非公開＝AIの視界に入らない。</p>
       </div>
@@ -1169,7 +1169,7 @@
 <!-- TOP 20 RANKING TABLE -->
 <section class="section-white" id="ranking">
   <div class="container">
-    <h2 class="s-title" data-en="Service Database Ranking Q2 2026 — Top 30">サービスDBランキング Q2 2026 — Top 30</h2>
+    <h2 class="s-title" data-en="Service Database Ranking Q2 2026 — Top 30">格付けデータベース・ランキング Q2 2026 — Top 30</h2>
     <p class="s-body" data-en="Service-level ranking across 11,000+ global and Japan SaaS/MCP services (2,257 probe-tested by our own scanner). Click a service name to view its detailed profile. For company-level ratings of Japan's leading SaaS, see the Agent Readiness Index.">11,000+のグローバル＋日本SaaS/MCPサービスを対象としたサービス単位のランキング（2,257件は自社プローブで接続実測）。サービス名をクリックすると詳細プロファイルを表示。日本の主要SaaSの企業単位の格付けは <a href="agent-readiness-index.html">Agent Readiness Index</a> をご覧ください。</p>
     <div class="ranking-table-wrap">
       <table class="ranking-table" id="ranking-table">
@@ -1305,36 +1305,35 @@
 <script>
 
 const gradeColors = { AAA:'#065F46', AA:'#059669', A:'#0891B2', BBB:'#D97706', BB:'#EA580C', B:'#DC2626', CCC:'#991B1B' };
-const categoryEN = {
-  "プロジェクト管理": "Project Management",
-  "コミュニケーション": "Communication",
-  "EC・コマース": "E-commerce",
-  "会計・経理": "Accounting",
-  "CRM・営業": "CRM / Sales",
-  "人事・労務": "HR",
-  "法務・契約": "Legal",
-  "決済": "Payment",
-  "マーケティング": "Marketing",
-  "グループウェア": "Groupware",
-  "カスタマーサポート": "Customer Support",
-  "ストレージ": "Storage",
-  "セキュリティ": "Security",
-  "BI・分析": "BI & Analytics",
-  "データ連携": "Data Integration",
-  "物流・配送": "Logistics",
-  "予約": "Reservation",
-  "生産性ツール": "Productivity",
-  "dev_platform": "Dev Platform",
-  "ai_ml": "AI & ML",
-  "database": "Database",
-  "monitoring": "Monitoring",
-  "design": "Design",
-  "物流・配送": "Logistics",
-  "予約": "Reservation",
-  "フード・飲料": "Food & Beverage",
-  "ファイナンス": "Finance"
+// The data layer contains BOTH Japanese and English category values (legacy mix).
+// Normalize every value to the viewer's language via a canonical bidirectional map.
+const CAT_JA2EN = {
+  "プロジェクト管理": "Project Management", "AI・機械学習": "AI & ML", "会計・経理": "Accounting",
+  "コミュニケーション": "Communication", "データベース": "Database", "CRM": "CRM",
+  "CRM・営業": "CRM / Sales", "EC・コマース": "E-commerce", "開発ツール": "Developer Tools",
+  "BI・アナリティクス": "BI & Analytics", "BI・分析": "BI & Analytics", "データ連携": "Data Integration",
+  "DevOps": "DevOps", "人事・労務": "HR", "グループウェア": "Groupware", "生産性ツール": "Productivity",
+  "決済": "Payment", "マーケティング": "Marketing", "セキュリティ": "Security", "デザイン": "Design",
+  "金融": "Finance", "法務・契約": "Legal", "ストレージ": "Storage", "飲食": "Food & Beverage",
+  "フード・飲料": "Food & Beverage", "サポート": "Customer Support", "カスタマーサポート": "Customer Support",
+  "物流": "Logistics", "物流・配送": "Logistics", "オートメーション": "Automation", "予約": "Reservation",
 };
-function catName(cat) { return currentLang === 'en' ? (categoryEN[cat] || cat) : cat; }
+const CAT_EN2JA = {
+  "File Storage": "ストレージ", "Knowledge & Docs": "ナレッジ・ドキュメント", "AI & LLM": "AI・機械学習",
+  "AI & ML": "AI・機械学習", "Media & Content": "メディア・コンテンツ", "Developer Tools": "開発ツール",
+  "Other": "その他", "Communication": "コミュニケーション", "DeFi & Web3": "DeFi・Web3",
+  "Security": "セキュリティ", "Search & Discovery": "検索・発見", "Project Management": "プロジェクト管理",
+  "Data & Analytics": "BI・アナリティクス", "BI & Analytics": "BI・アナリティクス", "Design": "デザイン",
+  "IoT & Hardware": "IoT・ハードウェア", "Finance & Accounting": "金融・会計", "Finance": "金融",
+  "Location & Travel": "位置情報・旅行", "Commerce": "EC・コマース", "Productivity": "生産性ツール",
+  "Accounting": "会計・経理", "Database": "データベース", "Payment": "決済", "Marketing": "マーケティング",
+  "HR": "人事・労務", "Groupware": "グループウェア", "Legal": "法務・契約", "Storage": "ストレージ",
+  "Logistics": "物流", "Automation": "オートメーション", "Reservation": "予約",
+  "Customer Support": "サポート", "E-commerce": "EC・コマース", "Data Integration": "データ連携",
+};
+function catEn(cat) { return CAT_JA2EN[cat] || cat; }
+function catJa(cat) { return CAT_EN2JA[cat] || cat; }
+function catName(cat) { return currentLang === 'en' ? catEn(cat) : catJa(cat); }
 const gradeFill = { AAA:'fill-aaa', AA:'fill-aa', A:'fill-a', BBB:'fill-bbb' };
 
 // Sort by score descending, then name alphabetically
@@ -1366,7 +1365,7 @@ function createRow(s, i) {
     <td><span class="grade-pill ${pillClass}">${s.grade}</span></td>
     <td><div class="score-bar-wrap"><div class="score-bar-bg"><div class="score-bar-fill ${fillClass}" style="width:${s.score*100}%"></div></div><span style="font-weight:600;font-size:13px">${s.score.toFixed(2)}</span></div></td>
     <td style="font-weight:500">${s.name}</td>
-    <td style="color:#6B7280;font-size:13px" data-en="${categoryEN[s.category] || s.category}">${s.category}</td>
+    <td style="color:#6B7280;font-size:13px" data-en="${catEn(s.category)}">${catJa(s.category)}</td>
     <td><span class="status-badge ${badgeClass}" style="display:inline-block;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:600">${s.status}</span></td>
     <td style="color:#6B7280;font-size:13px">${s.mcp}</td>
     <td>${s.recipes > 0 ? '✓' : '—'}</td>
@@ -1385,7 +1384,7 @@ services.forEach((s, i) => {
 // "Show more" button
 const showMoreWrap = document.createElement('div');
 showMoreWrap.style.cssText = 'text-align:center;padding:24px 0;';
-showMoreWrap.innerHTML = `<button id="show-more-btn" style="background:var(--blue);color:white;border:none;padding:12px 40px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s;">もっと見る（残り ${services.length - INITIAL_SHOW} 件） ▼</button>`;
+showMoreWrap.innerHTML = `<button id="show-more-btn" data-en="Show more (${services.length - INITIAL_SHOW} remaining) ▼" style="background:var(--blue);color:white;border:none;padding:12px 40px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s;">もっと見る（残り ${services.length - INITIAL_SHOW} 件） ▼</button>`;
 document.querySelector('#ranking-table').parentNode.insertBefore(showMoreWrap, document.querySelector('#ranking-table').nextSibling);
 
 document.getElementById('show-more-btn').addEventListener('click', function() {
@@ -1435,7 +1434,7 @@ function showProfile(s) {
   document.getElementById('profile-name').textContent = s.name.toUpperCase();
   const metaLabel = currentLang === 'en'
     ? `Category: ${catName(s.category)} | MCP: ${s.mcp} | Agent Ready: ${s.status}`
-    : `カテゴリ: ${s.category} | MCP: ${s.mcp} | エージェント対応: ${s.status}`;
+    : `カテゴリ: ${catJa(s.category)} | MCP: ${s.mcp} | エージェント対応: ${s.status}`;
   document.getElementById('profile-meta').textContent = metaLabel;
   document.getElementById('profile-grade').textContent = s.grade;
   document.getElementById('profile-grade').style.color = gradeColors[s.grade];
@@ -1569,8 +1568,10 @@ function applyLang() {
   document.documentElement.lang = currentLang;
 
   document.querySelectorAll('[data-en]').forEach(el => {
-    if (!el._jaText) el._jaText = el.textContent;
-    el.textContent = currentLang === 'en' ? el.getAttribute('data-en') : el._jaText;
+    // Cache innerHTML (not textContent) so inline links/emphasis survive EN→JA round-trips
+    if (el._jaHtml === undefined) el._jaHtml = el.innerHTML;
+    if (currentLang === 'en') el.textContent = el.getAttribute('data-en');
+    else el.innerHTML = el._jaHtml;
   });
 
   document.querySelectorAll('[data-en-placeholder]').forEach(el => {
