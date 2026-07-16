@@ -533,6 +533,37 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_linksee_tel_received ON linksee_telemetry(received_at DESC);
   `);
 
+  // Wrapped monthly aggregates (opt-in via `kansei-link-wrapped --share`).
+  // One row per (anon_id, month), upserted — used ONLY to compute the
+  // "top X% saver" percentile. Scalar aggregates only, never content.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS wrapped_monthly (
+      anon_id TEXT NOT NULL,                  -- anonymous id generated on user's machine
+      month TEXT NOT NULL,                    -- "YYYY-MM"
+      total_tokens INTEGER DEFAULT 0,         -- measured, incl. cache reads
+      fresh_tokens INTEGER DEFAULT 0,         -- measured: input + output + cache creation
+      kansei_calls INTEGER DEFAULT 0,
+      kansei_services_count INTEGER DEFAULT 0,
+      kansei_response_tokens INTEGER DEFAULT 0,
+      saved_tokens_estimated INTEGER DEFAULT 0, -- estimated (client-side, labeled methodology)
+      sessions INTEGER DEFAULT 0,
+      error_failed_calls INTEGER DEFAULT 0,   -- measured failed tool calls
+      error_stuck_tokens INTEGER DEFAULT 0,   -- tokens burned in retry chains (heuristic attribution)
+      received_at TEXT DEFAULT (datetime('now')),
+      ip_hash TEXT,                           -- hashed IP for abuse detection only, NEVER raw
+      PRIMARY KEY (anon_id, month)
+    );
+    CREATE INDEX IF NOT EXISTS idx_wrapped_month ON wrapped_monthly(month);
+  `);
+  // Guarded ALTERs for deployments whose wrapped_monthly predates error tracking.
+  for (const col of ["error_failed_calls", "error_stuck_tokens"]) {
+    try {
+      db.exec(`ALTER TABLE wrapped_monthly ADD COLUMN ${col} INTEGER DEFAULT 0`);
+    } catch {
+      /* column already exists */
+    }
+  }
+
   // Site AEO checks: scan results from the URL-based site checker
   // (public/site-checker/). Each row is one scan; `id` is a short random
   // token so results are shareable via ?r=<id> without enumeration.

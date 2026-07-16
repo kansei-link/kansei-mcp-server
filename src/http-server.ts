@@ -607,6 +607,106 @@ app.post(
   }
 );
 
+// ─── Wrapped monthly aggregates (opt-in, anonymous) ────────────────
+// Receives the scalar monthly aggregates `kansei-link-wrapped --share`
+// submits, upserts one row per (anon_id, month), and answers with the
+// population size and — once the cohort is big enough — the user's
+// "top X% saver" percentile. Never accepts content, only counts.
+const WRAPPED_MIN_POPULATION = 20; // below this, ranks are noise — report cohort size only
+
+const wrappedLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10, // one submission per report run — 10/min is generous
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "rate_limited" },
+});
+
+app.post(
+  "/api/wrapped",
+  wrappedLimiter,
+  express.json({ limit: "4kb" }),
+  (req: Request, res: Response) => {
+    try {
+      const body = (req.body || {}) as Record<string, unknown>;
+      const anon_id = typeof body.anon_id === "string" ? body.anon_id.slice(0, 64) : null;
+      if (!anon_id || !/^[A-Za-z0-9_-]{8,64}$/.test(anon_id)) {
+        return res.status(400).json({ error: "invalid_anon_id" });
+      }
+      const month = typeof body.month === "string" ? body.month : "";
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+        return res.status(400).json({ error: "invalid_month" });
+      }
+
+      // Strict scalar allow-list with sane caps (10B tokens/month ceiling).
+      const cap = (v: unknown, max: number): number =>
+        Number.isFinite(v) ? Math.min(Math.max(0, Math.round(v as number)), max) : 0;
+      const safe = {
+        total_tokens: cap(body.total_tokens, 10_000_000_000),
+        fresh_tokens: cap(body.fresh_tokens, 10_000_000_000),
+        kansei_calls: cap(body.kansei_calls, 1_000_000),
+        kansei_services_count: cap(body.kansei_services_count, 10_000),
+        kansei_response_tokens: cap(body.kansei_response_tokens, 10_000_000_000),
+        saved_tokens_estimated: cap(body.saved_tokens_estimated, 10_000_000_000),
+        sessions: cap(body.sessions, 100_000),
+        error_failed_calls: cap(body.error_failed_calls, 1_000_000),
+        error_stuck_tokens: cap(body.error_stuck_tokens, 10_000_000_000),
+      };
+
+      const ip = (req.header("x-forwarded-for") || req.ip || "").split(",")[0].trim();
+      const ipHash = ip
+        ? createHash("sha256").update(ip + "|wrapped-salt").digest("hex").slice(0, 16)
+        : null;
+
+      const db = getDb();
+      db.prepare(
+        `INSERT INTO wrapped_monthly
+           (anon_id, month, total_tokens, fresh_tokens, kansei_calls,
+            kansei_services_count, kansei_response_tokens, saved_tokens_estimated,
+            sessions, error_failed_calls, error_stuck_tokens, received_at, ip_hash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
+         ON CONFLICT(anon_id, month) DO UPDATE SET
+           total_tokens = excluded.total_tokens,
+           fresh_tokens = excluded.fresh_tokens,
+           kansei_calls = excluded.kansei_calls,
+           kansei_services_count = excluded.kansei_services_count,
+           kansei_response_tokens = excluded.kansei_response_tokens,
+           saved_tokens_estimated = excluded.saved_tokens_estimated,
+           sessions = excluded.sessions,
+           error_failed_calls = excluded.error_failed_calls,
+           error_stuck_tokens = excluded.error_stuck_tokens,
+           received_at = datetime('now'),
+           ip_hash = excluded.ip_hash`
+      ).run(
+        anon_id, month, safe.total_tokens, safe.fresh_tokens, safe.kansei_calls,
+        safe.kansei_services_count, safe.kansei_response_tokens,
+        safe.saved_tokens_estimated, safe.sessions,
+        safe.error_failed_calls, safe.error_stuck_tokens, ipHash
+      );
+
+      const { population } = db
+        .prepare("SELECT COUNT(*) AS population FROM wrapped_monthly WHERE month = ?")
+        .get(month) as { population: number };
+
+      let percentile_top: number | null = null;
+      if (population >= WRAPPED_MIN_POPULATION) {
+        const { above } = db
+          .prepare(
+            `SELECT COUNT(*) AS above FROM wrapped_monthly
+             WHERE month = ? AND saved_tokens_estimated > ?`
+          )
+          .get(month, safe.saved_tokens_estimated) as { above: number };
+        // "top X%": share of the cohort at or above you, rounded up to 1%.
+        percentile_top = Math.max(1, Math.ceil(((above + 1) / population) * 100));
+      }
+
+      res.json({ ok: true, month, population, percentile_top });
+    } catch (e: any) {
+      res.status(400).json({ error: "bad_payload", detail: String(e?.message || e).slice(0, 200) });
+    }
+  }
+);
+
 // ─── Auto-captured outcome reports from PostToolUse hook ──────────
 // Receives the minimal outcome payload the `kansei-link-report-hook` CLI
 // sends after every MCP tool call. This is the auto-invocation path for

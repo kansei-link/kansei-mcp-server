@@ -2,11 +2,25 @@
 
 [![npm version](https://img.shields.io/npm/v/%40kansei-link%2Fmcp-server)](https://www.npmjs.com/package/@kansei-link/mcp-server) [![npm downloads](https://img.shields.io/npm/dm/%40kansei-link%2Fmcp-server)](https://www.npmjs.com/package/@kansei-link/mcp-server) [![GitHub stars](https://img.shields.io/github/stars/kansei-link/kansei-mcp-server?style=social)](https://github.com/kansei-link/kansei-mcp-server)
 
-> Local-first MCP navigator for AI agents. Find, evaluate, and compose MCP tools -- 80% fewer tokens vs trial-and-error.
+> Reduce your AI agent's token waste with collective intelligence.
 
-Your agent wastes thousands of tokens every time it hits a new MCP service: searching docs, guessing auth flows, recovering from errors. KanseiLink eliminates that loop with a local SQLite DB of pre-evaluated services, trust scores, and step-by-step recipes.
+Your agent burns tokens on three things: **searching** for SaaS docs it could look up locally, **retrying** errors other agents already solved, and **re-reading** context it already processed. KanseiLink tackles the first two — and measures all three so you know exactly where your tokens go.
 
-**Token savings: 89-97% measured across 7 services** (avg ~16,800 tokens without → ~950 with KanseiLink).
+**Measured savings: 89–97% on SaaS integration research** (avg ~16,800 tokens without → ~950 with KanseiLink, across 7 services).
+
+## How It Works
+
+```
+Install MCP → agent wastes fewer tokens (lookup + collective intelligence)
+                    ↓
+            usage data stays local (opt-in: anonymous scalars only)
+                    ↓
+            collective intelligence grows → everyone's agent gets smarter
+```
+
+1. **Measure** — auto-installed hooks track every session: total tokens, cache split, error loops, stuck time. Nothing leaves your machine.
+2. **Reduce** — SaaS lookup eliminates trial-and-error on API integrations. Error-resolution intelligence (coming soon) prevents repeat failures across the community.
+3. **Compare** — opt-in monthly "Wrapped" report shows where your tokens went and how you rank among measured users.
 
 If KanseiLink saves your agent tokens, [give it a star ⭐](https://github.com/kansei-link/kansei-mcp-server) — 700+ developers install it from npm every month, and stars are how the next one finds it.
 
@@ -16,7 +30,7 @@ If KanseiLink saves your agent tokens, [give it a star ⭐](https://github.com/k
 npx @kansei-link/mcp-server
 ```
 
-Works with **Claude Code, Cursor, Cline, Zed, Windsurf** -- any MCP client.
+Works with **Claude Code, Cursor, Cline, Zed, Windsurf** — any MCP client.
 
 Add to your config (`claude_desktop_config.json`, `.cursor/mcp.json`, etc.):
 
@@ -37,7 +51,51 @@ Or with Claude Code CLI:
 claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
 ```
 
-## What's Inside
+## Wrapped: Your Monthly Agent Fuel-Efficiency Report
+
+KanseiLink measures — locally, on your machine — how many tokens your
+agent sessions consume and how much of that KanseiLink saved you, then
+renders a monthly "Wrapped" share card.
+
+**1. Install the measurement hooks** (one command, idempotent, backs up
+your settings first):
+
+```bash
+npx -y @kansei-link/mcp-server kansei-link-install-hooks
+```
+
+This adds a `Stop`/`SessionEnd` hook that parses each session transcript
+and writes token totals + KanseiLink call stats to
+`~/.kansei-link/usage/`. **Nothing is uploaded.**
+
+**2. See your report** any time:
+
+```bash
+npx -y @kansei-link/mcp-server kansei-link-wrapped            # current month (JA)
+npx -y @kansei-link/mcp-server kansei-link-wrapped --lang en  # English
+npx -y @kansei-link/mcp-server kansei-link-wrapped --share    # opt-in: get your rank
+```
+
+The report separates **measured** numbers (your total tokens, KanseiLink
+call counts and response sizes — parsed from your own transcripts) from
+**estimated** ones (the avoided web-research cost, based on the 2026-04-16
+freee/kintone/smarthr benchmark) — labels shown on every surface.
+
+It also shows where your agent got **stuck**: failed tool calls, retry
+chains (2+ consecutive failures of the same tool), the tokens burned
+while stuck, and your worst-failing tools.
+
+`--share` submits only scalar monthly aggregates (anonymous id + token
+counts, never content) and returns how you rank among measured users
+("top X% saver"). Below 20 measured users for the month, you get the
+cohort size instead of a rank.
+
+Disable measurement anytime: `export KANSEI_USAGE_HOOK=off`, or
+`kansei-link-install-hooks --remove`.
+
+## SaaS Integration Intelligence
+
+The core reason agents waste tokens on SaaS APIs: they search docs, guess auth flows, and recover from errors — every single time. KanseiLink ships a local SQLite DB so your agent gets the answer on the first try.
 
 | | Count | Description |
 |---|---|---|
@@ -48,7 +106,7 @@ claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
 
 All data ships inside the npm package as a local SQLite DB. **Zero API calls needed.** No server dependency, no signup.
 
-## Why Not Just Read the Docs?
+### Without vs. With KanseiLink
 
 | Without KanseiLink | With KanseiLink |
 |---|---|
@@ -57,7 +115,7 @@ All data ships inside the npm package as a local SQLite DB. **Zero API calls nee
 | `web_fetch` endpoint reference | Agent has auth flow, pitfalls, workarounds |
 | `web_fetch` auth guide | in **~950 tokens** |
 | Trial-and-error on wrong params | First try succeeds |
-| **~16,800 tokens burned** | **89-97% saved** |
+| **~16,800 tokens burned** | **89–97% saved** |
 
 ### Claude Code: install the skill (auto-invocation)
 
@@ -67,7 +125,7 @@ Installing the MCP alone doesn't teach Claude Code *when* to call KanseiLink. Th
 npx -y @kansei-link/mcp-server kansei-link-install-skill
 ```
 
-This copies a `SKILL.md` to `~/.claude/skills/kansei-link/`. Claude Code auto-discovers it and fires the skill on phrases like "connect to Stripe", "Slack MCPある？", "send invoice via freee" -- no need to say "use KanseiLink".
+This copies a `SKILL.md` to `~/.claude/skills/kansei-link/`. Claude Code auto-discovers it and fires the skill on phrases like "connect to Stripe", "Slack MCPある？", "send invoice via freee" — no need to say "use KanseiLink".
 
 ### Optional: PostToolUse hook
 
@@ -92,7 +150,7 @@ Disable anytime: `export KANSEI_REPORT_HOOK=off`
 
 v1.0 consolidates the tool surface from 25 individual tools into 5 unified tools with mode auto-detection.
 
-### Standard Flow (3 tools -- all you need)
+### Standard Flow (3 tools — all you need)
 
 ```
 search_services --> lookup --> (execute your API call) --> report
@@ -178,21 +236,27 @@ Agent <-> KanseiLink MCP Server <-> SQLite (local, zero-config)
 
 ## For SaaS Companies
 
-KanseiLink can generate intelligence reports showing how AI agents experience your API:
-- Success rate, latency, error patterns over time
-- Agent Voice: selection criteria, frustrations, recommendations
-- Category ranking vs competitors
-- Impact of API changes (before/after analysis)
+KanseiLink doubles as an **Agent Readiness Index (ARI)** evaluation platform. Real agents using real APIs generate objective telemetry — success rates, latency, error patterns, and resolution paths — that no survey or benchmark can replicate.
 
-Interested? See [kansei-link.com](https://kansei-link.com) or reach out.
+What we can show you:
+- **Agent success rate** for your API over time
+- **Error patterns** and how agents work around them
+- **Agent Voice**: why agents choose (or avoid) your service
+- **Category ranking** vs competitors
+- **Impact of API changes** (before/after analysis)
+
+This data comes from the same MCP that saves individual developers tokens — the collective intelligence that helps agents is the same signal that evaluates services.
+
+See [kansei-link.com](https://kansei-link.com) or reach out.
 
 ## Privacy & Data Handling
 
 KanseiLink is **privacy-preserving by default**:
 
 - **Local-first**: the full service DB ships inside the npm package. No API calls needed.
+- **Measurement stays local**: the usage hook writes to `~/.kansei-link/usage/` on your machine. Nothing is uploaded unless you opt in with `--share`, which sends only scalar aggregates (token counts), never content.
 - **PII auto-masking**: every `report` call scrubs emails, phone numbers, IP addresses, and Japanese names before storage.
-- **Agent identity anonymized**: only the agent *type* (claude / gpt / gemini) is retained -- never the user ID.
+- **Agent identity anonymized**: only the agent *type* (claude / gpt / gemini) is retained — never the user ID.
 - **No telemetry by default**: the local stdio server does **not** phone home.
 
 See [SECURITY.md](SECURITY.md) for full details.
@@ -200,7 +264,7 @@ See [SECURITY.md](SECURITY.md) for full details.
 ## Troubleshooting
 
 <details>
-<summary><b>The skill isn't firing -- Claude Code doesn't call KanseiLink when I ask about SaaS.</b></summary>
+<summary><b>The skill isn't firing — Claude Code doesn't call KanseiLink when I ask about SaaS.</b></summary>
 
 1. Verify the skill was installed:
    ```bash
@@ -218,15 +282,15 @@ See [SECURITY.md](SECURITY.md) for full details.
 <summary><b><code>search_services</code> returns nothing for a service I know exists.</b></summary>
 
 1. Try category filter: `search_services({ intent: "...", category: "accounting" })`.
-2. Try the English equivalent -- most entries are indexed bilingually, but some only in EN.
+2. Try the English equivalent — most entries are indexed bilingually, but some only in EN.
 3. If the service truly isn't there, submit feedback: `report({ subject: "Missing: ServiceX", body: "..." })`.
 </details>
 
 <details>
 <summary><b>Auth error when calling a SaaS endpoint after KanseiLink suggests it.</b></summary>
 
-1. Start with `lookup({ service_id: "..." })` -- it returns known OAuth pitfalls and refresh-token workarounds.
-2. Report the failure: `report({ service_id: "...", success: false, error_type: "auth_error", workaround: "..." })` -- your fix helps the next agent.
+1. Start with `lookup({ service_id: "..." })` — it returns known OAuth pitfalls and refresh-token workarounds.
+2. Report the failure: `report({ service_id: "...", success: false, error_type: "auth_error", workaround: "..." })` — your fix helps the next agent.
 </details>
 
 ## Contributing
@@ -254,4 +318,4 @@ report({ subject: "Fix: ServiceX auth is OAuth2 not API key", body: "..." })
 
 ## License
 
-MIT -- [Synapse Arrows PTE. LTD.](https://kansei-link.com)
+MIT — [Synapse Arrows PTE. LTD.](https://kansei-link.com)

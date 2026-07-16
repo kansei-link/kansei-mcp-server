@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.2.0 (unreleased)
+
+### Wrapped — monthly agent fuel-efficiency report
+- **`kansei-link-usage-hook`** (new bin): Claude Code `Stop`/`SessionEnd` hook
+  that parses the session transcript and records — locally, to
+  `~/.kansei-link/usage/` — total token usage (incl. cache split) and
+  KanseiLink call activity with measured response sizes. Idempotent per
+  session; never blocks Claude Code; `KANSEI_USAGE_HOOK=off` to disable.
+- **`kansei-link-wrapped`** (new bin): monthly report + self-contained HTML
+  share card. Keeps measured numbers (your transcripts) strictly separated
+  from estimated ones (avoided research cost per the 2026-04-16 benchmark,
+  counted once per distinct service per session — conservative). `--share`
+  opts in to submitting scalar aggregates for a "top X% saver" percentile.
+- **`kansei-link-install-hooks`** (new bin): idempotent installer for the
+  usage + report hooks in `~/.claude/settings.json` (with backup,
+  `--dry-run`, `--remove`, `--local` for pre-release dogfooding).
+- **`POST /api/wrapped`** (server): upserts one row per (anon_id, month)
+  into new `wrapped_monthly` table; returns cohort size and, once the
+  monthly cohort reaches 20 users, the percentile. Strict scalar
+  allow-list, rate-limited, hashed IP only.
+- **Error-loop detection**: the usage hook now measures where agents get
+  STUCK — failed tool calls, retry chains (2+ consecutive same-tool
+  failures), tokens burned per chain (error outputs + model output while
+  retrying, labeled "measured, heuristic attribution"), and worst-failing
+  tools. Surfaces in the Wrapped report/card and (opt-in, scalars only)
+  in `/api/wrapped`. This doubles as market-sizing telemetry for the
+  planned error→fix intelligence domain.
+
 ## v1.1.1 (2026-07-06)
 
 ### Fixed
