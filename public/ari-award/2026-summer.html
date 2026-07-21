@@ -511,7 +511,9 @@
         a.href = URL.createObjectURL(blob);
         a.download = d.filename || 'ARI-Award-2026-Summer-ranking.csv';
         document.body.appendChild(a); a.click(); a.remove();
-        status.textContent = 'ダウンロードを開始しました。ご登録ありがとうございました。';
+        status.textContent = d.emailed
+          ? 'ダウンロードを開始しました。CSVを添付した確認メールもお送りしています。'
+          : 'ダウンロードを開始しました。ご登録ありがとうございました。';
         status.style.color = '#067F72';
         btn.textContent = 'CSVをダウンロード（無料）'; btn.disabled = false;
         if (typeof gtag === 'function') gtag('event', 'ranking_csv_download', {role: role || 'unset'});

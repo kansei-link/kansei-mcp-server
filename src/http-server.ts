@@ -708,6 +708,106 @@ app.post(
   }
 );
 
+// ─── Lead confirmation emails (SendGrid, optional) ─────────────────
+// Sends an immediate receipt for each lead source. Inert until
+// SENDGRID_API_KEY is set (single-sender-verified from address) — the
+// endpoint keeps working without it and reports emailed: false.
+const MAIL_FROM = process.env.KANSEI_MAIL_FROM || "contact@synapse-arrows.com";
+const MAIL_FROM_NAME = "KanseiLink";
+
+function leadEmailContent(source: string): { subject: string; body: string; attachCsv: boolean } {
+  if (source === "webinar-saas" || source === "webinar-investor") {
+    const session =
+      source === "webinar-saas"
+        ? "SaaS事業者向け 2026年8月20日（木）14:00–15:00"
+        : "投資家・調達担当向け 2026年8月27日（木）14:00–15:00";
+    return {
+      subject: "【KanseiLink】ウェビナー事前登録を受け付けました",
+      body:
+        "ARI Award 2026 Summer 解説ウェビナーへの事前登録ありがとうございます。\n\n" +
+        `ご登録の回: ${session}（60分・参加無料・Zoom開催）\n\n` +
+        "参加用のZoomリンクは、開催の約2週間前までにこのメールアドレス宛にお送りします。\n" +
+        "本メールは受付の控えです。当日までお待ちください。\n\n" +
+        "ウェビナー詳細: https://kansei-link.com/webinar/\n" +
+        "ARI Award 2026 Summer: https://kansei-link.com/ari-award/2026-summer\n\n" +
+        "――――――――――――――――――――\n" +
+        "KanseiLink（運営: Synapse Arrows Pte. Ltd.）\n" +
+        "https://kansei-link.com\n" +
+        "お問い合わせ: contact@synapse-arrows.com\n",
+      attachCsv: false,
+    };
+  }
+  if (source === "ari-award-badge") {
+    return {
+      subject: "【KanseiLink】認定バッジのご登録ありがとうございました",
+      body:
+        "ARI Award 2026 Summer 認定バッジのダウンロード登録ありがとうございます。\n" +
+        "本メールは受付の控えです。\n\n" +
+        "バッジのご利用にあたっては、利用ガイドラインをご確認ください:\n" +
+        "https://kansei-link.com/ari-award/badge/\n\n" +
+        "発表ページ・関連資料への貴社ロゴの掲載をご希望の場合は、ブランドガイドラインに\n" +
+        "準拠したロゴ素材を本メールへの返信にてお送りください。確認のうえ掲載いたします。\n\n" +
+        "――――――――――――――――――――\n" +
+        "KanseiLink（運営: Synapse Arrows Pte. Ltd.）\n" +
+        "https://kansei-link.com\n" +
+        "お問い合わせ: contact@synapse-arrows.com\n",
+      attachCsv: false,
+    };
+  }
+  // default: full-ranking CSV request
+  return {
+    subject: "【KanseiLink】ARI Award 2026 Summer 格付け一覧CSVのご請求ありがとうございます",
+    body:
+      "ARI Award 2026 Summer 格付け一覧CSVのご請求ありがとうございます。\n" +
+      "本メールに一覧CSV（全193サービス・2026-07-16突合）を添付しています。\n\n" +
+      "評価方法・認定リスト: https://kansei-link.com/ari-award/2026-summer\n" +
+      "解説ウェビナー（無料）: https://kansei-link.com/webinar/\n\n" +
+      "掲載内容に事実と異なる点がございましたら、本メールにご返信ください。\n" +
+      "確認のうえ速やかに訂正いたします。\n\n" +
+      "――――――――――――――――――――\n" +
+      "KanseiLink（運営: Synapse Arrows Pte. Ltd.）\n" +
+      "https://kansei-link.com\n" +
+      "お問い合わせ: contact@synapse-arrows.com\n",
+    attachCsv: true,
+  };
+}
+
+async function sendLeadConfirmation(email: string, source: string): Promise<boolean> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return false;
+  const { subject, body, attachCsv } = leadEmailContent(source);
+  const payload: Record<string, unknown> = {
+    personalizations: [{ to: [{ email }] }],
+    from: { email: MAIL_FROM, name: MAIL_FROM_NAME },
+    reply_to: { email: "contact@synapse-arrows.com", name: MAIL_FROM_NAME },
+    subject,
+    content: [{ type: "text/plain", value: body }],
+  };
+  if (attachCsv) {
+    payload.attachments = [
+      {
+        content: Buffer.from(ARI_AWARD_2026_SUMMER_CSV, "utf-8").toString("base64"),
+        filename: "ARI-Award-2026-Summer-ranking.csv",
+        type: "text/csv",
+        disposition: "attachment",
+      },
+    ];
+  }
+  try {
+    const resp = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    return resp.status === 202;
+  } catch {
+    return false;
+  }
+}
+
 // ─── ARI Award full-ranking CSV (email-gated lead capture) ─────────
 // The award page publishes the 41 certified services openly; the full
 // ranking (including sub-A grades) is provided as a CSV in exchange for
@@ -725,7 +825,7 @@ app.post(
   "/api/ranking-lead",
   rankingLeadLimiter,
   express.json({ limit: "2kb" }),
-  (req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const body = (req.body || {}) as Record<string, unknown>;
       const email = typeof body.email === "string" ? body.email.trim().slice(0, 254) : "";
@@ -754,8 +854,11 @@ app.post(
         )
         .run(email, company, role, source, ipHash);
 
+      const emailed = await sendLeadConfirmation(email, source);
+
       res.json({
         ok: true,
+        emailed,
         filename: "ARI-Award-2026-Summer-ranking.csv",
         csv: ARI_AWARD_2026_SUMMER_CSV,
       });

@@ -348,9 +348,11 @@ function submitWbForm(e) {
       source: 'webinar-' + wbTrack
     })
   }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(function () {
+    .then(function (d) {
       status.style.color = '#067F72';
-      status.textContent = '事前登録を受け付けました。参加リンクは開催前にメールでお送りします。';
+      status.textContent = d.emailed
+        ? '事前登録を受け付けました。確認メールをお送りしました（届かない場合は迷惑メールフォルダをご確認ください）。'
+        : '事前登録を受け付けました。この表示をもって受付完了です。参加リンクは開催前にメールでお送りします。';
       btn.textContent = '登録済み';
       if (typeof gtag === 'function') gtag('event', 'webinar_preregister', { session: wbTrack });
       setTimeout(closeWbModal, 2200);
