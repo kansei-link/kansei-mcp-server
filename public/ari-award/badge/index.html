@@ -80,6 +80,22 @@
     .btn-download { background: var(--blue); color: var(--white); border: none; padding: 10px 22px; border-radius: 4px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; display: inline-block; text-decoration: none; }
     .btn-download:hover { background: var(--blue-dark); }
 
+    /* ── Gated download modal ── */
+    .bdg-overlay { position: fixed; inset: 0; background: rgba(10,15,28,0.55); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .bdg-overlay.open { display: flex; }
+    .bdg-modal { background: var(--white); border-radius: 12px; max-width: 440px; width: 100%; padding: 30px; box-shadow: 0 12px 48px rgba(0,0,0,0.25); position: relative; }
+    .bdg-modal h3 { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+    .bdg-modal .sub { font-size: 13.5px; color: var(--gray-text); margin-bottom: 18px; }
+    .bdg-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray-text); }
+    .bdg-row { margin-bottom: 14px; }
+    .bdg-row label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+    .bdg-row label .req { color: #DC2626; font-size: 11px; margin-left: 5px; }
+    .bdg-row input { width: 100%; padding: 10px 13px; border: 1px solid var(--gray-mid); border-radius: 8px; font-size: 15px; font-family: inherit; }
+    .bdg-row input:focus { outline: 2px solid var(--blue); }
+    .bdg-submit { width: 100%; padding: 12px 0; font-size: 15px; border-radius: 8px; margin-top: 4px; }
+    .bdg-privacy { font-size: 12px; color: var(--gray-text); margin-top: 12px; line-height: 1.65; }
+    .bdg-status { font-size: 13.5px; font-weight: 600; margin-top: 8px; min-height: 18px; }
+
     /* ── Guidelines ── */
     .guideline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 24px; }
     .guideline-box { border: 1px solid var(--gray-mid); border-radius: 8px; padding: 24px; }
@@ -163,7 +179,7 @@
 <section>
   <div class="container">
     <h2>認定バッジ</h2>
-    <p class="section-lead">認定グレードに応じたバッジをダウンロードいただけます。SVG形式のため、あらゆるサイズで鮮明に表示されます。</p>
+    <p class="section-lead">認定グレードに応じたバッジをダウンロードいただけます（無料）。ブランド保護のため、会社名・サービス名・メールアドレスをご登録のうえダウンロードをお願いしています。SVG形式のため、あらゆるサイズで鮮明に表示されます。</p>
 
     <div class="badge-grid">
 
@@ -462,7 +478,23 @@ ARI Award 2026 Summerは、日本市場の主要SaaS 200サービスを対象に
       '</svg>';
   }
 
+  // Gated download: register (company / service / email) → lead stored → SVG download starts.
+  var API_BASE = 'https://kansei-link-mcp-production-b054.up.railway.app';
+  var pendingGrade = null;
+
   function downloadBadge(grade) {
+    pendingGrade = grade;
+    document.getElementById('bdg-grade-label').textContent = grade.toUpperCase();
+    document.getElementById('bdg-status').textContent = '';
+    document.getElementById('bdg-overlay').classList.add('open');
+    document.getElementById('bdg-company').focus();
+  }
+
+  function closeBadgeModal() {
+    document.getElementById('bdg-overlay').classList.remove('open');
+  }
+
+  function runBadgeDownload(grade) {
     var svgSource = getSvgSource(grade);
     var blob = new Blob([svgSource], { type: 'image/svg+xml;charset=utf-8' });
     var url = URL.createObjectURL(blob);
@@ -473,11 +505,44 @@ ARI Award 2026 Summerは、日本市場の主要SaaS 200サービスを対象に
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
     gtag('event', 'badge_download', {
       event_category: 'ARI Award',
       event_label: grade.toUpperCase()
     });
+  }
+
+  function submitBadgeForm(e) {
+    e.preventDefault();
+    var company = document.getElementById('bdg-company').value.trim();
+    var service = document.getElementById('bdg-service').value.trim();
+    var email = document.getElementById('bdg-email').value.trim();
+    var status = document.getElementById('bdg-status');
+    var btn = document.getElementById('bdg-submit');
+    if (!company || !service || !email) return false;
+    btn.disabled = true; btn.textContent = '送信中...';
+    fetch(API_BASE + '/api/ranking-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email,
+        company: company + '｜' + service + '｜' + (pendingGrade || '').toUpperCase(),
+        role: 'saas_vendor',
+        source: 'ari-award-badge'
+      })
+    }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function () {
+        runBadgeDownload(pendingGrade);
+        status.style.color = '#067F72';
+        status.textContent = 'ダウンロードを開始しました。ご登録ありがとうございました。';
+        btn.disabled = false; btn.textContent = 'ダウンロード';
+        setTimeout(closeBadgeModal, 1800);
+      })
+      .catch(function () {
+        status.style.color = '#DC2626';
+        status.innerHTML = '送信に失敗しました。<a href="mailto:contact@synapse-arrows.com?subject=' + encodeURIComponent('認定バッジの利用申請') + '">メールでご連絡</a>ください。';
+        btn.disabled = false; btn.textContent = 'ダウンロード';
+      });
+    return false;
   }
 
   function copyText(elementId, btn) {
@@ -507,6 +572,32 @@ ARI Award 2026 Summerは、日本市場の主要SaaS 200サービスを対象に
     });
   }
 </script>
+
+<!-- ── Gated badge download modal ── -->
+<div class="bdg-overlay" id="bdg-overlay">
+  <div class="bdg-modal">
+    <button class="bdg-close" onclick="closeBadgeModal()" aria-label="閉じる">×</button>
+    <h3><span id="bdg-grade-label">AAA</span>認定バッジのダウンロード</h3>
+    <p class="sub">ブランド保護のため、ご登録のうえダウンロードをお願いしています（無料）。</p>
+    <form onsubmit="return submitBadgeForm(event)">
+      <div class="bdg-row">
+        <label for="bdg-company">会社名<span class="req">必須</span></label>
+        <input type="text" id="bdg-company" required placeholder="株式会社〇〇" autocomplete="organization">
+      </div>
+      <div class="bdg-row">
+        <label for="bdg-service">認定サービス名<span class="req">必須</span></label>
+        <input type="text" id="bdg-service" required placeholder="サービス名">
+      </div>
+      <div class="bdg-row">
+        <label for="bdg-email">メールアドレス<span class="req">必須</span></label>
+        <input type="email" id="bdg-email" required placeholder="you@company.co.jp" autocomplete="email">
+      </div>
+      <button type="submit" class="btn-download bdg-submit" id="bdg-submit">ダウンロード</button>
+      <p class="bdg-privacy">ご入力いただいた情報は、バッジ利用状況の確認およびKanseiLinkからのご案内にのみ使用します。第三者への提供は行いません。認定サービス以外へのバッジ使用はご遠慮ください。</p>
+      <p class="bdg-status" id="bdg-status" aria-live="polite"></p>
+    </form>
+  </div>
+</div>
 
 </body>
 </html>
