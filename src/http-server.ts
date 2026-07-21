@@ -17,7 +17,7 @@ import type { Request, Response } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer } from "./server.js";
 import { getDb, closeDb } from "./db/connection.js";
 import { initializeDb } from "./db/schema.js";
@@ -764,6 +764,78 @@ app.post(
     }
   }
 );
+
+// ─── Admin: view captured ranking leads ────────────────────────────
+// Minimal bookmarkable admin view (HTML table, newest first) plus
+// ?format=csv export. Guarded by KANSEI_ADMIN_KEY — endpoint answers
+// 503 until that env var is set, and the key is compared timing-safe.
+const adminLeadsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "rate_limited" },
+});
+
+app.get("/api/admin/ranking-leads", adminLeadsLimiter, (req: Request, res: Response) => {
+  const configured = process.env.KANSEI_ADMIN_KEY || "";
+  if (!configured || configured.length < 16) {
+    return res.status(503).json({ error: "admin_key_not_configured" });
+  }
+  const supplied = typeof req.query.key === "string" ? req.query.key : "";
+  const a = createHash("sha256").update(supplied).digest();
+  const b = createHash("sha256").update(configured).digest();
+  if (!timingSafeEqual(a, b)) {
+    return res.status(403).json({ error: "forbidden" });
+  }
+
+  const rows = getDb()
+    .prepare(
+      `SELECT id, email, company, role, source, created_at
+       FROM ranking_leads ORDER BY id DESC LIMIT 1000`
+    )
+    .all() as Array<{
+    id: number; email: string; company: string | null;
+    role: string | null; source: string | null; created_at: string;
+  }>;
+
+  if (req.query.format === "csv") {
+    const esc = (v: string | null) =>
+      v == null ? "" : /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    const csv =
+      "﻿id,email,company,role,source,created_at\n" +
+      rows.map(r => [r.id, esc(r.email), esc(r.company), esc(r.role), esc(r.source), r.created_at].join(",")).join("\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", "attachment; filename=ranking-leads.csv");
+    return res.send(csv);
+  }
+
+  const escHtml = (v: string | null) =>
+    (v ?? "—").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const ROLE_JA: Record<string, string> = {
+    saas_vendor: "SaaS事業者", investor: "投資家・調達", developer: "開発者", other: "その他",
+  };
+  const tr = rows
+    .map(r =>
+      `<tr><td>${r.id}</td><td>${escHtml(r.email)}</td><td>${escHtml(r.company)}</td>` +
+      `<td>${escHtml(r.role ? ROLE_JA[r.role] ?? r.role : null)}</td>` +
+      `<td>${escHtml(r.source)}</td><td>${escHtml(r.created_at)} UTC</td></tr>`
+    )
+    .join("");
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Robots-Tag", "noindex");
+  res.send(`<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>ランキングDLリード一覧 (${rows.length}件)</title>
+<style>body{font-family:-apple-system,'Noto Sans JP',sans-serif;margin:24px;color:#111}
+h1{font-size:20px}table{border-collapse:collapse;width:100%;font-size:14px;margin-top:16px}
+th,td{border:1px solid #E5E7EB;padding:8px 12px;text-align:left}th{background:#F5F5F5}
+.meta{color:#6B7280;font-size:13px}a{color:#1A3FD6}</style></head><body>
+<h1>ARI Award 格付け一覧CSV — ダウンロードリード（${rows.length}件・最新順）</h1>
+<p class="meta">launch-test@… で始まるメールは動作テストです。 <a href="?key=${encodeURIComponent(supplied)}&format=csv">CSVでエクスポート</a></p>
+<table><tr><th>#</th><th>メール</th><th>会社名</th><th>立場</th><th>流入元</th><th>登録日時</th></tr>${tr}</table>
+</body></html>`);
+});
 
 // ─── Auto-captured outcome reports from PostToolUse hook ──────────
 // Receives the minimal outcome payload the `kansei-link-report-hook` CLI
