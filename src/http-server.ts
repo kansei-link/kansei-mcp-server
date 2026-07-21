@@ -782,6 +782,12 @@ async function sendLeadConfirmation(email: string, source: string): Promise<bool
     reply_to: { email: "contact@synapse-arrows.com", name: MAIL_FROM_NAME },
     subject,
     content: [{ type: "text/plain", value: body }],
+    // Plain URLs, not ct.sendgrid.net click-tracking rewrites — wrapped
+    // links look phishy to the B2B audience these receipts go to.
+    tracking_settings: {
+      click_tracking: { enable: false, enable_text: false },
+      open_tracking: { enable: false },
+    },
   };
   if (attachCsv) {
     payload.attachments = [
