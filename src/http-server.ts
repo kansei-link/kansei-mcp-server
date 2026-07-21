@@ -24,6 +24,7 @@ import { initializeDb } from "./db/schema.js";
 import { seedDatabase } from "./db/seed.js";
 import { classifyReliabilitySource } from "./utils/reliability-source.js";
 import { wrapUntrusted } from "./utils/untrusted.js";
+import { ARI_AWARD_2026_SUMMER_CSV } from "./data/ari-award-2026-summer-csv.js";
 import {
   handleStripeWebhook,
   handleAccessCheck,
@@ -701,6 +702,63 @@ app.post(
       }
 
       res.json({ ok: true, month, population, percentile_top });
+    } catch (e: any) {
+      res.status(400).json({ error: "bad_payload", detail: String(e?.message || e).slice(0, 200) });
+    }
+  }
+);
+
+// ─── ARI Award full-ranking CSV (email-gated lead capture) ─────────
+// The award page publishes the 41 certified services openly; the full
+// ranking (including sub-A grades) is provided as a CSV in exchange for
+// contact details. Stores the lead, answers with the CSV inline — the
+// client triggers the download from the response.
+const rankingLeadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "rate_limited" },
+});
+
+app.post(
+  "/api/ranking-lead",
+  rankingLeadLimiter,
+  express.json({ limit: "2kb" }),
+  (req: Request, res: Response) => {
+    try {
+      const body = (req.body || {}) as Record<string, unknown>;
+      const email = typeof body.email === "string" ? body.email.trim().slice(0, 254) : "";
+      if (!/^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/.test(email)) {
+        return res.status(400).json({ error: "invalid_email" });
+      }
+      const company =
+        typeof body.company === "string" && body.company.trim()
+          ? body.company.trim().slice(0, 200)
+          : null;
+      const ROLES = new Set(["saas_vendor", "investor", "developer", "other"]);
+      const role =
+        typeof body.role === "string" && ROLES.has(body.role) ? body.role : null;
+      const source =
+        typeof body.source === "string" ? body.source.slice(0, 64) : "ari-award-2026-summer";
+
+      const ip = (req.header("x-forwarded-for") || req.ip || "").split(",")[0].trim();
+      const ipHash = ip
+        ? createHash("sha256").update(ip + "|ranking-lead-salt").digest("hex").slice(0, 16)
+        : null;
+
+      getDb()
+        .prepare(
+          `INSERT INTO ranking_leads (email, company, role, source, ip_hash)
+           VALUES (?, ?, ?, ?, ?)`
+        )
+        .run(email, company, role, source, ipHash);
+
+      res.json({
+        ok: true,
+        filename: "ARI-Award-2026-Summer-ranking.csv",
+        csv: ARI_AWARD_2026_SUMMER_CSV,
+      });
     } catch (e: any) {
       res.status(400).json({ error: "bad_payload", detail: String(e?.message || e).slice(0, 200) });
     }

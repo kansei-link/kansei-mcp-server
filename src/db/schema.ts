@@ -564,6 +564,24 @@ export function initializeDb(db: Database.Database): void {
     }
   }
 
+  // ARI Award full-ranking download leads: one row per request from the
+  // email-gated CSV download on the award page. Contact details are given
+  // voluntarily in exchange for the dataset (use disclosed on the form);
+  // ip_hash is for abuse detection only, never the raw address.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ranking_leads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      company TEXT,
+      role TEXT,                              -- saas_vendor / investor / developer / other
+      source TEXT,                            -- e.g. "ari-award-2026-summer"
+      ip_hash TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ranking_leads_email ON ranking_leads(email);
+    CREATE INDEX IF NOT EXISTS idx_ranking_leads_created ON ranking_leads(created_at);
+  `);
+
   // Site AEO checks: scan results from the URL-based site checker
   // (public/site-checker/). Each row is one scan; `id` is a short random
   // token so results are shareable via ?r=<id> without enumeration.
