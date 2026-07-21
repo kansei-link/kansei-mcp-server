@@ -11,7 +11,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pricing Plans — KanseiLink AEO Intelligence | Pro · Team · Enterprise</title>
+  <title>Pricing — KanseiLink | Plans for SaaS Vendors, Investors &amp; Developers</title>
   <meta name="description" content="KanseiLink pricing plans. From free AEO rating views to Pro ($19/mo) Agent Voice details, Team ($149/mo) per-service reports, and Enterprise ($2,990+) custom consulting.">
   <meta name="keywords" content="KanseiLink, pricing, AEO, MCP, Agent Voice, subscription, consulting">
   <meta name="author" content="KanseiLink by Synapse Arrows PTE. LTD.">
@@ -330,6 +330,19 @@
       gap: 24px;
       align-items: start;
     }
+    .pricing-grid.grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .pricing-grid.grid-2 { grid-template-columns: repeat(2, 1fr); max-width: 820px; }
+    .aud-panel[hidden] { display: none; }
+
+    /* ===== AUDIENCE TABS ===== */
+    .aud-tabs-wrap { text-align: center; padding: 36px 40px 0; }
+    .aud-tabs { display: inline-flex; background: var(--gray-light); border-radius: 10px; padding: 5px; gap: 4px; flex-wrap: wrap; justify-content: center; }
+    .aud-tab { padding: 11px 26px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; background: transparent; color: var(--gray-text); transition: all 0.2s; font-family: inherit; }
+    .aud-tab:hover { color: var(--gray-dark); }
+    .aud-tab.active { background: var(--white); color: var(--blue); box-shadow: 0 1px 6px rgba(0,0,0,0.12); }
+    .panel-intro { grid-column: 1 / -1; text-align: center; padding: 4px 0 10px; }
+    .panel-intro h3 { font-size: 23px; font-weight: 800; margin-bottom: 8px; }
+    .panel-intro p { color: var(--gray-dark); font-size: 15px; max-width: 780px; margin: 0 auto; line-height: 1.85; }
     .plan-card {
       background: var(--white);
       border: 2px solid var(--gray-mid);
@@ -518,7 +531,7 @@
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 1024px) {
-      .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+      .pricing-grid, .pricing-grid.grid-3 { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 768px) {
       .utility-bar .inner { padding: 0 16px; }
@@ -532,7 +545,9 @@
       .mobile-only { display: block; }
       .pricing-hero { padding: 48px 16px 32px; }
       .pricing-hero h1 { font-size: 28px; }
-      .pricing-grid { grid-template-columns: 1fr; padding: 0 16px 48px; }
+      .pricing-grid, .pricing-grid.grid-3, .pricing-grid.grid-2 { grid-template-columns: 1fr; padding: 0 16px 48px; }
+      .aud-tabs-wrap { padding: 24px 16px 0; }
+      .aud-tab { padding: 10px 16px; font-size: 13.5px; }
       .comparison-section { padding: 48px 16px; }
       .comparison-table { font-size: 13px; }
       .comparison-table th, .comparison-table td { padding: 10px 8px; }
@@ -591,90 +606,186 @@
   <!-- Hero -->
   <section class="pricing-hero">
     <span class="badge">PRICING</span>
-    <h1>Intelligence for the Agent Economy era.</h1>
-    <p>AXR ratings across 300+ services and execution test results from 180+ recipes.<br>From free AEO overviews to deep-dive Pro / Team / Enterprise analysis.</p>
+    <h1>Be on the side that gets chosen<br>in the agent era.</h1>
+    <p>For SaaS vendors: a concrete plan to get chosen by AI agents.<br>For investors: rating data to see which companies will be.<br>For developers: connection intelligence that stops wasting tokens.</p>
   </section>
+
+  <!-- Audience Tabs -->
+  <div class="aud-tabs-wrap">
+    <div class="aud-tabs">
+      <button class="aud-tab active" data-aud="saas">For SaaS Vendors</button>
+      <button class="aud-tab" data-aud="investor">For Investors &amp; Procurement</button>
+      <button class="aud-tab" data-aud="dev">For Developers</button>
+    </div>
+  </div>
 
   <!-- Billing Toggle -->
   <div class="toggle-wrap">
     <div class="toggle-group">
       <button class="toggle-btn active" data-billing="monthly">Monthly</button>
-      <button class="toggle-btn" data-billing="annual">Annual <span class="save-badge">35% OFF</span></button>
+      <button class="toggle-btn" data-billing="annual">Annual <span class="save-badge">Up to 35% OFF</span></button>
     </div>
   </div>
 
-  <!-- Pricing Cards -->
-  <div class="pricing-grid">
+  <!-- ===== SaaS VENDOR PLANS ===== -->
+  <div class="pricing-grid grid-3 aud-panel" id="panel-saas">
 
-    <!-- Free -->
+    <div class="panel-intro">
+      <h3>Become the SaaS that AI agents choose</h3>
+      <p>Agents built on ChatGPT and Claude now pick, connect to, and operate SaaS on users' behalf. Being chosen by agents is a new acquisition channel. We pinpoint why a service isn't being chosen — and what to fix first.</p>
+    </div>
+
+    <!-- Free (vendor) -->
     <div class="plan-card">
       <div class="plan-name">Free</div>
-      <div class="plan-desc">AEO ratings and overview articles</div>
+      <div class="plan-desc">Know where you stand — how AI sees your service</div>
       <div class="plan-price"><span class="currency">$</span>0<span class="period"> /mo</span></div>
       <div class="plan-price-note">No credit card required</div>
-      <a href="insights/index.html" class="plan-cta">Get started free</a>
+      <a href="../ari-award/2026-summer.html" class="plan-cta">View your rating</a>
       <ul class="plan-features">
-        <li><span class="check">&#10003;</span> AXR grades for 300+ services</li>
-        <li><span class="check">&#10003;</span> AEO overview articles (10 categories)</li>
-        <li><span class="check">&#10003;</span> AXR grade distribution &amp; top 5</li>
-        <li><span class="check">&#10003;</span> Average success rate &amp; basic stats</li>
-        <li><span class="cross">&#8212;</span> Agent Voice details</li>
-        <li><span class="cross">&#8212;</span> Per-service reports</li>
+        <li><span class="check">&#10003;</span> Your rating and position (ARI Award 2026 Summer, 200 services)</li>
+        <li><span class="check">&#10003;</span> Certification badge for certified services</li>
+        <li><span class="check">&#10003;</span> Press-release template for your award</li>
+        <li><span class="check">&#10003;</span> Fully public scoring formula</li>
+        <li><span class="cross">&#8212;</span> Where you lose points (detailed breakdown)</li>
+        <li><span class="cross">&#8212;</span> Roadmap to raise your odds of being chosen</li>
+      </ul>
+    </div>
+
+    <!-- Rating Report (Team) -->
+    <div class="plan-card featured" id="team-plan">
+      <div class="plan-name">Rating Report</div>
+      <div class="plan-desc">Raise your odds of being chosen — with concrete fixes</div>
+      <div class="plan-price" data-monthly="149" data-annual="1490">
+        <span class="currency">$</span><span class="price-value">149</span><span class="period"> /mo</span>
+      </div>
+      <div class="plan-price-note" data-monthly="per service · cancel anytime" data-annual="$1,490/year per service (17% off)">per service · cancel anytime</div>
+      <button class="plan-cta teal kl-checkout-btn" data-plan="team" data-price-monthly="" data-price-annual="">Get your report now</button>
+      <ul class="plan-features">
+        <li><span class="check">&#10003;</span> <strong>Raise your odds of being chosen</strong> — pinpoint and clear every deduction</li>
+        <li><span class="check">&#10003;</span> <strong>Improve connection success</strong> — concrete auth / API / docs fixes</li>
+        <li><span class="check">&#10003;</span> <strong>Open the agent-referral channel</strong> — meet the conditions agents look for</li>
+        <li><span class="check">&#10003;</span> <strong>Stay ahead of competitors</strong> — category benchmark with gap analysis</li>
+        <li><span class="check">&#10003;</span> <strong>Track the effect</strong> — AXR score history and error analysis</li>
+        <li><span class="check">&#10003;</span> Includes everything in Pro</li>
+      </ul>
+    </div>
+
+    <!-- Enterprise (vendor) -->
+    <div class="plan-card">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-desc">Hands-on support until you're chosen</div>
+      <div class="plan-price"><span class="currency">$</span>2,990<span class="period">+</span></div>
+      <div class="plan-price-note">One-time or custom</div>
+      <a href="/en/contact.html" class="plan-cta">Contact Us</a>
+      <ul class="plan-features">
+        <li><span class="check">&#10003;</span> <strong>Official MCP support program</strong> — the single biggest lever</li>
+        <li><span class="check">&#10003;</span> <strong>Agent-perspective API design review</strong> and recommendations</li>
+        <li><span class="check">&#10003;</span> Custom report creation</li>
+        <li><span class="check">&#10003;</span> Dedicated consulting sessions</li>
+        <li><span class="check">&#10003;</span> Dedicated support contact</li>
+        <li><span class="check">&#10003;</span> Everything in Rating Report</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- ===== INVESTOR / PROCUREMENT PLANS ===== -->
+  <div class="pricing-grid grid-3 aud-panel" id="panel-investor" hidden>
+
+    <div class="panel-intro">
+      <h3>Make &ldquo;does AI choose them?&rdquo; a portfolio factor</h3>
+      <p>Gartner estimates $234B — roughly 20% of enterprise SaaS spend — is exposed to agentic AI by 2030. Like an ESG score, ARI turns agent readiness into a factor you can put into investment and procurement decisions.</p>
+    </div>
+
+    <!-- Free (investor) -->
+    <div class="plan-card">
+      <div class="plan-name">Free</div>
+      <div class="plan-desc">Survey the market first</div>
+      <div class="plan-price"><span class="currency">$</span>0<span class="period"> /mo</span></div>
+      <div class="plan-price-note">No credit card required</div>
+      <a href="../ari-award/2026-summer.html" class="plan-cta">View ARI Award results</a>
+      <ul class="plan-features">
+        <li><span class="check">&#10003;</span> Agent readiness of 200 Japanese SaaS at a glance</li>
+        <li><span class="check">&#10003;</span> Category-level progress and gaps — where the alpha is</li>
+        <li><span class="check">&#10003;</span> Quarterly updates track the market</li>
+        <li><span class="check">&#10003;</span> Fully public, reproducible methodology</li>
+        <li><span class="cross">&#8212;</span> Assessments of companies outside the index</li>
+        <li><span class="cross">&#8212;</span> Structured data for internal models</li>
+      </ul>
+    </div>
+
+    <!-- Custom assessment -->
+    <div class="plan-card" style="border-color:var(--blue);box-shadow:0 8px 32px rgba(26,63,214,0.12);">
+      <div class="plan-name">Custom Assessment</div>
+      <div class="plan-desc">Put ARI into your investment decisions and DD</div>
+      <div class="plan-price"><span class="currency">$</span>2,990<span class="period">+ /case</span></div>
+      <div class="plan-price-note">Quoted by scope and company count</div>
+      <a href="mailto:contact@synapse-arrows.com?subject=Custom%20assessment%20(investors)" class="plan-cta primary">Discuss a custom assessment</a>
+      <ul class="plan-features">
+        <li><span class="check">&#10003;</span> <strong>Judge &ldquo;will AI choose them?&rdquo; on facts</strong> — third-party assessment</li>
+        <li><span class="check">&#10003;</span> Any target company — same criteria, in the index or not</li>
+        <li><span class="check">&#10003;</span> Tech-DD report format with primary-source links</li>
+        <li><span class="check">&#10003;</span> AXR breakdown and peer benchmark</li>
+        <li><span class="check">&#10003;</span> Ready for investment committees and DD files</li>
+      </ul>
+    </div>
+
+    <!-- DD data package -->
+    <div class="plan-card">
+      <div class="plan-name">DD Data Package</div>
+      <div class="plan-desc">Monitor the whole portfolio, continuously</div>
+      <div class="plan-price" style="font-size:30px;letter-spacing:0;">Contact us</div>
+      <div class="plan-price-note">Quoted by portfolio size and cadence</div>
+      <a href="mailto:contact@synapse-arrows.com?subject=DD%20data%20package" class="plan-cta">Contact us</a>
+      <ul class="plan-features">
+        <li><span class="check">&#10003;</span> <strong>Rate every holding at once</strong> — spot AI-readiness laggards early</li>
+        <li><span class="check">&#10003;</span> Quarterly movement tracking</li>
+        <li><span class="check">&#10003;</span> Structured data for your internal models</li>
+        <li><span class="check">&#10003;</span> Anonymized connectivity facts as primary DD data</li>
+        <li><span class="check">&#10003;</span> Usable in investment and procurement materials</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- ===== DEVELOPER PLANS ===== -->
+  <div class="pricing-grid grid-2 aud-panel" id="panel-dev" hidden>
+
+    <div class="panel-intro">
+      <h3>Stop burning tokens on trial and error</h3>
+      <p>SaaS integration by trial and error is token waste. Fetch auth steps, pitfalls and workarounds before connecting — and land it on the first try. Connection intelligence for 11,000+ services, free as an MCP server.</p>
+    </div>
+
+    <!-- MCP server -->
+    <div class="plan-card">
+      <div class="plan-name">MCP Server</div>
+      <div class="plan-desc">Cut the tokens lost to trial and error</div>
+      <div class="plan-price"><span class="currency">$</span>0<span class="period"> free forever</span></div>
+      <div class="plan-price-note">Open source (npm / GitHub)</div>
+      <a href="https://github.com/kansei-link/kansei-mcp-server" target="_blank" rel="noopener" class="plan-cta">View on GitHub</a>
+      <ul class="plan-features">
+        <li><span class="check">&#10003;</span> <strong>Fetch tips before you connect</strong> — cut retry tokens</li>
+        <li><span class="check">&#10003;</span> 11,000+ services: auth setup, pitfalls, workarounds</li>
+        <li><span class="check">&#10003;</span> <strong>Wrapped monthly report</strong> — measure token use and stuck loops</li>
+        <li><span class="check">&#10003;</span> <code style="background:var(--gray-light);padding:2px 6px;border-radius:4px;font-size:12.5px;">npx @kansei-link/mcp-server</code> — one line to install</li>
       </ul>
     </div>
 
     <!-- Pro -->
     <div class="plan-card featured">
       <div class="plan-name">Pro</div>
-      <div class="plan-desc">Full article access + Agent Voice</div>
+      <div class="plan-desc">Avoid known failure modes ahead of time</div>
       <div class="plan-price" data-monthly="19" data-annual="149">
         <span class="currency">$</span><span class="price-value">19</span><span class="period"> /mo</span>
       </div>
       <div class="plan-price-note" data-monthly="Cancel anytime" data-annual="$149/year (≈ $12.42/mo)">Cancel anytime</div>
-      <button class="plan-cta primary kl-checkout-btn" data-price-monthly="" data-price-annual="">Subscribe to Pro</button>
+      <button class="plan-cta primary kl-checkout-btn" data-plan="pro" data-price-monthly="" data-price-annual="">Subscribe to Pro now</button>
       <ul class="plan-features">
-        <li><span class="check">&#10003;</span> Everything in Free</li>
-        <li><span class="check">&#10003;</span> Premium sections of all articles</li>
-        <li><span class="check">&#10003;</span> Agent Voice details (Claude / GPT / Gemini)</li>
-        <li><span class="check">&#10003;</span> Recipe success rates + gotchas</li>
-        <li><span class="check">&#10003;</span> Multi-agent comparison analysis</li>
-        <li><span class="cross">&#8212;</span> Per-service detailed reports</li>
-      </ul>
-    </div>
-
-    <!-- Team -->
-    <div class="plan-card">
-      <div class="plan-name">Team</div>
-      <div class="plan-desc">Intelligence for SaaS vendors</div>
-      <div class="plan-price" data-monthly="149" data-annual="1490">
-        <span class="currency">$</span><span class="price-value">149</span><span class="period"> /mo</span>
-      </div>
-      <div class="plan-price-note" data-monthly="per service" data-annual="$1,490/year per service (17% off)">per service</div>
-      <button class="plan-cta teal kl-checkout-btn" data-price-monthly="" data-price-annual="">Subscribe to Team</button>
-      <ul class="plan-features">
-        <li><span class="check">&#10003;</span> Everything in Pro</li>
-        <li><span class="check">&#10003;</span> Detailed report for your service</li>
-        <li><span class="check">&#10003;</span> Competitive comparison analysis</li>
-        <li><span class="check">&#10003;</span> AXR score trend data</li>
-        <li><span class="check">&#10003;</span> Agent Voice raw data</li>
-        <li><span class="check">&#10003;</span> Error analysis + workarounds</li>
-      </ul>
-    </div>
-
-    <!-- Enterprise -->
-    <div class="plan-card">
-      <div class="plan-name">Enterprise</div>
-      <div class="plan-desc">Custom reports + consulting</div>
-      <div class="plan-price"><span class="currency">$</span>2,990<span class="period">+</span></div>
-      <div class="plan-price-note">One-time or custom</div>
-      <a href="/en/contact.html" class="plan-cta">Contact Us</a>
-      <ul class="plan-features">
-        <li><span class="check">&#10003;</span> Everything in Team</li>
-        <li><span class="check">&#10003;</span> Custom report creation</li>
-        <li><span class="check">&#10003;</span> API improvement recommendations</li>
-        <li><span class="check">&#10003;</span> Dedicated consulting sessions</li>
-        <li><span class="check">&#10003;</span> Dedicated support contact</li>
-        <li><span class="check">&#10003;</span> MCP readiness support program</li>
+        <li><span class="check">&#10003;</span> <strong>Recipe success rates + gotchas</strong> — implement only what works</li>
+        <li><span class="check">&#10003;</span> <strong>Agent Voice details</strong> — where Claude / GPT / Gemini get stuck</li>
+        <li><span class="check">&#10003;</span> Multi-agent comparison for model selection</li>
+        <li><span class="check">&#10003;</span> Premium sections of every article</li>
       </ul>
     </div>
 
@@ -694,7 +805,7 @@
           <th>Feature</th>
           <th>Free</th>
           <th>Pro</th>
-          <th>Team</th>
+          <th>Rating Report<br><span style="font-weight:400;font-size:12px;color:var(--gray-text)">(Team)</span></th>
           <th>Enterprise</th>
         </tr>
       </thead>
@@ -792,6 +903,16 @@
     <h2>Frequently Asked Questions</h2>
 
     <div class="faq-item">
+      <div class="faq-q">Which plan gives us a rating report for our own service?</div>
+      <div class="faq-a">The Rating Report (Team plan, $149/mo per service) under the "For SaaS Vendors" tab. After Stripe checkout we confirm the target service by email, then deliver the score breakdown (where you gain and lose points), a peer benchmark, and an improvement roadmap. Purchasing a report never affects your rating.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">What do you offer investors and procurement teams?</div>
+      <div class="faq-a">See the "For Investors &amp; Procurement" tab. Custom assessments ($2,990+ per case) evaluate any target company — inside or outside the ARI Award — on the same criteria, delivered in tech-DD format. The DD Data Package covers whole-portfolio rating and quarterly monitoring (contact us for a quote).</div>
+    </div>
+
+    <div class="faq-item">
       <div class="faq-q">What can I do with the free plan?</div>
       <div class="faq-a">You can browse AXR rating scores for 300+ services, read AEO overview articles across 10 categories, and check AXR grade distributions — all for free. No credit card required.</div>
     </div>
@@ -869,6 +990,31 @@ document.querySelectorAll('.nav-links a').forEach(function(link) {
   });
 });
 
+// Audience tabs (SaaS vendors / investors / developers)
+(function() {
+  var tabs = document.querySelectorAll('.aud-tab');
+  function activate(aud) {
+    tabs.forEach(function(t) { t.classList.toggle('active', t.getAttribute('data-aud') === aud); });
+    document.querySelectorAll('.aud-panel').forEach(function(p) {
+      if (p.id === 'panel-' + aud) { p.removeAttribute('hidden'); } else { p.setAttribute('hidden', ''); }
+    });
+  }
+  tabs.forEach(function(t) {
+    t.addEventListener('click', function() {
+      activate(t.getAttribute('data-aud'));
+      if (typeof gtag === 'function') gtag('event', 'pricing_tab', { audience: t.getAttribute('data-aud') });
+    });
+  });
+  function applyHash() {
+    var h = location.hash;
+    if (h === '#investors' || h === '#panel-investor') activate('investor');
+    else if (h === '#developers' || h === '#panel-dev') activate('dev');
+    else if (h === '#team-plan') activate('saas');
+  }
+  applyHash();
+  window.addEventListener('hashchange', applyHash);
+})();
+
 // Billing toggle (monthly / annual)
 (function() {
   var btns = document.querySelectorAll('.toggle-btn');
@@ -915,13 +1061,13 @@ document.querySelectorAll('.faq-q').forEach(function(q) {
     try {
       var cfg = JSON.parse(xhr.responseText);
       var prices = cfg.prices || {};
+      // Keyed by data-plan, not display name
       document.querySelectorAll('.kl-checkout-btn').forEach(function(btn) {
-        var card = btn.closest('.plan-card');
-        var name = card.querySelector('.plan-name').textContent.trim();
-        if (name === 'Pro') {
+        var plan = btn.getAttribute('data-plan');
+        if (plan === 'pro') {
           btn.setAttribute('data-price-monthly', prices.proMonthly || '');
           btn.setAttribute('data-price-annual', prices.proAnnual || '');
-        } else if (name === 'Team') {
+        } else if (plan === 'team') {
           btn.setAttribute('data-price-monthly', prices.team || '');
           btn.setAttribute('data-price-annual', prices.team || '');
         }
