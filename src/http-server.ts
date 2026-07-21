@@ -715,18 +715,24 @@ app.post(
 const MAIL_FROM = process.env.KANSEI_MAIL_FROM || "contact@synapse-arrows.com";
 const MAIL_FROM_NAME = "KanseiLink";
 
+const WEBINAR_SESSIONS: Record<string, string> = {
+  "webinar-saas": "SaaS事業者向け 2026年8月20日（木）14:00–15:00（60分）",
+  "webinar-investor": "投資家・調達担当向け 2026年8月27日（木）14:00–15:00（60分）",
+  "webinar-d0729-1000-inv": "速報ダイジェスト（投資家・調達担当向け）2026年7月29日（水）10:00–10:40",
+  "webinar-d0729-1100-saas": "速報ダイジェスト（SaaS事業者向け）2026年7月29日（水）11:00–11:40",
+  "webinar-d0730-1300-saas": "速報ダイジェスト（SaaS事業者向け）2026年7月30日（木）13:00–13:40",
+  "webinar-d0730-1400-inv": "速報ダイジェスト（投資家・調達担当向け）2026年7月30日（木）14:00–14:40",
+};
+
 function leadEmailContent(source: string): { subject: string; body: string; attachCsv: boolean } {
-  if (source === "webinar-saas" || source === "webinar-investor") {
-    const session =
-      source === "webinar-saas"
-        ? "SaaS事業者向け 2026年8月20日（木）14:00–15:00"
-        : "投資家・調達担当向け 2026年8月27日（木）14:00–15:00";
+  if (source.startsWith("webinar-")) {
+    const session = WEBINAR_SESSIONS[source] ?? "ご登録いただいた回";
     return {
       subject: "【KanseiLink】ウェビナー事前登録を受け付けました",
       body:
         "ARI Award 2026 Summer 解説ウェビナーへの事前登録ありがとうございます。\n\n" +
-        `ご登録の回: ${session}（60分・参加無料・Zoom開催）\n\n` +
-        "参加用のZoomリンクは、開催の約2週間前までにこのメールアドレス宛にお送りします。\n" +
+        `ご登録の回: ${session}（参加無料・Zoom開催）\n\n` +
+        "参加用のZoomリンクは、開催の前日までにこのメールアドレス宛にお送りします。\n" +
         "本メールは受付の控えです。当日までお待ちください。\n\n" +
         "ウェビナー詳細: https://kansei-link.com/webinar/\n" +
         "ARI Award 2026 Summer: https://kansei-link.com/ari-award/2026-summer\n\n" +
