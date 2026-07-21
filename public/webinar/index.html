@@ -259,41 +259,137 @@
   </div>
 </footer>
 
+<!-- ── Pre-registration modal (until Zoom URLs are set) ── -->
+<div class="wb-overlay" id="wb-overlay">
+  <div class="wb-modal">
+    <button class="wb-close" onclick="closeWbModal()" aria-label="閉じる">×</button>
+    <h3 id="wb-title">事前登録</h3>
+    <p class="sub" id="wb-session-label"></p>
+    <form onsubmit="return submitWbForm(event)">
+      <div class="wb-row">
+        <label for="wb-name">お名前<span class="req">必須</span></label>
+        <input type="text" id="wb-name" required placeholder="山田 太郎" autocomplete="name">
+      </div>
+      <div class="wb-row">
+        <label for="wb-company">会社名<span class="opt">任意</span></label>
+        <input type="text" id="wb-company" placeholder="株式会社〇〇" autocomplete="organization">
+      </div>
+      <div class="wb-row">
+        <label for="wb-email">メールアドレス<span class="req">必須</span></label>
+        <input type="email" id="wb-email" required placeholder="you@company.co.jp" autocomplete="email">
+      </div>
+      <button type="submit" class="btn-register wb-submit" id="wb-submit">事前登録する（無料）</button>
+      <p class="wb-privacy">参加用Zoomリンクは、開催の約2週間前までにご登録のメールアドレスへお送りします。ご入力いただいた情報は、本ウェビナーのご案内およびKanseiLinkからのお知らせにのみ使用します。</p>
+      <p class="wb-status" id="wb-status" aria-live="polite"></p>
+    </form>
+  </div>
+</div>
+
+<style>
+  .wb-overlay { position: fixed; inset: 0; background: rgba(10,15,28,0.55); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .wb-overlay.open { display: flex; }
+  .wb-modal { background: var(--white); border-radius: 12px; max-width: 440px; width: 100%; padding: 30px; box-shadow: 0 12px 48px rgba(0,0,0,0.25); position: relative; }
+  .wb-modal h3 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .wb-modal .sub { font-size: 13.5px; color: var(--gray-text); margin-bottom: 18px; }
+  .wb-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray-text); }
+  .wb-row { margin-bottom: 14px; }
+  .wb-row label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+  .wb-row label .req { color: #DC2626; font-size: 11px; margin-left: 5px; }
+  .wb-row label .opt { color: var(--gray-text); font-size: 11px; margin-left: 5px; }
+  .wb-row input { width: 100%; padding: 10px 13px; border: 1px solid var(--gray-mid); border-radius: 8px; font-size: 15px; font-family: inherit; }
+  .wb-row input:focus { outline: 2px solid var(--blue); }
+  .wb-submit { margin-top: 4px; }
+  .wb-privacy { font-size: 12px; color: var(--gray-text); margin-top: 12px; line-height: 1.65; }
+  .wb-status { font-size: 13.5px; font-weight: 600; margin-top: 8px; min-height: 18px; }
+</style>
+
 <script>
 // ▼▼▼ Zoom登録URL設定 ▼▼▼
-// Zoomでミーティング作成後（登録: 必須）、登録用URL（https://zoom.us/meeting/register/...）を貼ってください。
-// saas: SaaS事業者向け 8/20（木）14:00–15:00 / investor: 投資家・調達担当向け 8/27（木）14:00–15:00
-// URLが未設定の間は、メールでの申込にフォールバックします。
+// Zoom Webinars作成後、視聴者登録URL（https://…zoom.us/webinar/register/…）を貼ると、
+// ボタンはZoom直接登録に切り替わります。未設定の間は自前の事前登録フォームで受け付け、
+// リードはランキングDLと同じ管理画面に入ります（source: webinar-saas / webinar-investor）。
 var ZOOM = {
   saas: "",
   investor: ""
 };
 // ▲▲▲ ここまで ▲▲▲
 
+var WB_API = 'https://kansei-link-mcp-production-b054.up.railway.app';
+var wbTrack = null, wbLabel = null;
+
+function closeWbModal() {
+  document.getElementById('wb-overlay').classList.remove('open');
+}
+
+function openWbModal(track, label) {
+  wbTrack = track; wbLabel = label;
+  document.getElementById('wb-session-label').textContent = label;
+  document.getElementById('wb-status').textContent = '';
+  document.getElementById('wb-overlay').classList.add('open');
+  document.getElementById('wb-name').focus();
+}
+
+function submitWbForm(e) {
+  e.preventDefault();
+  var name = document.getElementById('wb-name').value.trim();
+  var company = document.getElementById('wb-company').value.trim();
+  var email = document.getElementById('wb-email').value.trim();
+  var status = document.getElementById('wb-status');
+  var btn = document.getElementById('wb-submit');
+  if (!name || !email) return false;
+  btn.disabled = true; btn.textContent = '送信中...';
+  fetch(WB_API + '/api/ranking-lead', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: email,
+      company: name + '｜' + (company || '-'),
+      role: wbTrack === 'saas' ? 'saas_vendor' : 'investor',
+      source: 'webinar-' + wbTrack
+    })
+  }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function () {
+      status.style.color = '#067F72';
+      status.textContent = '事前登録を受け付けました。参加リンクは開催前にメールでお送りします。';
+      btn.textContent = '登録済み';
+      if (typeof gtag === 'function') gtag('event', 'webinar_preregister', { session: wbTrack });
+      setTimeout(closeWbModal, 2200);
+      setTimeout(function () { btn.disabled = false; btn.textContent = '事前登録する（無料）'; }, 2400);
+    })
+    .catch(function () {
+      status.style.color = '#DC2626';
+      status.innerHTML = '送信に失敗しました。<a href="mailto:contact@synapse-arrows.com?subject=' + encodeURIComponent('ウェビナー申込: ' + wbLabel) + '">メールでお申し込み</a>ください。';
+      btn.disabled = false; btn.textContent = '事前登録する（無料）';
+    });
+  return false;
+}
+
 document.querySelectorAll('.btn-register').forEach(function(btn) {
+  if (btn.id === 'wb-submit') return;
   btn.addEventListener('click', function() {
     var track = btn.getAttribute('data-track');
     var label = btn.getAttribute('data-label');
-    var url = ZOOM[track];
     if (typeof gtag === 'function') {
       gtag('event', 'webinar_register_click', { session: track });
     }
+    var url = ZOOM[track];
     if (url) {
       window.open(url, '_blank', 'noopener');
     } else {
-      // Zoom登録URL設定前のフォールバック: メール申込
-      var subject = encodeURIComponent('ウェビナー申込: ' + label);
-      var body = encodeURIComponent(
-        'ARI Award 2026 Summer 解説ウェビナーに申し込みます。\n\n' +
-        '希望回: ' + label + '\n' +
-        'お名前: \n' +
-        '会社名: \n\n' +
-        '※ 参加リンクはこのメールアドレス宛にお送りします。'
-      );
-      window.location.href = 'mailto:contact@synapse-arrows.com?subject=' + subject + '&body=' + body;
+      openWbModal(track, label);
     }
   });
 });
+
+// Zoom URL未設定の間は、フロー説明を事前登録の文言に切り替える
+(function () {
+  if (!ZOOM.saas && !ZOOM.investor) {
+    var note = document.querySelector('.flow-note');
+    if (note) note.innerHTML = '<strong>お申し込みの流れ:</strong>　「申し込む」→ お名前・メールアドレスをご登録 → <strong>参加用Zoomリンクを開催の約2週間前までにメールでお送りします</strong>。当日はそのリンクからご参加ください。';
+    var lead = document.querySelector('#schedule .section-lead');
+    if (lead) lead.innerHTML = '内容は各回の対象者に合わせています。「申し込む」からお名前とメールアドレスをご登録ください。<strong>参加用Zoomリンクは開催の約2週間前までにメールでお送りします。</strong>';
+  }
+})();
 </script>
 
 </body>
