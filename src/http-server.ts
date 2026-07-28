@@ -731,6 +731,16 @@ const WEBINAR_SESSIONS: Record<string, string> = {
 // raw Zoom links — raw links contain "?pwd=XX" sequences that some mail
 // transfer encodings mangle into mojibake (observed with pwd=bB…).
 const WEBINAR_JOIN_URLS: Record<string, { url: string; id: string; passcode: string }> = {
+  "webinar-saas": {
+    url: "https://kansei-link.com/webinar/join/saas/",
+    id: "835 8770 7980",
+    passcode: "238239",
+  },
+  "webinar-investor": {
+    url: "https://kansei-link.com/webinar/join/investor/",
+    id: "828 4904 7817",
+    passcode: "955752",
+  },
   "webinar-d0729-1000-inv": {
     url: "https://kansei-link.com/webinar/join/d0729-1000-inv/",
     id: "821 1398 4481",
