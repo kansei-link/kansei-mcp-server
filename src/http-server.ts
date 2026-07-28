@@ -727,27 +727,29 @@ const WEBINAR_SESSIONS: Record<string, string> = {
 // Zoom join info per session. Sessions listed here get the URL directly in
 // the confirmation email (works even for last-minute signups); sessions
 // without an entry fall back to the "前日までにメール" wording.
-// passcode "" = not yet provided; the passcode line is omitted until filled.
+// url: kansei-link.com redirect pages (public/webinar/join/<track>/), NOT the
+// raw Zoom links — raw links contain "?pwd=XX" sequences that some mail
+// transfer encodings mangle into mojibake (observed with pwd=bB…).
 const WEBINAR_JOIN_URLS: Record<string, { url: string; id: string; passcode: string }> = {
   "webinar-d0729-1000-inv": {
-    url: "https://us02web.zoom.us/j/82113984481?pwd=YqcP7oyiv4ZLt5siay6Ys3fzbXNliR.1",
+    url: "https://kansei-link.com/webinar/join/d0729-1000-inv/",
     id: "821 1398 4481",
     passcode: "427730",
   },
   "webinar-d0729-1100-saas": {
-    url: "https://us02web.zoom.us/j/82806158375?pwd=OQCF10KpaWEhUe7lha32GFeroNJXe6.1",
+    url: "https://kansei-link.com/webinar/join/d0729-1100-saas/",
     id: "828 0615 8375",
-    passcode: "",
+    passcode: "399567",
   },
   "webinar-d0730-1300-saas": {
-    url: "https://us02web.zoom.us/j/84267664438?pwd=hUaTR1UaPFJoIgboMHDgtT3Kl3ibak.1",
+    url: "https://kansei-link.com/webinar/join/d0730-1300-saas/",
     id: "842 6766 4438",
-    passcode: "",
+    passcode: "902970",
   },
   "webinar-d0730-1400-inv": {
-    url: "https://us02web.zoom.us/j/83571825455?pwd=bBcEpbnWTGVeOLwyjUn15t0bJqAxcg.1",
+    url: "https://kansei-link.com/webinar/join/d0730-1400-inv/",
     id: "835 7182 5455",
-    passcode: "",
+    passcode: "201634",
   },
 };
 
