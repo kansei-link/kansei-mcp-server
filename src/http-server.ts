@@ -724,28 +724,48 @@ const WEBINAR_SESSIONS: Record<string, string> = {
   "webinar-d0730-1400-inv": "速報ダイジェスト（投資家・調達担当向け）2026年7月30日（木）14:00–14:40",
 };
 
-// Zoom join URLs per session. Sessions listed here get the URL directly in
+// Zoom join info per session. Sessions listed here get the URL directly in
 // the confirmation email (works even for last-minute signups); sessions
 // without an entry fall back to the "前日までにメール" wording.
-const WEBINAR_JOIN_URLS: Record<string, string> = {
-  "webinar-d0729-1000-inv": "https://us02web.zoom.us/j/82113984481?pwd=YqcP7oyiv4ZLt5siay6Ys3fzbXNliR.1",
-  "webinar-d0729-1100-saas": "https://us02web.zoom.us/j/82806158375?pwd=OQCF10KpaWEhUe7lha32GFeroNJXe6.1",
-  "webinar-d0730-1300-saas": "https://us02web.zoom.us/j/84267664438?pwd=hUaTR1UaPFJoIgboMHDgtT3Kl3ibak.1",
-  "webinar-d0730-1400-inv": "https://us02web.zoom.us/j/83571825455?pwd=bBcEpbnWTGVeOLwyjUn15t0bJqAxcg.1",
+// passcode "" = not yet provided; the passcode line is omitted until filled.
+const WEBINAR_JOIN_URLS: Record<string, { url: string; id: string; passcode: string }> = {
+  "webinar-d0729-1000-inv": {
+    url: "https://us02web.zoom.us/j/82113984481?pwd=YqcP7oyiv4ZLt5siay6Ys3fzbXNliR.1",
+    id: "821 1398 4481",
+    passcode: "427730",
+  },
+  "webinar-d0729-1100-saas": {
+    url: "https://us02web.zoom.us/j/82806158375?pwd=OQCF10KpaWEhUe7lha32GFeroNJXe6.1",
+    id: "828 0615 8375",
+    passcode: "",
+  },
+  "webinar-d0730-1300-saas": {
+    url: "https://us02web.zoom.us/j/84267664438?pwd=hUaTR1UaPFJoIgboMHDgtT3Kl3ibak.1",
+    id: "842 6766 4438",
+    passcode: "",
+  },
+  "webinar-d0730-1400-inv": {
+    url: "https://us02web.zoom.us/j/83571825455?pwd=bBcEpbnWTGVeOLwyjUn15t0bJqAxcg.1",
+    id: "835 7182 5455",
+    passcode: "",
+  },
 };
 
 function leadEmailContent(source: string): { subject: string; body: string; attachCsv: boolean } {
   if (source.startsWith("webinar-")) {
     const session = WEBINAR_SESSIONS[source] ?? "ご登録いただいた回";
-    const joinUrl = WEBINAR_JOIN_URLS[source];
-    const joinBlock = joinUrl
+    const join = WEBINAR_JOIN_URLS[source];
+    const joinBlock = join
       ? "以下のURLから当日ご参加いただけます（開催時刻になりましたらクリックしてください）。\n" +
-        `参加URL（Zoom）: ${joinUrl}\n` +
+        `参加URL（Zoom）: ${join.url}\n` +
+        `ウェビナーID: ${join.id}\n` +
+        (join.passcode ? `パスコード: ${join.passcode}\n` : "") +
+        "※URLからご参加の場合、パスコードの入力は不要です。\n" +
         "※本メールを当日まで大切に保管してください。\n\n"
       : "参加用のZoomリンクは、開催の前日までにこのメールアドレス宛にお送りします。\n" +
         "本メールは受付の控えです。当日までお待ちください。\n\n";
     return {
-      subject: joinUrl
+      subject: join
         ? "【KanseiLink】ウェビナー参加URLのご案内（事前登録を受け付けました）"
         : "【KanseiLink】ウェビナー事前登録を受け付けました",
       body:

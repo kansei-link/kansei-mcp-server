@@ -370,13 +370,14 @@ var ZOOM = {
 // ▲▲▲ ここまで ▲▲▲
 
 // ▼▼▼ 参加URL（登録完了画面に即時表示） ▼▼▼
-// 事前登録フォームの送信成功後、該当セッションの参加URLをその場で表示する。
-// 直前・開催中の申し込みでもメールを待たずに参加できる。
+// 事前登録フォームの送信成功後、該当セッションの参加URL・ウェビナーID・
+// パスコードをその場で表示する。直前・開催中の申し込みでもメールを待たずに参加できる。
+// passcode "" = 未設定（表示しない）。判明したら埋める。
 var JOIN = {
-  "d0729-1000-inv": "https://us02web.zoom.us/j/82113984481?pwd=YqcP7oyiv4ZLt5siay6Ys3fzbXNliR.1",
-  "d0729-1100-saas": "https://us02web.zoom.us/j/82806158375?pwd=OQCF10KpaWEhUe7lha32GFeroNJXe6.1",
-  "d0730-1300-saas": "https://us02web.zoom.us/j/84267664438?pwd=hUaTR1UaPFJoIgboMHDgtT3Kl3ibak.1",
-  "d0730-1400-inv": "https://us02web.zoom.us/j/83571825455?pwd=bBcEpbnWTGVeOLwyjUn15t0bJqAxcg.1"
+  "d0729-1000-inv": { url: "https://us02web.zoom.us/j/82113984481?pwd=YqcP7oyiv4ZLt5siay6Ys3fzbXNliR.1", id: "821 1398 4481", passcode: "427730" },
+  "d0729-1100-saas": { url: "https://us02web.zoom.us/j/82806158375?pwd=OQCF10KpaWEhUe7lha32GFeroNJXe6.1", id: "828 0615 8375", passcode: "" },
+  "d0730-1300-saas": { url: "https://us02web.zoom.us/j/84267664438?pwd=hUaTR1UaPFJoIgboMHDgtT3Kl3ibak.1", id: "842 6766 4438", passcode: "" },
+  "d0730-1400-inv": { url: "https://us02web.zoom.us/j/83571825455?pwd=bBcEpbnWTGVeOLwyjUn15t0bJqAxcg.1", id: "835 7182 5455", passcode: "" }
 };
 // ▲▲▲ ここまで ▲▲▲
 
@@ -416,11 +417,12 @@ function submitWbForm(e) {
   }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function (d) {
       status.style.color = '#067F72';
-      var joinUrl = JOIN[wbTrack];
-      if (joinUrl) {
+      var join = JOIN[wbTrack];
+      if (join) {
         status.innerHTML = '事前登録を受け付けました。以下のURLからご参加いただけます（開催時刻になりましたらクリックしてください）。<br>' +
-          '<a href="' + joinUrl + '" target="_blank" rel="noopener" style="word-break:break-all;">' + joinUrl + '</a><br>' +
-          '※このURLは大切に保管してください。ご登録のメールアドレスにもご案内をお送りする場合があります。';
+          '<a href="' + join.url + '" target="_blank" rel="noopener" style="word-break:break-all;">' + join.url + '</a><br>' +
+          'ウェビナーID: ' + join.id + (join.passcode ? '<br>パスコード: ' + join.passcode : '') + '<br>' +
+          '※URLからのご参加はパスコード入力不要です。ご登録のメールアドレスにも同じご案内をお送りしています。';
       } else {
         status.textContent = d.emailed
           ? '事前登録を受け付けました。確認メールをお送りしました（届かない場合は迷惑メールフォルダをご確認ください）。'
