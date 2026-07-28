@@ -772,7 +772,7 @@ function leadEmailContent(source: string): { subject: string; body: string; atta
         `参加URL（Zoom）: ${join.url}\n` +
         `ウェビナーID: ${join.id}\n` +
         (join.passcode ? `パスコード: ${join.passcode}\n` : "") +
-        "※URLからご参加の場合、パスコードの入力は不要です。\n" +
+        "※ZoomアプリでウェビナーID・パスコードの入力を求められた場合は、上記をご入力ください。\n" +
         "※本メールを当日まで大切に保管してください。\n\n"
       : "参加用のZoomリンクは、開催の前日までにこのメールアドレス宛にお送りします。\n" +
         "本メールは受付の控えです。当日までお待ちください。\n\n";
