@@ -330,7 +330,7 @@
         <input type="email" id="wb-email" required placeholder="you@company.co.jp" autocomplete="email">
       </div>
       <button type="submit" class="btn-register wb-submit" id="wb-submit">事前登録する（無料）</button>
-      <p class="wb-privacy">参加用Zoomリンクは、開催の前日までにご登録のメールアドレスへお送りします。ご入力いただいた情報は、本ウェビナーのご案内およびKanseiLinkからのお知らせにのみ使用します。</p>
+      <p class="wb-privacy">7/29–30開催回は、ご登録完了後にこの画面へ参加用Zoomリンクを表示します（8月開催回は開催の前日までにメールでお送りします）。ご入力いただいた情報は、本ウェビナーのご案内およびKanseiLinkからのお知らせにのみ使用します。</p>
       <p class="wb-status" id="wb-status" aria-live="polite"></p>
     </form>
   </div>
@@ -366,6 +366,17 @@ var ZOOM = {
   "d0729-1100-saas": "",
   "d0730-1300-saas": "",
   "d0730-1400-inv": ""
+};
+// ▲▲▲ ここまで ▲▲▲
+
+// ▼▼▼ 参加URL（登録完了画面に即時表示） ▼▼▼
+// 事前登録フォームの送信成功後、該当セッションの参加URLをその場で表示する。
+// 直前・開催中の申し込みでもメールを待たずに参加できる。
+var JOIN = {
+  "d0729-1000-inv": "https://us02web.zoom.us/j/82113984481?pwd=YqcP7oyiv4ZLt5siay6Ys3fzbXNliR.1",
+  "d0729-1100-saas": "https://us02web.zoom.us/j/82806158375?pwd=OQCF10KpaWEhUe7lha32GFeroNJXe6.1",
+  "d0730-1300-saas": "https://us02web.zoom.us/j/84267664438?pwd=hUaTR1UaPFJoIgboMHDgtT3Kl3ibak.1",
+  "d0730-1400-inv": "https://us02web.zoom.us/j/83571825455?pwd=bBcEpbnWTGVeOLwyjUn15t0bJqAxcg.1"
 };
 // ▲▲▲ ここまで ▲▲▲
 
@@ -405,12 +416,19 @@ function submitWbForm(e) {
   }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function (d) {
       status.style.color = '#067F72';
-      status.textContent = d.emailed
-        ? '事前登録を受け付けました。確認メールをお送りしました（届かない場合は迷惑メールフォルダをご確認ください）。'
-        : '事前登録を受け付けました。この表示をもって受付完了です。参加リンクは開催前にメールでお送りします。';
+      var joinUrl = JOIN[wbTrack];
+      if (joinUrl) {
+        status.innerHTML = '事前登録を受け付けました。以下のURLからご参加いただけます（開催時刻になりましたらクリックしてください）。<br>' +
+          '<a href="' + joinUrl + '" target="_blank" rel="noopener" style="word-break:break-all;">' + joinUrl + '</a><br>' +
+          '※このURLは大切に保管してください。ご登録のメールアドレスにもご案内をお送りする場合があります。';
+      } else {
+        status.textContent = d.emailed
+          ? '事前登録を受け付けました。確認メールをお送りしました（届かない場合は迷惑メールフォルダをご確認ください）。'
+          : '事前登録を受け付けました。この表示をもって受付完了です。参加リンクは開催前にメールでお送りします。';
+        setTimeout(closeWbModal, 2200);
+      }
       btn.textContent = '登録済み';
       if (typeof gtag === 'function') gtag('event', 'webinar_preregister', { session: wbTrack });
-      setTimeout(closeWbModal, 2200);
       setTimeout(function () { btn.disabled = false; btn.textContent = '事前登録する（無料）'; }, 2400);
     })
     .catch(function () {
