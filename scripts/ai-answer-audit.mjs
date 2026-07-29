@@ -30,7 +30,10 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 
-const MAX_ANSWER_TOKENS = 1024;
+// Reasoning models (gpt-5.x, gemini flash thinking) spend this budget on hidden
+// reasoning before emitting text — at 1024 they return an empty answer, which
+// reads as "no data" when it is really a truncated measurement.
+const MAX_ANSWER_TOKENS = Number(process.env.AUDIT_MAX_TOKENS ?? 4096);
 
 // ─── Engine adapters ───────────────────────────────────────────────
 
