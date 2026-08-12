@@ -70,13 +70,17 @@ export function register(server: McpServer, db: Database.Database): void {
           .number()
           .optional()
           .describe("Actual cost in USD (estimated from tokens if omitted)"),
+        attempt_id: z.string().uuid().optional().describe("attempt_id returned by lookup"),
+        recipe_id: z.string().optional().describe("Recipe used for this attempt"),
+        recipe_version: z.number().int().positive().optional().describe("Recipe version returned by lookup"),
+        failed_step: z.string().max(200).optional().describe("Step where execution stopped"),
       }),
       annotations: {
         readOnlyHint: false,
         idempotentHint: false,
       },
     },
-    async ({ service_id, success, latency_ms, error_type, workaround, context, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd }) => {
+    async ({ service_id, success, latency_ms, error_type, workaround, context, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, attempt_id, recipe_id, recipe_version, failed_step }) => {
       const result = reportOutcome(db, {
         service_id,
         success,
@@ -92,6 +96,10 @@ export function register(server: McpServer, db: Database.Database): void {
         input_tokens,
         output_tokens,
         cost_usd,
+        attempt_id,
+        recipe_id,
+        recipe_version,
+        failed_step,
       });
       return {
         content: [
@@ -120,6 +128,20 @@ interface OutcomeInput {
   input_tokens?: number;
   output_tokens?: number;
   cost_usd?: number;
+  attempt_id?: string;
+  recipe_id?: string;
+  recipe_version?: number;
+  failed_step?: string;
+}
+
+function safeJsonArray(value: unknown): unknown[] {
+  if (typeof value !== "string" || value === "") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 export function reportOutcome(
@@ -164,8 +186,8 @@ export function reportOutcome(
 
   // Insert outcome
   db.prepare(
-    `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd)
-     VALUES (?, 'anonymous', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, provenance, verification_status, attempt_id, recipe_id, recipe_version, failed_step)
+     VALUES (?, 'anonymous', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user_reported', 'unverified', ?, ?, ?, ?)`
   ).run(
     input.service_id,
     input.success ? 1 : 0,
@@ -180,18 +202,22 @@ export function reportOutcome(
     input.task_type ?? null,
     input.input_tokens ?? null,
     input.output_tokens ?? null,
-    costUsd
+    costUsd,
+    input.attempt_id ?? null,
+    input.recipe_id ?? null,
+    input.recipe_version ?? null,
+    input.failed_step ?? null
   );
 
   // Update aggregated stats
   db.prepare(
     `INSERT INTO service_stats (service_id, total_calls, success_rate, avg_latency_ms, unique_agents, last_updated)
-     VALUES (?, 1, ?, ?, 1, datetime('now'))
+     VALUES (?, 1, ?, ?, 0, datetime('now'))
      ON CONFLICT(service_id) DO UPDATE SET
-       total_calls = (SELECT count(*) FROM outcomes WHERE service_id = ?),
-       success_rate = (SELECT avg(success) FROM outcomes WHERE service_id = ?),
-       avg_latency_ms = COALESCE((SELECT avg(latency_ms) FROM outcomes WHERE service_id = ? AND latency_ms IS NOT NULL), 0),
-       unique_agents = (SELECT count(DISTINCT agent_id_hash) FROM outcomes WHERE service_id = ?),
+       total_calls = (SELECT count(*) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured')),
+       success_rate = COALESCE((SELECT avg(success) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured')), 0),
+       avg_latency_ms = COALESCE((SELECT avg(latency_ms) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured') AND latency_ms IS NOT NULL), 0),
+       unique_agents = (SELECT count(DISTINCT NULLIF(agent_id_hash, 'anonymous')) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured')),
        last_updated = datetime('now')`
   ).run(
     input.service_id,
@@ -241,6 +267,19 @@ export function reportOutcome(
   // Run anomaly detection (scout ant dispatch)
   const anomalies = detectAnomalies(db, input.service_id);
 
+  const recovery = !input.success
+    ? (db.prepare(
+        `SELECT id, version, recovery_steps
+           FROM recipes
+          WHERE recovery_steps <> '[]'
+            AND (id = ? OR required_services LIKE ?)
+          ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, last_verified_at DESC
+          LIMIT 1`
+      ).get(input.recipe_id ?? "", `%\"${input.service_id}\"%`, input.recipe_id ?? "") as
+        | { id: string; version: number; recovery_steps: string }
+        | undefined)
+    : undefined;
+
   return {
     recorded: true,
     service_id: input.service_id,
@@ -259,6 +298,16 @@ export function reportOutcome(
           severity: a.severity,
           description: a.description,
         }))
+      : undefined,
+    attempt: input.attempt_id
+      ? { attempt_id: input.attempt_id, correlated: true }
+      : undefined,
+    recovery_recipe: recovery
+      ? {
+          recipe_id: recovery.id,
+          recipe_version: recovery.version,
+          steps: safeJsonArray(recovery.recovery_steps),
+        }
       : undefined,
     cost_hint: normalizedModel
       ? "Model data recorded for cost optimization"

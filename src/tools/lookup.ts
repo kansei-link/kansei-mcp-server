@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 
 import { getServiceTips } from "./get-service-tips.js";
 import { getServiceDetail } from "./get-service-detail.js";
@@ -337,6 +338,12 @@ export function register(
       const tier = await tierResolver();
       const raw = dispatch(db, mode, params);
       const { result, upgrade } = shapeLookupResult(mode, raw, tier);
+      // Anonymous correlation handle only. It carries no agent identity and
+      // lets a later report attach to the exact lookup/recipe attempt.
+      const attemptId = randomUUID();
+      const firstRecipe = mode === "recipe"
+        ? (Array.isArray(raw) ? raw[0] : raw) as { id?: string; version?: number } | undefined
+        : undefined;
 
       // A21: canonical KanseiLINK app/deep-link (conditional per mode — the "exit").
       const kl =
@@ -361,6 +368,9 @@ export function register(
                 ...(Array.isArray(result) ? { results: result } : result),
                 _meta: {
                   source: "kansei-link",
+                  attempt_id: attemptId,
+                  ...(firstRecipe?.id ? { recipe_id: firstRecipe.id } : {}),
+                  ...(firstRecipe?.version ? { recipe_version: firstRecipe.version } : {}),
                   tip: tipForMode(mode),
                   ...(upgrade ? { upgrade } : {}),
                   ...(kl ? { kansei_link: kl } : {}),

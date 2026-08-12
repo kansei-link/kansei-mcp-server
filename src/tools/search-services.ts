@@ -739,6 +739,30 @@ export function searchServices(
   let results = [...merged.values()]
     .sort((a, b) => b.relevance_score - a.relevance_score);
 
+  // Provenance-aware readiness must be computed before filtering or slicing;
+  // otherwise seed-derived service_stats can leak into the "verified" filter.
+  for (const r of results) {
+    const relSource = classifyReliabilitySource(db, r.service_id);
+    r.reliability_basis = relSource.basis;
+    r.measured = relSource.measured;
+
+    const blended = r.success_rate;
+    if (relSource.measured && relSource.live_success_rate != null) {
+      r.success_rate = Math.round(relSource.live_success_rate * 100) / 100;
+      r.estimated_success_rate =
+        relSource.basis === "mixed" && blended != null
+          ? Math.round(blended * 100) / 100
+          : null;
+    } else {
+      r.success_rate = null;
+      r.estimated_success_rate = blended != null ? Math.round(blended * 100) / 100 : null;
+    }
+
+    if (r.agent_ready === "verified" && !relSource.public_verified) {
+      r.agent_ready = r.mcp_endpoint || r.api_url ? "connectable" : "info_only";
+    }
+  }
+
   // Filter by agent readiness level if specified
   if (agentReadyFilter) {
     if (agentReadyFilter === "verified") {
@@ -761,29 +785,6 @@ export function searchServices(
       WHERE service_id = ? AND snapshot_date = ?
     `).run(r.service_id, today);
 
-    // Reliability provenance: split MEASURED live telemetry from internal
-    // (seed/eval/scout) ESTIMATES so an estimated number never masquerades as
-    // a measured success_rate. `success_rate` becomes live-only (or null when
-    // there is no live data); the blended estimate is exposed separately via
-    // `estimated_success_rate`. NOTE: agent_ready was already classified from
-    // the blended ServiceRow rate above, so a service can still read
-    // agent_ready:"verified" while measured:false — tighten in workstream D.
-    const relSource = classifyReliabilitySource(db, r.service_id);
-    r.reliability_basis = relSource.basis;
-    r.measured = relSource.measured;
-
-    const blended = r.success_rate;
-    if (relSource.measured && relSource.live_success_rate != null) {
-      r.success_rate = Math.round(relSource.live_success_rate * 100) / 100;
-      r.estimated_success_rate =
-        relSource.basis === "mixed" && blended != null
-          ? Math.round(blended * 100) / 100
-          : null;
-    } else {
-      r.success_rate = null;
-      r.estimated_success_rate =
-        blended != null ? Math.round(blended * 100) / 100 : null;
-    }
   }
 
   return finalResults;

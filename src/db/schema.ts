@@ -36,6 +36,12 @@ export function initializeDb(db: Database.Database): void {
       -- Stored as JSON array of strings. DOES NOT reflect on individual
       -- vendor ratings.
       gotchas TEXT DEFAULT '[]',
+      version INTEGER NOT NULL DEFAULT 1,
+      last_verified_at TEXT,
+      evidence_tier TEXT NOT NULL DEFAULT 'E0',
+      risk TEXT NOT NULL DEFAULT 'low',
+      known_failures TEXT NOT NULL DEFAULT '[]',
+      recovery_steps TEXT NOT NULL DEFAULT '[]',
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -48,6 +54,12 @@ export function initializeDb(db: Database.Database): void {
       error_type TEXT,
       workaround TEXT,
       context_masked TEXT,
+      provenance TEXT NOT NULL DEFAULT 'legacy_unknown',
+      verification_status TEXT NOT NULL DEFAULT 'unverified',
+      attempt_id TEXT,
+      recipe_id TEXT,
+      recipe_version INTEGER,
+      failed_step TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -300,6 +312,77 @@ export function initializeDb(db: Database.Database): void {
   if (hasGotchas.cnt === 0) {
     db.exec("ALTER TABLE recipes ADD COLUMN gotchas TEXT DEFAULT '[]'");
   }
+
+  // Data Architecture v1.1: recipe versioning and evidence metadata.
+  const recipeColumns = db
+    .prepare("SELECT name FROM pragma_table_info('recipes')")
+    .all() as { name: string }[];
+  const recipeColumnNames = new Set(recipeColumns.map((c) => c.name));
+  const recipeMigrations: Array<[string, string]> = [
+    ["version", "INTEGER NOT NULL DEFAULT 1"],
+    ["last_verified_at", "TEXT"],
+    ["evidence_tier", "TEXT NOT NULL DEFAULT 'E0'"],
+    ["risk", "TEXT NOT NULL DEFAULT 'low'"],
+    ["known_failures", "TEXT NOT NULL DEFAULT '[]'"],
+    ["recovery_steps", "TEXT NOT NULL DEFAULT '[]'"],
+  ];
+  for (const [name, definition] of recipeMigrations) {
+    if (!recipeColumnNames.has(name)) {
+      db.exec(`ALTER TABLE recipes ADD COLUMN ${name} ${definition}`);
+    }
+  }
+
+  // Data Architecture v1.1: provenance and attempt correlation. Historical
+  // rows default to legacy_unknown; we only reclassify rows whose writer is
+  // unambiguous. Unknown data must never be guessed into a public metric.
+  const outcomeColumns = db
+    .prepare("SELECT name FROM pragma_table_info('outcomes')")
+    .all() as { name: string }[];
+  const outcomeColumnNames = new Set(outcomeColumns.map((c) => c.name));
+  const outcomeMigrations: Array<[string, string]> = [
+    ["provenance", "TEXT NOT NULL DEFAULT 'legacy_unknown'"],
+    ["verification_status", "TEXT NOT NULL DEFAULT 'unverified'"],
+    ["attempt_id", "TEXT"],
+    ["recipe_id", "TEXT"],
+    ["recipe_version", "INTEGER"],
+    ["failed_step", "TEXT"],
+  ];
+  for (const [name, definition] of outcomeMigrations) {
+    if (!outcomeColumnNames.has(name)) {
+      db.exec(`ALTER TABLE outcomes ADD COLUMN ${name} ${definition}`);
+    }
+  }
+
+  db.exec(`
+    UPDATE outcomes SET provenance = 'synthetic'
+      WHERE provenance = 'legacy_unknown'
+        AND agent_id_hash IN ('test-harness-v1','agent-army','scout_agent','self-test-fleet','agent1','agent2','agent3','agent4','agent5','agent6','test-agent');
+    UPDATE outcomes SET provenance = 'kansei_measured'
+      WHERE provenance = 'legacy_unknown' AND agent_id_hash = 'health-probe';
+    UPDATE outcomes SET provenance = 'public'
+      WHERE provenance = 'legacy_unknown' AND agent_id_hash = 'github-issues-miner';
+    CREATE INDEX IF NOT EXISTS idx_outcomes_attempt ON outcomes(attempt_id);
+    CREATE INDEX IF NOT EXISTS idx_outcomes_provenance ON outcomes(provenance);
+    DROP VIEW IF EXISTS publishable_outcomes;
+    CREATE VIEW publishable_outcomes AS
+      SELECT * FROM outcomes
+       WHERE provenance IN ('user_reported', 'kansei_measured');
+    DROP VIEW IF EXISTS publishable_service_stats;
+    CREATE VIEW publishable_service_stats AS
+      SELECT service_id, provenance,
+             COALESCE(model_name, 'unknown') AS model_name,
+             COALESCE(task_type, 'general') AS task_type,
+             COUNT(*) AS total_calls,
+             AVG(success) AS success_rate,
+             AVG(CASE WHEN latency_ms IS NOT NULL THEN latency_ms END) AS avg_latency_ms,
+             COUNT(DISTINCT NULLIF(agent_id_hash, 'anonymous')) AS unique_agents,
+             MIN(created_at) AS period_start,
+             MAX(created_at) AS period_end,
+             MAX(created_at) AS last_updated
+        FROM outcomes
+       WHERE provenance IN ('user_reported', 'kansei_measured')
+       GROUP BY service_id, provenance, COALESCE(model_name, 'unknown'), COALESCE(task_type, 'general');
+  `);
 
   // Migration: add calls_per_agent_per_day and estimated_total_users to snapshots
   const snapshotsExists = db

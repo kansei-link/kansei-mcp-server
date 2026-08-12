@@ -73,6 +73,8 @@ export interface ReliabilitySource {
   live_success_rate: number | null;
   /** Distinct genuine field agents (non-synthetic hashes). */
   live_agents: number;
+  /** True only for Kansei-measured, assertion-verified evidence with N >= 5. */
+  public_verified: boolean;
   /** Short human-readable provenance note for tool consumers. */
   note: string;
 }
@@ -87,31 +89,44 @@ export function classifyReliabilitySource(
   db: Database.Database,
   serviceId: string
 ): ReliabilitySource {
+  const outcomeColumns = new Set(
+    (db.prepare("SELECT name FROM pragma_table_info('outcomes')").all() as { name: string }[])
+      .map((c) => c.name)
+  );
+  const hasProvenance = outcomeColumns.has("provenance");
+  const hasVerification = outcomeColumns.has("verification_status");
   const rows = db
     .prepare(
-      `SELECT agent_id_hash AS hash, COUNT(*) AS n, SUM(success) AS s
+      `SELECT agent_id_hash AS hash,
+              ${hasProvenance ? "provenance" : "'legacy_unknown'"} AS provenance,
+              ${hasVerification ? "verification_status" : "'unverified'"} AS verification_status,
+              COUNT(*) AS n, SUM(success) AS s
        FROM outcomes
        WHERE service_id = ?
-       GROUP BY agent_id_hash`
+       GROUP BY agent_id_hash${hasProvenance ? ", provenance" : ""}${hasVerification ? ", verification_status" : ""}`
     )
-    .all(serviceId) as { hash: string | null; n: number; s: number | null }[];
+    .all(serviceId) as { hash: string | null; provenance: string; verification_status: string; n: number; s: number | null }[];
 
   const synthetic = new Set<string>(SYNTHETIC_AGENT_HASHES);
 
   let live_reports = 0;
   let live_success_sum = 0;
   let estimated_reports = 0;
-  let live_agents = 0;
+  const liveAgentHashes = new Set<string>();
+  let assertionVerifiedMeasured = 0;
 
   for (const r of rows) {
     // A null hash should never occur (column defaults to 'anonymous'), but if
     // it did we err on the side of NOT counting it as a trustworthy live agent.
-    if (r.hash == null || synthetic.has(r.hash)) {
+    if (r.provenance === "synthetic" || r.provenance === "legacy_unknown" || r.provenance === "public" || r.provenance === "vendor_reported" || r.hash == null || synthetic.has(r.hash)) {
       estimated_reports += r.n;
     } else {
       live_reports += r.n;
       live_success_sum += r.s ?? 0;
-      live_agents += 1; // one distinct non-synthetic hash
+      liveAgentHashes.add(r.hash);
+      if (r.provenance === "kansei_measured" && ["assertion_verified", "audited"].includes(r.verification_status)) {
+        assertionVerifiedMeasured += r.n;
+      }
     }
   }
 
@@ -147,7 +162,8 @@ export function classifyReliabilitySource(
     live_reports,
     estimated_reports,
     live_success_rate,
-    live_agents,
+    live_agents: liveAgentHashes.size,
+    public_verified: assertionVerifiedMeasured >= 5,
     note,
   };
 }

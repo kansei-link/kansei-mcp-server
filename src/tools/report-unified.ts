@@ -31,6 +31,10 @@ interface ReportParams {
   input_tokens?: number;
   output_tokens?: number;
   cost_usd?: number;
+  attempt_id?: string;
+  recipe_id?: string;
+  recipe_version?: number;
+  failed_step?: string;
   // feedback params
   feedback_type?: string;
   subject?: string;
@@ -97,6 +101,10 @@ function dispatchOutcome(db: Database.Database, params: ReportParams): object {
     input_tokens: params.input_tokens,
     output_tokens: params.output_tokens,
     cost_usd: params.cost_usd,
+    attempt_id: params.attempt_id,
+    recipe_id: params.recipe_id,
+    recipe_version: params.recipe_version,
+    failed_step: params.failed_step,
   });
 }
 
@@ -223,6 +231,10 @@ export function register(server: McpServer, db: Database.Database): void {
           .number()
           .optional()
           .describe("[outcome] Actual cost in USD (estimated from tokens if omitted)."),
+        attempt_id: z.string().uuid().optional().describe("[outcome] attempt_id returned by lookup."),
+        recipe_id: z.string().optional().describe("[outcome] Recipe used for this attempt."),
+        recipe_version: z.number().int().positive().optional().describe("[outcome] Recipe version returned by lookup."),
+        failed_step: z.string().max(200).optional().describe("[outcome] Step identifier where execution stopped."),
 
         // --- Feedback mode ---
         feedback_type: z
