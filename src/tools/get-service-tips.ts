@@ -116,14 +116,18 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
 
   // Get community stats
   const stats = db
-    .prepare("SELECT total_calls, success_rate, avg_latency_ms, unique_agents FROM service_stats WHERE service_id = ?")
+    .prepare(`SELECT SUM(total_calls) AS total_calls,
+                     CAST(SUM(success_count) AS REAL) / SUM(total_calls) AS success_rate,
+                     SUM(COALESCE(avg_latency_ms, 0) * total_calls) / SUM(total_calls) AS avg_latency_ms,
+                     MAX(unique_agents) AS unique_agents
+                FROM publishable_service_stats WHERE service_id = ? HAVING SUM(total_calls) > 0`)
     .get(serviceId) as StatsRow | undefined;
 
   // Get top pitfalls (error frequency)
   const pitfalls = db
     .prepare(
       `SELECT error_type, count(*) as count
-       FROM outcomes
+       FROM publishable_outcomes
        WHERE service_id = ? AND error_type IS NOT NULL
        GROUP BY error_type
        ORDER BY count DESC
@@ -141,20 +145,20 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
          w.workaround,
          count(*) as total_reports,
          -- Count successes reported AFTER this workaround was first shared
-         (SELECT count(*) FROM outcomes o2
+         (SELECT count(*) FROM publishable_outcomes o2
           WHERE o2.service_id = ? AND o2.success = 1
-          AND o2.created_at > (SELECT min(o3.created_at) FROM outcomes o3
+          AND o2.created_at > (SELECT min(o3.created_at) FROM publishable_outcomes o3
             WHERE o3.service_id = ? AND o3.workaround = w.workaround)
          ) as success_after,
-         (SELECT count(*) FROM outcomes o4
+         (SELECT count(*) FROM publishable_outcomes o4
           WHERE o4.service_id = ? AND o4.success = 0
           AND o4.error_type = w.error_type
-          AND o4.created_at > (SELECT min(o5.created_at) FROM outcomes o5
+          AND o4.created_at > (SELECT min(o5.created_at) FROM publishable_outcomes o5
             WHERE o5.service_id = ? AND o5.workaround = w.workaround)
          ) as failure_after,
          min(w.created_at) as oldest_report,
          max(w.created_at) as newest_report
-       FROM outcomes w
+       FROM publishable_outcomes w
        WHERE w.service_id = ? AND w.workaround IS NOT NULL
        GROUP BY w.error_type, w.workaround
        ORDER BY total_reports DESC
@@ -166,7 +170,7 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
   const recentOutcomes = db
     .prepare(
       `SELECT success, latency_ms, error_type, workaround, created_at
-       FROM outcomes
+       FROM publishable_outcomes
        WHERE service_id = ?
        ORDER BY created_at DESC
        LIMIT 5`
@@ -262,18 +266,12 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     };
   });
 
-  // Build reliability summary — separating MEASURED (live) telemetry from
-  // ESTIMATES (seed/eval/scout). `service_stats` blends both, so we classify
-  // provenance and present the live-only rate as the headline `success_rate`,
-  // keeping any estimate in a clearly-labeled `estimated_success_rate`.
+  // Build reliability summary from the publication-gated views. Probe,
+  // seed, legacy and below-threshold community data never become a rate.
   const relSource = classifyReliabilitySource(db, service.id);
-  const estimatedRate =
-    stats && stats.total_calls > 0
-      ? Math.round(stats.success_rate * 100) / 100
-      : null;
   const liveRate =
-    relSource.live_success_rate != null
-      ? Math.round(relSource.live_success_rate * 100) / 100
+    relSource.public_success_rate != null
+      ? Math.round(relSource.public_success_rate * 100) / 100
       : null;
   const avgLatency = stats ? Math.round(stats.avg_latency_ms) : null;
 
@@ -287,18 +285,15 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
       total_reports: 0,
       note: relSource.note,
     };
-  } else if (relSource.basis === "estimated") {
-    // Seed/eval-only: never present the estimate as a measured success_rate.
+  } else if (liveRate == null) {
+    // Below-threshold, probe, seed and legacy data never become a public rate.
     reliability = {
-      basis: "estimated",
+      basis: "insufficient_public_evidence",
       measured: false,
-      label: "estimated",
+      label: "not_published",
       success_rate: null,
-      estimated_success_rate: estimatedRate,
-      avg_latency_ms: avgLatency,
-      live_reports: 0,
-      estimated_reports: relSource.estimated_reports,
-      note: relSource.note,
+      community_reports_observed: relSource.live_reports,
+      note: "A success rate is not published until the provenance, minimum population and independent verification requirements are met.",
     };
   } else {
     // live | mixed — at least one genuine field report exists.
@@ -308,14 +303,10 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
       label: liveRate != null ? gradeLabel(liveRate) : "no_data",
       success_rate: liveRate, // live-only — the honest measured number
       avg_latency_ms: avgLatency,
-      live_reports: relSource.live_reports,
+      public_reports: relSource.public_reports,
       unique_agents: relSource.live_agents,
       note: relSource.note,
     };
-    if (relSource.basis === "mixed") {
-      reliability.estimated_success_rate = estimatedRate;
-      reliability.estimated_reports = relSource.estimated_reports;
-    }
   }
 
   // Build recent activity summary
@@ -408,10 +399,10 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
          w.error_type,
          w.workaround,
          count(*) as times_reported,
-         (SELECT count(*) FROM outcomes o2
+         (SELECT count(*) FROM publishable_outcomes o2
           WHERE o2.service_id = ? AND o2.success = 1
           AND o2.created_at >= w.created_at) as successes_after
-       FROM outcomes w
+       FROM publishable_outcomes w
        WHERE w.service_id = ? AND w.workaround IS NOT NULL AND w.success = 1
        GROUP BY w.error_type, w.workaround
        HAVING times_reported >= 1
@@ -432,10 +423,10 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
          error_type,
          count(*) as occurrences,
          max(created_at) as last_seen
-       FROM outcomes
+       FROM publishable_outcomes
        WHERE service_id = ? AND success = 0 AND error_type IS NOT NULL
        AND error_type NOT IN (
-         SELECT DISTINCT o2.error_type FROM outcomes o2
+         SELECT DISTINCT o2.error_type FROM publishable_outcomes o2
          WHERE o2.service_id = ? AND o2.success = 1 AND o2.workaround IS NOT NULL
          AND o2.error_type IS NOT NULL
        )
@@ -469,7 +460,7 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
   const recentSuccessPatterns = db
     .prepare(
       `SELECT context_masked, workaround, created_at
-       FROM outcomes
+       FROM publishable_outcomes
        WHERE service_id = ? AND success = 1 AND context_masked IS NOT NULL
        ORDER BY created_at DESC
        LIMIT 3`

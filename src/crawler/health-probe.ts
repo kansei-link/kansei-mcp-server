@@ -222,8 +222,8 @@ export async function runHealthProbe(
     "UPDATE services SET mcp_status = ? WHERE id = ?"
   );
   const insertOutcome = db.prepare(
-    `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, context_masked, created_at)
-     VALUES (?, 'health-probe', ?, ?, ?, ?, datetime('now'))`
+    `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, context_masked, provenance, verification_status, task_type, created_at)
+     VALUES (?, 'health-probe', ?, ?, ?, ?, 'kansei_probe', 'unverified', 'reachability_probe', datetime('now'))`
   );
 
   const updateTrust = db.prepare(

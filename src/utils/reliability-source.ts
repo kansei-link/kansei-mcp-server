@@ -73,6 +73,10 @@ export interface ReliabilitySource {
   live_success_rate: number | null;
   /** Distinct genuine field agents (non-synthetic hashes). */
   live_agents: number;
+  /** Reports that passed the public threshold/verification view. */
+  public_reports: number;
+  /** Publicly displayable rate; null until the publication contract is met. */
+  public_success_rate: number | null;
   /** True only for Kansei-measured, assertion-verified evidence with N >= 5. */
   public_verified: boolean;
   /** Short human-readable provenance note for tool consumers. */
@@ -113,25 +117,35 @@ export function classifyReliabilitySource(
   let live_success_sum = 0;
   let estimated_reports = 0;
   const liveAgentHashes = new Set<string>();
-  let assertionVerifiedMeasured = 0;
 
   for (const r of rows) {
     // A null hash should never occur (column defaults to 'anonymous'), but if
     // it did we err on the side of NOT counting it as a trustworthy live agent.
-    if (r.provenance === "synthetic" || r.provenance === "legacy_unknown" || r.provenance === "public" || r.provenance === "vendor_reported" || r.hash == null || synthetic.has(r.hash)) {
+    if (r.provenance === "synthetic" || r.provenance === "legacy_unknown" || r.provenance === "public" || r.provenance === "vendor_reported" || r.provenance === "kansei_probe" || r.hash == null || synthetic.has(r.hash)) {
       estimated_reports += r.n;
     } else {
       live_reports += r.n;
       live_success_sum += r.s ?? 0;
       liveAgentHashes.add(r.hash);
-      if (r.provenance === "kansei_measured" && ["assertion_verified", "audited"].includes(r.verification_status)) {
-        assertionVerifiedMeasured += r.n;
-      }
     }
   }
 
   const live_success_rate =
     live_reports > 0 ? live_success_sum / live_reports : null;
+  const hasPublishableView = !!db.prepare(
+    "SELECT 1 FROM sqlite_master WHERE type='view' AND name='publishable_service_stats'"
+  ).get();
+  const publicStats = hasPublishableView
+    ? db.prepare(`SELECT COALESCE(SUM(total_calls), 0) AS n,
+                         CASE WHEN SUM(total_calls) > 0
+                              THEN CAST(SUM(success_count) AS REAL) / SUM(total_calls)
+                              ELSE NULL END AS rate
+                    FROM publishable_service_stats WHERE service_id = ?`).get(serviceId) as { n: number; rate: number | null }
+    : { n: 0, rate: null };
+  const publicVerified = hasPublishableView && !!db.prepare(
+    `SELECT 1 FROM publishable_service_stats
+      WHERE service_id = ? AND provenance = 'kansei_measured' LIMIT 1`
+  ).get(serviceId);
 
   let basis: ReliabilityBasis;
   if (live_reports === 0 && estimated_reports === 0) basis = "none";
@@ -163,7 +177,9 @@ export function classifyReliabilitySource(
     estimated_reports,
     live_success_rate,
     live_agents: liveAgentHashes.size,
-    public_verified: assertionVerifiedMeasured >= 5,
+    public_reports: publicStats.n,
+    public_success_rate: publicStats.rate,
+    public_verified: publicVerified,
     note,
   };
 }

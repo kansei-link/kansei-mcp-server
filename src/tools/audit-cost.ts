@@ -127,9 +127,9 @@ export function auditCost(
 ): object {
   const today = new Date().toISOString().slice(0, 10);
 
-  // Check if we have any model_service_stats data at all
+  // Only independently publishable model data may drive recommendations.
   const hasData = db
-    .prepare("SELECT COUNT(*) as cnt FROM model_service_stats WHERE total_calls > 0")
+    .prepare("SELECT COUNT(*) as cnt FROM publishable_model_service_stats WHERE total_calls > 0")
     .get() as { cnt: number };
 
   if (hasData.cnt === 0) {
@@ -156,8 +156,8 @@ export function auditCost(
            mss1.success_rate as current_sr, mss1.total_calls as current_calls,
            mss2.model_name as cheaper_model, mss2.avg_cost_usd as cheaper_cost,
            mss2.success_rate as cheaper_sr, mss2.total_calls as cheaper_calls
-    FROM model_service_stats mss1
-    JOIN model_service_stats mss2
+    FROM publishable_model_service_stats mss1
+    JOIN publishable_model_service_stats mss2
       ON mss1.service_id = mss2.service_id
       AND mss1.task_type = mss2.task_type
       AND mss1.model_name != mss2.model_name
@@ -205,9 +205,9 @@ export function auditCost(
            ss2.success_rate as alt_sr,
            s2.mcp_status as alt_mcp_status
     FROM services s1
-    JOIN service_stats ss1 ON s1.id = ss1.service_id
+    JOIN publishable_service_rollup ss1 ON s1.id = ss1.service_id
     JOIN services s2 ON s1.category = s2.category AND s1.id != s2.id
-    JOIN service_stats ss2 ON s2.id = ss2.service_id
+    JOIN publishable_service_rollup ss2 ON s2.id = ss2.service_id
     WHERE ss2.success_rate > ss1.success_rate + 0.15
       AND ss1.total_calls >= 5
       AND ss2.total_calls >= 5
@@ -323,10 +323,10 @@ export function auditCost(
   }
 
   // ─── Totals ─────────────────────────────────────────────
-  // Estimate total spend from model_service_stats
+  // Estimate total spend from publishable model statistics only.
   const spendSql = `
     SELECT SUM(avg_cost_usd * total_calls) as total_spend
-    FROM model_service_stats
+    FROM publishable_model_service_stats
     ${serviceId ? "WHERE service_id = ?" : ""}
   `;
   const spendParams = serviceId ? [serviceId] : [];
@@ -362,7 +362,7 @@ export function auditCost(
   // Data coverage stats
   const servicesWithData = db
     .prepare(
-      "SELECT COUNT(DISTINCT service_id) as cnt FROM model_service_stats WHERE total_calls > 0"
+      "SELECT COUNT(DISTINCT service_id) as cnt FROM publishable_model_service_stats WHERE total_calls > 0"
     )
     .get() as { cnt: number };
   const totalReports = db
@@ -370,7 +370,7 @@ export function auditCost(
     .get() as { cnt: number };
   const modelsTracked = db
     .prepare(
-      "SELECT DISTINCT model_name FROM model_service_stats WHERE total_calls > 0"
+      "SELECT DISTINCT model_name FROM publishable_model_service_stats WHERE total_calls > 0"
     )
     .all() as Array<{ model_name: string }>;
 

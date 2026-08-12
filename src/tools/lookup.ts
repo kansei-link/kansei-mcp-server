@@ -344,6 +344,22 @@ export function register(
       const firstRecipe = mode === "recipe"
         ? (Array.isArray(raw) ? raw[0] : raw) as { id?: string; version?: number } | undefined
         : undefined;
+      db.prepare(`
+        INSERT INTO execution_attempts
+          (attempt_id, service_id, recipe_id, recipe_version)
+        VALUES (?, ?, ?, ?)
+      `).run(
+        attemptId,
+        params.service_id ?? null,
+        firstRecipe?.id ?? null,
+        firstRecipe?.version ?? null
+      );
+      // Bounded retention: raw attempt handles are operational data, not a
+      // permanent identity trail. Closed/expired records age out after 90d.
+      db.prepare(`
+        DELETE FROM execution_attempts
+         WHERE COALESCE(closed_at, expires_at) < datetime('now', '-90 days')
+      `).run();
 
       // A21: canonical KanseiLINK app/deep-link (conditional per mode — the "exit").
       const kl =

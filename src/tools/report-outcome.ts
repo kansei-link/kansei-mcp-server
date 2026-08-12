@@ -5,6 +5,7 @@ import { maskPii } from "../utils/pii-masker.js";
 import { detectAnomalies } from "../utils/anomaly-detector.js";
 import { normalizeModelName, inferAgentType } from "../utils/model-normalizer.js";
 import { estimateCost } from "../utils/model-pricing.js";
+import { randomUUID } from "node:crypto";
 
 export function register(server: McpServer, db: Database.Database): void {
   server.registerTool(
@@ -113,7 +114,7 @@ export function register(server: McpServer, db: Database.Database): void {
   );
 }
 
-interface OutcomeInput {
+export interface OutcomeInput {
   service_id: string;
   success: boolean;
   latency_ms?: number;
@@ -134,6 +135,13 @@ interface OutcomeInput {
   failed_step?: string;
 }
 
+interface RecoveryRecipe {
+  id: string;
+  version: number;
+  recovery_steps: string;
+  matched_error_class: string;
+}
+
 function safeJsonArray(value: unknown): unknown[] {
   if (typeof value !== "string" || value === "") return [];
   try {
@@ -142,6 +150,47 @@ function safeJsonArray(value: unknown): unknown[] {
   } catch {
     return [];
   }
+}
+
+function selectRecoveryRecipe(
+  db: Database.Database,
+  input: OutcomeInput
+): RecoveryRecipe | undefined {
+  if (input.success) return undefined;
+  const candidates = db.prepare(`
+    SELECT id, version, known_failures, recovery_steps
+      FROM recipes
+     WHERE recovery_steps <> '[]'
+       AND (id = ? OR required_services LIKE ?)
+     ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END,
+              CASE WHEN last_verified_at IS NULL THEN 1 ELSE 0 END,
+              last_verified_at DESC, id ASC
+  `).all(input.recipe_id ?? "", `%\"${input.service_id}\"%`, input.recipe_id ?? "") as Array<{
+    id: string; version: number; known_failures: string; recovery_steps: string;
+  }>;
+
+  const classify = (raw: string): string[] => safeJsonArray(raw).flatMap((item) => {
+    if (typeof item === "string") return [item];
+    if (!item || typeof item !== "object") return [];
+    const obj = item as Record<string, unknown>;
+    const value = obj.error_class ?? obj.error_type ?? obj.class;
+    return typeof value === "string" ? [value] : [];
+  });
+
+  const wanted = input.error_type?.trim().toLowerCase();
+  for (const candidate of candidates) {
+    const classes = classify(candidate.known_failures).map((v) => v.toLowerCase());
+    if (wanted && classes.includes(wanted)) {
+      return { ...candidate, matched_error_class: wanted };
+    }
+  }
+  for (const candidate of candidates) {
+    const classes = classify(candidate.known_failures).map((v) => v.toLowerCase());
+    if (classes.length === 0 || classes.includes("generic")) {
+      return { ...candidate, matched_error_class: "generic" };
+    }
+  }
+  return undefined;
 }
 
 export function reportOutcome(
@@ -184,30 +233,68 @@ export function reportOutcome(
     ? estimateCost(normalizedModel, input.input_tokens, input.output_tokens)
     : null);
 
-  // Insert outcome
-  db.prepare(
-    `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, provenance, verification_status, attempt_id, recipe_id, recipe_version, failed_step)
-     VALUES (?, 'anonymous', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user_reported', 'unverified', ?, ?, ?, ?)`
-  ).run(
-    input.service_id,
-    input.success ? 1 : 0,
-    input.latency_ms ?? null,
-    input.error_type ?? null,
-    workaroundMasked,
-    contextMasked,
-    input.is_retry ? 1 : 0,
-    input.estimated_users ?? null,
-    normalizedModel,
-    agentType,
-    input.task_type ?? null,
-    input.input_tokens ?? null,
-    input.output_tokens ?? null,
-    costUsd,
-    input.attempt_id ?? null,
-    input.recipe_id ?? null,
-    input.recipe_version ?? null,
-    input.failed_step ?? null
-  );
+  const attempt = input.attempt_id
+    ? db.prepare(`SELECT attempt_id, service_id, recipe_id, recipe_version, status,
+                         expires_at
+                    FROM execution_attempts WHERE attempt_id = ?`).get(input.attempt_id) as
+        | { attempt_id: string; service_id: string | null; recipe_id: string | null; recipe_version: number | null; status: string; expires_at: string }
+        | undefined
+    : undefined;
+  if (input.attempt_id && !attempt) {
+    return { recorded: false, error: "invalid_attempt_id" };
+  }
+  if (attempt && attempt.status !== "open") {
+    return { recorded: false, error: "attempt_already_closed", attempt_id: attempt.attempt_id };
+  }
+  if (attempt && attempt.expires_at <= new Date().toISOString().replace("T", " ").slice(0, 19)) {
+    return { recorded: false, error: "attempt_expired", attempt_id: attempt.attempt_id };
+  }
+  if (attempt?.service_id && attempt.service_id !== input.service_id) {
+    return { recorded: false, error: "attempt_service_mismatch", attempt_id: attempt.attempt_id };
+  }
+  if (attempt?.recipe_id && input.recipe_id && attempt.recipe_id !== input.recipe_id) {
+    return { recorded: false, error: "attempt_recipe_mismatch", attempt_id: attempt.attempt_id };
+  }
+
+  const recovery = selectRecoveryRecipe(db, input);
+  const retryAttemptId = attempt && recovery ? randomUUID() : null;
+
+  const insertOutcome = db.transaction(() => {
+    if (attempt) {
+      const closed = db.prepare(`UPDATE execution_attempts
+                                    SET status = 'closed', closed_at = datetime('now')
+                                  WHERE attempt_id = ? AND status = 'open'
+                                    AND expires_at > datetime('now')`).run(attempt.attempt_id);
+      if (closed.changes !== 1) throw new Error("attempt_close_conflict");
+    }
+    db.prepare(
+      `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, provenance, verification_status, attempt_id, recipe_id, recipe_version, failed_step)
+       VALUES (?, 'anonymous', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user_reported', 'unverified', ?, ?, ?, ?)`
+    ).run(
+      input.service_id, input.success ? 1 : 0, input.latency_ms ?? null,
+      input.error_type ?? null, workaroundMasked, contextMasked,
+      input.is_retry ? 1 : 0, input.estimated_users ?? null, normalizedModel,
+      agentType, input.task_type ?? null, input.input_tokens ?? null,
+      input.output_tokens ?? null, costUsd, input.attempt_id ?? null,
+      input.recipe_id ?? attempt?.recipe_id ?? null,
+      input.recipe_version ?? attempt?.recipe_version ?? null,
+      input.failed_step ?? null
+    );
+    if (retryAttemptId && recovery) {
+      db.prepare(`INSERT INTO execution_attempts
+        (attempt_id, service_id, recipe_id, recipe_version, parent_attempt_id)
+        VALUES (?, ?, ?, ?, ?)`
+      ).run(retryAttemptId, input.service_id, recovery.id, recovery.version, attempt!.attempt_id);
+    }
+  });
+  try {
+    insertOutcome();
+  } catch (error) {
+    if (error instanceof Error && error.message === "attempt_close_conflict") {
+      return { recorded: false, error: "attempt_already_closed", attempt_id: input.attempt_id };
+    }
+    throw error;
+  }
 
   // Update aggregated stats
   db.prepare(
@@ -267,19 +354,6 @@ export function reportOutcome(
   // Run anomaly detection (scout ant dispatch)
   const anomalies = detectAnomalies(db, input.service_id);
 
-  const recovery = !input.success
-    ? (db.prepare(
-        `SELECT id, version, recovery_steps
-           FROM recipes
-          WHERE recovery_steps <> '[]'
-            AND (id = ? OR required_services LIKE ?)
-          ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, last_verified_at DESC
-          LIMIT 1`
-      ).get(input.recipe_id ?? "", `%\"${input.service_id}\"%`, input.recipe_id ?? "") as
-        | { id: string; version: number; recovery_steps: string }
-        | undefined)
-    : undefined;
-
   return {
     recorded: true,
     service_id: input.service_id,
@@ -300,13 +374,15 @@ export function reportOutcome(
         }))
       : undefined,
     attempt: input.attempt_id
-      ? { attempt_id: input.attempt_id, correlated: true }
+      ? { attempt_id: input.attempt_id, validated: true, status: "closed" }
       : undefined,
     recovery_recipe: recovery
       ? {
           recipe_id: recovery.id,
           recipe_version: recovery.version,
+          matched_error_class: recovery.matched_error_class,
           steps: safeJsonArray(recovery.recovery_steps),
+          ...(retryAttemptId ? { retry_attempt_id: retryAttemptId } : {}),
         }
       : undefined,
     cost_hint: normalizedModel

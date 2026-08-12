@@ -91,7 +91,11 @@ export function getInsights(db: Database.Database, serviceId: string): object {
 
   // Get stats
   const stats = db
-    .prepare("SELECT * FROM service_stats WHERE service_id = ?")
+    .prepare(`SELECT service_id, SUM(total_calls) AS total_calls,
+                     CAST(SUM(success_count) AS REAL) / SUM(total_calls) AS success_rate,
+                     SUM(COALESCE(avg_latency_ms, 0) * total_calls) / SUM(total_calls) AS avg_latency_ms,
+                     MAX(unique_agents) AS unique_agents, MAX(last_updated) AS last_updated
+                FROM publishable_service_stats WHERE service_id = ? GROUP BY service_id`)
     .get(serviceId) as StatsRow | undefined;
 
   if (!stats || stats.total_calls === 0) {
@@ -110,7 +114,7 @@ export function getInsights(db: Database.Database, serviceId: string): object {
   const errors = db
     .prepare(
       `SELECT error_type, count(*) as count
-       FROM outcomes
+       FROM publishable_outcomes
        WHERE service_id = ? AND error_type IS NOT NULL
        GROUP BY error_type
        ORDER BY count DESC
@@ -124,7 +128,7 @@ export function getInsights(db: Database.Database, serviceId: string): object {
       `SELECT error_type, workaround, count(*) as count,
               CAST(julianday('now') - julianday(MIN(created_at)) AS INTEGER) as oldest_days,
               CAST(julianday('now') - julianday(MAX(created_at)) AS INTEGER) as newest_days
-       FROM outcomes
+       FROM publishable_outcomes
        WHERE service_id = ? AND workaround IS NOT NULL
        GROUP BY error_type, workaround
        ORDER BY count DESC
@@ -139,7 +143,7 @@ export function getInsights(db: Database.Database, serviceId: string): object {
   const recentSuccess = db
     .prepare(
       `SELECT AVG(CASE WHEN success = 1 THEN 1.0 WHEN success = 0 THEN 0.0 END) as success_rate
-       FROM outcomes
+       FROM publishable_outcomes
        WHERE service_id = ? AND created_at >= datetime('now', '-7 days')
        HAVING COUNT(*) > 0`
     )
@@ -154,7 +158,7 @@ export function getInsights(db: Database.Database, serviceId: string): object {
            WHEN created_at >= datetime('now', '-14 days') THEN 'previous'
          END as period,
          count(*) as calls
-       FROM outcomes
+       FROM publishable_outcomes
        WHERE service_id = ? AND created_at >= datetime('now', '-14 days')
        GROUP BY period`
     )

@@ -23,7 +23,8 @@ db.exec(`
   INSERT INTO services(id, name) VALUES ('freee', 'freee');
   INSERT INTO outcomes(service_id, agent_id_hash, success) VALUES
     ('freee', 'test-harness-v1', 1),
-    ('freee', 'anonymous', 1);
+    ('freee', 'anonymous', 1),
+    ('freee', 'health-probe', 1);
 `);
 
 initializeDb(db);
@@ -38,6 +39,7 @@ for (const name of ["provenance", "verification_status", "attempt_id", "recipe_i
 const migrated = db.prepare("SELECT agent_id_hash, provenance FROM outcomes ORDER BY id").all();
 assert(migrated[0].provenance === "synthetic", "known seed must become synthetic");
 assert(migrated[1].provenance === "legacy_unknown", "ambiguous anonymous row must stay legacy_unknown");
+assert(migrated[2].provenance === "kansei_probe", "reachability probe must not become measured execution");
 
 db.prepare(`INSERT INTO recipes
   (id, goal, steps, required_services, known_failures, recovery_steps)
@@ -51,6 +53,8 @@ db.prepare(`INSERT INTO recipes
 );
 
 const attemptId = "73ca7e20-a950-4dce-ae6a-1ee9a9dccf44";
+db.prepare(`INSERT INTO execution_attempts(attempt_id, service_id, recipe_id, recipe_version)
+            VALUES (?, 'freee', 'freee-auth-recovery', 1)`).run(attemptId);
 const result = reportOutcome(db, {
   service_id: "freee",
   success: false,
@@ -64,13 +68,20 @@ const result = reportOutcome(db, {
 assert(result.recorded === true, "report must be recorded");
 assert(result.attempt?.attempt_id === attemptId, "attempt must correlate");
 assert(result.recovery_recipe?.steps?.length === 2, "failure must return recovery steps");
+assert(result.recovery_recipe?.matched_error_class === "auth_error", "recovery must match the reported error class");
+assert(result.recovery_recipe?.retry_attempt_id, "failed correlated attempt must issue a retry attempt");
+
+const duplicate = reportOutcome(db, {
+  service_id: "freee", success: true, attempt_id: attemptId,
+});
+assert(duplicate.recorded === false && duplicate.error === "attempt_already_closed", "attempt must close exactly once");
 
 const stored = db.prepare("SELECT provenance, verification_status, failed_step FROM outcomes ORDER BY id DESC LIMIT 1").get();
 assert(stored.provenance === "user_reported", "new report provenance must be user_reported");
 assert(stored.verification_status === "unverified", "reported data must not become verified");
 assert(stored.failed_step === "oauth_refresh", "failed step must persist");
 
-const publishable = db.prepare("SELECT SUM(total_calls) AS n FROM publishable_service_stats WHERE service_id = 'freee'").get();
-assert(publishable.n === 1, "public view must exclude synthetic and legacy_unknown rows");
+const publishable = db.prepare("SELECT COUNT(*) AS n FROM publishable_service_stats WHERE service_id = 'freee'").get();
+assert(publishable.n === 0, "sub-threshold reports and reachability probes must stay out of public metrics");
 
 console.log("data-architecture smoke: PASS");

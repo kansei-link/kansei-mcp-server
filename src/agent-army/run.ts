@@ -220,8 +220,8 @@ function recordResult(db: Database.Database, result: TestResult): void {
     `INSERT INTO outcomes
        (service_id, agent_id_hash, success, latency_ms, error_type,
         context_masked, model_name, agent_type, task_type,
-        input_tokens, output_tokens, cost_usd)
-     VALUES (?, 'agent-army', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        input_tokens, output_tokens, cost_usd, provenance, verification_status)
+     VALUES (?, 'agent-army', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synthetic', 'unverified')`
   ).run(
     result.service_id,
     result.success ? 1 : 0,

@@ -44,6 +44,7 @@ import {
 import { resolveApiKey, fixedTierResolver } from "./entitlements.js";
 import { runCrawler } from "./crawler/run.js";
 import { handleSiteCheck, handleSiteCheckGet } from "./site-check.js";
+import { reportOutcome } from "./tools/report-outcome.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
@@ -201,12 +202,15 @@ app.get("/api/dashboard/stats", apiLimiter, (_req: Request, res: Response) => {
       GROUP BY axr_grade ORDER BY count DESC
     `).all();
 
-    // Category success rates (from service_stats)
+    // Category success rates from the publication-gated view only.
     const categories = db.prepare(`
-      SELECT s.category, ROUND(AVG(ss.success_rate) * 100) as avg_success,
+      SELECT s.category, ROUND(AVG(ps.success_rate) * 100) as avg_success,
              COUNT(*) as service_count
       FROM services s
-      LEFT JOIN service_stats ss ON s.id = ss.service_id
+      LEFT JOIN (
+        SELECT service_id, CAST(SUM(success_count) AS REAL) / SUM(total_calls) AS success_rate
+          FROM publishable_service_stats GROUP BY service_id
+      ) ps ON s.id = ps.service_id
       WHERE s.category IS NOT NULL
       GROUP BY s.category
       ORDER BY avg_success DESC NULLS LAST
@@ -238,9 +242,13 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
     const rows = db.prepare(`
       SELECT s.id, s.name, s.category, s.axr_grade, s.axr_score,
              s.mcp_status, s.mcp_endpoint,
-             COALESCE(ss.avg_latency_ms, 0) as avg_latency_ms
+             COALESCE(ps.avg_latency_ms, 0) as avg_latency_ms
       FROM services s
-      LEFT JOIN service_stats ss ON s.id = ss.service_id
+      LEFT JOIN (
+        SELECT service_id,
+               SUM(COALESCE(avg_latency_ms, 0) * total_calls) / SUM(total_calls) AS avg_latency_ms
+          FROM publishable_service_stats GROUP BY service_id
+      ) ps ON s.id = ps.service_id
       WHERE s.axr_score IS NOT NULL
       ORDER BY s.axr_score DESC
       LIMIT ? OFFSET ?
@@ -253,10 +261,10 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
       const rel = classifyReliabilitySource(db, s.id);
       return {
         ...s,
-        success_rate: rel.measured
-          ? Math.round((rel.live_success_rate ?? 0) * 100) / 100
+        success_rate: rel.public_success_rate != null
+          ? Math.round(rel.public_success_rate * 100) / 100
           : null,
-        success_rate_measured: rel.measured,
+        success_rate_measured: rel.public_success_rate != null,
       };
     });
 
@@ -328,7 +336,7 @@ app.get("/api/dashboard/costs", apiLimiter, (_req: Request, res: Response) => {
              ROUND(SUM(avg_cost_usd * total_calls), 2) as total_spend,
              ROUND(AVG(avg_cost_usd), 4) as avg_cost_per_call,
              ROUND(AVG(success_rate) * 100) as avg_success_rate
-      FROM model_service_stats
+      FROM publishable_model_service_stats
       WHERE total_calls > 0
       GROUP BY model_name
       ORDER BY total_spend DESC
@@ -340,7 +348,7 @@ app.get("/api/dashboard/costs", apiLimiter, (_req: Request, res: Response) => {
              SUM(mss.total_calls) as total_calls,
              ROUND(SUM(mss.avg_cost_usd * mss.total_calls), 2) as total_spend,
              GROUP_CONCAT(DISTINCT mss.model_name) as models_used
-      FROM model_service_stats mss
+      FROM publishable_model_service_stats mss
       JOIN services s ON mss.service_id = s.id
       WHERE mss.total_calls > 0
       GROUP BY mss.service_id
@@ -357,8 +365,8 @@ app.get("/api/dashboard/costs", apiLimiter, (_req: Request, res: Response) => {
              mss2.model_name as cheaper_model, mss2.avg_cost_usd as cheaper_cost,
              ROUND(mss2.success_rate * 100) as cheaper_sr,
              ROUND((mss1.avg_cost_usd - mss2.avg_cost_usd) * mss1.total_calls, 2) as potential_savings
-      FROM model_service_stats mss1
-      JOIN model_service_stats mss2
+      FROM publishable_model_service_stats mss1
+      JOIN publishable_model_service_stats mss2
         ON mss1.service_id = mss2.service_id
         AND mss1.task_type = mss2.task_type
         AND mss1.model_name != mss2.model_name
@@ -382,7 +390,7 @@ app.get("/api/dashboard/costs", apiLimiter, (_req: Request, res: Response) => {
     // Totals
     const totalSpend = db.prepare(`
       SELECT ROUND(SUM(avg_cost_usd * total_calls), 2) as total
-      FROM model_service_stats
+      FROM publishable_model_service_stats
     `).get() as any;
 
     const totalOutcomes = db.prepare(`
@@ -1036,6 +1044,11 @@ app.post(
       const isRetry = Boolean(body.is_retry);
       const context =
         typeof body.context === "string" ? body.context.slice(0, 500) : null;
+      const attemptId = typeof body.attempt_id === "string" ? body.attempt_id : undefined;
+      const recipeId = typeof body.recipe_id === "string" ? body.recipe_id.slice(0, 128) : undefined;
+      const recipeVersion = typeof body.recipe_version === "number" ? body.recipe_version : undefined;
+      const failedStep = typeof body.failed_step === "string" ? body.failed_step.slice(0, 200) : undefined;
+      const modelName = typeof body.model_name === "string" ? body.model_name.slice(0, 128) : undefined;
 
       // Only accept known services — silently skip unknowns to avoid
       // FK-style errors, and to match the "agents can report freely but
@@ -1049,30 +1062,24 @@ app.post(
       }
 
       try {
-        // context_masked is the canonical column (outcomes already applies
-        // PII masking elsewhere; hook-captured context is already low-signal
-        // noise like "auto-captured via kansei-link-report-hook" so we pass
-        // it through unchanged).
-        db.prepare(
-          `INSERT INTO outcomes
-             (service_id, success, task_type, error_type, agent_type, is_retry, context_masked)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).run(
-          serviceId,
-          success ? 1 : 0,
-          taskType,
-          errorType,
-          agentType,
-          isRetry ? 1 : 0,
-          context
-        );
+        const result = reportOutcome(db, {
+          service_id: serviceId, success, task_type: taskType ?? undefined,
+          error_type: errorType ?? undefined, agent_type: agentType as any,
+          is_retry: isRetry, context: context ?? undefined, attempt_id: attemptId,
+          recipe_id: recipeId, recipe_version: recipeVersion,
+          failed_step: failedStep, model_name: modelName,
+        }) as Record<string, unknown>;
+        if (result.recorded === false) {
+          const code = result.error === "attempt_already_closed" ? 409 : 400;
+          return res.status(code).json(result);
+        }
+        return res.json({ ok: true, ...result });
       } catch (dbErr: any) {
         return res
           .status(500)
           .json({ error: "db_insert_failed", detail: String(dbErr?.message).slice(0, 200) });
       }
 
-      res.json({ ok: true, service_id: serviceId, success });
     } catch (e: any) {
       res.status(400).json({ error: "bad_payload", detail: String(e?.message || e).slice(0, 200) });
     }

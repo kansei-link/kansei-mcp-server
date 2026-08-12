@@ -72,8 +72,8 @@ function main() {
 
   // ── Ingest into outcomes table ──────────────────────────────────
   const insertOutcome = db.prepare(`
-    INSERT INTO outcomes (service_id, agent_id_hash, success, error_type, workaround, context_masked, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO outcomes (service_id, agent_id_hash, success, error_type, workaround, context_masked, provenance, verification_status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'public', 'unverified', ?)
   `);
 
   // ── Ingest high-comment issues into agent_feedback ─────────────

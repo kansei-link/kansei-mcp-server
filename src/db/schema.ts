@@ -63,6 +63,18 @@ export function initializeDb(db: Database.Database): void {
       created_at TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS execution_attempts (
+      attempt_id TEXT PRIMARY KEY,
+      service_id TEXT REFERENCES services(id),
+      recipe_id TEXT,
+      recipe_version INTEGER,
+      parent_attempt_id TEXT REFERENCES execution_attempts(attempt_id),
+      status TEXT NOT NULL DEFAULT 'open',
+      issued_at TEXT NOT NULL DEFAULT (datetime('now')),
+      expires_at TEXT NOT NULL DEFAULT (datetime('now', '+24 hours')),
+      closed_at TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS service_stats (
       service_id TEXT PRIMARY KEY REFERENCES services(id),
       total_calls INTEGER DEFAULT 0,
@@ -105,6 +117,7 @@ export function initializeDb(db: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_outcomes_service ON outcomes(service_id);
     CREATE INDEX IF NOT EXISTS idx_outcomes_created ON outcomes(created_at);
+    CREATE INDEX IF NOT EXISTS idx_attempts_status_expiry ON execution_attempts(status, expires_at);
     CREATE INDEX IF NOT EXISTS idx_services_category ON services(category);
     CREATE INDEX IF NOT EXISTS idx_changelog_service ON service_changelog(service_id);
     CREATE INDEX IF NOT EXISTS idx_changelog_date ON service_changelog(change_date);
@@ -357,31 +370,10 @@ export function initializeDb(db: Database.Database): void {
     UPDATE outcomes SET provenance = 'synthetic'
       WHERE provenance = 'legacy_unknown'
         AND agent_id_hash IN ('test-harness-v1','agent-army','scout_agent','self-test-fleet','agent1','agent2','agent3','agent4','agent5','agent6','test-agent');
-    UPDATE outcomes SET provenance = 'kansei_measured'
-      WHERE provenance = 'legacy_unknown' AND agent_id_hash = 'health-probe';
     UPDATE outcomes SET provenance = 'public'
       WHERE provenance = 'legacy_unknown' AND agent_id_hash = 'github-issues-miner';
     CREATE INDEX IF NOT EXISTS idx_outcomes_attempt ON outcomes(attempt_id);
     CREATE INDEX IF NOT EXISTS idx_outcomes_provenance ON outcomes(provenance);
-    DROP VIEW IF EXISTS publishable_outcomes;
-    CREATE VIEW publishable_outcomes AS
-      SELECT * FROM outcomes
-       WHERE provenance IN ('user_reported', 'kansei_measured');
-    DROP VIEW IF EXISTS publishable_service_stats;
-    CREATE VIEW publishable_service_stats AS
-      SELECT service_id, provenance,
-             COALESCE(model_name, 'unknown') AS model_name,
-             COALESCE(task_type, 'general') AS task_type,
-             COUNT(*) AS total_calls,
-             AVG(success) AS success_rate,
-             AVG(CASE WHEN latency_ms IS NOT NULL THEN latency_ms END) AS avg_latency_ms,
-             COUNT(DISTINCT NULLIF(agent_id_hash, 'anonymous')) AS unique_agents,
-             MIN(created_at) AS period_start,
-             MAX(created_at) AS period_end,
-             MAX(created_at) AS last_updated
-        FROM outcomes
-       WHERE provenance IN ('user_reported', 'kansei_measured')
-       GROUP BY service_id, provenance, COALESCE(model_name, 'unknown'), COALESCE(task_type, 'general');
   `);
 
   // Migration: add calls_per_agent_per_day and estimated_total_users to snapshots
@@ -410,6 +402,96 @@ export function initializeDb(db: Database.Database): void {
     db.exec("ALTER TABLE outcomes ADD COLUMN output_tokens INTEGER");
     db.exec("ALTER TABLE outcomes ADD COLUMN cost_usd REAL");
   }
+
+  db.exec(`UPDATE outcomes
+              SET provenance = 'kansei_probe', task_type = 'reachability_probe'
+            WHERE agent_id_hash = 'health-probe'`);
+
+  // Public metrics are deliberately narrower than stored telemetry:
+  // - reachability probes are never task execution;
+  // - reported data requires a server-issued, single-use closed attempt;
+  // - community rates need N>=50 and an independently verified N>=5 baseline;
+  // - measured rates need assertion-verified/audited evidence with N>=5.
+  db.exec(`
+    DROP VIEW IF EXISTS publishable_outcomes;
+    CREATE VIEW publishable_outcomes AS
+      SELECT o.* FROM outcomes o
+       WHERE (
+         o.provenance = 'kansei_measured'
+         AND o.task_type IS NOT NULL AND o.task_type <> 'reachability_probe'
+         AND o.verification_status IN ('assertion_verified', 'audited')
+         AND 5 <= (
+           SELECT COUNT(*) FROM outcomes m
+            WHERE m.service_id = o.service_id
+              AND COALESCE(m.model_name, 'unknown') = COALESCE(o.model_name, 'unknown')
+              AND m.task_type = o.task_type
+              AND m.provenance = 'kansei_measured'
+              AND m.verification_status IN ('assertion_verified', 'audited')
+         )
+       ) OR (
+         o.provenance = 'user_reported' AND o.attempt_id IS NOT NULL
+         AND EXISTS (SELECT 1 FROM execution_attempts a WHERE a.attempt_id = o.attempt_id AND a.status = 'closed')
+         AND 50 <= (
+           SELECT COUNT(*) FROM outcomes r
+            WHERE r.service_id = o.service_id
+              AND COALESCE(r.model_name, 'unknown') = COALESCE(o.model_name, 'unknown')
+              AND COALESCE(r.task_type, 'general') = COALESCE(o.task_type, 'general')
+              AND r.provenance = 'user_reported' AND r.attempt_id IS NOT NULL
+              AND EXISTS (SELECT 1 FROM execution_attempts ar WHERE ar.attempt_id = r.attempt_id AND ar.status = 'closed')
+         )
+         AND 5 <= (
+           SELECT COUNT(DISTINCT NULLIF(r.agent_id_hash, 'anonymous')) FROM outcomes r
+            WHERE r.service_id = o.service_id
+              AND COALESCE(r.model_name, 'unknown') = COALESCE(o.model_name, 'unknown')
+              AND COALESCE(r.task_type, 'general') = COALESCE(o.task_type, 'general')
+              AND r.provenance = 'user_reported' AND r.attempt_id IS NOT NULL
+              AND EXISTS (SELECT 1 FROM execution_attempts ar WHERE ar.attempt_id = r.attempt_id AND ar.status = 'closed')
+         )
+         AND EXISTS (
+           SELECT 1 FROM outcomes m
+            WHERE m.service_id = o.service_id
+              AND COALESCE(m.task_type, 'general') = COALESCE(o.task_type, 'general')
+              AND m.provenance = 'kansei_measured'
+              AND m.verification_status IN ('assertion_verified', 'audited')
+            GROUP BY m.service_id, COALESCE(m.task_type, 'general') HAVING COUNT(*) >= 5
+         )
+       );
+    DROP VIEW IF EXISTS publishable_service_stats;
+    CREATE VIEW publishable_service_stats AS
+      SELECT service_id, provenance,
+             COALESCE(model_name, 'unknown') AS model_name,
+             COALESCE(task_type, 'general') AS task_type,
+             COUNT(*) AS total_calls, SUM(success) AS success_count,
+             AVG(success) AS success_rate,
+             AVG(CASE WHEN latency_ms IS NOT NULL THEN latency_ms END) AS avg_latency_ms,
+             AVG(CASE WHEN cost_usd IS NOT NULL THEN cost_usd END) AS avg_cost_usd,
+             AVG(CASE WHEN input_tokens IS NOT NULL THEN input_tokens END) AS avg_input_tokens,
+             AVG(CASE WHEN output_tokens IS NOT NULL THEN output_tokens END) AS avg_output_tokens,
+             COUNT(DISTINCT NULLIF(agent_id_hash, 'anonymous')) AS unique_agents,
+             MIN(created_at) AS period_start, MAX(created_at) AS period_end,
+             MAX(created_at) AS last_updated
+        FROM publishable_outcomes
+       GROUP BY service_id, provenance, COALESCE(model_name, 'unknown'), COALESCE(task_type, 'general');
+    DROP VIEW IF EXISTS publishable_service_rollup;
+    CREATE VIEW publishable_service_rollup AS
+      SELECT service_id, SUM(total_calls) AS total_calls, SUM(success_count) AS success_count,
+             CAST(SUM(success_count) AS REAL) / SUM(total_calls) AS success_rate,
+             SUM(COALESCE(avg_latency_ms, 0) * total_calls) / SUM(total_calls) AS avg_latency_ms,
+             MAX(unique_agents) AS unique_agents, MAX(last_updated) AS last_updated
+        FROM publishable_service_stats GROUP BY service_id;
+    DROP VIEW IF EXISTS publishable_model_service_stats;
+    CREATE VIEW publishable_model_service_stats AS
+      SELECT service_id, model_name, task_type,
+             SUM(total_calls) AS total_calls, SUM(success_count) AS success_count,
+             CAST(SUM(success_count) AS REAL) / SUM(total_calls) AS success_rate,
+             SUM(COALESCE(avg_latency_ms, 0) * total_calls) / SUM(total_calls) AS avg_latency_ms,
+             SUM(COALESCE(avg_cost_usd, 0) * total_calls) / SUM(total_calls) AS avg_cost_usd,
+             SUM(COALESCE(avg_input_tokens, 0) * total_calls) / SUM(total_calls) AS avg_input_tokens,
+             SUM(COALESCE(avg_output_tokens, 0) * total_calls) / SUM(total_calls) AS avg_output_tokens,
+             MAX(last_updated) AS last_updated
+        FROM publishable_service_stats
+       GROUP BY service_id, model_name, task_type;
+  `);
 
   // Migration: add MCP tool inventory columns to services (for analyze_mcp_config)
   // mcp_tool_count: how many tools this MCP server exposes
