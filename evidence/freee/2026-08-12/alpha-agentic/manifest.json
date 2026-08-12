@@ -1,53 +1,93 @@
 {
  "bundle": "alpha-agentic",
+ "generated_at_utc": "2026-08-12T15:52:20.381Z",
+ "generated_at_jst": "2026-08-13T00:52:20.381+09:00",
  "pack": {
   "id": "freee-accounting-t1-account-item-detail",
   "version": 1,
   "sha256": "5063d73f729d866e1a755737f1b65c63df0abb0e07a6caf54c8da4cb68ccd9d8"
  },
+ "executor": {
+  "file": "agentic-executor.mjs",
+  "sha256": "a62c930612ae95ff0f11206c25fb347888f207736eb522832e44ea0f3c4e4010",
+  "git_head": "86e6beca44315060c8d6fe1f001bcfffaeaf5b60"
+ },
+ "environment": {
+  "freee_mcp_version": "0.26.5",
+  "tool_schema_sha256": "2726e50cf4a1c48cbfb60f576c3f33dde8571c4e85336ce1abea1c2e896afcc9",
+  "node": "v22.19.0"
+ },
+ "models": {
+  "claude": "claude-opus-4-8",
+  "openai": "gpt-5.4-2026-03-05",
+  "gemini": "gemini-3.6-flash"
+ },
  "date": "2026-08-12",
- "executor": "agentic-executor.mjs",
- "note": "goal-prompt-only; scripted steps never shown to models; R0 tool allowlist enforced; assertions by harness ground-truth reads; no per-company business data stored beyond ids/names required for assertion; temperature left at provider default (claude-opus-4-8 rejects the parameter) so residual non-determinism is expected and is why N>=3",
+ "note": "goal-prompt-only; scripted steps never shown to models; R0 tool allowlist + pack-derived least-privilege API guard (service/path/own-tenant) enforced; assertions require the detail API call itself (not just answer text); success-rate denominators are measured runs only (infrastructure errors excluded but counted as planned); temperature at provider default so residual non-determinism is expected and is why N>=3; tenant identifiers withheld from committed files",
  "files": [
   {
    "file": "metrics.json",
-   "sha256": "80a9b8aeb38c3c9551c2fde64870a81e411f30e513dbf7cd13e33f0f7b031c86"
+   "sha256": "ebd2198ec8a822162f6115683e695611457e25f048d240fac765b93c91606c4a"
   },
   {
    "file": "claude-n1/transcript.jsonl",
-   "sha256": "d0d55c45f39218b36c3581ca180e5987c92dedff486427e0c2a23069362c199b"
+   "sha256": "c0417a60acfa53b74970794b71dc6a0c4de04483a8fa740a9550c98c89dbdedb"
   },
   {
    "file": "claude-n2/transcript.jsonl",
-   "sha256": "9be545dab8ded57110918b8a97ce21b791ed7b5bb4538ad3e30a038e0883ea4a"
+   "sha256": "1b86663b42e77749131c494ec452c1981ab44443c49e0b95ba659de0f7a68e9a"
   },
   {
    "file": "claude-n3/transcript.jsonl",
-   "sha256": "a74e2f484f633863d58338e4ce9e6e4f7eab260c864bcdad37d47b5e67f621d8"
+   "sha256": "173aa589a029fcb0ffb2e19f6b3c7eeefe113b340a3f13db4a19177607705632"
+  },
+  {
+   "file": "claude-n4/transcript.jsonl",
+   "sha256": "047fe17900308c2d4b0ca55848ff52eb6b1ff57664097e3c1a05c9c503c8c391"
+  },
+  {
+   "file": "claude-n5/transcript.jsonl",
+   "sha256": "2937d0c5473a7e8bcc9b97752bed1b29fdb9ef27f93eb763469731ece2599643"
   },
   {
    "file": "openai-n1/transcript.jsonl",
-   "sha256": "c3f0e680ba4e1fe664d099adb48d9f0d2b2f5767e00fe1d532ca7fbad7c097a8"
+   "sha256": "037f0f913b0e59392028a93fdafe003b3cfb30e2d993ddf3d6252088d0fe1cdb"
   },
   {
    "file": "openai-n2/transcript.jsonl",
-   "sha256": "7b221153f1406668abfd2b2ccc7c2fdfe8c4a8e104c2970e4a99be77e6313be3"
+   "sha256": "1ebd1a4ed74e09d873dea90b659409d6e6ac763166611dbae50b2b911525f3db"
   },
   {
    "file": "openai-n3/transcript.jsonl",
-   "sha256": "7010a6651e1f5d3d89fadb6ee278d31c29600225108d354357b2b21332224ba0"
+   "sha256": "1622aaa133fda7bdef04e81b951c659bafb2dc29105d66f983903008fa19c780"
+  },
+  {
+   "file": "openai-n4/transcript.jsonl",
+   "sha256": "0c7fadf2de2864eec6af1192708fbf9ab33dffe4cf7738b850c8fe5816b75d6c"
+  },
+  {
+   "file": "openai-n5/transcript.jsonl",
+   "sha256": "5588e8c7cd18d7562d17e000ef83bb91925809ca57a346618fe71ce647e32d03"
   },
   {
    "file": "gemini-n1/transcript.jsonl",
-   "sha256": "a2fa3fcf54ea4768b28fb38bed0ab431783959b67986f4ffbd0b4a89c53f4911"
+   "sha256": "2072634c120e5ce5270a7b2fb8a4f0f86273a3e576fe6e5e46c3929a16100855"
   },
   {
    "file": "gemini-n2/transcript.jsonl",
-   "sha256": "0cf530feb5602922c527e7ea13ac0b5b40147506ae78c07c914fbf08cc384e07"
+   "sha256": "624ac3d77ba0ea46e5797f424575bbe2cbd4e7fca82723fa69d987933307bcf6"
   },
   {
    "file": "gemini-n3/transcript.jsonl",
-   "sha256": "8438281f3872c14b7505e20654b67409a04fe5977162555cdca96edf60746eca"
+   "sha256": "48f474408d4a89228845568ba9b342ed495e9e83e50d5d8683419f27b91357cb"
+  },
+  {
+   "file": "gemini-n4/transcript.jsonl",
+   "sha256": "bae9505022ed9dd076dac197e148cf4228097a5543f3ea0e2bf2c16086f4b877"
+  },
+  {
+   "file": "gemini-n5/transcript.jsonl",
+   "sha256": "08d339196b50e8614d1e895a00d3587ecb6c1cc0ad184ba49659ff678265669b"
   }
  ]
 }
