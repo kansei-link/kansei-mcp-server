@@ -1,0 +1,135 @@
+{
+  "schema_version": "1.0",
+  "id": "freee-accounting-t1-account-item-detail",
+  "version": 1,
+  "service_id": "freee",
+  "category": "accounting",
+  "task_type": "T1",
+  "evidence_tier_target": "E2",
+  "risk": "R0",
+  "source_recipe": {
+    "id": "freee-accounting-t1-account-item-detail",
+    "version": 1,
+    "sha256": "34dfeecac92a52d079fb422907e68760b7befe9e2bed89631a62fbc989979243"
+  },
+  "goal_prompt": {
+    "ja": "現在選択されているfreee事業所を確認し、その事業所の勘定科目一覧から1件を選び、ID指定で同じ勘定科目の詳細を取得してください。データは変更しないでください。最終回答には事業所ID、勘定科目ID、勘定科目名を含めてください。",
+    "en": "Resolve the currently selected freee company, choose one account item from its account-item list, then retrieve that same item by ID. Do not modify data. Include the company ID, account-item ID, and account-item name in the final answer."
+  },
+  "preflight": [
+    {
+      "tool": "freee_server_info",
+      "assert": "transport in ['remote','stdio']"
+    },
+    {
+      "tool": "freee_auth_status",
+      "assert": "authenticated == true"
+    }
+  ],
+  "preconditions": [
+    "A current company is selected and accessible",
+    "The company exposes at least one account item"
+  ],
+  "scripted_steps": [
+    {
+      "order": 1,
+      "source_action": "Resolve the currently selected freee company and capture its company_id",
+      "tool": "freee_get_current_company",
+      "arguments": {},
+      "capture": {
+        "company_id": "$.company.id"
+      },
+      "assertions": [
+        {
+          "op": "integer_gt",
+          "path": "$.company.id",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "source_action": "List account items for that company and select the first returned item with an integer id",
+      "tool": "freee_api_get",
+      "arguments": {
+        "service": "accounting",
+        "path": "/api/1/account_items",
+        "query": {
+          "company_id": "{{company_id}}"
+        }
+      },
+      "capture": {
+        "account_item_id": "$.account_items[0].id",
+        "listed_name": "$.account_items[0].name"
+      },
+      "assertions": [
+        {
+          "op": "array_min",
+          "path": "$.account_items",
+          "value": 1
+        },
+        {
+          "op": "integer_gt",
+          "path": "$.account_items[0].id",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "source_action": "Read the selected account item by id and verify that the returned id matches",
+      "tool": "freee_api_get",
+      "arguments": {
+        "service": "accounting",
+        "path": "/api/1/account_items/{{account_item_id}}",
+        "query": {
+          "company_id": "{{company_id}}"
+        }
+      },
+      "capture": {
+        "detail_name": "$.account_item.name"
+      },
+      "assertions": [
+        {
+          "op": "equals_template",
+          "path": "$.account_item.id",
+          "value": "{{account_item_id}}"
+        },
+        {
+          "op": "equals_template",
+          "path": "$.account_item.name",
+          "value": "{{listed_name}}"
+        }
+      ]
+    }
+  ],
+  "agentic": {
+    "models": [
+      "claude",
+      "gpt",
+      "gemini"
+    ],
+    "pilot_runs": 3,
+    "public_runs": 5,
+    "temperature": 0,
+    "answer_assertions": [
+      "company_id_present",
+      "account_item_id_present",
+      "account_item_name_present"
+    ]
+  },
+  "cleanup": {
+    "required": false,
+    "steps": []
+  },
+  "budgets": {
+    "max_steps": 10,
+    "max_tokens": 16000,
+    "timeout_s": 180
+  },
+  "publication": {
+    "minimum_runs": 5,
+    "requires_assertion_verified": true,
+    "allow_success_rate_before_threshold": false
+  }
+}

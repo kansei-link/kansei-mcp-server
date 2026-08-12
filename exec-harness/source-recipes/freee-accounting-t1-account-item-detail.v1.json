@@ -1,0 +1,24 @@
+{
+  "id": "freee-accounting-t1-account-item-detail",
+  "version": 1,
+  "goal": "Read a freee accounting master record through a list-to-detail chain",
+  "description": "Resolve the current company, list its account items, select one returned ID, and read the same account item by ID without modifying data.",
+  "required_services": ["freee"],
+  "steps": [
+    {
+      "order": 1,
+      "service_id": "freee",
+      "action": "Resolve the currently selected freee company and capture its company_id"
+    },
+    {
+      "order": 2,
+      "service_id": "freee",
+      "action": "List account items for that company and select the first returned item with an integer id"
+    },
+    {
+      "order": 3,
+      "service_id": "freee",
+      "action": "Read the selected account item by id and verify that the returned id matches"
+    }
+  ]
+}

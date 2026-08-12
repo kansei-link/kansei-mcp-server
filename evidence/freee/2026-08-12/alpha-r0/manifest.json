@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0-alpha",
+  "service_id": "freee",
+  "task_id": "freee-accounting-t1-account-item-detail",
+  "task_type": "T1",
+  "mode": "scripted",
+  "risk": "R0",
+  "evidence_tier_claimed": "E1",
+  "started_at": "2026-08-12T23:04:22+09:00",
+  "harness_git_sha": "77c36c4b6b82935a16e8b6b7d7d539735f18afa7",
+  "taskpack_sha256": "5063d73f729d866e1a755737f1b65c63df0abb0e07a6caf54c8da4cb68ccd9d8",
+  "environment": {
+    "transport": "stdio",
+    "authentication": "valid",
+    "tenant": "redacted",
+    "credentials_recorded": false,
+    "business_data_recorded": false
+  },
+  "tool_sequence": [
+    "freee_server_info",
+    "freee_auth_status",
+    "freee_get_current_company",
+    "freee_api_get:/api/1/account_items",
+    "freee_api_get:/api/1/account_items/{id}"
+  ],
+  "assertions": {
+    "transport_detected": true,
+    "authenticated": true,
+    "company_id_positive_integer": true,
+    "account_item_list_non_empty": true,
+    "detail_id_matches_list_id": true,
+    "detail_name_matches_list_name": true,
+    "write_tools_used": false
+  },
+  "result": "PASS",
+  "publication": {
+    "counts_toward_public_verified": false,
+    "reason": "Alpha scripted N=1; no Agentic run and no N>=5 reproducibility evidence"
+  }
+}
