@@ -1,15 +1,16 @@
-# External daily backup trigger (Codex review S2a-2):
-# the in-process maintenance is restart-proof, but an EXTERNAL scheduler
-# guarantees a backup even if the server-side timer logic regresses.
+# External SCHEDULER for the daily backup (Codex review S2a-2).
+# IMPORTANT: this does NOT export the backup off the Railway volume — it only
+# triggers /admin/backup-now, which writes a copy on the SAME volume. If the
+# volume itself is lost, primary and backups are lost together. Off-volume
+# export (GitHub Artifact / R2 / S3) is the next DR step; until it and a
+# restore drill are done, the disaster-recovery gate is NOT complete.
 #
 # SETUP (Michie, one time): add repo secret KANSEI_CRAWLER_SECRET with the
 # same value as Railway's CRAWLER_SECRET. Until the secret is set, this
 # workflow exits successfully with a notice (no failure noise).
 #
-# Off-volume export (backup to storage outside the Railway volume) is the
-# next hardening step — tracked in OPS-BOARD / RISK-REGISTER.
 
-name: db-backup
+name: db-backup-scheduler
 on:
   schedule:
     - cron: "30 0 * * *" # daily 00:30 UTC (09:30 JST)
