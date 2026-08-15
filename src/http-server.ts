@@ -19,7 +19,7 @@ import rateLimit from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { mkdirSync, readdirSync, rmSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, existsSync } from "node:fs";
 import * as nodePath from "node:path";
 import { createServer } from "./server.js";
 import { getDb, closeDb } from "./db/connection.js";
@@ -1247,7 +1247,7 @@ function installationAllowed(id: string, eventCount: number): boolean {
   const bucket = installBuckets.get(id);
   if (!bucket || now - bucket.windowStart > 60_000) {
     installBuckets.set(id, { windowStart: now, count: eventCount });
-    return true;
+    return eventCount <= 60; // first batch must respect the limit too
   }
   bucket.count += eventCount;
   return bucket.count <= 60;
@@ -1365,10 +1365,33 @@ app.post("/admin/backup-now", (req: Request, res: Response) => {
   try { res.json({ ok: true, ...runDbBackup() }); }
   catch (e: any) { res.status(500).json({ error: String(e?.message).slice(0, 200) }); }
 });
-setInterval(() => {
-  try { runDbBackup(); console.log("[backup] daily db backup completed"); }
-  catch (e) { console.error("[backup] failed:", e); }
-}, 24 * 3600 * 1000).unref();
+
+// Daily maintenance — restart-proof (Codex review):
+//   - runs at STARTUP and then every 6h, but the backup itself is
+//     date-guarded (skips if today's file already exists), so frequent
+//     redeploys can never starve it AND it still runs at most once a day
+//   - enforces the Event Contract 90-day raw-event retention
+//   - NOTE: same-volume copies do not survive volume loss; external
+//     scheduling + off-volume export tracked in .github/workflows/db-backup.yml
+function dailyMaintenance(reason: string): void {
+  try {
+    const dbPath = process.env.KANSEI_DB_PATH ?? "kansei-link.db";
+    const dir = nodePath.join(nodePath.dirname(dbPath), "backups");
+    const todayFile = nodePath.join(dir, `kansei-link-${new Date().toISOString().slice(0, 10)}.db`);
+    if (!existsSync(todayFile)) {
+      runDbBackup();
+      console.log(`[maintenance:${reason}] daily backup written`);
+    }
+    const purged = getDb()
+      .prepare("DELETE FROM telemetry_events WHERE occurred_at < datetime('now','-90 days')")
+      .run();
+    if (purged.changes > 0) console.log(`[maintenance:${reason}] purged ${purged.changes} events past 90d retention`);
+  } catch (e) {
+    console.error(`[maintenance:${reason}] failed:`, e);
+  }
+}
+dailyMaintenance("startup");
+setInterval(() => dailyMaintenance("interval"), 6 * 3600 * 1000).unref();
 
 // Reject GET/DELETE on /mcp (stateless mode)
 app.get("/mcp", (_req: Request, res: Response) => {

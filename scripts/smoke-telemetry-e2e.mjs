@@ -103,7 +103,16 @@ assert.equal(r.body.rejected, 1, "outside ±48h window rejected");
 r = await post([{ event_id: randomUUID(), type: "outcome_reported", occurred_at: now(), service_id: "freee", success: false, failed_step: "the auth broke here" }]);
 assert.equal(r.body.rejected, 1, "free-text failed_step rejected");
 
-console.log("  [PASS] 4. ingestion defenses: strict schema / dedup / window / service allowlist / failed_step");
+// first-batch rate limit (Codex review fix #1): a brand-new installation
+// sending >60 events in its very first batch must be rejected wholesale.
+const floodId = randomUUID();
+const floodEvents = Array.from({ length: 61 }, () => ({ event_id: randomUUID(), type: "mcp_search", occurred_at: now(), result_count: 1 }));
+const flood = await fetch(`${base}/api/v1/events`, {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ contract_version: "1.0", installation_id: floodId, sent_at: now(), events: floodEvents.slice(0, 61) }),
+});
+assert.equal(flood.status, 429, "first batch of 61 events must be rate-limited");
+console.log("  [PASS] 4. ingestion defenses: strict schema / dedup / window / service allowlist / failed_step / first-batch limit");
 
 const was = await fetch(`${base}/api/v1/metrics/was`, { headers: { authorization: "Bearer e2e-secret" } }).then((r) => r.json());
 assert.equal(was.weekly_active_sensors, 1, `WAS must be 1: ${JSON.stringify(was)}`);

@@ -150,7 +150,7 @@ pseudonymous event to KanseiLink's hosted endpoint after each MCP tool call. The
   API keys, file paths, free text of any kind. No account or machine
   identifier is attached.
 
-Installing the hook is the opt-in. Disable anytime: `export KANSEI_REPORT_HOOK=off`.
+Installing the hook does NOT opt you in — transmission requires the consent gate above (Live Updates consent, or an explicit `KANSEI_REPORT_HOOK=on`). Disable anytime: `kansei-link-live-updates --disable` or `export KANSEI_REPORT_HOOK=off`.
 
 Add to `~/.claude/settings.json`:
 

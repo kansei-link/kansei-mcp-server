@@ -1,0 +1,34 @@
+# External daily backup trigger (Codex review S2a-2):
+# the in-process maintenance is restart-proof, but an EXTERNAL scheduler
+# guarantees a backup even if the server-side timer logic regresses.
+#
+# SETUP (Michie, one time): add repo secret KANSEI_CRAWLER_SECRET with the
+# same value as Railway's CRAWLER_SECRET. Until the secret is set, this
+# workflow exits successfully with a notice (no failure noise).
+#
+# Off-volume export (backup to storage outside the Railway volume) is the
+# next hardening step — tracked in OPS-BOARD / RISK-REGISTER.
+
+name: db-backup
+on:
+  schedule:
+    - cron: "30 0 * * *" # daily 00:30 UTC (09:30 JST)
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger /admin/backup-now
+        env:
+          SECRET: ${{ secrets.KANSEI_CRAWLER_SECRET }}
+        run: |
+          if [ -z "$SECRET" ]; then
+            echo "KANSEI_CRAWLER_SECRET not configured — skipping (server-side maintenance still runs)"
+            exit 0
+          fi
+          resp=$(curl -sS --max-time 120 -X POST \
+            -H "Authorization: Bearer $SECRET" \
+            https://kansei-link-mcp-production.up.railway.app/admin/backup-now)
+          echo "$resp"
+          echo "$resp" | grep -q '"ok":true'
