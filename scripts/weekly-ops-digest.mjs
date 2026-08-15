@@ -56,11 +56,12 @@ try {
   md(`- 累計: ${prov.map((p) => `${p.provenance} ${p.n}`).join(' / ')}`);
   const week = db.prepare("SELECT provenance, COUNT(*) n FROM outcomes WHERE created_at >= datetime('now','-7 days') GROUP BY provenance").all();
   md(`- 直近7日: ${week.length ? week.map((p) => `${p.provenance} ${p.n}`).join(' / ') : '新規なし'}`);
-  const sensors = db.prepare("SELECT COUNT(DISTINCT agent_id_hash) n FROM outcomes WHERE provenance='user_reported' AND created_at >= datetime('now','-7 days')").get();
-  md(`- **生きてるセンサー（7日・user_reported主体数）: ${sensors.n}**（North Star）`);
+  const reporters = db.prepare("SELECT COUNT(DISTINCT agent_id_hash) n FROM outcomes WHERE provenance='user_reported' AND created_at >= datetime('now','-7 days')").get();
+  md(`- Outcome reporters（7日・user_reported主体数）: ${reporters.n}`);
+  md('- **Weekly Active Sensors: 未計測**（検索イベントとOutcome/再検証を同一actorで結合後に算出。定義: `founder-ops/METRIC-CONTRACT.md`）');
   try {
     const att = db.prepare("SELECT COUNT(*) total, SUM(CASE WHEN closed_at IS NULL THEN 1 ELSE 0 END) open FROM execution_attempts").get();
-    md(`- attempt相関: 発行${att.total}・未クローズ${att.open}`);
+    md(`- attempt相関: 発行${att.total}・未クローズ${att.open ?? 0}`);
   } catch { md('- attempt相関: テーブル未作成（lookup発行分は未永続）'); }
   const fresh = db.prepare("SELECT COUNT(*) n FROM recipes WHERE last_verified_at IS NOT NULL").get();
   const recipes = db.prepare('SELECT COUNT(*) n FROM recipes').get();
@@ -112,6 +113,9 @@ try {
   const m = board.match(/## 4\. 承認待ちキュー[^\n]*\n([\s\S]*?)\n## /);
   md(m ? m[1].trim() : '- OPS-BOARD §4を読めませんでした');
 } catch (e) { md(`- 転記失敗: ${e.message.slice(0, 60)}`); }
+md('');
+md('## 7. Founder attention minutes（v1.4・30日間は観測のみ・目標なし）');
+md('- 今週この運営に使った確認時間（自己申告）: ___分  ← Michieが月曜レビュー時に記入');
 md('');
 md('---');
 md('次のアクション: メインセッションで「週次レビュー」→ kl-chief がOPS-BOARDの今週行を更新します。');
