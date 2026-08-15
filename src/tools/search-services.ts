@@ -6,6 +6,7 @@ import {
   type ReliabilityBasis,
 } from "../utils/reliability-source.js";
 import { kanseiAppLink } from "../utils/app-link.js";
+import { emitEvent } from "../usage/telemetry.js";
 
 interface ServiceRow {
   id: string;
@@ -98,7 +99,14 @@ export function register(server: McpServer, db: Database.Database): void {
       },
     },
     async ({ intent, category, agent_ready, limit, compact }) => {
+      const searchStartedAt = Date.now();
       const results = searchServices(db, intent, category, limit ?? 5, agent_ready);
+      // Event Contract v1: no query text, no result service ids — counts only.
+      void emitEvent("mcp_search", {
+        result_count: results.length,
+        category_id: category || undefined,
+        latency_ms: Date.now() - searchStartedAt,
+      });
       const isCompact = compact ?? false;
       const outputResults = isCompact
         ? (results as ScoredResult[]).map((r) => ({

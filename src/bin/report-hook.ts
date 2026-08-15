@@ -49,10 +49,13 @@ const DEFAULT_ENDPOINT =
   process.env.KANSEI_ENDPOINT ||
   "https://kansei-link-mcp-production.up.railway.app/api/report-outcome";
 
-// Hook is intentionally opt-in (users add it to settings.json themselves),
-// but we additionally gate on KANSEI_REPORT_HOOK env so agents can wire the
-// hook broadly and enable/disable without editing settings each time.
-const ENABLED = (process.env.KANSEI_REPORT_HOOK ?? "on").toLowerCase() !== "off";
+// S2a (Consent Contract v1): ALL central transmission flows through the
+// single consent gate. Priority: DO_NOT_TRACK / explicit OFF > explicit ON
+// (KANSEI_REPORT_HOOK=on) > consent.json (Live Updates) > DEFAULT OFF.
+// BREAKING vs <=1.1.x: installing the hook alone no longer transmits —
+// existing hook users are OFF until they re-consent via
+// `kansei-link-live-updates --enable` (or set KANSEI_REPORT_HOOK=on).
+import { transmissionAllowed } from "../usage/consent.js";
 
 function log(msg: string): void {
   try {
@@ -194,8 +197,9 @@ function postJson(url: string, body: unknown, timeoutMs = 3000): Promise<void> {
 
 async function main(): Promise<void> {
   const startedAt = Date.now();
-  if (!ENABLED) {
-    log("disabled via KANSEI_REPORT_HOOK=off");
+  const decision = transmissionAllowed(process.env.KANSEI_REPORT_HOOK);
+  if (!decision.allowed) {
+    log(`not sent (${decision.reason}) — local mode`);
     process.exit(0);
   }
 
@@ -244,7 +248,10 @@ async function main(): Promise<void> {
   process.exit(0);
 }
 
-main().catch((e) => {
+// Run only when executed as a CLI entrypoint — the module is also imported
+// by scripts/smoke-hook-payload.mjs for the payload contract test.
+import { pathToFileURL } from "node:url";
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((e) => {
   log(`unhandled: ${e?.message ?? e}`);
   process.exit(0);
 });

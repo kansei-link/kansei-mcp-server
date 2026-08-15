@@ -326,6 +326,37 @@ export function initializeDb(db: Database.Database): void {
     db.exec("ALTER TABLE recipes ADD COLUMN gotchas TEXT DEFAULT '[]'");
   }
 
+  // Event Contract v1 (S2a): pseudonymous telemetry events from opted-in
+  // installations. provenance is always user_reported; never joins Verified.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS telemetry_events (
+      event_id TEXT PRIMARY KEY,
+      installation_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      occurred_at TEXT NOT NULL,
+      received_at TEXT DEFAULT (datetime('now')),
+      contract_version TEXT,
+      catalog_version TEXT,
+      service_id TEXT,
+      recipe_id TEXT,
+      recipe_version INTEGER,
+      local_attempt_id TEXT,
+      tool_name TEXT,
+      success INTEGER,
+      error_class TEXT,
+      latency_ms INTEGER,
+      result_count INTEGER,
+      category_id TEXT,
+      model_family TEXT,
+      is_retry INTEGER,
+      failed_step TEXT,
+      provenance TEXT NOT NULL DEFAULT 'user_reported',
+      quarantined INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_te_install_time ON telemetry_events(installation_id, occurred_at);
+    CREATE INDEX IF NOT EXISTS idx_te_type_time ON telemetry_events(type, occurred_at);
+  `);
+
   // Data Architecture v1.1: recipe versioning and evidence metadata.
   const recipeColumns = db
     .prepare("SELECT name FROM pragma_table_info('recipes')")

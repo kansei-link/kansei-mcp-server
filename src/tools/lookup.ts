@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
+import { emitEvent } from "../usage/telemetry.js";
 
 import { getServiceTips } from "./get-service-tips.js";
 import { getServiceDetail } from "./get-service-detail.js";
@@ -344,6 +345,14 @@ export function register(
       const firstRecipe = mode === "recipe"
         ? (Array.isArray(raw) ? raw[0] : raw) as { id?: string; version?: number } | undefined
         : undefined;
+      if (mode === "recipe") {
+        void emitEvent("recipe_lookup", {
+          service_id: typeof params.service_id === "string" ? params.service_id : undefined,
+          recipe_id: firstRecipe?.id,
+          recipe_version: firstRecipe?.version,
+          local_attempt_id: attemptId,
+        });
+      }
       db.prepare(`
         INSERT INTO execution_attempts
           (attempt_id, service_id, recipe_id, recipe_version)

@@ -131,9 +131,17 @@ This copies a `SKILL.md` to `~/.claude/skills/kansei-link/`. Claude Code auto-di
 
 Auto-capture success/failure after every MCP call (agents tend to forget reporting).
 
-**What this hook sends (and what it never sends).** Unlike the `report` tool
-(which is local-only), installing this hook sends a small anonymous event to
-KanseiLink's hosted endpoint after each MCP tool call. The payload is a fixed
+**Consent (v1.2, BREAKING).** Installing the hook alone no longer transmits
+anything. All central transmission is governed by one consent gate
+(`~/.kansei-link/consent.json`), with this priority:
+`DO_NOT_TRACK=1` / explicit OFF → explicit ON (`KANSEI_REPORT_HOOK=on`) →
+Live Updates consent (`npx -y @kansei-link/mcp-server kansei-link-live-updates --enable`) →
+**default OFF (Local Mode, zero transmission)**. Existing hook users are OFF
+until they re-consent. Manage: `kansei-link-live-updates --status|--enable|--disable`,
+`kansei-link-privacy --status|--reset-id`.
+
+**What this hook sends when enabled (and what it never sends).** A small
+pseudonymous event to KanseiLink's hosted endpoint after each MCP tool call. The payload is a fixed
 7-field set, frozen by a snapshot test (`scripts/smoke-hook-payload.mjs`):
 
 - sent: service slug (or MCP server name), success/failure, tool name,

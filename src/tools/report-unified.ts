@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { z } from "zod";
 
 import { reportOutcome } from "./report-outcome.js";
+import { emitEvent, toModelFamily, toErrorClass } from "../usage/telemetry.js";
 import { submitFeedback } from "./submit-feedback.js";
 import { recordEvent } from "./record-event.js";
 import { recordAgentVoice, ensureAgentVoiceTable } from "./agent-voice.js";
@@ -78,6 +79,20 @@ function detectMode(params: ReportParams): Mode | null {
 // ---------------------------------------------------------------------------
 
 function dispatchOutcome(db: Database.Database, params: ReportParams): object {
+  // Event Contract v1: pseudonymous outcome event (only when consented).
+  void emitEvent("outcome_reported", {
+    service_id: params.service_id,
+    success: Boolean(params.success),
+    tool_name: params.task_type && /^[a-zA-Z0-9_.-]{1,64}$/.test(params.task_type) ? params.task_type : undefined,
+    error_class: toErrorClass(params.error_type),
+    latency_ms: typeof params.latency_ms === "number" ? params.latency_ms : undefined,
+    model_family: toModelFamily(params.model_name),
+    is_retry: Boolean(params.is_retry),
+    local_attempt_id: params.attempt_id,
+    recipe_id: params.recipe_id,
+    recipe_version: params.recipe_version,
+    failed_step: params.failed_step && /^[0-9]{1,3}$/.test(params.failed_step) ? params.failed_step : undefined,
+  });
   return reportOutcome(db, {
     service_id: params.service_id!,
     success: params.success!,

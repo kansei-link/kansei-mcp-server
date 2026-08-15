@@ -18,6 +18,9 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { z } from "zod";
+import { mkdirSync, readdirSync, rmSync } from "node:fs";
+import * as nodePath from "node:path";
 import { createServer } from "./server.js";
 import { getDb, closeDb } from "./db/connection.js";
 import { initializeDb } from "./db/schema.js";
@@ -1222,6 +1225,150 @@ app.post("/mcp", async (req: Request, res: Response) => {
     }
   }
 });
+
+// ─── Event Contract v1 ingestion (S2a) ────────────────────────────
+// POST /api/v1/events — pseudonymous, opt-in telemetry from installations.
+// Defenses per TELEMETRY-CONTRACTS rev1 §1.4: closed zod schemas, size caps,
+// service allowlist, event_id idempotency, ±48h window, per-installation
+// rate limit. All rows land as provenance=user_reported, forever unverified.
+
+const eventsIngestLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 300, // per-IP
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "rate_limited" },
+});
+
+// Per-installation in-memory limiter (60 events/min).
+const installBuckets = new Map<string, { windowStart: number; count: number }>();
+function installationAllowed(id: string, eventCount: number): boolean {
+  const now = Date.now();
+  const bucket = installBuckets.get(id);
+  if (!bucket || now - bucket.windowStart > 60_000) {
+    installBuckets.set(id, { windowStart: now, count: eventCount });
+    return true;
+  }
+  bucket.count += eventCount;
+  return bucket.count <= 60;
+}
+setInterval(() => {
+  const cutoff = Date.now() - 120_000;
+  for (const [k, v] of installBuckets) if (v.windowStart < cutoff) installBuckets.delete(k);
+}, 300_000).unref();
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const zUuid = z.string().regex(UUID_RE);
+const zIso = z.string().max(40).refine((s) => !Number.isNaN(Date.parse(s)), "invalid timestamp");
+const zSlug = z.string().regex(/^[a-z0-9][a-z0-9._-]{1,63}$/);
+const zErrorClass = z.enum(["auth_error", "auth_expired", "permission_scope", "rate_limit", "timeout", "not_found", "invalid_input", "schema_mismatch", "api_error", "network", "other"]);
+const zEventBase = { event_id: zUuid, occurred_at: zIso };
+const EVENT_SCHEMAS: Record<string, z.ZodType> = {
+  mcp_search: z.object({ ...zEventBase, type: z.literal("mcp_search"), result_count: z.number().int().min(0).max(1000), category_id: z.string().regex(/^[a-z0-9_-]{1,64}$/).optional(), latency_ms: z.number().int().min(0).max(600000).optional() }).strict(),
+  recipe_lookup: z.object({ ...zEventBase, type: z.literal("recipe_lookup"), service_id: zSlug.optional(), recipe_id: z.string().regex(/^[a-z0-9][a-z0-9._-]{1,127}$/).optional(), recipe_version: z.number().int().positive().optional(), local_attempt_id: zUuid.optional() }).strict(),
+  outcome_reported: z.object({ ...zEventBase, type: z.literal("outcome_reported"), service_id: zSlug, success: z.boolean(), tool_name: z.string().regex(/^[a-zA-Z0-9_.-]{1,64}$/).optional(), error_class: zErrorClass.optional(), latency_ms: z.number().int().min(0).max(600000).optional(), model_family: z.enum(["claude", "gpt", "gemini", "other"]).optional(), is_retry: z.boolean().optional(), local_attempt_id: zUuid.optional(), recipe_id: z.string().regex(/^[a-z0-9][a-z0-9._-]{1,127}$/).optional(), recipe_version: z.number().int().positive().optional(), failed_step: z.string().regex(/^[0-9]{1,3}$/).optional() }).strict(),
+  revalidation_reported: z.object({ ...zEventBase, type: z.literal("revalidation_reported"), service_id: zSlug, recipe_id: z.string().regex(/^[a-z0-9][a-z0-9._-]{1,127}$/), recipe_version: z.number().int().positive(), success: z.boolean() }).strict(),
+};
+const zEnvelope = z.object({
+  contract_version: z.literal("1.0"),
+  installation_id: zUuid,
+  catalog_version: z.string().max(32).optional(),
+  sent_at: zIso,
+  events: z.array(z.object({ type: z.string() }).passthrough()).min(1).max(100),
+}).strict();
+
+app.post("/api/v1/events", eventsIngestLimiter, (req: Request, res: Response) => {
+  try {
+    const env = zEnvelope.safeParse(req.body);
+    if (!env.success) return res.status(400).json({ error: "bad_envelope", detail: env.error.issues.slice(0, 3) });
+    const { installation_id, catalog_version, events } = env.data;
+
+    if (!installationAllowed(installation_id, events.length)) {
+      return res.status(429).json({ error: "installation_rate_limited" });
+    }
+
+    const db = getDb();
+    const knownService = db.prepare("SELECT 1 FROM services WHERE id = ?");
+    const insertEvent = db.prepare(`INSERT OR IGNORE INTO telemetry_events
+      (event_id, installation_id, type, occurred_at, contract_version, catalog_version,
+       service_id, recipe_id, recipe_version, local_attempt_id, tool_name, success,
+       error_class, latency_ms, result_count, category_id, model_family, is_retry, failed_step)
+      VALUES (?, ?, ?, ?, '1.0', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+
+    let accepted = 0, rejected = 0, duplicates = 0, unknownService = 0;
+    const now = Date.now();
+    for (const raw of events) {
+      if (JSON.stringify(raw).length > 2048) { rejected++; continue; }
+      const schema = EVENT_SCHEMAS[String((raw as { type?: unknown }).type)];
+      if (!schema) { rejected++; continue; }
+      const parsed = schema.safeParse(raw);
+      if (!parsed.success) { rejected++; continue; }
+      const e = parsed.data as Record<string, any>;
+      if (Math.abs(now - Date.parse(e.occurred_at)) > 48 * 3600 * 1000) { rejected++; continue; }
+      if (e.service_id && !knownService.get(e.service_id)) { unknownService++; continue; }
+      const r = insertEvent.run(
+        e.event_id, installation_id, e.type, e.occurred_at, catalog_version ?? null,
+        e.service_id ?? null, e.recipe_id ?? null, e.recipe_version ?? null,
+        e.local_attempt_id ?? null, e.tool_name ?? null,
+        typeof e.success === "boolean" ? (e.success ? 1 : 0) : null,
+        e.error_class ?? null, e.latency_ms ?? null, e.result_count ?? null,
+        e.category_id ?? null, e.model_family ?? null,
+        typeof e.is_retry === "boolean" ? (e.is_retry ? 1 : 0) : null,
+        e.failed_step ?? null
+      );
+      if (r.changes === 0) duplicates++; else accepted++;
+    }
+    return res.json({ ok: true, accepted, rejected, duplicates, unknown_service: unknownService });
+  } catch (err: any) {
+    return res.status(400).json({ error: "bad_payload", detail: String(err?.message || err).slice(0, 120) });
+  }
+});
+
+// Weekly Active Sensors — METRIC-CONTRACT definition, computed from events.
+app.get("/api/v1/metrics/was", (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+  const db = getDb();
+  const was = db.prepare(`
+    SELECT COUNT(*) AS n FROM (
+      SELECT installation_id FROM telemetry_events
+       WHERE type IN ('mcp_search','recipe_lookup') AND quarantined = 0
+         AND occurred_at >= datetime('now','-7 days')
+      INTERSECT
+      SELECT installation_id FROM telemetry_events
+       WHERE type IN ('outcome_reported','revalidation_reported') AND quarantined = 0
+         AND occurred_at >= datetime('now','-7 days')
+    )`).get() as { n: number };
+  const parts = db.prepare(`
+    SELECT type, COUNT(DISTINCT installation_id) AS installs, COUNT(*) AS events
+      FROM telemetry_events
+     WHERE quarantined = 0 AND occurred_at >= datetime('now','-7 days')
+     GROUP BY type`).all();
+  res.json({ weekly_active_sensors: was.n, window_days: 7, components: parts, provenance: "user_reported" });
+});
+
+// ─── Central DB backup (S2a gate: daily + manual before public collection) ──
+function runDbBackup(): { file: string } {
+  const db = getDb();
+  const dbPath = process.env.KANSEI_DB_PATH ?? "kansei-link.db";
+  const dir = nodePath.join(nodePath.dirname(dbPath), "backups");
+  mkdirSync(dir, { recursive: true });
+  const stamp = new Date().toISOString().slice(0, 10);
+  const file = nodePath.join(dir, `kansei-link-${stamp}.db`);
+  rmSync(file, { force: true });
+  db.prepare(`VACUUM INTO ?`).run(file);
+  const files = readdirSync(dir).filter((f) => f.startsWith("kansei-link-")).sort();
+  for (const old of files.slice(0, Math.max(0, files.length - 7))) rmSync(nodePath.join(dir, old), { force: true });
+  return { file };
+}
+app.post("/admin/backup-now", (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+  try { res.json({ ok: true, ...runDbBackup() }); }
+  catch (e: any) { res.status(500).json({ error: String(e?.message).slice(0, 200) }); }
+});
+setInterval(() => {
+  try { runDbBackup(); console.log("[backup] daily db backup completed"); }
+  catch (e) { console.error("[backup] failed:", e); }
+}, 24 * 3600 * 1000).unref();
 
 // Reject GET/DELETE on /mcp (stateless mode)
 app.get("/mcp", (_req: Request, res: Response) => {
