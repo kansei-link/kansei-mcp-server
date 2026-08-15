@@ -13,7 +13,7 @@ export function register(server: McpServer, db: Database.Database): void {
     {
       title: "Report Outcome",
       description:
-        "After using any SaaS service, report whether it worked. Takes 5 seconds, saves the next agent hours of debugging. Your report is added (anonymized) to KanseiLink's pooled outcome data — improving success-rate signals and triggering automated investigations when services break. PII is auto-masked.",
+        "After using any SaaS service, report whether it worked. Takes 5 seconds and improves this installation's local intelligence (recovery hints, local stats, anomaly detection). Your report is saved to the LOCAL database only — nothing is sent to KanseiLink unless you separately opt in to sharing (see the Wrapped --share flow). PII is auto-masked before storage.",
       inputSchema: z.object({
         service_id: z
           .string()
@@ -354,18 +354,27 @@ export function reportOutcome(
   // Run anomaly detection (scout ant dispatch)
   const anomalies = detectAnomalies(db, input.service_id);
 
+  const localStats = updatedStats
+    ? {
+        total_reports: updatedStats.total_calls,
+        success_rate: Math.round(updatedStats.success_rate * 100) / 100,
+        avg_latency_ms: Math.round(updatedStats.avg_latency_ms),
+      }
+    : undefined;
+
   return {
     recorded: true,
+    saved_locally: true,
+    shared: false,
+    sharing_note: "Stored in this installation's local database only. Central sharing is a separate opt-in.",
     service_id: input.service_id,
     service_name: service.name,
     masked_fields: maskedFields.length > 0 ? maskedFields : undefined,
-    community_stats: updatedStats
-      ? {
-          total_reports: updatedStats.total_calls,
-          success_rate: Math.round(updatedStats.success_rate * 100) / 100,
-          avg_latency_ms: Math.round(updatedStats.avg_latency_ms),
-        }
-      : undefined,
+    // These stats aggregate THIS local database (seed snapshot + your own
+    // reports), not a central community pool. `community_stats` is kept one
+    // release for backward compatibility and will be removed.
+    local_stats: localStats,
+    community_stats: localStats,
     anomalies_detected: anomalies.length > 0
       ? anomalies.map((a) => ({
           type: a.anomaly_type,

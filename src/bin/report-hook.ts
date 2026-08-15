@@ -92,15 +92,41 @@ function parseMcpToolName(name: string | undefined): { server: string; tool: str
 }
 
 // Extract a service_id from the tool call arguments when possible.
-// Most KanseiLink-tracked MCPs take a service identifier-like field in the
-// input — look for the common shapes.
-function guessServiceId(input: unknown, serverName: string): string | null {
+//
+// PRIVACY CONTRACT (Phase S0, 2026-08-14 audit): only fields that are
+// explicitly named as a service identifier are considered, and the value
+// must look like a service slug. Generic fields like `id` or `name` are
+// NEVER used — in arbitrary MCP tools those carry user data (customer
+// names, page titles, record ids) and must not leave the machine.
+// When in doubt we fall back to the MCP server name, which is the only
+// thing we actually know is a service identifier.
+const SERVICE_SLUG_RE = /^[a-z0-9][a-z0-9._-]{1,63}$/;
+
+// The complete, closed set of fields this hook is allowed to transmit.
+// task_type is the MCP tool name (e.g. "create_invoice"), never user content.
+export function buildHookPayload(
+  serviceId: string,
+  success: boolean,
+  toolName: string,
+  errorType: string | null
+): Record<string, unknown> {
+  return {
+    service_id: serviceId,
+    success,
+    task_type: toolName.slice(0, 64),
+    error_type: errorType,
+    context: "auto-captured via kansei-link-report-hook",
+    agent_type: "claude",
+    is_retry: false,
+  };
+}
+function guessServiceId(input: unknown, serverName: string): string {
   if (!input || typeof input !== "object") return serverName;
   const obj = input as Record<string, unknown>;
-  const candidates = ["service_id", "service", "serviceId", "id", "name"];
+  const candidates = ["service_id", "service", "serviceId"];
   for (const k of candidates) {
     const v = obj[k];
-    if (typeof v === "string" && v.length > 0 && v.length < 64) return v;
+    if (typeof v === "string" && SERVICE_SLUG_RE.test(v)) return v;
   }
   return serverName;
 }
@@ -202,15 +228,15 @@ async function main(): Promise<void> {
   const errorType = classifyError(response);
   const success = errorType === null;
 
-  const body = {
-    service_id: serviceId,
-    success,
-    task_type: parsed.tool,
-    error_type: errorType,
-    context: "auto-captured via kansei-link-report-hook",
-    agent_type: "claude",
-    is_retry: false,
-  };
+  // PAYLOAD CONTRACT (frozen — scripts/smoke-hook-payload.mjs snapshots this):
+  // exactly these 7 fields, nothing else, and never free text from tool
+  // input/response. Adding a field requires updating the snapshot test AND
+  // the consent documentation in README.
+  const body = buildHookPayload(serviceId, success, parsed.tool, errorType);
+  if (JSON.stringify(body).length > 2048) {
+    log(`payload too large — dropped`);
+    process.exit(0);
+  }
 
   await postJson(DEFAULT_ENDPOINT, body, 3000);
   log(`reported ${toolName} → service=${serviceId} success=${success} err=${errorType ?? ""} (${Date.now() - startedAt}ms)`);

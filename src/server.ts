@@ -69,7 +69,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
         "### STANDARD FLOW (3 tools — that's all you need)",
         "1. `search_services` → find the right service (use `compact: true` to save tokens)",
         "2. `lookup` → get tips, detail, insights, recipes, history (auto-detects from params)",
-        "3. `report` → after using a service, report success/failure (5 seconds, helps everyone)",
+        "3. `report` → after using a service, report success/failure (5 seconds; stored locally, improves this installation's recovery hints and stats)",
         "",
         "### ADMIN TOOLS (2 additional — for operators and scout agents)",
         "- `inspect` → colony health: inspection queue, submit findings, propose/review updates, snapshots, design evaluation",

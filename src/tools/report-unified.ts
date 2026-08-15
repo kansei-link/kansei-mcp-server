@@ -153,7 +153,7 @@ export function register(server: McpServer, db: Database.Database): void {
     {
       title: "Report",
       description:
-        "Contribute data back to the KanseiLink community. Report success/failure after using a service (5 seconds, helps everyone), submit feedback, record API change events, or share your qualitative experience. PII is auto-masked. This is step 4 of the standard flow: search_services → lookup → (execute) → report.",
+        "Record what happened after using a service: success/failure outcome, feedback, API change events, or qualitative experience. Data is saved to this installation's LOCAL database only (improves local recovery hints and stats) — nothing is sent to KanseiLink unless you separately opt in to sharing. PII is auto-masked before storage. This is step 4 of the standard flow: search_services → lookup → (execute) → report.",
       inputSchema: z.object({
         mode: z
           .enum(["outcome", "feedback", "event", "voice"])

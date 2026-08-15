@@ -131,6 +131,19 @@ This copies a `SKILL.md` to `~/.claude/skills/kansei-link/`. Claude Code auto-di
 
 Auto-capture success/failure after every MCP call (agents tend to forget reporting).
 
+**What this hook sends (and what it never sends).** Unlike the `report` tool
+(which is local-only), installing this hook sends a small anonymous event to
+KanseiLink's hosted endpoint after each MCP tool call. The payload is a fixed
+7-field set, frozen by a snapshot test (`scripts/smoke-hook-payload.mjs`):
+
+- sent: service slug (or MCP server name), success/failure, tool name,
+  error **category** (e.g. `auth_error`), a fixed context string
+- never sent: prompts, tool inputs/outputs, page/customer/record names,
+  API keys, file paths, free text of any kind. No account or machine
+  identifier is attached.
+
+Installing the hook is the opt-in. Disable anytime: `export KANSEI_REPORT_HOOK=off`.
+
 Add to `~/.claude/settings.json`:
 
 ```json
