@@ -1,0 +1,27 @@
+# P0 #39: 配布物衛生ゲート（CI）
+# PR / mainへのpush ごとに、npm packの実物tarballを検査して
+# synthetic実名・secret・PII・内部manifest・未承認Claim経路・allowlist外ルートを検出。
+# 1件でも違反があれば CI が赤になり merge できない。
+# publish は本ワークフローでは一切行わない（release-gate.yml も検証のみ）。
+name: pack-gate
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  pack-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: pack-gate (G1-G5)
+        run: node scripts/pack-gate.mjs
+      - name: route-gate (allowlist + SEC review)
+        run: node scripts/route-gate.mjs
+      - name: dist-hygiene negative tests
+        run: node scripts/smoke-dist-hygiene.mjs --ci

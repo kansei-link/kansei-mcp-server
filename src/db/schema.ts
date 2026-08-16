@@ -348,6 +348,19 @@ export function initializeDb(db: Database.Database): void {
     db.exec("ALTER TABLE recipes ADD COLUMN gotchas TEXT DEFAULT '[]'");
   }
 
+  // Hygiene quarantine (P0 #39, 2026-08-16): synthesized "voices" rows
+  // (agent_id 'kansei-link-synth' / agent_type 'aggregated') paired real service
+  // names with synthetic success-rate numbers. The generators are default-deny
+  // now (scripts/aggregate-voices.mjs) and the seed ships empty, but rows
+  // injected by past deploys would otherwise survive in the live DB and keep
+  // being served via /api/dashboard/voices and lookup voices. Deleting on every
+  // boot is idempotent and doubles as a permanent quarantine: synthetic voice
+  // rows can never survive a restart. (service_stats residue is a separate,
+  // pending decision — values may be mixed with real telemetry increments.)
+  db.exec(
+    "DELETE FROM agent_voice_responses WHERE agent_id = 'kansei-link-synth' OR agent_type = 'aggregated'"
+  );
+
   // Event Contract v1 (S2a): pseudonymous telemetry events from opted-in
   // installations. provenance is always user_reported; never joins Verified.
   db.exec(`
