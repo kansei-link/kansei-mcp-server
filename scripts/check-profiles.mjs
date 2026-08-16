@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 /**
- * check-profiles.mjs — 独立Checker（Qレーン: kl-integrity）
+ * check-profiles.mjs — 独立Checker（Qレーン: kl-integrity）rev2
  *
- * 検査対象: growth-mvp/profile-drafts/*.html（全項目）+ growth-mvp/install-drafts/*.html（score/rank・provenance語のみ）
+ * 検査対象: growth-mvp/profile-drafts/*.html（全項目）+ growth-mvp/install-drafts/*.html（score/rank・provenance語・source-leak）
  * 検査基準（正典から独立に導出。Makerパイプライン実装は参照していない）:
  *   - founder-ops/PLAN-Profile-Claim-MVP-v1.md §1（公開原則）§3（項目定義・Checkerチェックリスト）§4.0（3概念分離）§5（バッジ文言）
  *   - founder-ops/FUNNEL-METRICS-v1.md §3 品質guardrail（provenance禁止語0・R-005違反0・「未確認」表示の欠落0）
+ *   - Codex 8/16 P1判定: HTMLコメントも公開データ。rev2④「未検証情報は一切公開しない」はソースレベルで適用する
  *
- * 検査は「可視テキスト」（HTMLコメント・script・styleを除外した描画テキスト）に対して行う。
- * ただし provenance 禁止語のみ、公開ソース全体（view-sourceで読める部分）にも追加スキャンする。
+ * モード（rev2）:
+ *   - デフォルト = publishモード: source-level leak（HTMLコメント・CHECKER-NOTE・内部マーカー・
+ *     ディレクトリ内の非HTMLファイル・manifest混在）を全て error として公開をブロックする
+ *   - `--draft` 指定時のみ source-level 項目を warn に緩和（Makerの作業中反復用。公開ゲートでは使わない）
  *
  * 出力: ファイル別JSON + サマリ。error（=公開ブロック）が1件でもあれば exit 1。warn は exit code に影響しない。
  */
@@ -21,7 +24,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // 環境変数での差し替えはChecker自身のself-test（seeded violations検出能力の証明）用
 const PROFILE_DIR = process.env.CHECK_PROFILE_DIR || path.join(root, 'growth-mvp', 'profile-drafts');
 const INSTALL_DIR = process.env.CHECK_INSTALL_DIR || path.join(root, 'growth-mvp', 'install-drafts');
-const MANIFEST = path.join(PROFILE_DIR, 'manifest.json');
+const QA_INTERNAL_MANIFEST = process.env.CHECK_MANIFEST || path.join(root, 'growth-mvp', 'qa-internal', 'manifest.json');
+
+const DRAFT_MODE = process.argv.includes('--draft');
+// publishモードでは source-level leak は error。draftモードのみ warn に緩和
+const SRC_SEV = DRAFT_MODE ? 'warn' : 'error';
 
 /* ---------- 可視テキスト抽出（インデックス保存型） ---------- */
 // マッチ位置から元ファイルの行番号を出せるよう、除去部分は同じ長さの空白に置換する（改行は保持）。
@@ -58,11 +65,72 @@ function scan(layer, re, cb) {
 
 const stripTags = (s) => s.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
-/* ---------- 検査項目 ---------- */
-
 function makeFinding(check, severity, line, excerpt, message) {
   return { check, severity, line, excerpt, message };
 }
+
+/* ---------- source-level 検査（rev2・Codex P1: HTMLコメントも公開データ） ---------- */
+
+// S1: 公開HTMLにHTMLコメントが1つも存在しないこと（生HTML全文）
+function checkNoHtmlComments(raw, findings) {
+  scan(raw, /<!--[\s\S]*?-->/g, (m) =>
+    findings.push(makeFinding('S1_html_comment', SRC_SEV, lineOf(raw, m.index), excerptAt(raw, m.index, 60),
+      'HTMLコメントが存在する——コメントも公開データ（view-source/クローラー可読）。公開HTMLはコメント0件が条件（Codex P1）')),
+  );
+  // 閉じられていないコメント開始も検出
+  const stripped = raw.replace(/<!--[\s\S]*?-->/g, '');
+  const idx = stripped.indexOf('<!--');
+  if (idx !== -1) {
+    findings.push(makeFinding('S1_html_comment', SRC_SEV, 0, '<!--',
+      '閉じられていないHTMLコメント開始タグが存在する'));
+  }
+}
+
+// S2: CHECKER-NOTE が生HTML全文に0件であることの明示テスト
+function checkNoCheckerNote(raw, findings) {
+  scan(raw, /CHECKER-NOTE/g, (m) =>
+    findings.push(makeFinding('S2_checker_note', SRC_SEV, lineOf(raw, m.index), excerptAt(raw, m.index, 60),
+      'CHECKER-NOTE（内部QA注記）が生HTMLに残存——公開HTMLに内部データを書かない（rev2④）')),
+  );
+}
+
+// S3: 内部マーカー/未検証候補データの痕跡（api_url・seed_・manifest内部キー）が生HTML全文に0件
+function checkNoInternalMarkers(raw, findings) {
+  const re = /api_url|seed_|unverified_not_rendered|internal_only|seed_match|qa-internal/g;
+  scan(raw, re, (m) =>
+    findings.push(makeFinding('S3_internal_marker', SRC_SEV, lineOf(raw, m.index), excerptAt(raw, m.index, 60),
+      `内部マーカー「${m[0]}」が生HTML（コメント/meta/JSON-LD含む）に存在——未検証情報・内部データは一切公開しない（rev2④）`)),
+  );
+}
+
+// D1: 公開候補ディレクトリの中身検査 — profile-drafts/ は公開してよいHTMLのみ
+function checkDirContents(findings) {
+  if (!existsSync(PROFILE_DIR)) {
+    findings.push(makeFinding('D1_dir_contents', 'error', 0, PROFILE_DIR, 'profile-drafts ディレクトリが存在しない'));
+    return;
+  }
+  for (const f of readdirSync(PROFILE_DIR)) {
+    if (!f.endsWith('.html')) {
+      findings.push(makeFinding('D1_dir_contents', SRC_SEV, 0, f,
+        `公開候補ディレクトリにHTML以外のファイル「${f}」が混在——profile-drafts/ は公開してよいHTMLのみの状態を保つ（manifest等の内部ファイルは qa-internal/ へ）`));
+    }
+  }
+}
+
+// D2: 内部manifestが profile-drafts/ の外（qa-internal/）にあることの確認
+function checkManifestLocation(findings) {
+  const inPublic = path.join(PROFILE_DIR, 'manifest.json');
+  if (existsSync(inPublic)) {
+    findings.push(makeFinding('D2_manifest_location', SRC_SEV, 0, inPublic,
+      'manifest.json が公開候補ディレクトリ内に存在——未検証seed候補を含む内部ファイルは公開ディレクトリに置かない'));
+  }
+  if (!existsSync(QA_INTERNAL_MANIFEST)) {
+    findings.push(makeFinding('D2_manifest_location', 'warn', 0, QA_INTERNAL_MANIFEST,
+      '内部QA manifest（qa-internal/manifest.json）が見つからない——所在確認要（検査はHTML実ファイル基準で続行）'));
+  }
+}
+
+/* ---------- コンテンツ検査（rev1から継続） ---------- */
 
 // C1: R-005 — 実名サービスへの成功率・数値評価の表示 0件
 function checkR005(vis, findings) {
@@ -118,18 +186,18 @@ function checkNegative(vis, findings) {
   });
 }
 
-// C4: provenance禁止語 0件（可視テキスト=error。公開ソース全体にもスキャン=error: view-sourceで読めるため）
+// C4: provenance禁止語 0件（可視テキスト+生HTML全文の両層とも error）
 function checkProvenance(vis, raw, findings) {
   const re = /synthetic|legacy_unknown|kansei_probe/gi;
   scan(vis, re, (m) =>
     findings.push(makeFinding('C4_provenance', 'error', lineOf(vis, m.index), excerptAt(vis, m.index),
       `provenance禁止語「${m[0]}」が可視テキストに出現（Data Architecture §3）`)),
   );
-  // 非可視部（コメント/script等）への混入も公開ファイルとしては不可とみなす
+  // 非可視部（コメント/script等）への混入も公開ファイルとしては不可（view-sourceで公開される）
   scan(raw, re, (m) => {
     if (vis[m.index] !== ' ' || /synthetic|legacy_unknown|kansei_probe/i.test(vis.slice(m.index, m.index + 20))) return; // 可視側で検出済みの重複回避
     findings.push(makeFinding('C4_provenance_source', 'error', lineOf(raw, m.index), excerptAt(raw, m.index),
-      `provenance禁止語「${m[0]}」が非可視部（コメント/script）に混入——view-sourceで公開される`));
+      `provenance禁止語「${m[0]}」が非可視部（コメント/script/属性）に混入——view-sourceで公開される`));
   });
 }
 
@@ -150,7 +218,7 @@ function checkClaimedVerified(vis, raw, findings) {
     findings.push(makeFinding('C5_claim_verified', 'error', lineOf(vis, m.index), excerptAt(vis, m.index),
       `Evidence Tier表示名「${m[0].replace(/\s+/g, ' ')}」——全社E0のMVPドラフトに出現するのは実測裏付けなしの表示`)),
   );
-  // その他の「Verified」: 未確認リスト内の用語参照（例:「接続実測（Connection Verified）の実施と検証日」）のみ許容
+  // その他の「Verified」: 未確認リスト内の用語参照のみ許容（Maker 0f11d9aで公開面からは除去済みのはず）
   const unverifiedRanges = [];
   scan(raw, /<ul\s+class="unverified-list">[\s\S]*?<\/ul>/g, (m) =>
     unverifiedRanges.push([m.index, m.index + m[0].length]),
@@ -171,8 +239,11 @@ function checkClaimedVerified(vis, raw, findings) {
   });
 }
 
-// C6: last_verified規律 — 事実として表示される行に最終検証日が併記されている
-const DATE_RE = /最終検証日\s*[:：]\s*\d{4}-\d{2}-\d{2}/;
+// C6: last_verified規律 — 事実として表示される行に確認日が併記されている
+// rev2: Maker 0f11d9aの表記統一（「確認日: YYYY-MM-DD（…調査時点）」）に対応。
+// 正典§1-4の要求は「全ての事実に検証日を付す」——表示ラベルは規定されていないため、
+// 「確認日」+データ源注記は要求を満たす（むしろE0段階の誤読防止として適切）と判定。
+const DATE_RE = /(確認日|最終検証日)\s*[:：]\s*\d{4}-\d{2}-\d{2}/;
 function checkLastVerified(struct, findings) {
   scan(struct, /<tr>[\s\S]*?<\/tr>/g, (m) => {
     const row = m[0];
@@ -188,27 +259,32 @@ function checkLastVerified(struct, findings) {
     if (isUnverified) {
       if (hasDate) {
         findings.push(makeFinding('C6_last_verified', 'error', lineOf(struct, m.index), `${label}: ${value}`,
-          '「未確認」表示に検証日が併記されている（矛盾——未確認は検証日を持たない）'));
+          '「未確認」表示に確認日が併記されている（矛盾——未確認は確認日を持たない）'));
       }
       return;
     }
     if (isPending) {
       findings.push(makeFinding('C6_last_verified', 'warn', lineOf(struct, m.index), `${label}: ${value}`,
-        '予定/状態記述の行（事実ではないため検証日なしを許容と解釈——§1-4の解釈揺れ・レポート参照）'));
+        '予定/状態記述の行（事実ではないため確認日なしを許容と解釈——§1-4の解釈揺れ・レポート参照）'));
       return;
     }
     if (!hasDate) {
       findings.push(makeFinding('C6_last_verified', 'error', lineOf(struct, m.index), `${label}: ${value}`,
-        '検証済み事実として表示される行に最終検証日がない（公開原則§1-4違反）'));
+        '検証済み事実として表示される行に確認日がない（公開原則§1-4違反）'));
     }
   });
-  // ARIバッジ（grade-badge）にも検証日が必要
+  // ARIバッジ（grade-badge）にも確認日が必要
   scan(struct, /<div\s+class="grade-badge">[\s\S]*?<\/div>\s*<\/div>/g, (m) => {
     if (!DATE_RE.test(m[0])) {
       findings.push(makeFinding('C6_last_verified', 'error', lineOf(struct, m.index), stripTags(m[0]).slice(0, 60),
-        'ARI段階バッジに最終検証日が併記されていない'));
+        'ARI段階バッジに確認日が併記されていない'));
     }
   });
+  // 表記揺れ検知: Maker 0f11d9aで「確認日」に統一済み——旧表記「最終検証日」の再出現は生成の退行シグナル
+  scan(struct, /最終検証日/g, (m) =>
+    findings.push(makeFinding('C6_last_verified', 'warn', lineOf(struct, m.index), excerptAt(struct, m.index),
+      '旧表記「最終検証日」が出現——「確認日（…調査時点）」への統一（0f11d9a）からの退行の可能性（要確認）')),
+  );
 }
 
 // C7: 未確認セクションの存在
@@ -219,7 +295,7 @@ function checkUnverifiedSection(struct, findings) {
   }
 }
 
-// C8: フッター文言（検証済み事実/未確認項目の区別・最終検証日併記の説明）
+// C8: フッター文言（検証済み事実/未確認項目の区別・確認日併記の説明）
 function checkFooter(struct, findings) {
   const m = struct.match(/<footer>[\s\S]*?<\/footer>/);
   if (!m) {
@@ -231,27 +307,25 @@ function checkFooter(struct, findings) {
     findings.push(makeFinding('C8_footer', 'error', lineOf(struct, m.index), text.slice(0, 80),
       'フッターに「検証済み事実と未確認項目を区別」の説明文言がない'));
   }
-  if (!/最終検証日を併記/.test(text)) {
+  if (!/(確認日|最終検証日)を併記/.test(text)) {
     findings.push(makeFinding('C8_footer', 'error', lineOf(struct, m.index), text.slice(0, 80),
-      'フッターに「最終検証日を併記」の説明文言がない'));
+      'フッターに「確認日を併記」の説明文言がない'));
   }
 }
 
-// C9: manifestのseed_match（unverified_not_rendered）がHTML可視面に漏れていないか
+// C9: 内部manifestのseed候補データがHTMLに漏れていないか（rev2: 生HTMLへの存在=error。可視/非可視を問わない）
 function checkSeedLeak(vis, raw, seedMatch, findings) {
   if (!seedMatch) return;
   const needles = [seedMatch.api_url_candidate, seedMatch.id].filter(Boolean);
   for (const n of needles) {
-    let idx = vis.indexOf(n);
-    if (idx !== -1) {
-      findings.push(makeFinding('C9_seed_leak', 'error', lineOf(vis, idx), excerptAt(vis, idx),
-        `未検証seed候補データ「${n}」が可視テキストに描画されている（rev2④: 未検証vendor系は一切公開しない）`));
-      continue;
-    }
-    idx = raw.indexOf(n);
-    if (idx !== -1) {
-      findings.push(makeFinding('C9_seed_leak', 'warn', lineOf(raw, idx), excerptAt(raw, idx),
-        `未検証seed候補データ「${n}」が非可視部（HTMLコメント等）に存在——描画はされないがview-sourceで公開される（レポートの指摘参照）`));
+    const visIdx = vis.indexOf(n);
+    const rawIdx = raw.indexOf(n);
+    if (visIdx !== -1) {
+      findings.push(makeFinding('C9_seed_leak', 'error', lineOf(vis, visIdx), excerptAt(vis, visIdx),
+        `未検証seed候補データ「${n}」が可視テキストに描画されている（rev2④: 未検証情報は一切公開しない）`));
+    } else if (rawIdx !== -1) {
+      findings.push(makeFinding('C9_seed_leak', SRC_SEV, lineOf(raw, rawIdx), excerptAt(raw, rawIdx),
+        `未検証seed候補データ「${n}」が生HTML（コメント/属性等の非可視部）に存在——HTMLコメントも公開データ（Codex P1）`));
     }
   }
 }
@@ -263,6 +337,11 @@ function auditFile(filePath, { full, seedMatch }) {
   const vis = visibleLayer(raw);
   const struct = structLayer(raw);
   const findings = [];
+  // source-level（profile/install共通・公開されるファイルは全て対象）
+  checkNoHtmlComments(raw, findings);
+  checkNoCheckerNote(raw, findings);
+  checkNoInternalMarkers(raw, findings);
+  // コンテンツ
   checkScoreRank(vis, findings);
   checkProvenance(vis, raw, findings);
   if (full) {
@@ -280,34 +359,38 @@ function auditFile(filePath, { full, seedMatch }) {
 function main() {
   const results = [];
   let manifest = null;
-  const manifestFindings = [];
+  const globalFindings = [];
 
-  if (existsSync(MANIFEST)) {
-    manifest = JSON.parse(readFileSync(MANIFEST, 'utf8'));
-    const htmlFiles = readdirSync(PROFILE_DIR).filter((f) => f.endsWith('.html'));
+  // ディレクトリ衛生（publish: profile-drafts/はHTMLのみ・manifestはqa-internal/）
+  checkDirContents(globalFindings);
+  checkManifestLocation(globalFindings);
+
+  if (existsSync(QA_INTERNAL_MANIFEST)) {
+    manifest = JSON.parse(readFileSync(QA_INTERNAL_MANIFEST, 'utf8'));
+    const htmlFiles = existsSync(PROFILE_DIR) ? readdirSync(PROFILE_DIR).filter((f) => f.endsWith('.html')) : [];
     if (manifest.count !== manifest.profiles.length) {
-      manifestFindings.push(makeFinding('M1_manifest', 'error', 0, '', `manifest.count=${manifest.count} と profiles配列長=${manifest.profiles.length} が不一致`));
+      globalFindings.push(makeFinding('M1_manifest', 'error', 0, '', `manifest.count=${manifest.count} と profiles配列長=${manifest.profiles.length} が不一致`));
     }
     if (manifest.profiles.length !== htmlFiles.length) {
-      manifestFindings.push(makeFinding('M1_manifest', 'error', 0, '', `manifest件数${manifest.profiles.length}と実ファイル数${htmlFiles.length}が不一致`));
+      globalFindings.push(makeFinding('M1_manifest', 'error', 0, '', `manifest件数${manifest.profiles.length}と実ファイル数${htmlFiles.length}が不一致`));
     }
     for (const p of manifest.profiles) {
       if (p.seed_match && p.seed_match.status !== 'unverified_not_rendered') {
-        manifestFindings.push(makeFinding('M2_seed_status', 'error', 0, p.slug, `seed_match.status=「${p.seed_match.status}」——未検証データの扱いが不明（unverified_not_renderedのみ許容と解釈）`));
+        globalFindings.push(makeFinding('M2_seed_status', 'error', 0, p.slug, `seed_match.status=「${p.seed_match.status}」——未検証データの扱いが不明（unverified_not_renderedのみ許容と解釈）`));
       }
       if (p.evidence_tier !== 'E0') {
-        manifestFindings.push(makeFinding('M3_tier', 'warn', 0, p.slug, `evidence_tier=${p.evidence_tier}——E0以外は実測結合前のMVPでは想定外（要確認）`));
+        globalFindings.push(makeFinding('M3_tier', 'warn', 0, p.slug, `evidence_tier=${p.evidence_tier}——E0以外は実測結合前のMVPでは想定外（要確認）`));
       }
     }
-  } else {
-    manifestFindings.push(makeFinding('M1_manifest', 'error', 0, '', 'manifest.json が存在しない'));
   }
 
   const seedBySlug = new Map((manifest?.profiles ?? []).map((p) => [p.file, p.seed_match ?? null]));
 
-  for (const f of readdirSync(PROFILE_DIR).filter((f) => f.endsWith('.html')).sort()) {
-    const fp = path.join(PROFILE_DIR, f);
-    results.push({ file: `profile-drafts/${f}`, findings: auditFile(fp, { full: true, seedMatch: seedBySlug.get(f) ?? null }) });
+  if (existsSync(PROFILE_DIR)) {
+    for (const f of readdirSync(PROFILE_DIR).filter((f) => f.endsWith('.html')).sort()) {
+      const fp = path.join(PROFILE_DIR, f);
+      results.push({ file: `profile-drafts/${f}`, findings: auditFile(fp, { full: true, seedMatch: seedBySlug.get(f) ?? null }) });
+    }
   }
   if (existsSync(INSTALL_DIR)) {
     for (const f of readdirSync(INSTALL_DIR).filter((f) => f.endsWith('.html')).sort()) {
@@ -315,12 +398,13 @@ function main() {
       results.push({ file: `install-drafts/${f}`, findings: auditFile(fp, { full: false, seedMatch: null }) });
     }
   }
-  if (manifestFindings.length) results.push({ file: 'profile-drafts/manifest.json', findings: manifestFindings });
+  if (globalFindings.length) results.push({ file: '(directory/manifest)', findings: globalFindings });
 
   const errors = results.flatMap((r) => r.findings.filter((x) => x.severity === 'error').map((x) => ({ file: r.file, ...x })));
   const warns = results.flatMap((r) => r.findings.filter((x) => x.severity === 'warn').map((x) => ({ file: r.file, ...x })));
 
   const summary = {
+    mode: DRAFT_MODE ? 'draft（source-level leakをwarn緩和・公開ゲートでは使用不可）' : 'publish（source-level leak=error）',
     checked_files: results.length,
     errors: errors.length,
     warnings: warns.length,
@@ -334,7 +418,7 @@ function main() {
     }
   }
 
-  console.log(JSON.stringify({ generated_at: new Date().toISOString(), role: 'Checker (kl-integrity, 独立検査)', summary, results }, null, 2));
+  console.log(JSON.stringify({ generated_at: new Date().toISOString(), role: 'Checker (kl-integrity, 独立検査) rev2', summary, results }, null, 2));
   process.exit(errors.length === 0 ? 0 : 1);
 }
 

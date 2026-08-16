@@ -1,5 +1,7 @@
 # Checker Report — Profile Drafts 独立検査（2026-08-16）
 
+> **rev2追記あり**: Codex P1判定（HTMLコメント=公開データ）を受けた基準変更と、Maker修正コミット 0f11d9a の再検査結果は末尾「rev2 — 再検査（Codex P1受け）」を参照。**最新判定はrev2側（PASS・publishモード）**。以下の初回レポートのwarn件数・P1指摘は履歴として保存。
+
 - 検査者: Quality & Integrity（Qレーン・kl-integrity）— **Makerと独立**（`scripts/generate-profiles.mjs` の実装は不読。検査対象は出力物と設計正典のみ）
 - 検査ツール: `scripts/check-profiles.mjs`（本レポートと同時に納品・正典から独自解釈で実装）
 - 検査対象: `growth-mvp/profile-drafts/*.html`（10件・全項目）+ `manifest.json` + `growth-mvp/install-drafts/*.html`（6件・score/rank と provenance語のみ）
@@ -65,8 +67,64 @@ agileworks.html のコピーに9カテゴリの違反（成功率97.3%・スコ�
 - 機密混入: テナントID・実名研究データ・APIキー・内部パスの混入なし（CHECKER-NOTEのseed候補は上記P1のとおり公開前除去要）——**それ以外は問題なし**
 - 正典整合: 用語（Evidence Tier E0-E3・段階バッジ・未確認（検証予定）・Claimed/Verified分離）は正典と一致。新規概念の発明なし——**問題なし**
 
-## 再現手順
+## 再現手順（rev1時点）
 
 ```
 node scripts/check-profiles.mjs   # exit 0 = PASS / exit 1 = 公開ブロック
+```
+
+---
+
+# rev2 — 再検査（Codex P1受け・2026-08-16）
+
+## 基準変更の経緯
+
+初回検査（上記）で私はHTMLコメント/manifest内のseedデータを「描画されない」ことを根拠にwarn+P1指摘（公開ゲート時P0昇格）とし、公開ブロックは宣言しなかった。**CodexはこれをP1判定で修正要求**: HTMLコメントはview-source・クローラー・AI引用に対して公開データであり、rev2④「未検証情報は一切公開しない」との矛盾は**warnではなくerror**であるべき。この判定を受け入れる——「レンダリングされない」と「公開されない」を区別した初回のwarn格付けは、公開経路（HTML配信=ソース全文配信）の実態に対して甘かった。基準を以下のとおり変更した。
+
+## 検査器の改訂（check-profiles.mjs rev2）
+
+- **publishモードをデフォルト化**（`--draft`指定時のみsource-level項目をwarn緩和。公開ゲートでは必ずデフォルトで実行）。デフォルトを厳格側に置いたのは「フラグの付け忘れで甘い検査が走る」事故を構造的に防ぐため
+- 新設（いずれもpublishモードでerror）:
+  - **S1**: 生HTML全文にHTMLコメントが1件も存在しないこと（閉じ忘れコメントも検出）
+  - **S2**: `CHECKER-NOTE` が生HTML全文に0件であることの明示テスト
+  - **S3**: 内部マーカー（`api_url` / `seed_` / `unverified_not_rendered` / `internal_only` / `seed_match` / `qa-internal`）が生HTML（コメント・meta属性・JSON-LD含む）に0件
+  - **D1**: profile-drafts/ が「公開してよいHTMLのみ」であること——HTML以外のファイル混在はerror
+  - **D2**: manifest.json が profile-drafts/ 内に存在しないこと+qa-internal/manifest.json の所在確認
+- **C9**（seed候補漏れ）: 生HTMLへの存在を warn→**error** に昇格（可視/非可視を問わない）
+- **C6/C8**: Makerの表記統一（「最終検証日」→「確認日: YYYY-MM-DD（ARI Award 2026 Summer調査時点）」）に追随。正典§1-4の要求は「全ての事実に検証日を付す」でありラベル文言は規定されていないため、「確認日」+データ源注記は要求充足かつ誤読防止（初回レポートP2-4の解消）と判定。旧表記「最終検証日」の再出現は退行シグナルとしてwarn検知
+
+## Maker修正（0f11d9a）の再検査結果 — **PASS（publishモード・error 0・exit 0）**
+
+| 検査項目 | 結果 |
+|---|---|
+| S1 HTMLコメント0件（生HTML全文） | **10/10 profile + 6/6 install で0件** |
+| S2 CHECKER-NOTE 0件（生HTML全文） | **0件** |
+| S3 内部マーカー0件（コメント/meta/JSON-LD含む） | **0件** |
+| D1 profile-drafts/ = HTMLのみ | **10ファイル全て.html・混在なし** |
+| D2 manifest所在 | **profile-drafts/内に不存在・growth-mvp/qa-internal/manifest.json に移設済みを確認**（internal_only注記付き） |
+| C9 seed候補漏れ（可視+ソース） | **0件**（qa-internal/manifestの全api_url候補・seed_idについて生HTML全文を照合） |
+| C1-C8（rev1項目・再実行） | **error 0**。旧「Connection Verified」も公開面から除去されC5 warnも消滅 |
+| warn残 | 20件のみ = C2×10（免責文の裸「順位」・rev1食い違い②のとおり許容）+ C6×10（「次回検証: 準備中」行・rev1曖昧さ③のとおり許容） |
+
+表記統一の副次確認: 「確認日（ARI Award 2026 Summer調査時点）」への変更は初回レポートP2-4（ARI調査日をKanseiLink実測日と誤読するリスク）を解消している。meta description含め全ファイルで統一済みをgrepで確認。
+
+## seeded violations再実行（検出能力の実証・rev2）
+
+agileworks.htmlのコピーに **①CHECKER-NOTEコメント（seed_id+api_url候補入り）再注入 ②meta属性への`seed_match: unverified_not_rendered`混入 ③profile-drafts/へのmanifest.json混在 ④installページへのHTMLコメント注入** を行いpublishモードで実行:
+→ **12 error（S1×2・S2×1・S3×4・C9×2・D1×1・D2×1・M1×1）・FAIL・exit 1** — HTMLコメント注入がerrorとして検出されることを実証。同一データを`--draft`で実行するとsource-level項目はwarnに降格し（error 1=manifest件数不一致のみ）、モード分離も設計どおり動作。
+
+## rev2判定
+
+**PASS — publishモードでerror 0・exit 0。Maker修正 0f11d9a は初回P1指摘とCodex P1判定の要求水準（ソースレベルで未検証情報0）を満たしている。** strip方式ではなく「最初から書かない」方式+内部データのqa-internal/分離は、私の推奨修正より構造的に堅い（生成と公開判定の間にstrip工程という失敗点を作らない）。
+
+残存する非ブロック事項（rev1から継続・正典側の宿題）:
+1. 免責文の裸「順位」（Codex字義パターンとの衝突）——解釈確認は未回収
+2. 「次回検証: 準備中」行と§1-4の解釈揺れ——正典への一文追記が望ましい
+3. 正典PLAN §3は表示名を「last_verified（検証日）」と書くが実装表示は「確認日」——正典側にエイリアス注記があるとMaker/Checker間の将来の解釈分岐を防げる
+
+## 再現手順（rev2）
+
+```
+node scripts/check-profiles.mjs            # publishモード（公開ゲートはこちら）: exit 0 = PASS / exit 1 = 公開ブロック
+node scripts/check-profiles.mjs --draft    # Maker作業中の反復用（source-level leakをwarn緩和）
 ```
