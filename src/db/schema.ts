@@ -559,6 +559,77 @@ export function initializeDb(db: Database.Database): void {
        GROUP BY service_id, model_name, task_type;
   `);
 
+  // ── service_stats rebuild v1 (P0 #39 residue remediation, Codex 8/16 design) ──
+  // Old service_stats values are a blend whose synthetic share cannot be
+  // identified by value or threshold. Policy: NO guess-based deletion.
+  //   1. quarantine the current table once (audit evidence, never served)
+  //   2. rebuild from the SAME provenance conditions as publishable_service_stats
+  //      (synthetic / legacy_unknown / unverified user_reported are excluded by
+  //      the publishable_outcomes view definition itself)
+  //   3. services with no trustworthy outcomes get NO row = "no data", not "0%"
+  //   4. versioned via schema_migrations; re-running is a no-op (idempotent)
+  //   5. before/after row counts (PII-free) recorded in migration_audit
+  // The quarantine table is referenced ONLY here — never by API/search/ARI/
+  // tips/insights/public views (enforced by smoke-stats-rebuild static scan).
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      migration_id TEXT PRIMARY KEY,
+      applied_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS migration_audit (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      migration_id TEXT NOT NULL,
+      metric TEXT NOT NULL,
+      value INTEGER NOT NULL,
+      recorded_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  const statsRebuilt = db
+    .prepare("SELECT 1 AS x FROM schema_migrations WHERE migration_id = 'service_stats_rebuild_v1'")
+    .get();
+  if (!statsRebuilt) {
+    const rebuildTx = db.transaction(() => {
+      const count = (sql: string) => (db.prepare(sql).get() as { c: number }).c;
+      const beforeRows = count("SELECT COUNT(*) c FROM service_stats");
+      const beforeNonzero = count("SELECT COUNT(*) c FROM service_stats WHERE total_calls > 0");
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS service_stats_quarantine (
+          service_id TEXT PRIMARY KEY,
+          total_calls INTEGER,
+          success_rate REAL,
+          avg_latency_ms REAL,
+          unique_agents INTEGER,
+          last_updated TEXT,
+          quarantined_at TEXT DEFAULT (datetime('now'))
+        );
+        INSERT OR IGNORE INTO service_stats_quarantine
+          (service_id, total_calls, success_rate, avg_latency_ms, unique_agents, last_updated)
+          SELECT service_id, total_calls, success_rate, avg_latency_ms, unique_agents, last_updated
+            FROM service_stats;
+        DELETE FROM service_stats;
+        INSERT INTO service_stats
+          (service_id, total_calls, success_rate, avg_latency_ms, unique_agents, last_updated)
+          SELECT r.service_id, r.total_calls, r.success_rate,
+                 COALESCE(r.avg_latency_ms, 0), r.unique_agents, r.last_updated
+            FROM publishable_service_rollup r
+           WHERE r.service_id IN (SELECT id FROM services);
+      `);
+      const afterRows = count("SELECT COUNT(*) c FROM service_stats");
+      const afterNonzero = count("SELECT COUNT(*) c FROM service_stats WHERE total_calls > 0");
+      const quarantined = count("SELECT COUNT(*) c FROM service_stats_quarantine");
+      const audit = db.prepare(
+        "INSERT INTO migration_audit (migration_id, metric, value) VALUES ('service_stats_rebuild_v1', ?, ?)"
+      );
+      audit.run("before_rows", beforeRows);
+      audit.run("before_nonzero_rows", beforeNonzero);
+      audit.run("quarantined_rows", quarantined);
+      audit.run("after_rows", afterRows);
+      audit.run("after_nonzero_rows", afterNonzero);
+      db.prepare("INSERT INTO schema_migrations (migration_id) VALUES ('service_stats_rebuild_v1')").run();
+    });
+    rebuildTx();
+  }
+
   // Migration: add MCP tool inventory columns to services (for analyze_mcp_config)
   // mcp_tool_count: how many tools this MCP server exposes
   // avg_tool_def_tokens: estimated tokens per tool definition (default 500)

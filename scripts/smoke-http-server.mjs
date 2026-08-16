@@ -8,13 +8,20 @@
  */
 
 import { spawn } from "child_process";
-import { rmSync, existsSync, readFileSync } from "fs";
+import { rmSync, existsSync, readFileSync, mkdtempSync } from "fs";
 import { createHmac } from "crypto";
+import { tmpdir } from "os";
+import { join } from "path";
 import Database from "better-sqlite3";
 
 const PORT = 3611;
 const BASE = `http://127.0.0.1:${PORT}`;
-const TMP_DB = "./smoke-http.db";
+// 絶対パスの一時ディレクトリ必須: 相対パスだとhttp-serverのstartupバックアップが
+// dirname(dbPath)/backups = repo直下backups/ に「kansei-link-<date>.db」名で
+// 一時DBのコピーを置いてしまい、実DBのバックアップと誤認される（8/16実発生・
+// 誤配置ファイルは削除済み）。
+const TMP_DIR = mkdtempSync(join(tmpdir(), "kansei-smoke-http-"));
+const TMP_DB = join(TMP_DIR, "smoke-http.db");
 const SECRET = "smoke-access-secret";
 const ADMIN = "smoke-admin-secret";
 
@@ -44,7 +51,10 @@ function ok(cond, label) {
 }
 
 function accessTokenFor(email) {
-  return createHmac("sha256", SECRET).update(email.trim().toLowerCase()).digest("hex").slice(0, 32);
+  // Phase A0以降のkid付きv2形式（src/stripe.ts accessTokenForと同一）。
+  // 旧形式のままだった期待値はA0後ずっと2件failしていた（パイプ|tailで
+  // exit codeが隠れて未検出だった既存テスト債務・2026-08-17修正）
+  return "v2." + createHmac("sha256", SECRET).update(email.trim().toLowerCase()).digest("hex").slice(0, 32);
 }
 
 async function waitForHealth(timeoutMs = 40000) {
@@ -159,9 +169,7 @@ try {
 } finally {
   child.kill();
   await new Promise((res) => setTimeout(res, 500));
-  for (const f of [TMP_DB, TMP_DB + "-wal", TMP_DB + "-shm"]) {
-    try { if (existsSync(f)) rmSync(f); } catch { /* file may be briefly locked on Windows */ }
-  }
+  try { rmSync(TMP_DIR, { recursive: true, force: true }); } catch { /* file may be briefly locked on Windows */ }
 }
 
 console.log(`\n═══ ${pass} passed, ${fail} failed ═══`);

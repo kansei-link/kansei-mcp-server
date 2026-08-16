@@ -296,25 +296,23 @@ export function reportOutcome(
     throw error;
   }
 
-  // Update aggregated stats
+  // Update aggregated stats. Always a full provenance-filtered recompute — the
+  // old INSERT branch seeded a fresh row from just the new call (VALUES 1, ...)
+  // and only recomputed on conflict, so the first report after the stats
+  // rebuild (P0 #39: rows for untrusted services are removed, "no data") would
+  // undercount history until a second report arrived.
+  db.prepare("INSERT INTO service_stats (service_id) VALUES (?) ON CONFLICT(service_id) DO NOTHING").run(
+    input.service_id
+  );
   db.prepare(
-    `INSERT INTO service_stats (service_id, total_calls, success_rate, avg_latency_ms, unique_agents, last_updated)
-     VALUES (?, 1, ?, ?, 0, datetime('now'))
-     ON CONFLICT(service_id) DO UPDATE SET
+    `UPDATE service_stats SET
        total_calls = (SELECT count(*) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured')),
        success_rate = COALESCE((SELECT avg(success) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured')), 0),
        avg_latency_ms = COALESCE((SELECT avg(latency_ms) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured') AND latency_ms IS NOT NULL), 0),
        unique_agents = (SELECT count(DISTINCT NULLIF(agent_id_hash, 'anonymous')) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured')),
-       last_updated = datetime('now')`
-  ).run(
-    input.service_id,
-    input.success ? 1.0 : 0.0,
-    input.latency_ms ?? 0,
-    input.service_id,
-    input.service_id,
-    input.service_id,
-    input.service_id
-  );
+       last_updated = datetime('now')
+     WHERE service_id = ?`
+  ).run(input.service_id, input.service_id, input.service_id, input.service_id, input.service_id);
 
   // Aggregate model_service_stats (when model data is available)
   if (normalizedModel) {
