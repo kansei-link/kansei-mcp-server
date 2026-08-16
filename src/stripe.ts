@@ -14,21 +14,26 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { getDb } from "./db/connection.js";
 
 // ─── Access token (proves caller owns the email — closes /api/access enumeration) ──
-// Deterministic HMAC so no new column/storage is needed. Secret reuses an existing env;
-// if none is set the gate fails CLOSED (every query looks like "free" — never leaks existence).
+// Deterministic HMAC so no new column/storage is needed. The secret is a DEDICATED
+// env (ACCESS_TOKEN_SECRET) — never the Stripe webhook secret or CRAWLER_SECRET:
+// those rotate on their own schedules (a webhook endpoint re-creation must not
+// invalidate customer sessions, and a token secret leak must not compromise
+// webhook authenticity). If unset the gate fails CLOSED (every query looks like
+// "free" — never leaks existence).
+// Tokens carry a key id ("kid") prefix so the secret can rotate later: verifiers
+// accept only kids they know, and a future ACCESS_TOKEN_SECRET_V3 can be checked
+// alongside V2 during a rotation window.
+const ACCESS_TOKEN_KID = "v2";
+
 function accessSecret(): string | null {
-  return (
-    process.env.ACCESS_TOKEN_SECRET ||
-    process.env.STRIPE_WEBHOOK_SECRET ||
-    process.env.CRAWLER_SECRET ||
-    null
-  );
+  return process.env.ACCESS_TOKEN_SECRET || null;
 }
 
 export function accessTokenFor(email: string): string | null {
   const secret = accessSecret();
   if (!secret) return null;
-  return createHmac("sha256", secret).update(email.trim().toLowerCase()).digest("hex").slice(0, 32);
+  const mac = createHmac("sha256", secret).update(email.trim().toLowerCase()).digest("hex").slice(0, 32);
+  return `${ACCESS_TOKEN_KID}.${mac}`;
 }
 
 export function tokenMatches(provided: string, expected: string | null): boolean {
@@ -40,27 +45,60 @@ export function tokenMatches(provided: string, expected: string | null): boolean
   }
 }
 
-// Stripe client — initialized lazily to avoid crashes when STRIPE_SECRET_KEY is not set
+// Stripe client — initialized lazily to avoid crashes when STRIPE_SECRET_KEY is not set.
+// STRIPE_API_BASE (e.g. "http://127.0.0.1:5799") redirects API calls to a local mock
+// for E2E tests; unset in production.
 let _stripe: Stripe | null = null;
 
 function getStripe(): Stripe {
   if (!_stripe) {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) throw new Error("STRIPE_SECRET_KEY not set");
-    _stripe = new Stripe(key);
+    const base = process.env.STRIPE_API_BASE;
+    if (base) {
+      const u = new URL(base);
+      _stripe = new Stripe(key, {
+        host: u.hostname,
+        port: Number(u.port) || (u.protocol === "https:" ? 443 : 80),
+        protocol: u.protocol.replace(":", "") as "http" | "https",
+      });
+    } else {
+      _stripe = new Stripe(key);
+    }
   }
   return _stripe;
 }
 
-// Map Stripe price IDs to tiers (configured via env vars)
+// Map Stripe price IDs to tiers — STRICT allowlist of the three prices we sell.
+// An unknown price (another product on the account, a future plan, a test price)
+// must NEVER grant paid entitlements: it maps to "unknown", which is stored for
+// audit but excluded from every entitlement check (see accessResultForEmail).
 function priceTier(priceId: string): string {
-  if (priceId === process.env.STRIPE_PRICE_PRO_MONTHLY) return "pro";
-  if (priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) return "pro";
-  if (priceId === process.env.STRIPE_PRICE_TEAM) return "team";
-  return "pro"; // default fallback
+  if (priceId && priceId === process.env.STRIPE_PRICE_PRO_MONTHLY) return "pro";
+  if (priceId && priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) return "pro";
+  if (priceId && priceId === process.env.STRIPE_PRICE_TEAM) return "team";
+  console.error(`[Stripe][AUDIT] unknown price id ${priceId || "(none)"} — quarantined as tier=unknown (no paid entitlement)`);
+  return "unknown";
 }
 
 // ─── Webhook Handler ───────────────────────────────────────────────
+//
+// Idempotency + ordering contract (Phase A0, 2026-08-16):
+//   1. Signature is verified BEFORE anything else touches the payload.
+//   2. Each event mutates the DB inside ONE transaction that also records
+//      event.id in stripe_webhook_events. Crash mid-way → no ledger row →
+//      Stripe's retry is processed as if new. (An insert-first/OR IGNORE
+//      design would mark crashed events as done forever — rejected.)
+//   3. A replay of a SUCCESSFULLY processed event.id is acknowledged with 200
+//      and zero side effects.
+//   4. Any processing failure returns non-2xx so Stripe retries.
+//   5. subscriptions.last_stripe_event_created is a per-row monotonic clock:
+//      an event older than what the row has already seen is skipped (stale),
+//      so delayed retries can neither roll state back nor revive a
+//      subscription that a newer `deleted` event canceled.
+//   6. Handlers have NO side effects besides these DB writes and console.log
+//      (no email, no token issuance, no external calls) — verified 2026-08-16;
+//      keep it that way or dual-endpoint operation during cutover breaks.
 
 export async function handleStripeWebhook(req: Request, res: Response) {
   const sig = req.headers["stripe-signature"] as string;
@@ -83,78 +121,166 @@ export async function handleStripeWebhook(req: Request, res: Response) {
 
   const db = getDb();
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      if (session.mode === "subscription" && session.subscription && session.customer) {
-        const sub = await getStripe().subscriptions.retrieve(session.subscription as string);
-        const item = sub.items.data[0];
-        const priceId = item?.price.id ?? "";
-        const tier = priceTier(priceId);
-        const email = session.customer_details?.email ?? session.customer_email ?? "";
-
-        db.prepare(`
-          INSERT INTO subscriptions (stripe_customer_id, stripe_subscription_id, email, tier, status, current_period_start, current_period_end)
-          VALUES (?, ?, ?, ?, 'active', datetime(?, 'unixepoch'), datetime(?, 'unixepoch'))
-          ON CONFLICT(stripe_subscription_id) DO UPDATE SET
-            email = excluded.email, tier = excluded.tier, status = 'active',
-            current_period_start = excluded.current_period_start,
-            current_period_end = excluded.current_period_end,
-            updated_at = datetime('now')
-        `).run(
-          session.customer as string,
-          session.subscription as string,
-          email,
-          tier,
-          item?.current_period_start ?? 0,
-          item?.current_period_end ?? 0,
-        );
-        console.log(`[Stripe] Subscription created: ${email} → ${tier}`);
-      }
-      break;
-    }
-
-    case "customer.subscription.updated": {
-      const sub = event.data.object as Stripe.Subscription;
-      const item = sub.items.data[0];
-      const priceId = item?.price.id ?? "";
-      const tier = priceTier(priceId);
-
-      db.prepare(`
-        UPDATE subscriptions SET
-          tier = ?, status = ?, cancel_at_period_end = ?,
-          current_period_start = datetime(?, 'unixepoch'),
-          current_period_end = datetime(?, 'unixepoch'),
-          updated_at = datetime('now')
-        WHERE stripe_subscription_id = ?
-      `).run(
-        tier,
-        sub.status === "active" ? "active" : sub.status,
-        sub.cancel_at_period_end ? 1 : 0,
-        item?.current_period_start ?? 0,
-        item?.current_period_end ?? 0,
-        sub.id,
-      );
-      console.log(`[Stripe] Subscription updated: ${sub.id} → ${tier} (${sub.status})`);
-      break;
-    }
-
-    case "customer.subscription.deleted": {
-      const sub = event.data.object as Stripe.Subscription;
-      db.prepare(`
-        UPDATE subscriptions SET status = 'canceled', updated_at = datetime('now')
-        WHERE stripe_subscription_id = ?
-      `).run(sub.id);
-      console.log(`[Stripe] Subscription canceled: ${sub.id}`);
-      break;
-    }
-
-    default:
-      // Unhandled event types — silently acknowledge
-      break;
+  // Fast path: already fully processed → ACK, no side effects, no API calls.
+  const seen = db.prepare("SELECT 1 FROM stripe_webhook_events WHERE event_id = ?").get(event.id);
+  if (seen) {
+    res.json({ received: true, duplicate: true });
+    return;
   }
 
-  res.json({ received: true });
+  try {
+    // Async work (Stripe API reads) happens BEFORE the transaction —
+    // better-sqlite3 transactions are synchronous by design.
+    let mutate: (() => void) | null = null;
+
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.mode === "subscription" && session.subscription && session.customer) {
+          // Same truth-fetch contract as updated/deleted: we already retrieve the
+          // subscription, so store its CURRENT status — never a hardcoded
+          // 'active'. A delayed checkout event must not resurrect a
+          // subscription that was canceled in the meantime (API truth ordering
+          // + the same same-second canceled-wins tie-guard).
+          const sub = await getStripe().subscriptions.retrieve(session.subscription as string);
+          const item = sub.items.data[0];
+          const tier = priceTier(item?.price.id ?? "");
+          const status = sub.status;
+          const email = session.customer_details?.email ?? session.customer_email ?? "";
+          mutate = () => {
+            const r = db.prepare(`
+              INSERT INTO subscriptions (stripe_customer_id, stripe_subscription_id, email, tier, status,
+                current_period_start, current_period_end, cancel_at_period_end, last_stripe_event_created)
+              VALUES (?, ?, ?, ?, ?, datetime(?, 'unixepoch'), datetime(?, 'unixepoch'), ?, ?)
+              ON CONFLICT(stripe_subscription_id) DO UPDATE SET
+                email = excluded.email, tier = excluded.tier, status = excluded.status,
+                current_period_start = excluded.current_period_start,
+                current_period_end = excluded.current_period_end,
+                cancel_at_period_end = excluded.cancel_at_period_end,
+                last_stripe_event_created = excluded.last_stripe_event_created,
+                updated_at = datetime('now')
+              WHERE COALESCE(subscriptions.last_stripe_event_created, 0) <= excluded.last_stripe_event_created
+                AND NOT (subscriptions.status = 'canceled'
+                         AND COALESCE(subscriptions.last_stripe_event_created, 0) = excluded.last_stripe_event_created
+                         AND excluded.status != 'canceled')
+            `).run(
+              session.customer as string,
+              session.subscription as string,
+              email,
+              tier,
+              status,
+              item?.current_period_start ?? 0,
+              item?.current_period_end ?? 0,
+              sub.cancel_at_period_end ? 1 : 0,
+              event.created,
+            );
+            console.log(`[Stripe] Checkout completed: ${email} → ${tier} (${status})${r.changes === 0 ? " [stale — skipped]" : ""}`);
+          };
+        }
+        break;
+      }
+
+      // updated/deleted: Stripe does NOT guarantee delivery order, so the event
+      // payload is only a hint. We fetch the subscription's CURRENT state from
+      // the Stripe API (source of truth) and upsert that — an out-of-order or
+      // delayed event can then never resurrect canceled state or roll back a
+      // newer change, and an `updated` arriving before `checkout.completed`
+      // still creates the row (email resolved via the Customer API).
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const evSub = event.data.object as Stripe.Subscription;
+        let truth: Stripe.Subscription | null = null;
+        try {
+          truth = await getStripe().subscriptions.retrieve(evSub.id);
+        } catch (err: unknown) {
+          const code = (err as { code?: string; statusCode?: number });
+          if (code?.code === "resource_missing" || code?.statusCode === 404) {
+            if (event.type === "customer.subscription.deleted") {
+              truth = null; // terminal: apply cancel from the event itself below
+            } else {
+              // updated for a subscription Stripe no longer knows: quarantine.
+              console.error(`[Stripe][AUDIT] updated event for missing subscription ${evSub.id} — no state change, event recorded`);
+              mutate = null;
+              break;
+            }
+          } else {
+            throw err; // transient failure → 500 → Stripe retries
+          }
+        }
+
+        const sub = truth ?? evSub;
+        const item = sub.items?.data?.[0];
+        const tier = priceTier(item?.price?.id ?? "");
+        const status = truth ? sub.status : "canceled";
+        const localRow = db.prepare("SELECT email FROM subscriptions WHERE stripe_subscription_id = ?").get(sub.id) as { email: string } | undefined;
+        let email = localRow?.email ?? "";
+        if (!localRow && sub.customer) {
+          // Row doesn't exist locally (updated-before-checkout): resolve the
+          // customer email from Stripe so the row is usable for entitlements.
+          try {
+            const cust = await getStripe().customers.retrieve(
+              typeof sub.customer === "string" ? sub.customer : sub.customer.id
+            );
+            if (!("deleted" in cust) || !cust.deleted) email = (cust as Stripe.Customer).email ?? "";
+          } catch {
+            email = ""; // quarantined: row exists but is not entitlement-addressable
+          }
+          if (!email) console.error(`[Stripe][AUDIT] no email resolvable for ${sub.id} — row stored without email`);
+        }
+
+        mutate = () => {
+          const r = db.prepare(`
+            INSERT INTO subscriptions (stripe_customer_id, stripe_subscription_id, email, tier, status,
+              current_period_start, current_period_end, cancel_at_period_end, last_stripe_event_created)
+            VALUES (?, ?, ?, ?, ?, datetime(?, 'unixepoch'), datetime(?, 'unixepoch'), ?, ?)
+            ON CONFLICT(stripe_subscription_id) DO UPDATE SET
+              tier = excluded.tier, status = excluded.status,
+              email = CASE WHEN subscriptions.email = '' THEN excluded.email ELSE subscriptions.email END,
+              current_period_start = excluded.current_period_start,
+              current_period_end = excluded.current_period_end,
+              cancel_at_period_end = excluded.cancel_at_period_end,
+              last_stripe_event_created = excluded.last_stripe_event_created,
+              updated_at = datetime('now')
+            WHERE COALESCE(subscriptions.last_stripe_event_created, 0) <= excluded.last_stripe_event_created
+              -- same-second tie: a deleted-canceled row wins over a same-created update
+              AND NOT (subscriptions.status = 'canceled'
+                       AND COALESCE(subscriptions.last_stripe_event_created, 0) = excluded.last_stripe_event_created
+                       AND excluded.status != 'canceled')
+          `).run(
+            typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? "",
+            sub.id,
+            email,
+            tier,
+            status,
+            item?.current_period_start ?? 0,
+            item?.current_period_end ?? 0,
+            sub.cancel_at_period_end ? 1 : 0,
+            event.created,
+          );
+          console.log(`[Stripe] ${event.type}: ${sub.id} → ${tier} (${status})${r.changes === 0 ? " [stale — skipped]" : ""}`);
+        };
+        break;
+      }
+
+      default:
+        // Unhandled event types — record + acknowledge so retries stop.
+        break;
+    }
+
+    db.transaction(() => {
+      if (mutate) mutate();
+      db.prepare(
+        "INSERT INTO stripe_webhook_events (event_id, event_type, event_created) VALUES (?, ?, ?)"
+      ).run(event.id, event.type, event.created);
+    })();
+
+    res.json({ received: true });
+  } catch (err: unknown) {
+    // No ledger row was committed (single transaction) → Stripe will retry.
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error(`[Stripe] Webhook processing failed for ${event.id} (${event.type}):`, message);
+    res.status(500).json({ error: "Webhook processing failed" });
+  }
 }
 
 // ─── Access Check API ──────────────────────────────────────────────
@@ -170,10 +296,13 @@ interface AccessResult {
 // `active:false / tier:"free"` is the SAME response for "no subscription" and "not authorized",
 // so an unauthorized caller cannot tell whether an email is a customer.
 export function accessResultForEmail(email: string): AccessResult {
+  // tier allowlist: rows quarantined as tier='unknown' (unrecognized Stripe price)
+  // never grant access — they exist for audit only.
   const row = getDb().prepare(`
     SELECT tier, status, service_ids, current_period_end, cancel_at_period_end
     FROM subscriptions
     WHERE LOWER(email) = ? AND status IN ('active', 'trialing')
+      AND tier IN ('pro', 'team', 'enterprise')
     ORDER BY
       CASE tier WHEN 'enterprise' THEN 4 WHEN 'team' THEN 3 WHEN 'pro' THEN 2 ELSE 1 END DESC
     LIMIT 1

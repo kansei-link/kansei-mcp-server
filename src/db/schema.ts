@@ -269,6 +269,18 @@ export function initializeDb(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_subs_stripe_customer ON subscriptions(stripe_customer_id);
     CREATE INDEX IF NOT EXISTS idx_subs_status ON subscriptions(status);
 
+    -- Stripe webhook event ledger: one row per SUCCESSFULLY processed event.
+    -- Inserted in the SAME transaction as the subscription mutation, so a crash
+    -- mid-processing leaves no row and Stripe's retry gets processed normally.
+    -- (Deliberately NOT insert-first/OR IGNORE: that would mark crashed events
+    -- as done forever.)
+    CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+      event_id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      event_created INTEGER NOT NULL,
+      processed_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS service_api_guides (
       service_id TEXT PRIMARY KEY REFERENCES services(id),
       base_url TEXT NOT NULL,
@@ -299,6 +311,16 @@ export function initializeDb(db: Database.Database): void {
     db.exec("ALTER TABLE services ADD COLUMN axr_grade TEXT");
     db.exec("ALTER TABLE services ADD COLUMN axr_dims TEXT");
     db.exec("ALTER TABLE services ADD COLUMN axr_facade INTEGER DEFAULT 0");
+  }
+
+  // Migration: monotonic Stripe event clock per subscription row. Guards against
+  // out-of-order webhook delivery (a stale `customer.subscription.updated` retry
+  // must never overwrite newer state or revive a canceled subscription).
+  const hasEventCreated = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('subscriptions') WHERE name = 'last_stripe_event_created'")
+    .get() as { cnt: number };
+  if (hasEventCreated.cnt === 0) {
+    db.exec("ALTER TABLE subscriptions ADD COLUMN last_stripe_event_created INTEGER DEFAULT 0");
   }
 
   // Migration: add workaround column if it doesn't exist (for existing databases)

@@ -52,41 +52,78 @@ function isPlausibleEmail(email: string): boolean {
 const CODE_TTL_MINUTES = 15;
 const MAX_CODES_PER_EMAIL_PER_HOUR = 3;
 
+// Magic-link mail goes through SendGrid — the SAME provider (and verified
+// sender) as the lead-confirmation receipts in http-server.ts. A Resend
+// implementation shipped here earlier, but RESEND_API_KEY was never configured
+// on any environment, so links only ever landed in Railway logs while the API
+// still answered 200 (found in the A1 provider-alignment review, 2026-08-16).
+// One provider, one sender identity, one thing to monitor.
+// SENDGRID_API_BASE overrides the host for E2E tests only — never set it in
+// production.
+// Log-safety contract: a magic link IS a login credential (bearer). Nothing
+// that reaches server logs may contain the email address, the link, or the
+// code — anyone with Railway log access (or a future log drain) could sign in
+// as the customer otherwise. Log only a PSEUDONYMOUS email reference and a
+// reason tag; the tags are stable strings so Railway log searches can count
+// no_key / send_failed / send_error occurrences for monitoring.
+// Note: an unsalted SHA-256 prefix is pseudonymous, NOT irreversible — anyone
+// with a candidate email can compute and match it, and 8 hex chars (32 bits)
+// can collide. Acceptable for correlating failure logs; if that correlation
+// stops being needed, drop emailRef entirely, or switch to an HMAC with a
+// dedicated secret and a longer output.
+function emailRef(email: string): string {
+  return sha256(email.trim().toLowerCase()).slice(0, 8);
+}
+
 async function sendMagicLinkEmail(email: string, link: string): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.SENDGRID_API_KEY;
   if (!apiKey) {
-    // No email provider configured — surface the link in server logs so the
-    // operator can deliver it manually (Railway logs are operator-only).
-    console.log(`[auth] RESEND_API_KEY not set — magic link for ${email}: ${link}`);
+    // No email provider configured. The request still answers 200
+    // (anti-enumeration), so this log line is the ONLY signal that a
+    // subscriber did not get mail. NEVER log the address, link, or code here.
+    console.error(`[auth][AUDIT] magic-link not sent (reason=no_key email_ref=${emailRef(email)}) — mail provider unavailable`);
     return;
   }
-  const from = process.env.EMAIL_FROM || "KanseiLink <login@kansei-link.com>";
+  const from = process.env.KANSEI_MAIL_FROM || "contact@synapse-arrows.com";
+  const base = (process.env.SENDGRID_API_BASE || "https://api.sendgrid.com").replace(/\/+$/, "");
   try {
-    const res = await fetch("https://api.resend.com/emails", {
+    const res = await fetch(`${base}/v3/mail/send`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from,
-        to: [email],
+        personalizations: [{ to: [{ email }] }],
+        from: { email: from, name: "KanseiLink" },
+        reply_to: { email: "contact@synapse-arrows.com", name: "KanseiLink" },
         subject: "KanseiLink ログインリンク / Sign-in link",
-        html: [
-          `<p>KanseiLink へのログインリンクです（有効期限 ${CODE_TTL_MINUTES} 分・1回のみ有効）。</p>`,
-          `<p>Your KanseiLink sign-in link (valid for ${CODE_TTL_MINUTES} minutes, single use):</p>`,
-          `<p><a href="${link}">${link}</a></p>`,
-          `<p style="color:#6b7280;font-size:13px;">このメールに心当たりがない場合は無視してください。/ If you didn't request this, you can safely ignore it.</p>`,
-        ].join("\n"),
+        content: [{
+          type: "text/html",
+          value: [
+            `<p>KanseiLink へのログインリンクです（有効期限 ${CODE_TTL_MINUTES} 分・1回のみ有効）。</p>`,
+            `<p>Your KanseiLink sign-in link (valid for ${CODE_TTL_MINUTES} minutes, single use):</p>`,
+            `<p><a href="${link}">${link}</a></p>`,
+            `<p style="color:#6b7280;font-size:13px;">このメールに心当たりがない場合は無視してください。/ If you didn't request this, you can safely ignore it.</p>`,
+          ].join("\n"),
+        }],
+        // Plain URLs, not click-tracking rewrites — a rewritten login link
+        // looks phishy and breaks if tracking is misconfigured.
+        tracking_settings: {
+          click_tracking: { enable: false, enable_text: false },
+          open_tracking: { enable: false },
+        },
       }),
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      console.error(`[auth] magic-link email send failed (${res.status}): ${detail.slice(0, 300)}`);
+    if (res.status !== 202) {
+      // Do NOT log the response body — SendGrid error payloads can echo the
+      // recipient address. Status + email_ref is enough to diagnose.
+      console.error(`[auth][AUDIT] magic-link not sent (reason=send_failed status=${res.status} email_ref=${emailRef(email)})`);
     }
   } catch (err) {
-    console.error("[auth] magic-link email send error:", err instanceof Error ? err.message : err);
+    const kind = err instanceof Error && err.name === "TimeoutError" ? "timeout" : "send_error";
+    console.error(`[auth][AUDIT] magic-link not sent (reason=${kind} email_ref=${emailRef(email)})`);
   }
 }
 
