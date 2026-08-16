@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OpenAI Agents SDKにKanseiLink MCPを1分で接続 | KanseiLink</title>
-<meta name="description" content="OpenAI Agents SDK（Python）にKanseiLink MCPサーバー（@kansei-link/mcp-server）を1分で接続する手順。MCPServerStdioの設定、接続確認、よくある設定ミスの自己診断、削除手順まで。">
+<meta name="description" content="OpenAI Agents SDK（Python / TypeScript）にKanseiLink MCPサーバー（@kansei-link/mcp-server）を1分で接続する手順。MCPServerStdioの設定、接続確認、よくある設定ミスの自己診断、削除手順まで。">
 <style>
   :root { --teal: #00bfa5; --ink: #1a2b32; --muted: #5f7480; --line: #e3ebee; --bg: #f7fafb; --card: #ffffff; --code-bg: #0f2027; --code-fg: #d7e7ec; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -37,7 +37,7 @@
   <header class="site"><div class="brand">Kansei<span>Link</span> — MCP Install Guide</div></header>
 
   <span class="time-chip">所要時間: 約1分</span>
-  <h1>OpenAI Agents SDK（Python）に KanseiLink を接続する</h1>
+  <h1>OpenAI Agents SDK（Python / TypeScript）に KanseiLink を接続する</h1>
   <p class="lede"><code>MCPServerStdio</code> でKanseiLinkをエージェントのツールとして渡します。前提: Python 3.9以上・<code>pip install openai-agents</code> 済み・Node.js 18以上（npx実行用）。</p>
 
   <section>
@@ -60,7 +60,24 @@ async def main():
         print(result.final_output)
 
 asyncio.run(main())</code></pre>
-    <p class="hint">TypeScript版SDK（@openai/agents）での設定形式は公式ドキュメント確認中のため、本ページではPython版のみ記載しています。</p>
+    <p>TypeScript版SDK（<code>@openai/agents</code>）では、<code>MCPServerStdio</code> を <code>fullCommand</code>（または <code>command</code> + <code>args</code>）で生成し、<code>connect()</code> を呼んでから <code>mcpServers</code> に渡します。</p>
+    <pre><code>import { Agent, run, MCPServerStdio } from '@openai/agents';
+
+const kanseiLink = new MCPServerStdio({
+  name: 'KanseiLink',
+  fullCommand: 'npx -y @kansei-link/mcp-server',
+});
+await kanseiLink.connect();
+
+const agent = new Agent({
+  name: 'Assistant',
+  instructions: 'SaaS連携の前にKanseiLinkでサービス情報を確認してください。',
+  mcpServers: [kanseiLink],
+});
+const result = await run(agent, 'freee会計と連携する準備をして');
+console.log(result.finalOutput);
+await kanseiLink.close();</code></pre>
+    <p class="hint">参考: <a href="https://openai.github.io/openai-agents-js/guides/mcp/">OpenAI Agents SDK (TypeScript) 公式ガイド「Model context protocol (MCP)」</a>（stdioサーバーは <code>MCPServerStdio</code> + <code>fullCommand</code> で接続、と明記）。</p>
   </section>
 
   <section>
