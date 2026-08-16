@@ -26,9 +26,13 @@ const diff = (a, b) => [...a].filter((x) => !b.has(x)).concat([...b].filter((x) 
 const master = g("canary-20-active.json");
 const M = new Set(master.services.map((s) => s.service));
 
-// S1
+// S1（rev: 集合サイズだけでなく物理行数もassert——重複行の混入を確実に検出）
 const conf = master.confidence_summary;
 check("S1. 正本=20件・Jooto無・Keeper有・high+medium=20", M.size === 20 && !M.has("Jooto") && M.has("Keeper") && (conf.high + conf.medium === 20) && !(conf.low > 0));
+check("S1b. 物理行数=20（正本配列・CSV・claim-domain active各々・重複なし）",
+  master.services.length === 20 &&
+  readFileSync(join(ROOT, "growth-mvp", "canary-20.csv"), "utf8").replace(/^﻿/, "").trim().split("\n").length === 21 && // header+20
+  g("claim-domain-canary20-active.json").rows.length === 20);
 
 // S2 CSV
 const csv = readFileSync(join(ROOT, "growth-mvp", "canary-20.csv"), "utf8").replace(/^﻿/, "").trim().split("\n").slice(1);

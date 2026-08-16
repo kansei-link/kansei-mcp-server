@@ -1,0 +1,189 @@
+#!/usr/bin/env node
+// kansei-link-install-hooks
+//
+// One-command installer for the KanseiLink measurement hooks in
+// ~/.claude/settings.json:
+//
+//   Stop / SessionEnd → kansei-link-usage-hook   (local token measurement)
+//   PostToolUse       → kansei-link-report-hook  (auto outcome reports)
+//
+// Design constraints:
+//   - Idempotent: running twice adds nothing twice.
+//   - Non-destructive: existing hooks and settings are preserved; a
+//     timestamped backup is written before any change.
+//   - --dry-run shows the diff without writing.
+//   - --remove uninstalls exactly the entries we added.
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { homedir } from "node:os";
+import { fileURLToPath } from "node:url";
+const SETTINGS_DIR = join(homedir(), ".claude");
+const SETTINGS_FILE = join(SETTINGS_DIR, "settings.json");
+// --local: run the hooks from THIS build instead of the published npm
+// package. For dogfooding before a release (npx would fetch a package
+// version that may not have these binaries yet).
+const useLocal = process.argv.includes("--local");
+const binDir = dirname(fileURLToPath(import.meta.url));
+const q = (p) => (p.includes(" ") ? `"${p}"` : p);
+// v1.2.1 hotfix: `npx -y @kansei-link/mcp-server <subcommand>` does NOT run the
+// subcommand — with multiple bins and a bin matching the unscoped package name,
+// npx always resolves the server binary and drops the positional arg. The
+// correct form pins the package with -p so the named bin is resolved:
+//   npx -y -p @kansei-link/mcp-server kansei-link-usage-hook
+const USAGE_HOOK_CMD = useLocal
+    ? `node ${q(join(binDir, "usage-hook.js"))}`
+    : "npx -y -p @kansei-link/mcp-server kansei-link-usage-hook";
+const REPORT_HOOK_CMD = useLocal
+    ? `node ${q(join(binDir, "report-hook.js"))}`
+    : "npx -y -p @kansei-link/mcp-server kansei-link-report-hook";
+// Broken forms written by <= v1.2.0. Repair replaces EXACTLY these strings —
+// never anything else — so unrelated hooks can never be touched.
+const LEGACY_REPAIRS = new Map([
+    ["npx -y @kansei-link/mcp-server kansei-link-usage-hook",
+        "npx -y -p @kansei-link/mcp-server kansei-link-usage-hook"],
+    ["npx -y @kansei-link/mcp-server kansei-link-report-hook",
+        "npx -y -p @kansei-link/mcp-server kansei-link-report-hook"],
+]);
+const WANTED = [
+    { event: "Stop", command: USAGE_HOOK_CMD },
+    { event: "SessionEnd", command: USAGE_HOOK_CMD },
+    { event: "PostToolUse", matcher: "mcp__.*", command: REPORT_HOOK_CMD },
+];
+const args = process.argv.slice(2);
+const dryRun = args.includes("--dry-run");
+const remove = args.includes("--remove");
+const repairOnly = args.includes("--repair");
+const showHelp = args.includes("--help") || args.includes("-h");
+if (showHelp) {
+    console.log(`kansei-link-install-hooks
+
+Installs the KanseiLink measurement hooks into ~/.claude/settings.json:
+  Stop / SessionEnd → usage hook  (measures your session token usage LOCALLY)
+  PostToolUse       → report hook (auto-reports SaaS call outcomes, PII-masked)
+
+Options:
+  --dry-run   Show what would change without writing
+  --local     Point hooks at this local build instead of the npm package
+              (for dogfooding before a release)
+  --repair    Only fix broken hook commands written by <= v1.2.0
+              (no new hooks are added)
+  --remove    Uninstall the KanseiLink hook entries
+  --help      This message
+
+Privacy:
+  The usage hook writes ONLY to ~/.kansei-link/usage/ on this machine.
+  Nothing is uploaded unless you explicitly run: kansei-link-wrapped --share`);
+    process.exit(0);
+}
+function hasCommand(entries, command) {
+    if (!Array.isArray(entries))
+        return false;
+    return entries.some((e) => Array.isArray(e?.hooks) && e.hooks.some((h) => h?.command === command));
+}
+let settings = {};
+if (existsSync(SETTINGS_FILE)) {
+    try {
+        settings = JSON.parse(readFileSync(SETTINGS_FILE, "utf8"));
+    }
+    catch (e) {
+        console.error(`[error] ~/.claude/settings.json is not valid JSON: ${e?.message ?? e}`);
+        console.error("Fix the file manually, then re-run this installer.");
+        process.exit(1);
+    }
+}
+if (typeof settings !== "object" || settings === null || Array.isArray(settings)) {
+    console.error("[error] ~/.claude/settings.json is not a JSON object. Aborting.");
+    process.exit(1);
+}
+settings.hooks = settings.hooks ?? {};
+const changes = [];
+// Repair pass (runs for both plain install and --repair): replace EXACT legacy
+// command strings in place. Unrelated hooks are untouched by construction —
+// only string-equal matches against LEGACY_REPAIRS keys are rewritten.
+// Idempotent: repaired commands no longer match any legacy key.
+for (const event of Object.keys(settings.hooks)) {
+    const entries = settings.hooks[event];
+    if (!Array.isArray(entries))
+        continue;
+    for (const e of entries) {
+        if (!Array.isArray(e?.hooks))
+            continue;
+        for (const h of e.hooks) {
+            const fixed = LEGACY_REPAIRS.get(h?.command ?? "");
+            if (fixed) {
+                h.command = fixed;
+                changes.push(`~ ${event}: repaired legacy hook command → ${fixed}`);
+            }
+        }
+    }
+}
+if (!remove && !repairOnly) {
+    for (const w of WANTED) {
+        const entries = (settings.hooks[w.event] = settings.hooks[w.event] ?? []);
+        if (hasCommand(entries, w.command))
+            continue;
+        const entry = { hooks: [{ type: "command", command: w.command }] };
+        if (w.matcher)
+            entry.matcher = w.matcher;
+        entries.push(entry);
+        changes.push(`+ ${w.event}${w.matcher ? ` (matcher: ${w.matcher})` : ""} → ${w.command}`);
+    }
+}
+else if (remove) {
+    // Match both install forms (npx package and --local absolute path).
+    const OURS = /kansei-link-(usage|report)-hook|[\\/](usage|report)-hook\.js/;
+    for (const event of Object.keys(settings.hooks)) {
+        const entries = settings.hooks[event];
+        if (!Array.isArray(entries))
+            continue;
+        const before = entries.length;
+        settings.hooks[event] = entries.filter((e) => !(Array.isArray(e?.hooks) && e.hooks.some((h) => OURS.test(h?.command ?? ""))));
+        if (settings.hooks[event].length !== before) {
+            changes.push(`- ${event}: removed ${before - settings.hooks[event].length} KanseiLink hook entr${before - settings.hooks[event].length === 1 ? "y" : "ies"}`);
+        }
+        if (settings.hooks[event].length === 0)
+            delete settings.hooks[event];
+    }
+}
+if (changes.length === 0) {
+    console.log(remove
+        ? "[ok] No KanseiLink hook entries found — nothing to remove."
+        : repairOnly
+            ? "[ok] No legacy hook commands found — nothing to repair."
+            : "[ok] KanseiLink hooks already installed — nothing to do.");
+    process.exit(0);
+}
+console.log(dryRun ? "[dry-run] Would apply:" : "Applying:");
+for (const c of changes)
+    console.log(`  ${c}`);
+if (dryRun)
+    process.exit(0);
+try {
+    mkdirSync(SETTINGS_DIR, { recursive: true });
+    if (existsSync(SETTINGS_FILE)) {
+        const backup = SETTINGS_FILE + ".bak-" + new Date().toISOString().replace(/[:.]/g, "-");
+        copyFileSync(SETTINGS_FILE, backup);
+        console.log(`  (backup: ${backup})`);
+    }
+    // Atomic write: full content to a temp file, then rename over the target.
+    // A crash mid-write can never leave settings.json truncated.
+    const tmp = SETTINGS_FILE + ".tmp-" + process.pid;
+    writeFileSync(tmp, JSON.stringify(settings, null, 2) + "\n", "utf8");
+    renameSync(tmp, SETTINGS_FILE);
+    console.log(`[ok] Updated ${SETTINGS_FILE}`);
+}
+catch (e) {
+    console.error(`[error] Could not write ${SETTINGS_FILE}: ${e?.message ?? e}`);
+    console.error("Your original settings.json is unchanged (see backup path above if printed).");
+    process.exit(1);
+}
+if (!remove) {
+    console.log(`
+Next steps:
+  1. Restart Claude Code (hooks load at session start).
+  2. Work normally — sessions are measured locally and automatically.
+  3. At month's end, see your report:
+       npx -y -p @kansei-link/mcp-server kansei-link-wrapped
+     Add --share to see how you rank against other measured users.`);
+}
+//# sourceMappingURL=install-hooks.js.map
