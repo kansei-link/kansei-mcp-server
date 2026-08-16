@@ -44,11 +44,15 @@ function claimDomainFor(serviceId: string): { domain: string; provenance: string
 // claim_idに束縛・一回限り・30分期限）。SendGrid未設定時はログにコードを出さず
 // AUDIT行のみ（auth.tsと同じログ安全契約）。
 const EMAIL_CODE_TTL_MIN = 30;
-async function sendClaimEmailCode(email: string, code: string, serviceName: string): Promise<void> {
+// 配送結果を必ず返す（Codex条件: 失敗の握りつぶし禁止——非202/no_key/timeoutで
+// 「送信しました」と応答してはならない）。ログはauth.tsと同じ安全契約
+// （コード・宛先を出さない・reasonタグのみ）。
+type MailDelivery = "sent" | "no_key" | "send_failed" | "timeout" | "send_error";
+async function sendClaimEmailCode(email: string, code: string, serviceName: string): Promise<MailDelivery> {
   const apiKey = process.env.SENDGRID_API_KEY;
   if (!apiKey) {
     console.error(`[claim][AUDIT] verification email not sent (reason=no_key) — code withheld from logs`);
-    return;
+    return "no_key";
   }
   const base = (process.env.SENDGRID_API_BASE || "https://api.sendgrid.com").replace(/\/+$/, "");
   try {
@@ -65,9 +69,15 @@ async function sendClaimEmailCode(email: string, code: string, serviceName: stri
       }),
       signal: AbortSignal.timeout(8000),
     });
-    if (res.status !== 202) console.error(`[claim][AUDIT] verification email send failed (status=${res.status})`);
+    if (res.status !== 202) {
+      console.error(`[claim][AUDIT] verification email not sent (reason=send_failed status=${res.status})`);
+      return "send_failed";
+    }
+    return "sent";
   } catch (err) {
-    console.error(`[claim][AUDIT] verification email send error (${err instanceof Error ? err.name : "unknown"})`);
+    const kind: MailDelivery = err instanceof Error && err.name === "TimeoutError" ? "timeout" : "send_error";
+    console.error(`[claim][AUDIT] verification email not sent (reason=${kind})`);
+    return kind;
   }
 }
 
@@ -155,17 +165,21 @@ export async function handleClaimStart(req: Request, res: Response) {
     actor: "system", reason,
   });
 
+  let delivery: MailDelivery | null = null;
   if (domainMatches) {
     const svcName = (db.prepare("SELECT name FROM services WHERE id=?").get(service_id) as { name?: string } | undefined)?.name ?? service_id;
-    await sendClaimEmailCode(email.trim().toLowerCase(), emailCode, svcName);
+    delivery = await sendClaimEmailCode(email.trim().toLowerCase(), emailCode, svcName);
   }
 
   res.json({
     claim_id: claimId,
     status,
-    ...(domainMatches ? {
+    // 配送結果に正直な応答（Codex条件）: sent以外で「送信しました」と言わない
+    ...(domainMatches ? (delivery === "sent" ? {
       email_verification: `確認コードを ${email} 宛に送信しました（有効期限${EMAIL_CODE_TTL_MIN}分・1回限り）。/api/claim/verify-email にclaim_idとコードを送信してください。`,
-    } : {}),
+    } : {
+      email_verification_error: "確認コードのメール送信に失敗しました。DNS TXT検証をご利用いただくか、時間をおいて再申請してください。",
+    }) : {}),
     ...(anchor ? {
       txt_record: txtRecordValue(nonce),
       txt_instructions: `確認済み公式ドメイン（${anchor.domain}）のDNSに上記TXTレコードを設置し、/api/claim/verify-txt を呼んでください（有効期限${NONCE_TTL_DAYS}日・1回限り・メール確認とは独立の経路です）。`,
@@ -191,11 +205,12 @@ export function handleClaimVerifyEmail(req: Request, res: Response) {
     | { claim_id: string; service_id: string; status: string; applicant_etld1: string | null;
         email_code_hash: string | null; email_code_expires_at: string | null; email_verified_at: string | null } | undefined;
   if (!claim) { res.status(404).json({ error: "claim not found" }); return; }
-  if (claim.status === "domain_verified" || claim.status === "claimed_public") { res.json({ status: claim.status }); return; }
+  // Codex条件: 使用済み/未発行コードは**状態にかかわらず**非200で拒否する。
+  // （旧実装はdomain_verified済みclaimへ先に200を返しており、コード再利用が
+  //   200になる偽陽性経路だった——早期returnを廃止し、コード検証を先に行う）
   if (!claim.email_code_hash) {
-    // 使用済み（一回限り）または発行なし
     appendAudit(db, { claimId: claim.claim_id, serviceId: claim.service_id, action: "email_verify_attempt", actor: "system", reason: "email_code_invalid" });
-    res.status(422).json({ error: "確認コードが無効です（使用済みの可能性）。再申請してください。" });
+    res.status(409).json({ error: "確認コードは使用済みまたは未発行です。ステータスの確認に再送信は不要です。" });
     return;
   }
   if (new Date(claim.email_code_expires_at ?? 0).getTime() < Date.now()) {

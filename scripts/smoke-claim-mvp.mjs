@@ -129,13 +129,15 @@ r = await api("/api/claim/verify-email", { claim_id: c1, code: code1 });
 check("P0-5. 正OTP→domain_verified+監査email_verified", r.status === 200 && claimRow(c1).status === "domain_verified" &&
   db.prepare("SELECT COUNT(*) c FROM claim_audit_log WHERE claim_id=? AND reason='email_verified'").get(c1).c === 1);
 
-// P0-6: OTP再利用→拒否（一回限り）
+// P0-6: OTP再利用→**必ず非200で拒否**（Codex条件: 早期200返却の偽陽性を排除した厳格版）
 r = await api("/api/claim/verify-email", { claim_id: c2, code: code2 });
-const c2ok = claimRow(c2).status === "domain_verified";
+const c2ok = r.status === 200 && claimRow(c2).status === "domain_verified";
 r = await api("/api/claim/verify-email", { claim_id: c2, code: code2 });
-check("P0-6. OTP再利用→無効（使用済み）", c2ok && r.status !== 200 || (r.json?.status === "domain_verified" && true), "");
-// 使用済みコードは即時無効化: verify-emailは既にdomain_verifiedなら現状返答のみ（再処理なし）
+check("P0-6. OTP再利用→409（domain_verified済みでも200を返さない）", c2ok && r.status === 409, `reuse status=${r.status}`);
 check("P0-6b. 使用後email_code_hash=NULL", claimRow(c2).email_code_hash === null);
+// 承認後（claimed_public相当の後段状態）でも使用済みコードは409のまま
+r = await api("/api/claim/verify-email", { claim_id: c1, code: code1 });
+check("P0-6c. 検証済みclaimへの使用済みコード再送→409", r.status === 409);
 
 // P0-7: OTP期限切れ→410
 {
@@ -192,6 +194,32 @@ r = await api("/api/claim/start", { service_id: "freee", claim_type: "fact_corre
 check("E10. correction_payload=暗号化保存（平文なし）", (db.prepare("SELECT correction_payload FROM claims WHERE claim_id=?").get(r.json?.claim_id)?.correction_payload ?? "").startsWith("v1."));
 
 server.kill(); await new Promise((r2) => setTimeout(r2, 400));
+
+// 配送正直性（Codex条件: 非202/no_key/timeoutで「送信しました」を返さない）
+// (a) SENDGRIDキーなし
+{
+  const env = { ...baseEnv };
+  delete env.SENDGRID_API_KEY;
+  server = await boot(env);
+  r = await api("/api/claim/start", { service_id: "freee", claim_type: "ownership", email: "nokey@freee.co.jp" });
+  const body = JSON.stringify(r.json ?? {});
+  check("D1. no_key: email_verification_error返却・「送信しました」なし", r.status === 200 &&
+    Boolean(r.json?.email_verification_error) && !("email_verification" in (r.json ?? {})) && !body.includes("送信しました"));
+  server.kill(); await new Promise((r2) => setTimeout(r2, 400));
+}
+// (b) SendGridが500を返す
+{
+  const failMock = http.createServer((_q, s) => { s.writeHead(500); s.end("{}"); });
+  const FAIL_PORT = MOCK_PORT + 50;
+  await new Promise((r2) => failMock.listen(FAIL_PORT, "127.0.0.1", r2));
+  server = await boot({ ...baseEnv, SENDGRID_API_BASE: `http://127.0.0.1:${FAIL_PORT}` });
+  r = await api("/api/claim/start", { service_id: "freee", claim_type: "ownership", email: "fail@freee.co.jp" });
+  const body = JSON.stringify(r.json ?? {});
+  check("D2. 送信500: email_verification_error返却・「送信しました」なし", r.status === 200 &&
+    Boolean(r.json?.email_verification_error) && !body.includes("送信しました"));
+  failMock.close();
+  server.kill(); await new Promise((r2) => setTimeout(r2, 400));
+}
 
 // kill-switch
 server = await boot({ ...baseEnv, KANSEI_CLAIM_INTAKE: "paused" });
