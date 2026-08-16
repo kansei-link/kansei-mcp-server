@@ -16,7 +16,7 @@
 import { readFileSync, existsSync } from "fs";
 
 const IN_FILE = "premium-sections.local.json";
-const API_BASE = (process.env.KANSEI_API_BASE || "https://kansei-link-mcp-production-b054.up.railway.app").replace(/\/+$/, "");
+const API_BASE = (process.env.KANSEI_API_BASE || "https://kansei-link-mcp-production.up.railway.app").replace(/\/+$/, "");
 const SECRET = process.env.CRAWLER_SECRET;
 
 if (!SECRET) {

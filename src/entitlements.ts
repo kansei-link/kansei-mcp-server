@@ -132,7 +132,7 @@ export function fixedTierResolver(tier: Tier): TierResolver {
   return () => Promise.resolve(tier);
 }
 
-const DEFAULT_API_BASE = "https://kansei-link-mcp-production-b054.up.railway.app";
+const DEFAULT_API_BASE = "https://kansei-link-mcp-production.up.railway.app";
 const VALIDATE_TTL_MS = 10 * 60 * 1000;
 
 let stdioTierCache: { tier: Tier; at: number } | null = null;
