@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VS CodeにKanseiLink MCPを1分でインストール | KanseiLink</title>
+<meta name="description" content="VS Code（GitHub Copilot agent mode）にKanseiLink MCPサーバー（@kansei-link/mcp-server）を1分で追加する手順。.vscode/mcp.jsonの設定、接続確認、よくある設定ミスの自己診断、削除手順まで。">
+<style>
+  :root { --teal: #00bfa5; --ink: #1a2b32; --muted: #5f7480; --line: #e3ebee; --bg: #f7fafb; --card: #ffffff; --code-bg: #0f2027; --code-fg: #d7e7ec; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Inter", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; color: var(--ink); background: var(--bg); line-height: 1.75; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
+  header.site { border-bottom: 3px solid var(--teal); padding: 14px 0; margin-bottom: 32px; }
+  header.site .brand { font-weight: 700; letter-spacing: .02em; }
+  header.site .brand span { color: var(--teal); }
+  h1 { font-size: 1.55rem; line-height: 1.4; margin-bottom: 6px; }
+  .lede { color: var(--muted); font-size: .95rem; margin-bottom: 28px; }
+  .time-chip { display: inline-block; background: #e6f7f4; color: #00806f; border: 1px solid #bfe9e2; border-radius: 999px; padding: 1px 12px; font-size: .8rem; margin-bottom: 10px; font-weight: 700; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+  h2 { font-size: 1.05rem; border-left: 4px solid var(--teal); padding-left: 10px; margin-bottom: 12px; }
+  pre { background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.6; margin: 10px 0; user-select: all; }
+  code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+  p, li { font-size: .92rem; }
+  ol.diag { padding-left: 1.4em; }
+  ol.diag li { margin-bottom: 12px; }
+  ol.diag li strong { display: block; }
+  .hint { font-size: .82rem; color: var(--muted); }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--muted); }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e6edf0; --muted: #9db2bc; --line: #2a3b43; --bg: #101b20; --card: #16242b; }
+    .time-chip { background: #123833; color: #6fd9c9; border-color: #1d4f48; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site"><div class="brand">Kansei<span>Link</span> — MCP Install Guide</div></header>
+
+  <span class="time-chip">所要時間: 約1分</span>
+  <h1>VS Code に KanseiLink を追加する</h1>
+  <p class="lede">VS CodeのMCP対応（GitHub Copilot agent mode・VS Code 1.102以降でMCP正式対応）向けの手順です。前提: Node.js 18以上。</p>
+
+  <section>
+    <h2>1. .vscode/mcp.json を作成（コピーして貼り付け）</h2>
+    <p class="hint">VS Codeは <code>mcpServers</code> ではなく <code>servers</code> キーを使います（Cursor形式と異なる点に注意）。</p>
+    <pre><code>{
+  "servers": {
+    "kansei-link": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@kansei-link/mcp-server"]
+    }
+  }
+}</code></pre>
+    <p class="hint">ワークスペース単位なら上記をリポジトリ直下の <code>.vscode/mcp.json</code> に。ユーザー単位で使う場合はコマンドパレットの「MCP: Open User Configuration」から同じ内容を追記します。</p>
+  </section>
+
+  <section>
+    <h2>2. 接続確認（1コマンド）</h2>
+    <p>コマンドパレット（Ctrl/Cmd+Shift+P）で次を実行します。</p>
+    <pre><code>MCP: List Servers</code></pre>
+    <p>一覧に <code>kansei-link</code> が「Running」で表示され、Copilot Chat（agent mode）のツール一覧に <code>search_services</code> / <code>lookup</code> / <code>report</code> が出ていれば完了です。</p>
+  </section>
+
+  <section>
+    <h2>3. うまくいかないときの自己診断（代表的な設定ミス3種）</h2>
+    <ol class="diag">
+      <li><strong>キー名の混同（mcpServers と servers）</strong>
+        Cursor/Claude Desktop形式の <code>mcpServers</code> をそのまま貼ると読み込まれません。VS Codeの <code>mcp.json</code> は <code>servers</code> キーです。</li>
+      <li><strong>置き場所違い・旧形式の残留</strong>
+        ワークスペース設定は <code>.vscode/mcp.json</code> です。過去に <code>settings.json</code> 内へ書いた旧形式（<code>"mcp"</code> セクション）が残っている場合の移行手順は公式ドキュメント確認中です——両方に定義がある場合はまず片方に統一してください。</li>
+      <li><strong>MCP/agent modeが無効</strong>
+        組織ポリシーや設定（<code>chat.mcp.enabled</code>）でMCPが無効化されているとサーバーは起動しません。設定を確認してください。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>4. 削除手順</h2>
+    <p><code>.vscode/mcp.json</code>（またはユーザー設定）から <code>"kansei-link"</code> のエントリを削除してください。「MCP: List Servers」から個別に停止することもできます。</p>
+  </section>
+
+  <section>
+    <p>Live Updates（利用データの送信を伴う更新通知）は<strong>任意・デフォルトOFF</strong>です。有効化する場合のみ、同意文（<a href="https://github.com/kansei-link/kansei-mcp-server#readme">README「Live Updates」節</a>）をご確認ください。</p>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 KanseiLink — 本ページの手順は @kansei-link/mcp-server v1.2 時点の内容です。</p>
+  </footer>
+</div>
+</body>
+</html>

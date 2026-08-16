@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenAI Agents SDKにKanseiLink MCPを1分で接続 | KanseiLink</title>
+<meta name="description" content="OpenAI Agents SDK（Python）にKanseiLink MCPサーバー（@kansei-link/mcp-server）を1分で接続する手順。MCPServerStdioの設定、接続確認、よくある設定ミスの自己診断、削除手順まで。">
+<style>
+  :root { --teal: #00bfa5; --ink: #1a2b32; --muted: #5f7480; --line: #e3ebee; --bg: #f7fafb; --card: #ffffff; --code-bg: #0f2027; --code-fg: #d7e7ec; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Inter", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; color: var(--ink); background: var(--bg); line-height: 1.75; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
+  header.site { border-bottom: 3px solid var(--teal); padding: 14px 0; margin-bottom: 32px; }
+  header.site .brand { font-weight: 700; letter-spacing: .02em; }
+  header.site .brand span { color: var(--teal); }
+  h1 { font-size: 1.55rem; line-height: 1.4; margin-bottom: 6px; }
+  .lede { color: var(--muted); font-size: .95rem; margin-bottom: 28px; }
+  .time-chip { display: inline-block; background: #e6f7f4; color: #00806f; border: 1px solid #bfe9e2; border-radius: 999px; padding: 1px 12px; font-size: .8rem; margin-bottom: 10px; font-weight: 700; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+  h2 { font-size: 1.05rem; border-left: 4px solid var(--teal); padding-left: 10px; margin-bottom: 12px; }
+  pre { background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.6; margin: 10px 0; user-select: all; }
+  code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+  p, li { font-size: .92rem; }
+  ol.diag { padding-left: 1.4em; }
+  ol.diag li { margin-bottom: 12px; }
+  ol.diag li strong { display: block; }
+  .hint { font-size: .82rem; color: var(--muted); }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--muted); }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e6edf0; --muted: #9db2bc; --line: #2a3b43; --bg: #101b20; --card: #16242b; }
+    .time-chip { background: #123833; color: #6fd9c9; border-color: #1d4f48; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site"><div class="brand">Kansei<span>Link</span> — MCP Install Guide</div></header>
+
+  <span class="time-chip">所要時間: 約1分</span>
+  <h1>OpenAI Agents SDK（Python）に KanseiLink を接続する</h1>
+  <p class="lede"><code>MCPServerStdio</code> でKanseiLinkをエージェントのツールとして渡します。前提: Python 3.9以上・<code>pip install openai-agents</code> 済み・Node.js 18以上（npx実行用）。</p>
+
+  <section>
+    <h2>1. 接続コード（コピーして貼り付け）</h2>
+    <pre><code>import asyncio
+from agents import Agent, Runner
+from agents.mcp import MCPServerStdio
+
+async def main():
+    async with MCPServerStdio(
+        params={"command": "npx", "args": ["-y", "@kansei-link/mcp-server"]},
+        cache_tools_list=True,
+    ) as kansei_link:
+        agent = Agent(
+            name="Assistant",
+            instructions="SaaS連携の前にKanseiLinkでサービス情報を確認してください。",
+            mcp_servers=[kansei_link],
+        )
+        result = await Runner.run(agent, "freee会計と連携する準備をして")
+        print(result.final_output)
+
+asyncio.run(main())</code></pre>
+    <p class="hint">TypeScript版SDK（@openai/agents）での設定形式は公式ドキュメント確認中のため、本ページではPython版のみ記載しています。</p>
+  </section>
+
+  <section>
+    <h2>2. 接続確認（1コマンド）</h2>
+    <p>パッケージ本体がローカルで起動できるかは、次の1コマンドで確認できます（<code>transmission: OFF (Local Mode)</code> と表示されれば正常）。</p>
+    <pre><code>npx -y -p @kansei-link/mcp-server kansei-link-privacy --status</code></pre>
+    <p class="hint">SDKからツール一覧が取得できるかは、次の短いスクリプトで確認します。<code>search_services</code> / <code>lookup</code> / <code>report</code> が表示されれば接続できています。</p>
+    <pre><code>import asyncio
+from agents.mcp import MCPServerStdio
+
+async def check():
+    async with MCPServerStdio(params={"command": "npx", "args": ["-y", "@kansei-link/mcp-server"]}) as s:
+        print([t.name for t in await s.list_tools()])
+
+asyncio.run(check())</code></pre>
+  </section>
+
+  <section>
+    <h2>3. うまくいかないときの自己診断（代表的な設定ミス3種）</h2>
+    <ol class="diag">
+      <li><strong>async with を使っていない</strong>
+        <code>MCPServerStdio</code> は接続の確立が必要です。<code>async with</code>（または明示的な <code>connect()</code>）なしでAgentに渡すとツールが見えません。</li>
+      <li><strong>mcp_servers への渡し忘れ</strong>
+        <code>Agent(...)</code> の引数 <code>mcp_servers=[kansei_link]</code> を忘れると、サーバーは起動してもエージェントからツールが呼べません（<code>tools</code> とは別の引数です）。</li>
+      <li><strong>npx がPATHにない</strong>
+        Pythonの実行環境（仮想環境・コンテナ・CI）にNode.jsが入っていないと起動に失敗します。<code>node -v</code>（v18以上）と <code>npx --version</code> を確認してください。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>4. 削除手順</h2>
+    <p>コードから <code>MCPServerStdio</code> ブロックと <code>mcp_servers</code> 引数を削除するだけです。常駐設定はありません。ローカルに残るnpxキャッシュは <code>npx clear-npx-cache</code> で削除できます。</p>
+  </section>
+
+  <section>
+    <p>Live Updates（利用データの送信を伴う更新通知）は<strong>任意・デフォルトOFF</strong>です。有効化する場合のみ、同意文（<a href="https://github.com/kansei-link/kansei-mcp-server#readme">README「Live Updates」節</a>）をご確認ください。</p>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 KanseiLink — 本ページの手順は @kansei-link/mcp-server v1.2 時点の内容です。</p>
+  </footer>
+</div>
+</body>
+</html>
