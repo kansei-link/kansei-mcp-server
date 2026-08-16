@@ -12,7 +12,11 @@
  *   §3 Profile項目定義 / §4.0 Claimed・Company Representative Verified・Evidence Tierの3概念分離
  *
  * Maker/Checker分離: 本スクリプトはドラフト生成のみ。公開判定はChecker（kl-integrity + Michie L3）。
- * 出力: growth-mvp/profile-drafts/{slug}.html + manifest.json（Checker向け生成記録）
+ * 出力:
+ *   growth-mvp/profile-drafts/{slug}.html  — 公開してよいHTMLのみ（内部データ・コメント一切なし）
+ *   growth-mvp/qa-internal/manifest.json   — Checker向け生成記録＋未検証seed候補（公開ディレクトリ外）
+ * 原則（Codex P1）: 未検証データは「公開時にstripする」のではなく最初から公開成果物に入れない。
+ * HTMLコメントも公開データ（view-source/クローラーに見える）として扱う。
  *
  * 使い方:
  *   node scripts/generate-profiles.mjs            # qa10のみ生成（デフォルト）
@@ -20,17 +24,20 @@
  *   node scripts/generate-profiles.mjs --only freee-kaikei
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const OUT_DIR = path.join(ROOT, "growth-mvp", "profile-drafts");
+const OUT_DIR = path.join(ROOT, "growth-mvp", "profile-drafts"); // 公開してよいHTMLのみ
+const QA_DIR = path.join(ROOT, "growth-mvp", "qa-internal"); // Checker向け内部データ（公開しない）
 
 // ARI Award 2026 Summer 公開データの基準日（public/ari-award/2026-summer.html から生成された日）
 const ARI_LAST_VERIFIED = "2026-07-21";
 const ARI_EDITION = "ARI Award 2026 Summer";
+// 確認日がARI調査日であることを誤読なく明示する表記（Codex追加条件）
+const CONFIRMED_AT = `確認日: ${ARI_LAST_VERIFIED}（${ARI_EDITION}調査時点）`;
 
 // ---------------------------------------------------------------------------
 // 入力1: 選定100社
@@ -174,7 +181,7 @@ function escapeHtml(s) {
 // ---------------------------------------------------------------------------
 // HTMLテンプレート
 // ---------------------------------------------------------------------------
-function renderProfile(svc, seedMatch) {
+function renderProfile(svc) {
   const name = escapeHtml(svc.name);
   const grade = escapeHtml(svc.grade);
   const category = escapeHtml(svc.category);
@@ -190,7 +197,7 @@ function renderProfile(svc, seedMatch) {
     "公式APIドキュメントURL",
     ...(authKnown ? [] : ["認証方式"]),
     ...(mcpLabel ? [] : ["MCP提供状況"]),
-    "接続実測（Connection Verified）の実施と検証日",
+    "接続実測の実施と確認日",
     "既知の注意点（実測裏付けのある事実のみ掲載予定）",
   ];
 
@@ -202,17 +209,14 @@ function renderProfile(svc, seedMatch) {
     // url: 公式URLは未検証のため出力しない（推測URL禁止）
   };
 
+  // verified=true の行はARI調査時点の確認である旨を明示した定型表記を使う。
+  // 未検証の候補データ（seed等）はHTMLに一切書かない — HTMLコメントも公開データ（Codex P1）。
   const factRow = (label, value, verified) => `
         <tr>
           <th scope="row">${label}</th>
           <td>${value}</td>
-          <td class="lv">${verified ? `最終検証日: ${verified}` : `—`}</td>
+          <td class="lv">${verified ? CONFIRMED_AT : `—`}</td>
         </tr>`;
-
-  // Checker向けメモ（描画されないコメント。未検証の候補データはここまで — 公開面には出さない）
-  const checkerNote = seedMatch
-    ? `<!-- CHECKER-NOTE (非表示・未検証候補データ): seed_id=${escapeHtml(seedMatch.id)} / api_url候補=${escapeHtml(seedMatch.api_url || "")} / seed認証=${escapeHtml(seedMatch.api_auth_method || "")} — 公式ドキュメント照合後にのみ本文へ反映可 -->`
-    : `<!-- CHECKER-NOTE: services-seedに正規化一致なし（無理に紐付けない方針） -->`;
 
   return `<!DOCTYPE html>
 <html lang="ja">
@@ -220,7 +224,7 @@ function renderProfile(svc, seedMatch) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${name} のAI Agent Readiness Profile | KanseiLink</title>
-<meta name="description" content="${name}（${category}）のAI Agent Readiness Profile。ARI Award 2026 Summer 格付け、MCP提供状況、認証方式など、検証済み事実と未確認項目を最終検証日つきで区別して掲載しています。">
+<meta name="description" content="${name}（${category}）のAI Agent Readiness Profile。ARI Award 2026 Summer 格付け、MCP提供状況、認証方式など、検証済み事実と未確認項目を確認日つきで区別して掲載しています。">
 <script type="application/ld+json">
 ${JSON.stringify(jsonLd, null, 2)}
 </script>
@@ -245,7 +249,7 @@ ${JSON.stringify(jsonLd, null, 2)}
   table { width: 100%; border-collapse: collapse; font-size: .92rem; }
   th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th[scope="row"] { width: 11em; color: var(--muted); font-weight: 600; }
-  td.lv { width: 13.5em; font-size: .8rem; color: var(--muted); white-space: nowrap; }
+  td.lv { width: 16em; font-size: .8rem; color: var(--muted); }
   @media (max-width: 680px) {
     th[scope="row"] { width: auto; min-width: 7em; }
     td.lv { width: auto; white-space: normal; }
@@ -269,19 +273,18 @@ ${JSON.stringify(jsonLd, null, 2)}
 </style>
 </head>
 <body>
-${checkerNote}
 <div class="wrap">
   <header class="site"><div class="brand">Kansei<span>Link</span> — AI Agent Readiness Profile</div></header>
 
   <div class="crumb">Profiles / ${category} / ${name}</div>
   <h1>${name}</h1>
-  <div class="meta-line"><span class="chip">${category}</span>本プロフィールの基準データ: ${ARI_EDITION}（最終検証日: ${ARI_LAST_VERIFIED}）</div>
+  <div class="meta-line"><span class="chip">${category}</span>本プロフィールの基準データ: ${ARI_EDITION}（確認日: ${ARI_LAST_VERIFIED}）</div>
 
   <section>
     <h2>ARI 格付け</h2>
     <div class="grade-badge">
       <div class="g">${grade}</div>
-      <div class="d">${ARI_EDITION} 認定<br>最終検証日: ${ARI_LAST_VERIFIED}</div>
+      <div class="d">${ARI_EDITION} 認定<br>${CONFIRMED_AT}</div>
     </div>
     <p class="note">格付けは既公開の ${ARI_EDITION}（AIエージェントからの接続しやすさの段階評価）に基づく段階表示です。本ページに数値評価は掲載しません。</p>
   </section>
@@ -305,14 +308,14 @@ ${checkerNote}
   <section>
     <h2>検証状態（Evidence Tier）</h2>
     <div class="tier-box">
-      <strong>E0（未実測）</strong> — 接続性の実測は準備中です。実測が完了した項目から、検証日つきで順次このページに反映します。<br>
+      <strong>E0（未実測）</strong> — 接続性の実測は準備中です。実測が完了した項目から、確認日つきで順次このページに反映します。<br>
       Evidence Tier は KanseiLink の実測のみで決まり、企業からの申告や Claim の有無では変わりません。
     </div>
   </section>
 
   <section>
     <h2>未確認の項目（検証予定）</h2>
-    <p class="note">「未確認」は検証待ちの宣言であり、評価ではありません。確認が済んだ項目から検証日つきで掲載します。</p>
+    <p class="note">「未確認」は検証待ちの宣言であり、評価ではありません。確認が済んだ項目から確認日つきで掲載します。</p>
     <ul class="unverified-list">
 ${unverifiedItems.map((i) => `      <li>${escapeHtml(i)}</li>`).join("\n")}
     </ul>
@@ -333,7 +336,7 @@ ${unverifiedItems.map((i) => `      <li>${escapeHtml(i)}</li>`).join("\n")}
   </section>
 
   <footer>
-    <p>本ページは検証済み事実と未確認項目を区別して表示します。データはKanseiLinkの実測・公開情報に基づき、最終検証日を併記しています。</p>
+    <p>本ページは検証済み事実と未確認項目を区別して表示します。データはKanseiLinkの実測・公開情報に基づき、確認日を併記しています。</p>
     <p>&copy; 2026 KanseiLink — AI Agent Readiness 評価機関</p>
   </footer>
 </div>
@@ -353,8 +356,9 @@ const FORBIDDEN_PATTERNS = [
   { re: /使えない|接続できない|非推奨|できません/, why: "否定的断定の禁止" },
   { re: /synthetic|legacy_unknown|kansei_probe/, why: "provenance禁止語（Data Architecture §3）" },
   { re: /Claimed済|Claimedバッジ|claimed-badge/i, why: "ClaimedバッジはMichie手動承認後のみ（§4.0）" },
-  // 「Connection Verified」はEvidence Tier系（E1）の正式名なので許可（rev2③の予約先そのもの）
-  { re: /(?<![Uu]n)(?<!Connection )[Vv]erified/, why: "「Verified」はEvidence Tier系表示に予約（rev2③）" },
+  { re: /(?<![Uu]n)[Vv]erified/, why: "「Verified」はEvidence Tier系表示に予約（rev2③）" },
+  { re: /CHECKER-NOTE/, why: "内部QAデータの混入（HTMLコメントも公開データ — Codex P1）" },
+  { re: /最終検証日/, why: "表記は「確認日: YYYY-MM-DD（ARI Award 2026 Summer調査時点）」形式に統一（Codex追加条件）" },
 ];
 
 // ガードは「読者に見える本文テキスト」を対象とする。
@@ -375,6 +379,15 @@ function guardHtml(html, name) {
     const m = text.match(re);
     if (m) violations.push(`${name}: 「${m[0]}」 — ${why}`);
   }
+  // 構造チェック（生HTML全体 = コメント・meta属性・JSON-LD含む。全てが公開データ — Codex P1）
+  if (html.includes("<!--")) {
+    violations.push(`${name}: HTMLコメントを検出 — 公開HTMLにコメントは含めない（Codex P1）`);
+  }
+  for (const raw of ["CHECKER-NOTE", "最終検証日", "Connection Verified", "api_url", "seed_"]) {
+    if (html.includes(raw)) {
+      violations.push(`${name}: 生HTMLに「${raw}」を検出 — 公開面から排除すること`);
+    }
+  }
   return violations;
 }
 
@@ -387,14 +400,24 @@ function main() {
   const onlyIdx = args.indexOf("--only");
   const only = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
 
+  // selection-100.jsonのrowsはスキーマ改定でキー名が変わり得る（name→service）。両対応。
+  const rowName = (r) => r.name ?? r.service;
+
   let targets;
   if (all) {
-    targets = selection.rows.map((r) => r.name);
+    targets = selection.rows.map(rowName);
   } else {
     targets = selection.qa10;
   }
 
   mkdirSync(OUT_DIR, { recursive: true });
+  mkdirSync(QA_DIR, { recursive: true });
+
+  // 旧配置のmanifest（公開ディレクトリ内）が残っていれば除去する — profile-drafts/は公開HTMLのみ
+  try {
+    rmSync(path.join(OUT_DIR, "manifest.json"));
+    console.log("旧 profile-drafts/manifest.json を削除（qa-internal/へ移設）");
+  } catch {}
 
   const manifest = [];
   const allViolations = [];
@@ -407,7 +430,7 @@ function main() {
       continue;
     }
     // 選定リストとCSV正本の整合チェック
-    const sel = selection.rows.find((r) => r.name === svcName);
+    const sel = selection.rows.find((r) => rowName(r) === svcName);
     if (sel && (sel.grade !== ari.grade || sel.category !== ari.category)) {
       console.error(`WARN: "${svcName}" selection-100.jsonとARI CSVが不一致 → CSV正本を採用`);
     }
@@ -415,8 +438,9 @@ function main() {
     const slug = slugify(svcName);
     if (only && slug !== only) continue;
 
+    // seed候補は内部QA記録（qa-internal）専用。公開HTML生成には渡さない（Codex P1）
     const seedMatch = seedIndex.get(normalizeName(svcName)) || null;
-    const html = renderProfile(ari, seedMatch);
+    const html = renderProfile(ari);
 
     const violations = guardHtml(html, svcName);
     if (violations.length) {
@@ -449,14 +473,16 @@ function main() {
   }
 
   writeFileSync(
-    path.join(OUT_DIR, "manifest.json"),
+    path.join(QA_DIR, "manifest.json"),
     JSON.stringify(
       {
         generated_at: new Date().toISOString().slice(0, 10),
         generator: "scripts/generate-profiles.mjs",
         role: "Maker（公開判定はChecker: kl-integrity + Michie L3）",
+        internal_only:
+          "このファイルは内部QA用。未検証seed候補（api_url等）を含むため公開しない。profile-drafts/は公開してよいHTMLのみ",
         ari_edition: ARI_EDITION,
-        ari_last_verified: ARI_LAST_VERIFIED,
+        ari_confirmed_at: ARI_LAST_VERIFIED,
         count: manifest.length,
         profiles: manifest,
       },
@@ -466,8 +492,8 @@ function main() {
     "utf8"
   );
 
-  console.log(`生成完了: ${written}ページ → ${path.relative(ROOT, OUT_DIR)}/`);
-  console.log(`manifest: ${manifest.length}件（Checker向け生成記録・未検証候補は候補のまま非描画）`);
+  console.log(`生成完了: ${written}ページ → ${path.relative(ROOT, OUT_DIR)}/（公開候補HTMLのみ）`);
+  console.log(`内部QA記録: ${manifest.length}件 → ${path.relative(ROOT, QA_DIR)}/manifest.json（未検証seed候補はここのみ・HTMLへは非出力）`);
 }
 
 main();
