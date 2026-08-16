@@ -16,6 +16,8 @@ const rows = csv.trim().split("\n").slice(1).map((l) => {
 // organization_id: 名前接頭辞で確実な製品ファミリーのみ自動束ね（org_status=candidate・確定はFレーン/L3）。
 // グループ会社（GMO系・LINE系等）は法人が異なるため自動で束ねない（rev3方針: グループ会社は別法人扱い）。
 function orgOf(name) {
+  // 同一法人確認済み（GMOイプシロン株式会社・fincode.jpフッター/epsilon.jp相互確認）
+  if (name === "fincode byGMO" || name === "GMOイプシロン") return "org-gmo-epsilon";
   if (/^freee|freee/.test(name) || name.includes("freee")) return "org-freee";
   if (name.startsWith("奉行クラウド")) return "org-obc";
   if (name.startsWith("KARTE")) return "org-plaid";
@@ -61,7 +63,8 @@ writeFileSync("growth-mvp/selection-100.json", JSON.stringify({
   org_cap_exceeded: { orgs: Object.entries(orgCount).filter(([, n]) => n > PROPOSED_ORG_CAP).map(([o, n]) => `${o}(${n})`), services: flagged },
   focus_categories: FOCUS_CATEGORIES,
   qa10: candidates.slice(0, 10).map((c) => c.service),
-  canary20: candidates.slice(0, 20).map((c) => c.service),
+  canary20_rev2_note: "rev2: Jooto除外（2027-07一般提供終了の公式告知・Checker発見）→rank21 Keeper繰上げ",
+  canary20: (()=>{ const base=candidates.slice(0,20).map((c)=>c.service).filter((s)=>s!=="Jooto"); const next=rows.find((r)=>r.rank===21); if(next&&base.length<20)base.push(next.name); return base; })(),
   org_summary: orgCount,
   rows: candidates,
 }, null, 1));
