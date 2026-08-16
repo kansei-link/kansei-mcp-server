@@ -25,7 +25,15 @@ export const CLAIM_REASONS = [
   "manual_exception_group_company", "manual_exception_ma",
   "fact_confirmed", "fact_rejected_no_evidence",
   "homograph_review", "expired_nonce", "psl_rejected", "freemail_rejected",
-  "mismatch", "intake_paused", "claim_domain_missing", "other",
+  "mismatch", "intake_paused", "claim_domain_missing", "email_verified",
+  "email_code_invalid", "email_code_expired", "other",
+] as const;
+
+// claim_domain確定のprovenance allowlist（任意文字列を認めない・Codex追加条件）
+export const CLAIM_DOMAIN_PROVENANCES = [
+  "official_site_manual_check",  // 公式サイト実査（確認者記録つき）
+  "vendor_confirmed",            // ベンダー本人確認済みの申告
+  "commercial_registry",         // 登記・公的レジストリ照合
 ] as const;
 export type ClaimReason = (typeof CLAIM_REASONS)[number];
 
@@ -52,7 +60,10 @@ export function initClaimSchema(db: BetterSqlite3.Database): void {
       applicant_etld1 TEXT,
       nonce_hash TEXT,
       nonce_expires_at TEXT,
-      correction_payload TEXT, -- fact_correction本文（未検証vendor_reported・内部審査キューのみ=絶対に公開面へ出さない）
+      correction_payload TEXT, -- fact_correction本文（暗号化保存・未検証vendor_reported・内部審査キューのみ=絶対に公開面へ出さない。保持=claim_piiと同じClaim有効期間+2年・閲覧=審査時のみ）
+      email_code_hash TEXT,          -- P0: メール所有確認用ワンタイムコード（ハッシュのみ・claim_idに束縛）
+      email_code_expires_at TEXT,    -- P0: 30分期限
+      email_verified_at TEXT,        -- P0: メールボックス所有確認の完了時刻
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );

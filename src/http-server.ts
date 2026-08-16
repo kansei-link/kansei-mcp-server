@@ -35,7 +35,7 @@ import {
   handleCreateCheckout,
   handleCustomerPortal,
 } from "./stripe.js";
-import { handleClaimStart, handleClaimVerifyTxt, handleClaimAdminApprove } from "./claim/handlers.js";
+import { handleClaimStart, handleClaimVerifyTxt, handleClaimVerifyEmail, handleClaimAdminApprove } from "./claim/handlers.js";
 import {
   handleAuthRequestLink,
   handleAuthVerify,
@@ -170,6 +170,7 @@ app.post("/api/portal", apiLimiter, handleCustomerPortal);
 // ─── Claim MVP (growth-mvp-prep branch; unreachable until C1 GO + gates) ──
 app.post("/api/claim/start", apiLimiter, handleClaimStart);
 app.post("/api/claim/verify-txt", apiLimiter, handleClaimVerifyTxt);
+app.post("/api/claim/verify-email", apiLimiter, handleClaimVerifyEmail);
 app.post("/admin/claim/approve", handleClaimAdminApprove);
 
 // ─── Auth & Entitlements (magic-link login, API keys, premium content) ────

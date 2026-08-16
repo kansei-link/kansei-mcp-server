@@ -14,7 +14,7 @@ import type { Request, Response } from "express";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { getDb } from "../db/connection.js";
 import { verifyDomain, etld1, normalizeDomain, txtRecordValue, NONCE_TTL_DAYS } from "./domain-verify.js";
-import { initClaimSchema, appendAudit, intakePaused, type ClaimReason } from "./store.js";
+import { initClaimSchema, appendAudit, intakePaused, encryptDetail, CLAIM_DOMAIN_PROVENANCES, type ClaimReason } from "./store.js";
 import { promises as dns } from "node:dns";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -32,10 +32,43 @@ const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
  */
 function claimDomainFor(serviceId: string): { domain: string; provenance: string } | null {
   const db = getDb();
-  const row = db.prepare("SELECT claim_domain, claim_domain_provenance FROM services WHERE id = ?").get(serviceId) as
-    | { claim_domain?: string | null; claim_domain_provenance?: string | null } | undefined;
-  if (!row?.claim_domain || !row.claim_domain_provenance) return null; // provenanceなしのclaim_domainは未確定扱い
+  const row = db.prepare("SELECT claim_domain, claim_domain_provenance, claim_domain_verified_at FROM services WHERE id = ?").get(serviceId) as
+    | { claim_domain?: string | null; claim_domain_provenance?: string | null; claim_domain_verified_at?: string | null } | undefined;
+  // 自動認証の条件（Codex追加条件）: claim_domain + allowlist内provenance + verified_at の3点が揃って初めて確定
+  if (!row?.claim_domain || !row.claim_domain_provenance || !row.claim_domain_verified_at) return null;
+  if (!(CLAIM_DOMAIN_PROVENANCES as readonly string[]).includes(row.claim_domain_provenance)) return null;
   return { domain: row.claim_domain, provenance: row.claim_domain_provenance };
+}
+
+// P0: Claim専用のメール所有確認コード送信（authのマジックリンク基盤とは独立・
+// claim_idに束縛・一回限り・30分期限）。SendGrid未設定時はログにコードを出さず
+// AUDIT行のみ（auth.tsと同じログ安全契約）。
+const EMAIL_CODE_TTL_MIN = 30;
+async function sendClaimEmailCode(email: string, code: string, serviceName: string): Promise<void> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) {
+    console.error(`[claim][AUDIT] verification email not sent (reason=no_key) — code withheld from logs`);
+    return;
+  }
+  const base = (process.env.SENDGRID_API_BASE || "https://api.sendgrid.com").replace(/\/+$/, "");
+  try {
+    const res = await fetch(`${base}/v3/mail/send`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email }] }],
+        from: { email: process.env.KANSEI_MAIL_FROM || "contact@synapse-arrows.com", name: "KanseiLink" },
+        subject: `KanseiLink Claim確認コード（${serviceName}）`,
+        content: [{ type: "text/plain", value:
+          `Claim申請のメールアドレス確認コード: ${code}\n有効期限${EMAIL_CODE_TTL_MIN}分・1回限り有効です。このコードを申請画面に入力してください。\n心当たりがない場合はこのメールを無視してください。` }],
+        tracking_settings: { click_tracking: { enable: false, enable_text: false }, open_tracking: { enable: false } },
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.status !== 202) console.error(`[claim][AUDIT] verification email send failed (status=${res.status})`);
+  } catch (err) {
+    console.error(`[claim][AUDIT] verification email send error (${err instanceof Error ? err.name : "unknown"})`);
+  }
 }
 
 /** POST /api/claim/start  { service_id, claim_type, email, correction? } */
@@ -48,8 +81,11 @@ export async function handleClaimStart(req: Request, res: Response) {
     return;
   }
   const { service_id, claim_type, email, correction } = (req.body ?? {}) as Record<string, string>;
-  if (!service_id || !email || !["ownership", "fact_correction", "official_mcp"].includes(claim_type ?? "")) {
-    res.status(400).json({ error: "service_id, claim_type, email required" });
+  // 入力サイズ制限（Codex追加条件・rate limitはルート側apiLimiter）
+  if (!service_id || service_id.length > 64 || !email || email.length > 254 ||
+      (correction && String(correction).length > 4000) ||
+      !["ownership", "fact_correction", "official_mcp"].includes(claim_type ?? "")) {
+    res.status(400).json({ error: "service_id, claim_type, email required (size limits apply)" });
     return;
   }
   const anchor = claimDomainFor(service_id);
@@ -62,60 +98,134 @@ export async function handleClaimStart(req: Request, res: Response) {
   const hardReject = applicantOnly.verdict === "reject" &&
     (applicantOnly.reason === "freemail_rejected" || applicantOnly.reason === "psl_rejected");
 
-  // P0: claim_domain（provenance付き）が無ければ自動認証は不可能——必ずmanual_review。
-  const verdict = anchor && !hardReject ? verifyDomain(emailDomain, anchor.domain) : null;
+  // P0(1): 422確定（freemail/共有ホスティング）は**PIIを一切保存しない**（Codex追加
+  // 条件: 拒否した申請者のメール保持に正当な目的がない）。claims行も作らず監査のみ。
+  if (hardReject) {
+    appendAudit(db, {
+      claimId, serviceId: service_id, action: "claim_rejected_at_intake",
+      actor: "system", reason: (applicantOnly as { reason: ClaimReason }).reason,
+    });
+    res.status(422).json({ error: "このメールドメインではClaimを受け付けられません（フリーメール・共有ホスティング不可）。公式ドメインのメールをご利用ください。" });
+    return;
+  }
+
+  // P0(2): claim_domain（provenance allowlist + verified_at）が無ければ自動認証不可——必ずmanual_review。
+  const verdict = anchor ? verifyDomain(emailDomain, anchor.domain) : null;
   const officialE1 = anchor ? etld1(normalizeDomain(anchor.domain) ?? "") : null;
 
-  // nonce（TXT検証用・7日期限・ハッシュのみ保存）。アンカー未確定時はTXT経路も
-  // 提示しない（検証先ドメイン自体が未確定なため）。
+  // TXT用nonce（7日）+ メール所有確認コード（30分・claim_id束縛・一回限り）
   const nonce = randomBytes(24).toString("hex");
   const expires = new Date(Date.now() + NONCE_TTL_DAYS * 86400000).toISOString();
+  const emailCode = randomBytes(16).toString("hex");
+  const emailCodeExpires = new Date(Date.now() + EMAIL_CODE_TTL_MIN * 60000).toISOString();
 
-  const status = hardReject ? "rejected"
-    : !anchor ? "manual_review"
-    : verdict!.verdict === "match" ? "domain_verified"
+  // P0(3): メールドメインがアンカーと一致しても、メールボックスの**所有確認が済むまで
+  // submittedのまま**。domain_verifiedへの遷移はメールOTP確認（verify-email）または
+  // DNS TXT（verify-txt・独立経路）のみ。
+  const status = !anchor ? "manual_review"
     : verdict!.verdict === "manual_review" ? "manual_review"
-    : "submitted"; // mismatch: TXT経路が残る
+    : "submitted";
+  const domainMatches = anchor !== null && verdict!.verdict === "match";
 
   db.prepare(`
-    INSERT INTO claims (claim_id, service_id, claim_type, status, applicant_etld1, nonce_hash, nonce_expires_at, correction_payload)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO claims (claim_id, service_id, claim_type, status, applicant_etld1, nonce_hash, nonce_expires_at,
+                        correction_payload, email_code_hash, email_code_expires_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     claimId, service_id, claim_type, status,
-    hardReject ? null : etld1(normalizeDomain(emailDomain) ?? "") ?? null,
+    etld1(normalizeDomain(emailDomain) ?? "") ?? null,
     sha256(nonce), expires,
-    claim_type === "fact_correction" ? String(correction ?? "").slice(0, 4000) : null,
+    // correction_payloadはPIIを含み得るため暗号化保存（鍵未設定なら平文を保存せずマーカーのみ）
+    claim_type === "fact_correction" && correction
+      ? (encryptDetail(String(correction).slice(0, 4000)) ?? "[unencrypted-storage-disabled]")
+      : null,
+    sha256(emailCode), emailCodeExpires,
   );
   db.prepare("INSERT INTO claim_pii (claim_id, email) VALUES (?, ?)").run(claimId, email.trim().toLowerCase());
 
-  const reason: ClaimReason = hardReject ? (applicantOnly as { reason: ClaimReason }).reason
-    : !anchor ? "claim_domain_missing"
+  const reason: ClaimReason = !anchor ? "claim_domain_missing"
     : verdict!.verdict === "match" ? "domain_match"
     : verdict!.verdict === "manual_review" ? "homograph_review"
     : (verdict as { reason: ClaimReason }).reason;
   appendAudit(db, {
     claimId, serviceId: service_id, action: "claim_started",
-    applicantEtld1: hardReject ? null : etld1(normalizeDomain(emailDomain) ?? ""),
+    applicantEtld1: etld1(normalizeDomain(emailDomain) ?? ""),
     officialEtld1: officialE1,
     verificationMethod: anchor ? `email_domain(anchor=${anchor.provenance})` : "no_anchor",
     actor: "system", reason,
   });
 
-  if (hardReject) {
-    res.status(422).json({ error: "このメールドメインではClaimを受け付けられません（フリーメール・共有ホスティング不可）。公式ドメインのメールをご利用ください。" });
-    return;
+  if (domainMatches) {
+    const svcName = (db.prepare("SELECT name FROM services WHERE id=?").get(service_id) as { name?: string } | undefined)?.name ?? service_id;
+    await sendClaimEmailCode(email.trim().toLowerCase(), emailCode, svcName);
   }
+
   res.json({
     claim_id: claimId,
     status,
+    ...(domainMatches ? {
+      email_verification: `確認コードを ${email} 宛に送信しました（有効期限${EMAIL_CODE_TTL_MIN}分・1回限り）。/api/claim/verify-email にclaim_idとコードを送信してください。`,
+    } : {}),
     ...(anchor ? {
       txt_record: txtRecordValue(nonce),
-      txt_instructions: `確認済み公式ドメイン（${anchor.domain}）のDNSに上記TXTレコードを設置し、/api/claim/verify-txt を呼んでください（有効期限${NONCE_TTL_DAYS}日・1回限り）。`,
+      txt_instructions: `確認済み公式ドメイン（${anchor.domain}）のDNSに上記TXTレコードを設置し、/api/claim/verify-txt を呼んでください（有効期限${NONCE_TTL_DAYS}日・1回限り・メール確認とは独立の経路です）。`,
     } : {
       note_anchor: "このサービスは公式ドメインの独立確認が未了のため、運営による手動審査となります（5営業日以内に一次応答）。",
     }),
     note: "機械検証の通過後も、公開表示（Claimed）は運営の手動承認後に有効になります。",
   });
+}
+
+/**
+ * POST /api/claim/verify-email  { claim_id, code }
+ * P0: メールボックス所有確認。コードはclaim_idに束縛・ハッシュ照合・期限30分・
+ * 一回限り（成功/失敗を問わず検証後は無効化しない——失敗は回数無制限にしない）。
+ * 成功時、申請ドメインがアンカーと一致している場合のみ domain_verified へ。
+ */
+export function handleClaimVerifyEmail(req: Request, res: Response) {
+  const db = getDb();
+  initClaimSchema(db);
+  const { claim_id, code } = (req.body ?? {}) as Record<string, string>;
+  if (!claim_id || !code || code.length > 128) { res.status(400).json({ error: "claim_id and code required" }); return; }
+  const claim = db.prepare("SELECT * FROM claims WHERE claim_id = ?").get(claim_id) as
+    | { claim_id: string; service_id: string; status: string; applicant_etld1: string | null;
+        email_code_hash: string | null; email_code_expires_at: string | null; email_verified_at: string | null } | undefined;
+  if (!claim) { res.status(404).json({ error: "claim not found" }); return; }
+  if (claim.status === "domain_verified" || claim.status === "claimed_public") { res.json({ status: claim.status }); return; }
+  if (!claim.email_code_hash) {
+    // 使用済み（一回限り）または発行なし
+    appendAudit(db, { claimId: claim.claim_id, serviceId: claim.service_id, action: "email_verify_attempt", actor: "system", reason: "email_code_invalid" });
+    res.status(422).json({ error: "確認コードが無効です（使用済みの可能性）。再申請してください。" });
+    return;
+  }
+  if (new Date(claim.email_code_expires_at ?? 0).getTime() < Date.now()) {
+    db.prepare("UPDATE claims SET email_code_hash=NULL, updated_at=datetime('now') WHERE claim_id=?").run(claim.claim_id);
+    appendAudit(db, { claimId: claim.claim_id, serviceId: claim.service_id, action: "email_verify_attempt", actor: "system", reason: "email_code_expired" });
+    res.status(410).json({ error: "確認コードの期限が切れました。再申請してください。" });
+    return;
+  }
+  if (sha256(code) !== claim.email_code_hash) {
+    appendAudit(db, { claimId: claim.claim_id, serviceId: claim.service_id, action: "email_verify_attempt", actor: "system", reason: "email_code_invalid" });
+    res.status(422).json({ error: "確認コードが正しくありません。" });
+    return;
+  }
+  // 成功: コードを一回限りで無効化
+  db.prepare("UPDATE claims SET email_code_hash=NULL, email_verified_at=datetime('now'), updated_at=datetime('now') WHERE claim_id=?").run(claim.claim_id);
+  // ドメイン一致が記録済みの場合のみdomain_verifiedへ（manual_review/mismatchはメール確認だけでは昇格しない）
+  const anchor = claimDomainFor(claim.service_id);
+  const anchorE1 = anchor ? etld1(normalizeDomain(anchor.domain) ?? "") : null;
+  const promote = claim.status === "submitted" && anchor && claim.applicant_etld1 && claim.applicant_etld1 === anchorE1;
+  if (promote) {
+    db.prepare("UPDATE claims SET status='domain_verified', updated_at=datetime('now') WHERE claim_id=?").run(claim.claim_id);
+  }
+  appendAudit(db, {
+    claimId: claim.claim_id, serviceId: claim.service_id,
+    action: promote ? "email_verified_domain_verified" : "email_verified_no_promotion",
+    applicantEtld1: claim.applicant_etld1, officialEtld1: anchorE1,
+    verificationMethod: "email_otp", actor: "system", reason: "email_verified",
+  });
+  res.json({ status: promote ? "domain_verified" : claim.status,
+    note: promote ? "公開表示（Claimed）は運営の手動承認後に有効になります。" : "メールアドレスの確認は完了しました（審査は継続中です）。" });
 }
 
 /** POST /api/claim/verify-txt  { claim_id } — DNS TXT照合 */
@@ -140,11 +250,16 @@ export async function handleClaimVerifyTxt(req: Request, res: Response) {
   if (!anchor) { res.status(422).json({ error: "このサービスは公式ドメインの独立確認が未了のため、TXT検証は利用できません（手動審査へ）" }); return; }
   const official = anchor.domain;
   let records: string[][] = [];
-  try {
-    records = await dns.resolveTxt(normalizeDomain(official) ?? official);
-  } catch {
-    res.status(502).json({ error: "DNS lookup failed — 伝播をお待ちのうえ再試行してください" });
-    return;
+  if (process.env.KANSEI_TXT_TEST_RECORDS) {
+    // テスト専用注入（STRIPE_API_BASEと同型・本番未設定）
+    records = JSON.parse(process.env.KANSEI_TXT_TEST_RECORDS);
+  } else {
+    try {
+      records = await dns.resolveTxt(normalizeDomain(official) ?? official);
+    } catch {
+      res.status(502).json({ error: "DNS lookup failed — 伝播をお待ちのうえ再試行してください" });
+      return;
+    }
   }
   const flat = records.map((r) => r.join(""));
   const hit = flat.find((v) => v.startsWith("kansei-link-verify=") &&
