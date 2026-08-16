@@ -14,7 +14,7 @@ import type { Request, Response } from "express";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { getDb } from "../db/connection.js";
 import { verifyDomain, etld1, normalizeDomain, txtRecordValue, NONCE_TTL_DAYS } from "./domain-verify.js";
-import { initClaimSchema, appendAudit, intakePaused, encryptDetail, CLAIM_DOMAIN_PROVENANCES, type ClaimReason } from "./store.js";
+import { initClaimSchema, appendAudit, intakePaused, encryptDetail, verifiedAltDomains, CLAIM_DOMAIN_PROVENANCES, type ClaimReason } from "./store.js";
 import { promises as dns } from "node:dns";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -123,6 +123,18 @@ export async function handleClaimStart(req: Request, res: Response) {
   const verdict = anchor ? verifyDomain(emailDomain, anchor.domain) : null;
   const officialE1 = anchor ? etld1(normalizeDomain(anchor.domain) ?? "") : null;
 
+  // Shared-domain guard（Codex条件B）: メール経路は**eTLD+1一致では昇格させない**。
+  // 申請メールの実ドメインが claim_domain と完全一致（正規化後）するか、
+  // 確認済み代替ドメイン（claim_alt_domains・provenance+verified_at必須）と
+  // 完全一致する場合のみOTP経路へ。同一eTLD+1でも不一致（例: tenant.shop-pro.jp
+  // vs shop-pro.jp）は manual_review——共有サブドメイン型ホスティングの
+  // 第三者テナントなりすましを構造的に遮断する。TXT経路は従来どおりapex照合。
+  const normEmailDomain = normalizeDomain(emailDomain);
+  const exactMatch = anchor !== null && normEmailDomain !== null &&
+    normEmailDomain === normalizeDomain(anchor.domain);
+  const altMatch = anchor !== null && normEmailDomain !== null &&
+    verifiedAltDomains(db, service_id).includes(normEmailDomain);
+
   // TXT用nonce（7日）+ メール所有確認コード（30分・claim_id束縛・一回限り）
   const nonce = randomBytes(24).toString("hex");
   const expires = new Date(Date.now() + NONCE_TTL_DAYS * 86400000).toISOString();
@@ -132,10 +144,11 @@ export async function handleClaimStart(req: Request, res: Response) {
   // P0(3): メールドメインがアンカーと一致しても、メールボックスの**所有確認が済むまで
   // submittedのまま**。domain_verifiedへの遷移はメールOTP確認（verify-email）または
   // DNS TXT（verify-txt・独立経路）のみ。
-  const status = !anchor ? "manual_review"
-    : verdict!.verdict === "manual_review" ? "manual_review"
-    : "submitted";
-  const domainMatches = anchor !== null && verdict!.verdict === "match";
+  // submitted（OTP待ち）になれるのは完全一致/確認済みaltのみ。それ以外は
+  // アンカー有無を問わずmanual_review（TXT経路はnonceを返すため温存される——
+  // verify-txtはmanual_review状態からでもapex TXT証明で昇格可能）。
+  const status = (exactMatch || altMatch) ? "submitted" : "manual_review";
+  const domainMatches = anchor !== null && (exactMatch || altMatch); // OTP経路は完全一致のみ
 
   db.prepare(`
     INSERT INTO claims (claim_id, service_id, claim_type, status, applicant_etld1, nonce_hash, nonce_expires_at,
@@ -154,8 +167,9 @@ export async function handleClaimStart(req: Request, res: Response) {
   db.prepare("INSERT INTO claim_pii (claim_id, email) VALUES (?, ?)").run(claimId, email.trim().toLowerCase());
 
   const reason: ClaimReason = !anchor ? "claim_domain_missing"
-    : verdict!.verdict === "match" ? "domain_match"
     : verdict!.verdict === "manual_review" ? "homograph_review"
+    : (exactMatch || altMatch) ? "domain_match"
+    : verdict!.verdict === "match" ? "email_domain_not_exact" // 同一eTLD+1・非完全一致
     : (verdict as { reason: ClaimReason }).reason;
   appendAudit(db, {
     claimId, serviceId: service_id, action: "claim_started",
@@ -226,10 +240,16 @@ export function handleClaimVerifyEmail(req: Request, res: Response) {
   }
   // 成功: コードを一回限りで無効化
   db.prepare("UPDATE claims SET email_code_hash=NULL, email_verified_at=datetime('now'), updated_at=datetime('now') WHERE claim_id=?").run(claim.claim_id);
-  // ドメイン一致が記録済みの場合のみdomain_verifiedへ（manual_review/mismatchはメール確認だけでは昇格しない）
+  // 昇格判定はOTP消費時点で権威再計算（shared-domain guard: eTLD+1でなく
+  // 完全一致——claim_piiの実メールドメイン vs claim_domain/確認済みalt）。
+  // manual_review/mismatchはメール確認だけでは昇格しない。
   const anchor = claimDomainFor(claim.service_id);
   const anchorE1 = anchor ? etld1(normalizeDomain(anchor.domain) ?? "") : null;
-  const promote = claim.status === "submitted" && anchor && claim.applicant_etld1 && claim.applicant_etld1 === anchorE1;
+  const piiEmail = (db.prepare("SELECT email FROM claim_pii WHERE claim_id=?").get(claim.claim_id) as { email?: string } | undefined)?.email ?? "";
+  const emailDom = normalizeDomain(piiEmail.split("@")[1] ?? "");
+  const exactNow = anchor !== null && emailDom !== null && emailDom === normalizeDomain(anchor.domain);
+  const altNow = anchor !== null && emailDom !== null && verifiedAltDomains(db, claim.service_id).includes(emailDom);
+  const promote = claim.status === "submitted" && (exactNow || altNow);
   if (promote) {
     db.prepare("UPDATE claims SET status='domain_verified', updated_at=datetime('now') WHERE claim_id=?").run(claim.claim_id);
   }

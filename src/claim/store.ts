@@ -26,7 +26,7 @@ export const CLAIM_REASONS = [
   "fact_confirmed", "fact_rejected_no_evidence",
   "homograph_review", "expired_nonce", "psl_rejected", "freemail_rejected",
   "mismatch", "intake_paused", "claim_domain_missing", "email_verified",
-  "email_code_invalid", "email_code_expired", "other",
+  "email_code_invalid", "email_code_expired", "email_domain_not_exact", "other",
 ] as const;
 
 // claim_domain確定のprovenance allowlist（任意文字列を認めない・Codex追加条件）
@@ -91,9 +91,30 @@ export function initClaimSchema(db: BetterSqlite3.Database): void {
       -- suppressionへHMACを残す。監査ログは残る（PII最小化済みデータ）。
     );
 
+    -- 法人代替ドメインの確認済みallowlist（shared-domain guard）。
+    -- サービス公式ドメインと法人ドメインが異なるケース（例: カラーミーショップ=
+    -- pepabo.com）は、ここに provenance+verified_at 付きで登録された場合のみ
+    -- メール経路の自動検証対象になる。未登録は必ずmanual_review。
+    -- pepabo.com / kubell.com / prtimes.co.jp / block.xyz 等を勝手にseedしない
+    -- （登録はL3承認済みデータの投入のみ）。
+    CREATE TABLE IF NOT EXISTS claim_alt_domains (
+      service_id TEXT NOT NULL,
+      domain TEXT NOT NULL,
+      provenance TEXT NOT NULL,
+      verified_at TEXT NOT NULL,
+      PRIMARY KEY (service_id, domain)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_claims_service ON claims(service_id);
     CREATE INDEX IF NOT EXISTS idx_claim_audit_claim ON claim_audit_log(claim_id);
   `);
+}
+
+/** 確認済み代替ドメイン（provenanceがallowlist内のもののみ）。 */
+export function verifiedAltDomains(db: BetterSqlite3.Database, serviceId: string): string[] {
+  return (db.prepare(
+    "SELECT domain FROM claim_alt_domains WHERE service_id = ? AND provenance IN ('official_site_manual_check','vendor_confirmed','commercial_registry') AND verified_at IS NOT NULL"
+  ).all(serviceId) as Array<{ domain: string }>).map((r) => r.domain.toLowerCase());
 }
 
 /** 個人系ドメインの仮名化（rev3②）。専用secret必須——素のSHA-256は照合攻撃可能なため不使用。 */

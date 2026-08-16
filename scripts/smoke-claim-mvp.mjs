@@ -189,6 +189,43 @@ const mrClaim = db.prepare("SELECT claim_id FROM claims WHERE service_id='gh-ser
 check("E9. manual_review claimへのメール確認は昇格させない（コード未発行=422）", (await api("/api/claim/verify-email", { claim_id: mrClaim, code: "any" })).status !== 200 ||
   db.prepare("SELECT status FROM claims WHERE claim_id=?").get(mrClaim).status === "manual_review");
 
+// Shared-domain guard（Codex条件B）
+{
+  const dbw = new Database(dbPath);
+  // カラーミーショップ想定: claim_domain=shop-pro.jp（共有サブドメイン型ホスティング）
+  dbw.prepare("INSERT OR REPLACE INTO services (id, name, claim_domain, claim_domain_provenance, claim_domain_verified_at) VALUES ('colorme', 'カラーミーショップ', 'shop-pro.jp', 'official_site_manual_check', '2026-08-16')").run();
+  dbw.close();
+}
+// B1: テナントサブドメインのメールでは自動昇格経路に乗れない
+const mailsBefore = sentMails.length;
+r = await api("/api/claim/start", { service_id: "colorme", claim_type: "ownership", email: "attacker@tenant.shop-pro.jp" });
+check("B1. user@tenant.shop-pro.jp→manual_review（OTPメール送信なし・自動昇格不可）", r.status === 200 && r.json?.status === "manual_review" && sentMails.length === mailsBefore &&
+  db.prepare("SELECT reason FROM claim_audit_log WHERE service_id='colorme' ORDER BY id DESC LIMIT 1").get().reason === "email_domain_not_exact");
+// B2: 完全一致（apexメール）はOTP経路
+r = await api("/api/claim/start", { service_id: "colorme", claim_type: "ownership", email: "admin@shop-pro.jp" });
+check("B2. apex完全一致メール→OTP経路（submitted+送信）", r.status === 200 && r.json?.status === "submitted" && sentMails.length === mailsBefore + 1);
+// B3: 法人代替ドメインは未登録なら自動許可されない（pepabo.comを勝手に許可しない）
+r = await api("/api/claim/start", { service_id: "colorme", claim_type: "ownership", email: "staff@pepabo.com" });
+check("B3. 未登録の法人ドメインpepabo.com→manual_review（自動許可なし）", r.status === 200 && r.json?.status === "manual_review");
+// B4: 確認済みallowlist登録後は自動検証対象
+{
+  const dbw = new Database(dbPath);
+  dbw.prepare("INSERT OR REPLACE INTO claim_alt_domains (service_id, domain, provenance, verified_at) VALUES ('colorme','pepabo.com','official_site_manual_check','2026-08-16')").run();
+  dbw.close();
+}
+r = await api("/api/claim/start", { service_id: "colorme", claim_type: "ownership", email: "staff2@pepabo.com" });
+const altClaim = r.json?.claim_id;
+check("B4. 確認済みalt(pepabo.com)登録後→OTP経路", r.status === 200 && r.json?.status === "submitted" && sentMails.length === mailsBefore + 2);
+// B5: alt経路のOTP確認で昇格（完全一致再検査を通過）
+{
+  const codeAlt = (sentMails[sentMails.length - 1]?.content?.[0]?.value ?? "").match(/確認コード: ([a-f0-9]+)/)?.[1];
+  r = await api("/api/claim/verify-email", { claim_id: altClaim, code: codeAlt });
+  check("B5. alt経路OTP→domain_verified（昇格時の権威再計算通過）", r.status === 200 && r.json?.status === "domain_verified");
+}
+// B6: サブドメインclaim（manual_review）はOTPを持っていても昇格しない（コード未送信=検証不能を確認済みだが、再計算ガードも確認）
+const tenantClaim = db.prepare("SELECT claim_id, status FROM claims WHERE service_id='colorme' ORDER BY created_at LIMIT 1").get();
+check("B6. テナントclaimはdomain_verifiedに到達していない", tenantClaim.status === "manual_review");
+
 // correction_payload暗号化保存
 r = await api("/api/claim/start", { service_id: "freee", claim_type: "fact_correction", email: "fix@freee.co.jp", correction: "認証方式はOAuth 2.0 PKCEです。担当: 山田" });
 check("E10. correction_payload=暗号化保存（平文なし）", (db.prepare("SELECT correction_payload FROM claims WHERE claim_id=?").get(r.json?.claim_id)?.correction_payload ?? "").startsWith("v1."));
