@@ -19,7 +19,7 @@
 //         {
 //           "matcher": "mcp__.*",
 //           "hooks": [
-//             { "type": "command", "command": "npx -y @kansei-link/mcp-server kansei-link-report-hook" }
+//             { "type": "command", "command": "npx -y -p @kansei-link/mcp-server kansei-link-report-hook" }
 //           ]
 //         }
 //       ]

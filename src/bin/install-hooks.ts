@@ -14,7 +14,7 @@
 //   - --dry-run shows the diff without writing.
 //   - --remove uninstalls exactly the entries we added.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -29,12 +29,26 @@ const useLocal = process.argv.includes("--local");
 const binDir = dirname(fileURLToPath(import.meta.url));
 const q = (p: string) => (p.includes(" ") ? `"${p}"` : p);
 
+// v1.2.1 hotfix: `npx -y @kansei-link/mcp-server <subcommand>` does NOT run the
+// subcommand — with multiple bins and a bin matching the unscoped package name,
+// npx always resolves the server binary and drops the positional arg. The
+// correct form pins the package with -p so the named bin is resolved:
+//   npx -y -p @kansei-link/mcp-server kansei-link-usage-hook
 const USAGE_HOOK_CMD = useLocal
   ? `node ${q(join(binDir, "usage-hook.js"))}`
-  : "npx -y @kansei-link/mcp-server kansei-link-usage-hook";
+  : "npx -y -p @kansei-link/mcp-server kansei-link-usage-hook";
 const REPORT_HOOK_CMD = useLocal
   ? `node ${q(join(binDir, "report-hook.js"))}`
-  : "npx -y @kansei-link/mcp-server kansei-link-report-hook";
+  : "npx -y -p @kansei-link/mcp-server kansei-link-report-hook";
+
+// Broken forms written by <= v1.2.0. Repair replaces EXACTLY these strings —
+// never anything else — so unrelated hooks can never be touched.
+const LEGACY_REPAIRS = new Map<string, string>([
+  ["npx -y @kansei-link/mcp-server kansei-link-usage-hook",
+    "npx -y -p @kansei-link/mcp-server kansei-link-usage-hook"],
+  ["npx -y @kansei-link/mcp-server kansei-link-report-hook",
+    "npx -y -p @kansei-link/mcp-server kansei-link-report-hook"],
+]);
 
 interface HookEntry {
   matcher?: string;
@@ -50,6 +64,7 @@ const WANTED: Array<{ event: string; matcher?: string; command: string }> = [
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const remove = args.includes("--remove");
+const repairOnly = args.includes("--repair");
 const showHelp = args.includes("--help") || args.includes("-h");
 
 if (showHelp) {
@@ -63,6 +78,8 @@ Options:
   --dry-run   Show what would change without writing
   --local     Point hooks at this local build instead of the npm package
               (for dogfooding before a release)
+  --repair    Only fix broken hook commands written by <= v1.2.0
+              (no new hooks are added)
   --remove    Uninstall the KanseiLink hook entries
   --help      This message
 
@@ -97,7 +114,26 @@ if (typeof settings !== "object" || settings === null || Array.isArray(settings)
 settings.hooks = settings.hooks ?? {};
 const changes: string[] = [];
 
-if (!remove) {
+// Repair pass (runs for both plain install and --repair): replace EXACT legacy
+// command strings in place. Unrelated hooks are untouched by construction —
+// only string-equal matches against LEGACY_REPAIRS keys are rewritten.
+// Idempotent: repaired commands no longer match any legacy key.
+for (const event of Object.keys(settings.hooks)) {
+  const entries: HookEntry[] | undefined = settings.hooks[event];
+  if (!Array.isArray(entries)) continue;
+  for (const e of entries) {
+    if (!Array.isArray(e?.hooks)) continue;
+    for (const h of e.hooks) {
+      const fixed = LEGACY_REPAIRS.get(h?.command ?? "");
+      if (fixed) {
+        h.command = fixed;
+        changes.push(`~ ${event}: repaired legacy hook command → ${fixed}`);
+      }
+    }
+  }
+}
+
+if (!remove && !repairOnly) {
   for (const w of WANTED) {
     const entries: HookEntry[] = (settings.hooks[w.event] = settings.hooks[w.event] ?? []);
     if (hasCommand(entries, w.command)) continue;
@@ -106,7 +142,7 @@ if (!remove) {
     entries.push(entry);
     changes.push(`+ ${w.event}${w.matcher ? ` (matcher: ${w.matcher})` : ""} → ${w.command}`);
   }
-} else {
+} else if (remove) {
   // Match both install forms (npx package and --local absolute path).
   const OURS = /kansei-link-(usage|report)-hook|[\\/](usage|report)-hook\.js/;
   for (const event of Object.keys(settings.hooks)) {
@@ -127,7 +163,9 @@ if (changes.length === 0) {
   console.log(
     remove
       ? "[ok] No KanseiLink hook entries found — nothing to remove."
-      : "[ok] KanseiLink hooks already installed — nothing to do."
+      : repairOnly
+        ? "[ok] No legacy hook commands found — nothing to repair."
+        : "[ok] KanseiLink hooks already installed — nothing to do."
   );
   process.exit(0);
 }
@@ -137,14 +175,24 @@ for (const c of changes) console.log(`  ${c}`);
 
 if (dryRun) process.exit(0);
 
-mkdirSync(SETTINGS_DIR, { recursive: true });
-if (existsSync(SETTINGS_FILE)) {
-  const backup = SETTINGS_FILE + ".bak-" + new Date().toISOString().replace(/[:.]/g, "-");
-  copyFileSync(SETTINGS_FILE, backup);
-  console.log(`  (backup: ${backup})`);
+try {
+  mkdirSync(SETTINGS_DIR, { recursive: true });
+  if (existsSync(SETTINGS_FILE)) {
+    const backup = SETTINGS_FILE + ".bak-" + new Date().toISOString().replace(/[:.]/g, "-");
+    copyFileSync(SETTINGS_FILE, backup);
+    console.log(`  (backup: ${backup})`);
+  }
+  // Atomic write: full content to a temp file, then rename over the target.
+  // A crash mid-write can never leave settings.json truncated.
+  const tmp = SETTINGS_FILE + ".tmp-" + process.pid;
+  writeFileSync(tmp, JSON.stringify(settings, null, 2) + "\n", "utf8");
+  renameSync(tmp, SETTINGS_FILE);
+  console.log(`[ok] Updated ${SETTINGS_FILE}`);
+} catch (e: any) {
+  console.error(`[error] Could not write ${SETTINGS_FILE}: ${e?.message ?? e}`);
+  console.error("Your original settings.json is unchanged (see backup path above if printed).");
+  process.exit(1);
 }
-writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2) + "\n", "utf8");
-console.log(`[ok] Updated ${SETTINGS_FILE}`);
 
 if (!remove) {
   console.log(`
@@ -152,6 +200,6 @@ Next steps:
   1. Restart Claude Code (hooks load at session start).
   2. Work normally — sessions are measured locally and automatically.
   3. At month's end, see your report:
-       npx -y @kansei-link/mcp-server kansei-link-wrapped
+       npx -y -p @kansei-link/mcp-server kansei-link-wrapped
      Add --share to see how you rank against other measured users.`);
 }

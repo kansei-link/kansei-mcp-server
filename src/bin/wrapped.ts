@@ -134,7 +134,7 @@ Options:
   --help            This message
 
 Requires the usage hook to be installed first:
-  npx -y @kansei-link/mcp-server kansei-link-install-hooks`);
+  npx -y -p @kansei-link/mcp-server kansei-link-install-hooks`);
     return;
   }
 
@@ -143,8 +143,8 @@ Requires the usage hook to be installed first:
   if (sessions.length === 0) {
     console.log(
       ja
-        ? "計測データがまだありません。まずフックをインストールしてください:\n  npx -y @kansei-link/mcp-server kansei-link-install-hooks\nインストール後、Claude Codeのセッションが終わるたびに自動で記録されます。"
-        : "No usage data yet. Install the hook first:\n  npx -y @kansei-link/mcp-server kansei-link-install-hooks\nSessions are recorded automatically once installed."
+        ? "計測データがまだありません。まずフックをインストールしてください:\n  npx -y -p @kansei-link/mcp-server kansei-link-install-hooks\nインストール後、Claude Codeのセッションが終わるたびに自動で記録されます。"
+        : "No usage data yet. Install the hook first:\n  npx -y -p @kansei-link/mcp-server kansei-link-install-hooks\nSessions are recorded automatically once installed."
     );
     return;
   }
