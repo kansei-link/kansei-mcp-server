@@ -657,6 +657,14 @@ export function initializeDb(db: Database.Database): void {
 
   // Model-level performance stats per service (for audit_cost routing)
   db.exec(`
+    -- ⚠️ DEPRECATED CACHE — NOT canonical (Codex ruling 2026-08-17, P0 #39).
+    -- Raw model_service_stats still contains pre-provenance synthetic blends.
+    -- All reads MUST go through publishable_model_service_stats (derived from
+    -- publishable_outcomes, bypassing this table entirely); a static CI test
+    -- (smoke-stats-rebuild 7c) fails on any raw FROM/JOIN of this table.
+    -- Never use raw values for Revenue / ARI / Profile / ranking decisions.
+    -- Remaining direct writes (report-outcome incremental) are slated for
+    -- removal; do not add new ones.
     CREATE TABLE IF NOT EXISTS model_service_stats (
       service_id TEXT NOT NULL REFERENCES services(id),
       model_name TEXT NOT NULL,
