@@ -282,9 +282,11 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   // then writes back on conflict. Fresh rows simply receive canonical CSV.
   const selectExistingTags = db.prepare(`SELECT tags FROM services WHERE id = ?`);
 
-  const insertStats = db.prepare(`
-    INSERT OR IGNORE INTO service_stats (service_id) VALUES (@service_id)
-  `);
+  // P0 #39最終条件 (Codex 2026-08-17): 全サービスへの空service_stats行生成は廃止。
+  // 「信頼できるoutcomeがないサービス=行なし=データなし」が正本設計であり、
+  // placeholderのゼロ行はDB状態を設計と乖離させる（readerはLEFT JOIN/欠損ガードで
+  // 元から行なしを扱える）。既存placeholderはservice_stats_placeholder_cleanup_v1
+  // migration（schema.ts）が一回だけ安全に削除する。
 
   const insertRecipe = db.prepare(`
     INSERT INTO recipes (id, goal, description, steps, required_services, gotchas)
@@ -327,7 +329,6 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         axr_facade: service.axr_facade ?? 0,
         archived: service.archived ?? 0,
       });
-      insertStats.run({ service_id: service.id });
     }
 
     for (const recipe of recipes) {

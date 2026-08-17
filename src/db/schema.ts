@@ -630,6 +630,45 @@ export function initializeDb(db: Database.Database): void {
     rebuildTx();
   }
 
+  // ── service_stats placeholder cleanup v1 (P0 #39 final condition, Codex 8/17) ──
+  // seed.ts used to create an empty service_stats row per service
+  // (INSERT OR IGNORE ... DEFAULT values), leaving 11k+ zero rows that
+  // contradicted the canonical design "no trustworthy outcome => NO row".
+  // The seeder no longer creates them; this one-time migration deletes ONLY
+  // rows that carry no measured value at all. A verified "measured 0%" row has
+  // total_calls > 0 and is never touched. Runs under a NEW migration id — the
+  // research DB already carries service_stats_rebuild_v1 and that migration
+  // must not be rewritten. Quarantine table is not touched.
+  const placeholderCleaned = db
+    .prepare("SELECT 1 AS x FROM schema_migrations WHERE migration_id = 'service_stats_placeholder_cleanup_v1'")
+    .get();
+  if (!placeholderCleaned) {
+    const cleanupTx = db.transaction(() => {
+      const count = (sql: string) => (db.prepare(sql).get() as { c: number }).c;
+      const beforeRows = count("SELECT COUNT(*) c FROM service_stats");
+      const deleted = db
+        .prepare(
+          `DELETE FROM service_stats
+            WHERE total_calls = 0
+              AND COALESCE(success_rate, 0) = 0
+              AND COALESCE(avg_latency_ms, 0) = 0
+              AND COALESCE(unique_agents, 0) = 0`
+        )
+        .run().changes;
+      const afterRows = count("SELECT COUNT(*) c FROM service_stats");
+      const audit = db.prepare(
+        "INSERT INTO migration_audit (migration_id, metric, value) VALUES ('service_stats_placeholder_cleanup_v1', ?, ?)"
+      );
+      audit.run("before_rows", beforeRows);
+      audit.run("deleted_placeholder_rows", deleted);
+      audit.run("after_rows", afterRows);
+      db.prepare(
+        "INSERT INTO schema_migrations (migration_id) VALUES ('service_stats_placeholder_cleanup_v1')"
+      ).run();
+    });
+    cleanupTx();
+  }
+
   // Migration: add MCP tool inventory columns to services (for analyze_mcp_config)
   // mcp_tool_count: how many tools this MCP server exposes
   // avg_tool_def_tokens: estimated tokens per tool definition (default 500)

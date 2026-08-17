@@ -199,14 +199,69 @@ console.log("[SEED] seedDatabase込みの本番起動シーケンス");
 
   const ver = statsRow(db, "svc-seedseq-verified");
   check("P1-1a. seedDatabase後もrebuild値が保持される (6件/50%)", ver && ver.total_calls === 6 && Math.abs(ver.success_rate - 0.5) < 1e-9, JSON.stringify(ver));
-  const zeroBad = db.prepare("SELECT COUNT(*) c FROM service_stats WHERE total_calls = 0 AND success_rate <> 0").get().c;
-  check("P1-1b. seedのゼロ行はsuccess_rate=0のみ（0%として誤描画される値を持たない）", zeroBad === 0);
-  const nonzeroSeeded = db.prepare("SELECT COUNT(*) c FROM service_stats WHERE total_calls > 0").get().c;
-  check("P1-1c. seedDatabaseは非ゼロstatsを一切注入しない（backfill機構の削除確認）", nonzeroSeeded === 1, `nonzero=${nonzeroSeeded}`);
+  const zeroRows = db.prepare("SELECT COUNT(*) c FROM service_stats WHERE total_calls = 0").get().c;
+  check("C1. seedDatabaseは空placeholder行を一切作らない（正本設計=行なし・Codex最終条件）", zeroRows === 0, `zero rows=${zeroRows}`);
+  const totalRows = db.prepare("SELECT COUNT(*) c FROM service_stats").get().c;
+  const svcCount = db.prepare("SELECT COUNT(*) c FROM services").get().c;
+  check("C1b. clean DB: サービス11,000件超・service_statsは信頼可能な1行のみ", svcCount > 11000 && totalRows === 1, `services=${svcCount} stats=${totalRows}`);
   const aggVoices = db.prepare("SELECT COUNT(*) c FROM agent_voice_responses WHERE agent_type='aggregated'").get().c;
   check("P1-1d. seedDatabaseはaggregated voicesを一切注入しない（loader削除確認）", aggVoices === 0);
   const synthAfterSeed = statsRow(db, "svc-seedseq-synth");
-  check("P1-1e. syntheticのみのserviceはseed後も0行のまま（0%でなくデータなし系）", !synthAfterSeed || synthAfterSeed.total_calls === 0);
+  check("P1-1e/C2. 信頼できるoutcomeなし（syntheticのみ）→ 行なし＝データなし", synthAfterSeed === undefined);
+
+  // C7. reader視点: 行なしのserviceはLEFT JOINでNULL（0%ではない）
+  const joined = db
+    .prepare("SELECT s.id, ss.total_calls AS tc, ss.success_rate AS sr FROM services s LEFT JOIN service_stats ss ON s.id = ss.service_id WHERE s.id = 'svc-seedseq-synth'")
+    .get();
+  check("C7. 検索/tips/insightsのLEFT JOIN経路 → NULL（データなし）として見える", joined && joined.tc === null && joined.sr === null, JSON.stringify(joined));
+
+  db.close();
+}
+
+// ═══════════════ Codex最終条件: placeholder cleanup migration ═══════════════
+console.log("[CLEANUP] service_stats_placeholder_cleanup_v1");
+{
+  const db = new Database(join(TMP, "cleanup.db"));
+  initializeDb(db); // 両マーカーが付く
+  db.prepare("DELETE FROM schema_migrations WHERE migration_id='service_stats_placeholder_cleanup_v1'").run();
+  db.prepare("DELETE FROM migration_audit WHERE migration_id='service_stats_placeholder_cleanup_v1'").run();
+
+  for (const s of ["svc-ph-1", "svc-ph-2", "svc-ph-3", "svc-zero-measured", "svc-rebuilt"]) svc(db, s);
+  // 旧seed相当の空placeholder 3行
+  for (const s of ["svc-ph-1", "svc-ph-2", "svc-ph-3"])
+    db.prepare("INSERT INTO service_stats (service_id) VALUES (?)").run(s);
+  // verified「実測0%」相当（total_calls>0）と再構築済み行
+  db.prepare("INSERT INTO service_stats (service_id, total_calls, success_rate, avg_latency_ms, unique_agents) VALUES ('svc-zero-measured', 5, 0, 0, 1)").run();
+  db.prepare("INSERT INTO service_stats (service_id, total_calls, success_rate, avg_latency_ms, unique_agents) VALUES ('svc-rebuilt', 12, 0.75, 340, 3)").run();
+  // quarantine不変の検証準備
+  db.exec("CREATE TABLE IF NOT EXISTS service_stats_quarantine (service_id TEXT PRIMARY KEY, total_calls INTEGER, success_rate REAL, avg_latency_ms REAL, unique_agents INTEGER, last_updated TEXT, quarantined_at TEXT DEFAULT (datetime('now')))");
+  db.prepare("INSERT OR IGNORE INTO service_stats_quarantine (service_id, total_calls, success_rate) VALUES ('svc-q', 9, 0.5)").run();
+  const qBefore = db.prepare("SELECT COUNT(*) c FROM service_stats_quarantine").get().c;
+
+  initializeDb(db); // cleanup実走
+
+  check("C5. 空placeholder 3行のみ削除", db.prepare("SELECT COUNT(*) c FROM service_stats WHERE service_id LIKE 'svc-ph-%'").get().c === 0);
+  const zm = statsRow(db, "svc-zero-measured");
+  check("C3. verified失敗群の「実測0%」(total_calls=5, rate=0) は絶対に削除されない", zm && zm.total_calls === 5 && zm.success_rate === 0, JSON.stringify(zm));
+  check("C5b. 実測値のある行は保持 (12件/75%)", statsRow(db, "svc-rebuilt")?.total_calls === 12);
+  const auditRows = db.prepare("SELECT metric, value FROM migration_audit WHERE migration_id='service_stats_placeholder_cleanup_v1' ORDER BY metric").all();
+  check("監査: before/deleted/afterが記録 (deleted=3)", auditRows.find((r) => r.metric === "deleted_placeholder_rows")?.value === 3, JSON.stringify(auditRows));
+
+  // C6. 二回実行で同一・audit非重複
+  const snap1 = JSON.stringify(db.prepare("SELECT * FROM service_stats ORDER BY service_id").all());
+  initializeDb(db);
+  const snap2 = JSON.stringify(db.prepare("SELECT * FROM service_stats ORDER BY service_id").all());
+  const auditCount2 = db.prepare("SELECT COUNT(*) c FROM migration_audit WHERE migration_id='service_stats_placeholder_cleanup_v1'").get().c;
+  check("C6. migration二回実行 → 同一結果・audit非重複", snap1 === snap2 && auditCount2 === 3, `audit=${auditCount2}`);
+
+  // C8. quarantineは変更しない
+  check("C8. quarantine行数は不変", db.prepare("SELECT COUNT(*) c FROM service_stats_quarantine").get().c === qBefore);
+
+  // C4. report-outcome初回実行 → 行が新規作成される（行なし状態から）
+  svc(db, "svc-fresh-report");
+  reportOutcome(db, { service_id: "svc-fresh-report", success: true, latency_ms: 100 });
+  const fresh = statsRow(db, "svc-fresh-report");
+  check("C4. report-outcome初回 → 行が新規作成 (1件/100%)", fresh && fresh.total_calls === 1 && fresh.success_rate === 1, JSON.stringify(fresh));
 
   db.close();
 }
