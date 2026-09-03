@@ -82,7 +82,7 @@ const llmsJp = catAvg(gJp, 'llms_txt'), llmsGl = catAvg(gGl, 'llms_txt');
 const llmsAllWorse = shared.every(k => rate(gJp.get(k), 'llms_txt') > rate(gGl.get(k), 'llms_txt'));
 const sitemapJp = catAvg(gJp, 'sitemap'), sitemapGl = catAvg(gGl, 'sitemap');
 
-const CITE = `KanseiLINKが2026年9月に日本の主要SaaS ${jp.length}ドメインとグローバルSaaS ${gl.length}ドメインを同一の診断ツールで測定したところ、llms.txt の未設置率は日本 ${f1(llmsJp)}、グローバル ${f1(llmsGl)}で、比較した${shared.length}カテゴリすべてで日本が上回った。一方 sitemap.xml の未設置率は日本 ${f1(sitemapJp)}、グローバル ${f1(sitemapGl)}で日本のほうが低かった（KanseiLINK調べ・${DATE}）。出典: ${CANONICAL}`;
+const CITE = `KanseiLINKが2026年9月に日本の主要SaaS ${jp.length}ドメインとグローバルの主要SaaS ${gl.length}ドメインを同一の診断ツールで測定し、両市場に${MIN_N}件以上あった${shared.length}カテゴリ（日本${jpUsed}件・グローバル${glUsed}件）で比較したところ、llms.txt の未設置率は日本側サンプル ${f1(llmsJp)}、グローバル側サンプル ${f1(llmsGl)}で、比較した${shared.length}カテゴリすべてで日本側が上回った。一方 sitemap.xml の未設置率は日本側 ${f1(sitemapJp)}、グローバル側 ${f1(sitemapGl)}で日本側のほうが低かった。本調査は選定したサイト群の記述的比較であり、企業規模を揃えていないため市場全体の性質を示すものではない（KanseiLINK調べ・${DATE}）。出典: ${CANONICAL}`;
 
 const tbl = (head, rows2) => `<table><thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${
   rows2.map(r => `<tr>${r.map((c, i) => `<td${i > 0 ? ' class="num"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
@@ -91,9 +91,9 @@ const faq = [
   { q: 'llms.txt を設置すればAIに見つけてもらえますか？',
     a: 'それはこの調査では検証していません。今回測ったのは設置率の差だけで、llms.txt があるとAIの回答に出やすくなるかどうかは別の問題です。効果を主張する材料は、現時点で私たちにもありません。分かっているのは、この一点だけ市場間で差が大きいという事実です。' },
   { q: 'では、なぜ llms.txt に注目するのですか？',
-    a: '比較した項目の中で、差がここだけ突出しており、しかも全カテゴリで同じ方向だったからです。加えて設置コストがほぼゼロ（テキストファイル1枚）なので、仮に効果が小さくても損失が小さい、という実務上の理由もあります。' },
+    a: '比較した項目の中で、差がここだけ突出しており、しかも比較した全カテゴリで同じ方向だったからです。加えて設置コストがほぼゼロ（テキストファイル1枚）なので、仮に効果が小さくても損失が小さい、という実務上の理由もあります。' },
   { q: '日本のSaaSはAI対応が遅れているということですか？',
-    a: 'いいえ。むしろ sitemap.xml は日本のほうが整備されており、構造化データや連絡先の差も1割未満でした。カテゴリによっては日本が上回る項目もあります。「全面的に遅れている」という見方は、この実測とは合いません。' },
+    a: 'この調査からは、そこまでは言えません。今回のサンプルでは sitemap.xml の未設置率は日本側のほうが低く、構造化データや連絡先の差も1割未満でした。ただしこれは選んだサイト群の比較であって、市場全体の性質を示すものではありません。言えるのは「今回測った範囲では、日本が全項目で劣るという結果にはならなかった」までです。' },
   { q: '個社名は公開しますか？',
     a: 'していません。この診断はサイトの機械可読性を短時間で測る軽量なもので、ARI Awardの格付けとは別物です。個社名と結びつけると格付けと混同されるおそれがあるため、分布のみを公開しています。' },
   { q: 'このデータを引用してもいいですか？',
@@ -104,7 +104,7 @@ const schema = {
   '@context': 'https://schema.org',
   '@graph': [
     { '@type': 'Article', '@id': `${CANONICAL}#article`,
-      headline: '日本とグローバルのSaaSを同じ基準で測ったら、差は一点に集中していた',
+      headline: '日本とグローバルの主要SaaSを同じ基準で測った — このサンプルでは、差は一点に集中していた',
       description: `日本の主要SaaS ${jp.length}ドメインとグローバルSaaS ${gl.length}ドメインを同一の診断ツールで比較。カテゴリを揃えて集計しました。`,
       datePublished: DATE, dateModified: DATE, inLanguage: 'ja',
       author: { '@id': 'https://kansei-link.com/#organization' },
@@ -131,39 +131,44 @@ const schema = {
 const STYLE = `<style>:root{--b:#1a3fd6;--i:#101828;--m:#667085;--l:#e4e7ec;--s:#f4f5fd}*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans JP",system-ui,sans-serif;color:var(--i);line-height:1.9}nav,main,footer{max-width:860px;margin:auto;padding:20px 28px}nav{display:flex;justify-content:space-between;border-bottom:1px solid var(--l)}a{color:var(--b)}.brand{font-size:22px;font-weight:800;text-decoration:none}.hero{background:linear-gradient(135deg,#0a1628,#1a3fd6);color:#fff;padding:56px 28px}.hero>div{max-width:860px;margin:auto}.hero .eyebrow{font-size:12px;letter-spacing:.08em;opacity:.85}.hero h1{font-size:clamp(26px,4.4vw,40px);line-height:1.4;margin:.3em 0}.hero p{font-size:17px;opacity:.92;margin:0}h2{margin-top:48px;font-size:24px;border-left:5px solid var(--b);padding-left:14px}.lead{font-size:19px;background:var(--s);padding:22px;border-radius:12px}table{border-collapse:collapse;width:100%;margin:18px 0;font-size:15px}th,td{border-bottom:1px solid var(--l);padding:9px 10px;text-align:left}th{background:var(--s)}td.num{text-align:right;font-variant-numeric:tabular-nums}tr.avg td{font-weight:700;background:#fafbff}ul{padding-left:1.3em}li{margin:.4em 0}details{border-top:1px solid var(--l);padding:14px 0}summary{font-weight:700;cursor:pointer}.note{color:var(--m);font-size:13px;border-left:3px solid var(--l);padding-left:12px;line-height:1.8}.cite{background:var(--s);border:1px dashed var(--b);border-radius:12px;padding:20px;margin:28px 0}.cite .c-h{font-weight:700;margin-bottom:8px;font-size:15px}.cite blockquote{margin:0;font-size:15px;line-height:1.9}.probe{background:#fff;border:2px solid var(--b);border-radius:14px;padding:24px;margin:34px 0}.probe .p-title{font-size:20px;font-weight:700;margin-bottom:6px}.probe p{color:var(--m);font-size:14px;margin:0 0 16px}.probe form{display:flex;gap:10px;flex-wrap:wrap}.probe input{flex:1 1 260px;min-width:0;padding:13px 15px;font-size:16px;border:1px solid var(--l);border-radius:10px}.probe button{padding:13px 24px;font-size:16px;font-weight:700;border:0;border-radius:10px;background:var(--b);color:#fff;cursor:pointer;font-family:inherit}footer{border-top:1px solid var(--l);margin-top:56px;color:var(--m);font-size:14px}</style>`;
 
 const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>日本とグローバルのSaaSを同じ基準で測ったら、差は一点に集中していた | KanseiLink</title>
+<title>日本とグローバルの主要SaaSを同じ基準で測った — このサンプルでは、差は一点に集中していた | KanseiLink</title>
 <meta name="description" content="${esc(`日本の主要SaaS ${jp.length}ドメインとグローバルSaaS ${gl.length}ドメインを同一の診断ツールで比較。カテゴリを揃えて集計したところ、差はllms.txtの設置率に集中し、sitemapは日本のほうが整備されていました。`)}">
 <meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${CANONICAL}">
-<meta property="og:type" content="article"><meta property="og:title" content="日本とグローバルのSaaSを同じ基準で測ったら、差は一点に集中していた"><meta property="og:url" content="${CANONICAL}"><meta property="og:locale" content="ja_JP">
+<meta property="og:type" content="article"><meta property="og:title" content="日本とグローバルの主要SaaSを同じ基準で測った — このサンプルでは、差は一点に集中していた"><meta property="og:url" content="${CANONICAL}"><meta property="og:locale" content="ja_JP">
 <script type="application/ld+json">${JSON.stringify(schema)}</script>
 ${STYLE}</head>
 <body><nav><a class="brand" href="/">KanseiLink</a><a href="/insights/">Research &amp; Insights</a></nav>
 <header class="hero"><div><div class="eyebrow">一次調査 · 測定 日本${jp.length}/グローバル${gl.length} · 比較に使用 日本${jpUsed}/グローバル${glUsed} · ${DATE}</div>
-<h1>日本とグローバルのSaaSを同じ基準で測ったら、差は一点に集中していた</h1>
-<p>「日本はAI対応が遅れている」は、実測とは合いませんでした。ほとんどの項目で差は小さく、sitemapはむしろ日本が上。ただし1項目だけ、全カテゴリで差がつきました。</p></div></header>
+<h1>日本とグローバルの主要SaaSを同じ基準で測った — このサンプルでは、差は一点に集中していた</h1>
+<p>今回測った範囲では、「日本は全面的に遅れている」という結果にはなりませんでした。ほとんどの項目で差は小さく、sitemapはこのサンプルでは日本側が上。ただし1項目だけ、比較した全カテゴリで差がつきました。</p></div></header>
 <main>
-<p class="lead">日本の主要SaaS ${jp.length}ドメインとグローバルSaaS ${gl.length}ドメインを、同じ診断ツールで測りました。カテゴリ構成の違いが差に化けないよう、<strong>会計は会計と、人事は人事と</strong>比べています。結果、<strong>差は llms.txt の設置率に集中し、他の項目はおおむね互角</strong>でした。</p>
+<p class="lead">日本の主要SaaS ${jp.length}ドメインとグローバルSaaS ${gl.length}ドメインを、同じ診断ツールで測りました。カテゴリ構成の違いが差に化けないよう、<strong>会計は会計と、人事は人事と</strong>比べています。結果、<strong>このサンプルでは差が llms.txt の設置率に集中し、他の項目はおおむね互角</strong>でした。</p>
 <p class="note">なお以下の比較は、両市場に${MIN_N}件以上あった${shared.length}カテゴリ（日本${jpUsed}件・グローバル${glUsed}件）で行っています。片方の市場に${MIN_N}件未満しかなかったカテゴリは、偶然の幅が大きすぎるため比較から外しました。<strong>測定した全${jp.length}件・${gl.length}件がそのまま結論の母数ではありません。</strong></p>
 
-<h2>差が集中していた一点</h2>
+<h2>このサンプルで差が集中していた一点</h2>
 <p>llms.txt（AIに「どのページを見れば何が分かるか」を案内するテキストファイル）の<strong>未設置率</strong>です。比較した${shared.length}カテゴリの${llmsAllWorse ? '<strong>すべてで</strong>' : '多くで'}日本が上回りました。</p>
-${tbl(['カテゴリ', `日本 (計${jpUsed})`, `グローバル (計${glUsed})`],
+${tbl(['カテゴリ', `日本側サンプル (計${jpUsed})`, `グローバル側サンプル (計${glUsed})`],
   [...shared.map(k => [LABEL[k] ?? k, `${f1(rate(gJp.get(k), 'llms_txt'))} (n=${gJp.get(k).length})`, `${f1(rate(gGl.get(k), 'llms_txt'))} (n=${gGl.get(k).length})`])])}
-<p><strong>カテゴリ率の平均: 日本 ${f1(llmsJp)} ／ グローバル ${f1(llmsGl)}（差 ${(llmsGl - llmsJp).toFixed(1)}pt）</strong></p>
+<p><strong>カテゴリ率の平均: 日本側 ${f1(llmsJp)} ／ グローバル側 ${f1(llmsGl)}（差 ${(llmsGl - llmsJp).toFixed(1)}pt）</strong></p>
 
-<h2>他の項目は、おおむね互角だった</h2>
-${tbl(['項目', '日本', 'グローバル', '差'],
+<h2>他の項目は、このサンプルではおおむね互角</h2>
+${tbl(['項目', '日本側サンプル', 'グローバル側サンプル', '差'],
   CHECKS.map(([id, label]) => {
     const a = catAvg(gJp, id), b = catAvg(gGl, id);
     return [label, f1(a), f1(b), `${b - a >= 0 ? '+' : ''}${(b - a).toFixed(1)}pt`];
   }))}
-<p class="note">カテゴリ率の平均。プラスはグローバル側の未対応率が高い（＝日本のほうが良い）ことを示します。</p>
+<p class="note">カテゴリ率の平均。プラスはグローバル側サンプルの未対応率が高いことを示します。</p>
 <ul>
-<li><strong>AIクローラーの拒否は、どちらもほぼ皆無。</strong>「AIに読ませない設定になっている」は、主要SaaSでは例外です。</li>
-<li><strong>sitemap.xml は日本のほうが整備されている</strong>（未設置 ${f1(sitemapJp)} 対 ${f1(sitemapGl)}）。日本が全面的に遅れているという見方は、この実測とは合いません。</li>
-<li>構造化データと連絡先の差は1割未満で、カテゴリによっては日本が上回ります。</li>
+<li><strong>AIクローラーの拒否は、どちらのサンプルでもほぼ皆無。</strong>少なくとも今回測った主要SaaSでは、「AIに読ませない設定になっている」は例外でした。</li>
+<li><strong>sitemap.xml は日本側サンプルのほうが未設置率が低い</strong>（${f1(sitemapJp)} 対 ${f1(sitemapGl)}）。少なくとも「日本はどの項目でも遅れている」という形にはなっていません。</li>
+<li>構造化データと連絡先の差は1割未満で、カテゴリによっては日本側が上回ります。</li>
 </ul>
-<p>スコアの中央値は日本 ${med(jp)}点、グローバル ${med(gl)}点（100点満点）でした。</p>
+<p>スコアの中央値は日本側 ${med(jp)}点、グローバル側 ${med(gl)}点（100点満点）でした。</p>
+
+<h2>この調査が言えること、言えないこと</h2>
+<p>これは<strong>選定したサイト群の記述的な比較</strong>です。現実の市場構成をそのまま含んでおり、企業規模を揃えていません。グローバル側には大手が多く含まれます。</p>
+<p>したがって<strong>「このサンプルでは差があった」までは言えますが、「日本市場だから／日本企業だからこうなる」とは言えません</strong>。差の原因が市場慣行なのか企業規模なのかは、この設計では切り分けられていないためです。規模を揃えた比較をするには、層別分析かマッチングが別途必要です。</p>
+<p class="note">また、比較した8カテゴリすべてで同じ方向だったことは観察としては明確ですが、カテゴリ同士は共通の市場要因を受けるため独立した試行ではありません。この一致を統計的な有意性の証拠として扱うことはしていません。</p>
 
 <h2>ただし、llms.txt が効くとは言っていません</h2>
 <p>ここは正確に書きます。<strong>この調査で測ったのは設置率の差だけです。</strong>llms.txt を置くとAIの回答に出やすくなるかどうかは、検証していません。効果を主張できる材料は、現時点で私たちにもありません。</p>

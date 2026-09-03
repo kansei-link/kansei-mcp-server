@@ -13,7 +13,12 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const SRC = resolve(root, 'data/discoverability/demand-battery-v1-results.json');
+// 生成AIの回答は実行ごとに揺れる。1回の結果を確定値として出さないため、
+// 2回分を読み、揺れる数字は範囲で、安定した数字はそのまま書く。
+const RUNS = [
+  { label: '1回目', path: 'data/discoverability/demand-battery-v1-results-run1.json' },
+  { label: '2回目', path: 'data/discoverability/demand-battery-v1-results-run2.json' }
+];
 const BATTERY = resolve(root, 'data/discoverability/demand-battery-v1.json');
 const OUT = resolve(root, 'public/insights/ai-visibility-jp-who-gets-recommended-2026-09.html');
 
@@ -32,10 +37,15 @@ const OURS = ['kansei-link', 'kanseilink', 'synapse arrows', 'synapsearrows', '�
 const esc = (v = '') => String(v).replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const results = JSON.parse(await readFile(SRC, 'utf8'));
 const battery = JSON.parse(await readFile(BATTERY, 'utf8'));
-const rows = Array.isArray(results) ? results : results.results;
 const questionText = new Map(battery.questions.map(q => [q.id, q.question]));
+
+const runsData = [];
+for (const r of RUNS) {
+  const j = JSON.parse(await readFile(resolve(root, r.path), 'utf8'));
+  runsData.push({ label: r.label, rows: Array.isArray(j) ? j : j.results });
+}
+const rows = runsData[0].rows; // 質問一覧など、実行間で変わらないものはここから
 
 const textOf = a => {
   if (!a || a.error) return null;
@@ -43,30 +53,45 @@ const textOf = a => {
 };
 const countIn = (text, names) => names.filter(n => text.toLowerCase().includes(n.toLowerCase()));
 
-let cells = 0, oursCells = 0, namedCells = 0, namedQuestions = 0;
-const engines = new Map();
 const foreignHits = new Map();
 const japaneseHits = new Map();
-const perQuestion = [];
 
-for (const q of rows) {
-  let namedHere = false;
-  const enginesNaming = [];
-  for (const [eng, a] of Object.entries(q.answers ?? {})) {
-    const text = textOf(a);
-    if (text === null) continue;
-    cells++;
-    if (!engines.has(eng)) engines.set(eng, { total: 0, named: 0, model: a.model ?? '' });
-    engines.get(eng).total++;
-    if (countIn(text, OURS).length) oursCells++;
-    const named = [...countIn(text, FOREIGN), ...countIn(text, JAPANESE)];
-    for (const n of countIn(text, FOREIGN)) foreignHits.set(n, (foreignHits.get(n) ?? 0) + 1);
-    for (const n of countIn(text, JAPANESE)) japaneseHits.set(n, (japaneseHits.get(n) ?? 0) + 1);
-    if (named.length) { namedCells++; namedHere = true; engines.get(eng).named++; enginesNaming.push(eng); }
+function tally(runRows, collectNames) {
+  let cells = 0, oursCells = 0, namedCells = 0, namedQuestions = 0;
+  const engines = new Map();
+  const perQuestion = [];
+  for (const q of runRows) {
+    let namedHere = false;
+    const enginesNaming = [];
+    for (const [eng, a] of Object.entries(q.answers ?? {})) {
+      const text = textOf(a);
+      if (text === null) continue;
+      cells++;
+      if (!engines.has(eng)) engines.set(eng, { total: 0, named: 0, model: a.model ?? '' });
+      engines.get(eng).total++;
+      if (countIn(text, OURS).length) oursCells++;
+      const named = [...countIn(text, FOREIGN), ...countIn(text, JAPANESE)];
+      if (collectNames) {
+        for (const n of countIn(text, FOREIGN)) foreignHits.set(n, (foreignHits.get(n) ?? 0) + 1);
+        for (const n of countIn(text, JAPANESE)) japaneseHits.set(n, (japaneseHits.get(n) ?? 0) + 1);
+      }
+      if (named.length) { namedCells++; namedHere = true; engines.get(eng).named++; enginesNaming.push(eng); }
+    }
+    if (namedHere) namedQuestions++;
+    perQuestion.push({ id: q.id, question: questionText.get(q.id) ?? q.id, named: namedHere, enginesNaming });
   }
-  if (namedHere) namedQuestions++;
-  perQuestion.push({ id: q.id, question: questionText.get(q.id) ?? q.id, named: namedHere, enginesNaming });
+  return { cells, oursCells, namedCells, namedQuestions, engines, perQuestion };
 }
+
+const runs = runsData.map((r, i) => ({ label: r.label, ...tally(r.rows, i === 0) }));
+const r1 = runs[0];
+const { cells, oursCells, namedCells, namedQuestions, engines, perQuestion } = r1;
+const rng = key => {
+  const vs = runs.map(r => r[key]);
+  const [lo, hi] = [Math.min(...vs), Math.max(...vs)];
+  return lo === hi ? `${lo}` : `${lo}〜${hi}`;
+};
+const oursAllZero = runs.every(r => r.oursCells === 0);
 
 const byCount = m => [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 const engineList = [...engines.entries()].sort((a, b) => a[0].localeCompare(b[0]));
@@ -76,14 +101,14 @@ if (oursCells !== 0) {
   console.warn(`NOTE: 自社言及が ${oursCells} 件あります。本文の「0件」表現を見直してください。`);
 }
 
-const answer = `${questions}問を${engineList.length}つのAIエンジンに素の状態で投げ、${cells}件の回答を得ました。`
-  + `Synapse ArrowsとKanseiLINKの言及は${oursCells}件です。`
-  + `一方で、固有名を挙げた回答自体が${namedCells}件しかありません。`
+const answer = `${questions}問を${engineList.length}つのAIエンジンに素の状態で投げる試行を、日を分けず${runs.length}回行いました。`
+  + `固有名を挙げた回答は${runs.map(r => `${r.namedCells}/${r.cells}`).join('、')}件で、実行ごとに揺れます。`
+  + `一方 <strong>Synapse ArrowsとKanseiLINKの言及は、${runs.length}回とも0件</strong>でした。`
   + `このカテゴリには、日本語ではまだ「AIの定番の答え」が存在していません。`;
 
 const keyPoints = [
-  `${questions}問×${engineList.length}エンジン＝${cells}回答のうち、当社（Synapse Arrows／KanseiLINK）の言及は${oursCells}件でした。`,
-  `固有名（企業名・ツール名）を挙げた回答は${namedCells}/${cells}件にとどまり、${questions}問中${namedQuestions}問でしか名前が出ません。残りは一般論で終わります。`,
+  `当社（Synapse Arrows／KanseiLINK）の言及は、${runs.length}回の実行すべてで0件でした。ここだけは揺れません。`,
+  `固有名（企業名・ツール名）を挙げた回答は${runs.map(r => `${r.namedCells}/${r.cells}`).join('、')}件、名前が出た質問は${questions}問中${rng('namedQuestions')}問。残りは一般論で終わります。実行ごとに揺れるため、確定値ではなく範囲として読んでください。`,
   `名前が出る場合、多くは海外のAI可視性ツール（${byCount(foreignHits).slice(0, 4).map(([n]) => n).join('・')}など）でした。`,
   `「日本企業向けにAEO・LLMO対策を支援する会社」を尋ねたときだけ、日本の支援会社名がまとめて並びます。出どころは「おすすめN選」型のまとめ記事です。`,
   `測っている当社自身が0件だったという事実も、そのまま載せています。これは自己採点ではなく、外から見た現在地の記録です。`
@@ -133,7 +158,7 @@ const listRow = ([name, n]) => `<tr><td>${esc(name)}</td><td class="num">${n}</t
 
 const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>「AI検索で自社が出ない」と聞くと、AIは誰を推薦するのか｜${questions}問×${engineList.length}エンジン実測 | KanseiLink</title>
-<meta name="description" content="ChatGPTは自社をどう認識している、AI検索で表示されない、LLMO対策は何から——日本語の悩みクエリ${questions}問を${engineList.length}つのAIエンジンへ実測。${cells}回答中、当社の言及は${oursCells}件でした。誰の名前が出て、誰の名前が出ないのかを公開します。">
+<meta name="description" content="ChatGPTは自社をどう認識している、AI検索で表示されない、LLMO対策は何から——日本語の悩みクエリ${questions}問を${engineList.length}つのAIエンジンへ${runs.length}回実測。当社の言及は${runs.length}回とも0件。誰の名前が出て、誰の名前が出ないのかを公開します。">
 <meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${CANONICAL}">
 <meta property="og:type" content="article"><meta property="og:title" content="「AI検索で自社が出ない」と聞くと、AIは誰を推薦するのか"><meta property="og:url" content="${CANONICAL}"><meta property="og:locale" content="ja_JP">
 <script type="application/ld+json">${JSON.stringify(schema)}</script>
@@ -141,15 +166,16 @@ const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta n
 <body><nav><a class="brand" href="/">KanseiLink</a><a href="/insights/">Research &amp; Insights</a></nav>
 <header class="hero"><div><div>FIRST-PARTY MEASUREMENT · ${RUN_DATE}</div>
 <h1>「AI検索で自社が出ない」と日本語でAIに聞くと、AIは誰を推薦するのか</h1>
-<p>悩みクエリ${questions}問 × AIエンジン${engineList.length}種 = ${cells}回答の実測。測っている当社自身の結果も含めて公開します。</p></div></header>
+<p>悩みクエリ${questions}問 × AIエンジン${engineList.length}種 を${runs.length}回。揺れる数字は範囲で、揺れなかった数字はそのまま出します。測っている当社自身の結果も含めて公開します。</p></div></header>
 <main>
 <h2>結論</h2><p class="answer">${esc(answer)}</p>
 
 <div class="big">
-  <div><strong>${oursCells} / ${cells}</strong><span>当社（Synapse Arrows／KanseiLINK）が挙がった回答</span></div>
-  <div><strong>${namedCells} / ${cells}</strong><span>何らかの固有名を挙げた回答</span></div>
-  <div><strong>${namedQuestions} / ${questions}</strong><span>固有名が出た質問</span></div>
+  <div><strong>0</strong><span>当社が挙がった回答（${runs.length}回とも）</span></div>
+  <div><strong>${runs.map(r => `${r.namedCells}/${r.cells}`).join(' → ')}</strong><span>何らかの固有名を挙げた回答（1回目 → 2回目）</span></div>
+  <div><strong>${rng('namedQuestions')} / ${questions}</strong><span>固有名が出た質問（実行により変動）</span></div>
 </div>
+<p class="note">生成AIの回答は実行ごとに揺れます。${runs.length}回とも同じだったのは「当社が0件」だけで、他は範囲として読んでください。</p>
 
 <h2>何を測ったか</h2>
 <p>「AEO」や「Agent Readiness」という言葉を知らない人が、自分の悩みをそのまま打ち込むときの言葉で${questions}問を用意しました。ブランド名は一切含めていません。システムプロンプトは付けず、質問文をそのまま送っています。一般利用者が受け取る既定の回答を見るためです。</p>
@@ -157,7 +183,7 @@ const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta n
 ${perQuestion.map(q => `<tr><td>${esc(q.question)}</td><td>${q.named ? `出た（${esc(q.enginesNaming.join('・'))}）` : '出ない（一般論）'}</td></tr>`).join('\n')}
 </tbody></table>
 
-<h2>エンジン別</h2>
+<h2>エンジン別（1回目）</h2>
 <table><thead><tr><th>エンジン</th><th class="num">測定した回答</th><th class="num">固有名を挙げた回答</th><th class="num">当社への言及</th></tr></thead><tbody>
 ${engineList.map(([e, v]) => `<tr><td>${esc(e)}${v.model ? ` <span style="color:var(--m);font-size:13px">(${esc(v.model)})</span>` : ''}</td><td class="num">${v.total}</td><td class="num">${v.named}</td><td class="num">0</td></tr>`).join('\n')}
 </tbody></table>
@@ -176,14 +202,14 @@ ${byCount(japaneseHits).map(listRow).join('\n')}
 
 <h2>ここから読めること</h2>
 <ul>
-<li><strong>このカテゴリには、日本語ではまだ定番の答えがない。</strong>${questions}問中${questions - namedQuestions}問で、AIは固有名を出さず一般論で終わります。「誰に頼めばいいか」がまだ決まっていない領域です。</li>
+<li><strong>このカテゴリには、日本語ではまだ定番の答えがない。</strong>${questions}問のうち半数前後で、AIは固有名を出さず一般論で終わります（1回目${questions - runs[0].namedQuestions}問、2回目${questions - runs[1].namedQuestions}問）。「誰に頼めばいいか」がまだ決まっていない領域です。</li>
 <li><strong>名前が出る場面は二極化している。</strong>測定ツールを尋ねると海外プロダクト名が、支援会社を尋ねるとまとめ記事由来の日本企業名が並びます。前者は製品、後者は記事が入口になっています。</li>
-<li><strong>当社は、そのどちらにも入っていない。</strong>実測データを出している側でありながら、${cells}回答すべてで名前が出ませんでした。作っていることと、知られていることは別だという記録です。</li>
+<li><strong>当社は、そのどちらにも入っていない。</strong>実測データを出している側でありながら、${runs.length}回の実行すべてで名前が出ませんでした。作っていることと、知られていることは別だという記録です。</li>
 </ul>
 
 <h2>手法と限界</h2>
-<p>測定日 ${RUN_DATE}。エンジン: ${engineList.map(([e, v]) => `${esc(e)}${v.model ? `（${esc(v.model)}）` : ''}`).join('、')}。質問${questions}問を日本語で、システムプロンプトなしにそのまま送信し、返ってきた本文に含まれる企業名・ツール名を集計しました。集計は既知の名称リストとの文字列一致であり、リストにない事業者は数えられていません。</p>
-<p class="note">限界: 生成AIの回答は実行ごとに揺れます。これは特定日の1回の実行であり、確定値ではありません。個別の件数ではなく傾向として読んでください。また、これはAIの回答内容の測定であって、登場した企業・ツールの品質評価ではありません。当社はこの調査で名前が挙がった事業者から、いかなる対価も受け取っていません。継続測定で更新します。</p>
+<p>測定日 ${RUN_DATE}。エンジン: ${engineList.map(([e, v]) => `${esc(e)}${v.model ? `（${esc(v.model)}）` : ''}`).join('、')}。質問${questions}問を日本語で、システムプロンプトなしにそのまま送信し、返ってきた本文に含まれる企業名・ツール名を集計しました。同一条件で${runs.length}回実行しています（${runs.map(r => `${r.label} ${r.namedCells}/${r.cells}`).join('、')}）。回答原文・モデル名・プロンプトは実行ごとに保存しています。集計は既知の名称リストとの文字列一致であり、リストにない事業者は数えられていません。</p>
+<p class="note">限界: 生成AIの回答は実行ごとに揺れます。${runs.length}回では揺れ幅を十分に押さえたとは言えず、個別の件数は確定値ではありません。範囲と傾向として読んでください。なお同じ12問を3エンジンへ送った結果なので、36〜37の回答は互いに独立した試行ではありません。また、これはAIの回答内容の測定であって、登場した企業・ツールの品質評価ではありません。当社はこの調査で名前が挙がった事業者から、いかなる対価も受け取っていません。継続測定で更新します。</p>
 
 <h2>自社の現在地を測るには</h2>
 <div class="urlprobe">
