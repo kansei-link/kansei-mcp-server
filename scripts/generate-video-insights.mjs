@@ -14,42 +14,80 @@ const youtubeUrl = item => item.kind === 'short'
   ? `https://www.youtube.com/shorts/${item.id}`
   : `https://www.youtube.com/watch?v=${item.id}`;
 const thumb = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+const embedUrl = id => `https://www.youtube.com/embed/${id}`;
+const channelUrl = data.channel.url;
+const channelSameAs = [data.channel.url, data.channel.handleUrl].filter(Boolean);
+// PT11M6S -> 11:06 (表示用)。従来の naive replace は "11:7" / "20:" を生んでいた
+const humanDuration = iso => {
+  const m = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso || '');
+  if (!m) return 'Video';
+  const [h, mi, se] = [m[1], m[2], m[3]].map(v => Number(v || 0));
+  const pad = n => String(n).padStart(2, '0');
+  return h ? `${h}:${pad(mi)}:${pad(se)}` : `${mi}:${pad(se)}`;
+};
 
 const ids = new Set();
 for (const item of data.videos) {
   if (!/^[\w-]{11}$/.test(item.id)) throw new Error(`Invalid YouTube id: ${item.id}`);
   if (ids.has(item.id)) throw new Error(`Duplicate YouTube id: ${item.id}`);
   if (data.excludedVideoIds.includes(item.id)) throw new Error(`Excluded video leaked into manifest: ${item.id}`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(item.uploadDate || '')) throw new Error(`Missing uploadDate: ${item.id}`);
+  if (!/^PT(\d+H)?(\d+M)?(\d+S)?$/.test(item.duration || '')) throw new Error(`Missing duration: ${item.id}`);
   ids.add(item.id);
 }
 for (const item of data.videos.filter(item => item.parentId)) {
   if (!ids.has(item.parentId)) throw new Error(`Missing parent ${item.parentId} for ${item.id}`);
 }
 
+const byId = new Map(data.videos.map(item => [item.id, item]));
+// Shorts は親の長尺動画の解説記事を継承する（記事なしの行き止まりを作らない）
+const articleFor = item => item.articleUrl || (item.parentId ? byId.get(item.parentId)?.articleUrl : null) || null;
 const longVideos = data.videos.filter(item => item.kind === 'video');
 const shorts = data.videos.filter(item => item.kind === 'short');
+const videoObject = item => ({
+  '@type': 'VideoObject',
+  '@id': `https://kansei-link.com/insights/videos/#${item.id}`,
+  name: item.title,
+  description: item.summary || item.title,
+  thumbnailUrl: thumb(item.id),
+  uploadDate: item.uploadDate,
+  duration: item.duration,
+  contentUrl: youtubeUrl(item),
+  embedUrl: embedUrl(item.id),
+  inLanguage: 'ja',
+  isFamilyFriendly: true,
+  genre: item.category,
+  publisher: { '@id': 'https://kansei-link.com/#organization' },
+  creator: { '@id': `${channelUrl}#channel` },
+  isPartOf: { '@id': 'https://kansei-link.com/insights/videos/#page' },
+  ...(articleFor(item) ? { subjectOf: { '@type': 'Article', '@id': `https://kansei-link.com${articleFor(item)}#article` } } : {}),
+  ...(item.parentId ? { isBasedOn: { '@id': `https://kansei-link.com/insights/videos/#${item.parentId}` } } : {}),
+  ...(item.shortId ? { hasPart: { '@id': `https://kansei-link.com/insights/videos/#${item.shortId}` } } : {})
+});
 const listItems = data.videos.map((item, index) => ({
   '@type': 'ListItem',
   position: index + 1,
-  name: item.title,
-  url: youtubeUrl(item)
+  url: youtubeUrl(item),
+  item: videoObject(item)
 }));
 const cards = items => items.map(item => `
   <article class="card">
-    <a class="thumb" href="${esc(item.articleUrl || youtubeUrl(item))}">
+    <a class="thumb" href="${esc(articleFor(item) || youtubeUrl(item))}">
       <img src="${thumb(item.id)}" alt="${esc(item.title)}" width="480" height="360" loading="lazy">
-      <span>${item.kind === 'short' ? 'Short' : esc(item.duration?.replace('PT','').replace('M',':').replace('S','') || 'Video')}</span>
+      <span>${item.kind === 'short' ? 'Short' : esc(humanDuration(item.duration))}</span>
     </a>
-    <div class="body"><div class="category">${esc(item.category)}</div><h2><a href="${esc(item.articleUrl || youtubeUrl(item))}">${esc(item.title)}</a></h2>
+    <div class="body"><div class="category">${esc(item.category)}</div><h2><a href="${esc(articleFor(item) || youtubeUrl(item))}">${esc(item.title)}</a></h2>
     ${item.summary ? `<p>${esc(item.summary)}</p>` : ''}
-    <div class="actions"><a href="${youtubeUrl(item)}">YouTube</a>${item.articleUrl ? `<a href="${esc(item.articleUrl)}">解説記事</a>` : ''}</div></div>
+    <div class="actions"><a href="${youtubeUrl(item)}">YouTube</a>${articleFor(item) ? `<a href="${esc(articleFor(item))}">解説記事</a>` : ''}</div></div>
   </article>`).join('');
 
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {'@type':'CollectionPage','@id':'https://kansei-link.com/insights/videos/#page',name:'SYNAPSE 動画ライブラリ',url:'https://kansei-link.com/insights/videos/',inLanguage:'ja',dateModified:data.updated,publisher:{'@id':'https://kansei-link.com/#organization'},mainEntity:{'@type':'ItemList',numberOfItems:data.videos.length,itemListElement:listItems}},
-    {'@type':'Organization','@id':'https://kansei-link.com/#organization',name:'KanseiLink',url:'https://kansei-link.com/',parentOrganization:{'@id':'https://synapsearrows.com/#organization'},sameAs:[data.channel.url]}
+    {'@type':'Organization','@id':'https://kansei-link.com/#organization',name:'KanseiLink',alternateName:['KanseiLINK','カンセイリンク'],url:'https://kansei-link.com/',parentOrganization:{'@id':'https://synapsearrows.com/#organization'},sameAs:channelSameAs},
+    {'@type':'Organization','@id':'https://synapsearrows.com/#organization',name:'Synapse Arrows Pte. Ltd.',url:'https://synapsearrows.com',sameAs:['https://www.wikidata.org/wiki/Q140399505']},
+    {'@type':['Organization','Brand'],'@id':`${channelUrl}#channel`,name:data.channel.name,url:channelUrl,sameAs:channelSameAs,parentOrganization:{'@id':'https://synapsearrows.com/#organization'}}
   ]
 };
 
@@ -65,7 +103,7 @@ const html = `<!DOCTYPE html>
 <nav><a class="brand" href="/">KanseiLink</a><a href="/insights/">Research &amp; Insights</a></nav>
 <header class="hero"><div><div>OFFICIAL VIDEO LIBRARY</div><h1>SYNAPSE 動画ライブラリ</h1><p>AI社員と人間が、これからの経営と仕事を考える。名著、AIサービス、公式レポートを動画と記事でつなぎます。</p><div class="stats"><span>長尺 ${longVideos.length}本</span><span>Shorts ${shorts.length}本</span><span>合計 ${data.videos.length}本</span></div></div></header>
 <main><h2 class="section-title">長尺動画</h2><div class="grid">${cards(longVideos)}</div><h2 class="section-title">Shorts</h2><p>Shortsは対応する長尺動画・解説記事とセットで整理しています。</p><div class="grid">${cards(shorts)}</div></main>
-<footer>最終更新 ${esc(data.updated)} · © 2026 Synapse Arrows Pte. Ltd. · <a href="${esc(data.channel.url)}">YouTubeチャンネル</a></footer>
+<footer>最終更新 ${esc(data.updated)} · © 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="${esc(channelUrl)}">YouTubeチャンネル（${esc(data.channel.name)}）</a> · <a href="/insights/">Research &amp; Insights</a> · <a href="https://zenn.dev/kanseilink">Zenn</a></footer>
 </body></html>`;
 
 await mkdir(dirname(outputPath), { recursive: true });
@@ -77,8 +115,11 @@ const articleTemplate = article => {
   const canonical = `https://kansei-link.com/insights/${article.slug}.html`;
   const schema = {'@context':'https://schema.org','@graph':[
     {'@type':'Article','@id':`${canonical}#article`,headline:article.title,description:article.description,datePublished:article.date,dateModified:article.date,inLanguage:'ja',author:{'@id':'https://kansei-link.com/#organization'},publisher:{'@id':'https://kansei-link.com/#organization'},mainEntityOfPage:canonical},
-    {'@type':'VideoObject','@id':`${canonical}#video`,name:video.title,description:video.summary,thumbnailUrl:thumb(video.id),contentUrl:youtubeUrl(video),embedUrl:`https://www.youtube.com/embed/${video.id}`,duration:video.duration,inLanguage:'ja',publisher:{'@id':'https://kansei-link.com/#organization'}},
-    {'@type':'FAQPage',mainEntity:article.faq.map(item=>({'@type':'Question',name:item.question,acceptedAnswer:{'@type':'Answer',text:item.answer}}))}
+    {'@type':'VideoObject','@id':`${canonical}#video`,name:video.title,description:video.summary,thumbnailUrl:thumb(video.id),contentUrl:youtubeUrl(video),embedUrl:embedUrl(video.id),duration:video.duration,uploadDate:video.uploadDate,inLanguage:'ja',genre:video.category,publisher:{'@id':'https://kansei-link.com/#organization'},creator:{'@id':`${channelUrl}#channel`},isPartOf:{'@id':'https://kansei-link.com/insights/videos/#page'}},
+    {'@type':'FAQPage',mainEntity:article.faq.map(item=>({'@type':'Question',name:item.question,acceptedAnswer:{'@type':'Answer',text:item.answer}}))},
+    {'@type':'Organization','@id':'https://kansei-link.com/#organization',name:'KanseiLink',alternateName:['KanseiLINK','カンセイリンク'],url:'https://kansei-link.com/',parentOrganization:{'@id':'https://synapsearrows.com/#organization'},sameAs:channelSameAs},
+    {'@type':'Organization','@id':'https://synapsearrows.com/#organization',name:'Synapse Arrows Pte. Ltd.',url:'https://synapsearrows.com',sameAs:['https://www.wikidata.org/wiki/Q140399505']},
+    {'@type':['Organization','Brand'],'@id':`${channelUrl}#channel`,name:data.channel.name,url:channelUrl,sameAs:channelSameAs,parentOrganization:{'@id':'https://synapsearrows.com/#organization'}}
   ]};
   const points = article.keyPoints.map(point=>`<li>${esc(point)}</li>`).join('');
   const transcript = article.transcript.map(paragraph=>`<p>${esc(paragraph)}</p>`).join('');
@@ -92,7 +133,7 @@ const articleTemplate = article => {
 <div class="video" data-youtube-id="${video.id}"><img src="${thumb(video.id)}" alt="${esc(video.title)}" width="480" height="360"><button type="button" aria-label="動画を再生"><span class="sr">動画を再生</span></button></div>
 <p><a href="${youtubeUrl(video)}">YouTubeで見る</a></p><h2>結論</h2><p class="answer">${esc(article.answer)}</p><h2>要点</h2><ul>${points}</ul>
 <h2>文字起こし</h2><details><summary>全文を読む</summary>${transcript}</details><h2>よくある質問</h2>${faq}<h2>出典</h2><ul>${sources}</ul>
-</main><footer>© 2026 Synapse Arrows Pte. Ltd. · <a href="/insights/videos/">SYNAPSE 動画ライブラリ</a></footer>
+</main><footer>© 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="/insights/videos/">SYNAPSE 動画ライブラリ</a> · <a href="${esc(channelUrl)}">YouTubeチャンネル</a> · <a href="/insights/">Research &amp; Insights</a></footer>
 <script>document.querySelectorAll('[data-youtube-id] button').forEach(function(b){b.addEventListener('click',function(){var c=b.parentElement,i=document.createElement('iframe');i.src='https://www.youtube-nocookie.com/embed/'+c.dataset.youtubeId+'?autoplay=1';i.title='動画';i.allow='autoplay; encrypted-media; picture-in-picture; web-share';i.allowFullscreen=true;c.replaceChildren(i)})});</script></body></html>`;
 };
 
