@@ -74,6 +74,10 @@ const CHECKS = [
   ['llms_txt', 'llms.txt がない']
 ];
 
+// 比較に使ったのは shared カテゴリ分だけ。測定総数との差を隠さない。
+const jpUsed = shared.reduce((n, k) => n + gJp.get(k).length, 0);
+const glUsed = shared.reduce((n, k) => n + gGl.get(k).length, 0);
+
 const llmsJp = catAvg(gJp, 'llms_txt'), llmsGl = catAvg(gGl, 'llms_txt');
 const llmsAllWorse = shared.every(k => rate(gJp.get(k), 'llms_txt') > rate(gGl.get(k), 'llms_txt'));
 const sitemapJp = catAvg(gJp, 'sitemap'), sitemapGl = catAvg(gGl, 'sitemap');
@@ -134,15 +138,16 @@ const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta n
 <script type="application/ld+json">${JSON.stringify(schema)}</script>
 ${STYLE}</head>
 <body><nav><a class="brand" href="/">KanseiLink</a><a href="/insights/">Research &amp; Insights</a></nav>
-<header class="hero"><div><div class="eyebrow">一次調査 · 日本 n=${jp.length} / グローバル n=${gl.length} · ${DATE}</div>
+<header class="hero"><div><div class="eyebrow">一次調査 · 測定 日本${jp.length}/グローバル${gl.length} · 比較に使用 日本${jpUsed}/グローバル${glUsed} · ${DATE}</div>
 <h1>日本とグローバルのSaaSを同じ基準で測ったら、差は一点に集中していた</h1>
 <p>「日本はAI対応が遅れている」は、実測とは合いませんでした。ほとんどの項目で差は小さく、sitemapはむしろ日本が上。ただし1項目だけ、全カテゴリで差がつきました。</p></div></header>
 <main>
 <p class="lead">日本の主要SaaS ${jp.length}ドメインとグローバルSaaS ${gl.length}ドメインを、同じ診断ツールで測りました。カテゴリ構成の違いが差に化けないよう、<strong>会計は会計と、人事は人事と</strong>比べています。結果、<strong>差は llms.txt の設置率に集中し、他の項目はおおむね互角</strong>でした。</p>
+<p class="note">なお以下の比較は、両市場に${MIN_N}件以上あった${shared.length}カテゴリ（日本${jpUsed}件・グローバル${glUsed}件）で行っています。片方の市場に${MIN_N}件未満しかなかったカテゴリは、偶然の幅が大きすぎるため比較から外しました。<strong>測定した全${jp.length}件・${gl.length}件がそのまま結論の母数ではありません。</strong></p>
 
 <h2>差が集中していた一点</h2>
 <p>llms.txt（AIに「どのページを見れば何が分かるか」を案内するテキストファイル）の<strong>未設置率</strong>です。比較した${shared.length}カテゴリの${llmsAllWorse ? '<strong>すべてで</strong>' : '多くで'}日本が上回りました。</p>
-${tbl(['カテゴリ', `日本 (n=${jp.length})`, `グローバル (n=${gl.length})`],
+${tbl(['カテゴリ', `日本 (計${jpUsed})`, `グローバル (計${glUsed})`],
   [...shared.map(k => [LABEL[k] ?? k, `${f1(rate(gJp.get(k), 'llms_txt'))} (n=${gJp.get(k).length})`, `${f1(rate(gGl.get(k), 'llms_txt'))} (n=${gGl.get(k).length})`])])}
 <p><strong>カテゴリ率の平均: 日本 ${f1(llmsJp)} ／ グローバル ${f1(llmsGl)}（差 ${(llmsGl - llmsJp).toFixed(1)}pt）</strong></p>
 
@@ -183,7 +188,7 @@ ${tbl(['項目', '日本', 'グローバル', '差'],
 ${faq.map(f => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('\n')}
 
 <h2>手法と限界</h2>
-<p class="note">${DATE} 実施。一般公開している無料診断と同一のAPIで測定しました。日本側はARI Award 2026 Summer 検証対象200サービスからドメインを特定した${jp.length}件、グローバル側はKanseiLINKのデータベースで製品ドメインが判明した業務系SaaS ${gl.length}件です。カテゴリ構成の違いが差に化けるのを避けるため、両市場で${MIN_N}件以上あるカテゴリ（${shared.length}カテゴリ）に絞り、カテゴリ別の率とその単純平均で比較しています。</p>
+<p class="note">${DATE} 実施。一般公開している無料診断と同一のAPIで測定しました。日本側はARI Award 2026 Summer 検証対象200サービスからドメインを特定した${jp.length}件、グローバル側はKanseiLINKのデータベースで製品ドメインが判明した業務系SaaS ${gl.length}件です。カテゴリ構成の違いが差に化けるのを避けるため、両市場で${MIN_N}件以上あるカテゴリ（${shared.length}カテゴリ）に絞り、カテゴリ別の率とその単純平均で比較しています。<strong>この絞り込みにより、比較に使ったのは日本${jpUsed}件（測定した${jp.length}件の${Math.round(jpUsed / jp.length * 100)}%）、グローバル${glUsed}件（同${Math.round(glUsed / gl.length * 100)}%）です。</strong>除外したのはCRM・セキュリティ・生産性・デザインなど、どちらかの市場で件数が足りなかったカテゴリです。</p>
 <p class="note"><strong>限界:</strong> ①両市場で母数が異なり（${jp.length}対${gl.length}）、カテゴリ別のグローバル側は n=${Math.min(...shared.map(k => gGl.get(k).length))}〜${Math.max(...shared.map(k => gGl.get(k).length))}と小さいため、1社の違いで率が動きます。②選定基準が同一ではありません（日本＝既存の検証対象リスト、グローバル＝製品ドメインが判明した全件）。③グローバル側には大手が多く含まれるため、差の一部が市場ではなく企業規模に由来する可能性を排除できていません。<strong>したがって「差はある」までは言えますが、その原因が市場なのか企業規模なのかは、この設計では切り分けられていません。</strong>④1時点の測定であり、サイトは更新されるため値は変動します。</p>
 <p class="note">この診断はサイトの機械可読性を測るものであり、企業の品質評価でも、ARI Awardの格付けでもありません。個社のスコアは、格付けとの混同を避けるため公開していません。保証しないこと: AIでの表示順位は保証できません。1回のAI回答をシェアとして扱うこともしません。<a href="/independence.html">独立性のポリシー</a></p>
 </main>
