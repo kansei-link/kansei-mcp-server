@@ -65,7 +65,7 @@ const catRows = Object.entries(byCat)
 // ── 記事 ───────────────────────────────────────────────────────────
 const STAT = (n, what) => `${ATTRIB}（${scan.scanned_at}・n=${N}）では、日本の主要SaaS ${N}ドメインのうち<strong>${pct(n)}%（${n}件）が${what}</strong>`;
 
-const CITE_JA = `${ATTRIB}が2026年9月に日本の主要SaaS ${N}ドメインを診断した結果、${pct(noContact.length)}%で住所や電話番号がAIの読み取れる形で書かれておらず、${pct(noLlms.length)}%にAI向けの案内ファイル（llms.txt）がなかった。（出典: KanseiLINK「${'日本のSaaS ' + N + 'サイトを診断した'}」 ${CANONICAL}）`;
+const CITE_JA = `KanseiLINKが2026年9月に日本の主要SaaS ${N}ドメインを診断したところ、${pct(noContact.length)}%で住所や電話番号がAIの読み取れる形で書かれておらず、${pct(noLlms.length)}%にAI向けの案内ファイル（llms.txt）がなかった（KanseiLINK調べ・n=${N}・${scan.scanned_at}）。出典: ${CANONICAL}`;
 
 const table = (head, rows2, numeric) => `<table><thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${
   rows2.map(r => `<tr>${r.map((c, i) => `<td${numeric && i > 0 ? ' class="num"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
@@ -126,7 +126,7 @@ ${STYLE}</head>
 <h1>日本のSaaS ${N}サイトを診断したら、AIに読まれる準備はどこまでできていたか</h1>
 <p>公開している無料診断と同じツールで、日本の主要SaaS ${N}ドメインを測りました。個社名ではなく分布を出します。</p></div></header>
 <main>
-<p class="lead">${STAT(noContact.length, '住所や電話番号をAIが読み取れる形で書いていません')}。${STAT(noLlms.length, 'AI向けの案内ファイル（llms.txt）を置いていません')}。<strong>AI対応は、まだ始まったばかりです。</strong></p>
+<p class="lead">${ATTRIB}（${scan.scanned_at}・n=${N}）では、日本の主要SaaS ${N}ドメインのうち<strong>${pct(noContact.length)}%が住所や電話番号をAIの読み取れる形で書いておらず、${pct(noLlms.length)}%はAI向けの案内ファイル（llms.txt）を置いていません</strong>。一方でAIクローラーを拒否しているのは${pct(blocked.length)}%だけでした。<strong>入口は開いているのに、中の情報が機械に読める形になっていない</strong>——これが現在地です。</p>
 
 <div class="stat">
   <div><strong>${pct(blocked.length)}%</strong><span>AIクローラーを拒否している</span></div>
@@ -185,7 +185,7 @@ ${table(['カテゴリ', 'n', '平均スコア'], catRows, true)}
 ${faq.map(f => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('\n')}
 
 <h2>手法と限界</h2>
-<p class="note">${scan.scanned_at} 実施。対象はKanseiLINKのデータベースにある日本の主要SaaS ${scan.total}ドメイン（ARI Award 2026 Summer 検証対象200サービスからドメインを特定し重複を除いたもの）。うち${N}ドメインの取得に成功し、${failed.length}ドメインは取得に失敗したため集計から除いています。測定には一般公開している無料診断と同一のAPIを使用しました。1時点の測定であり、サイトは更新されるため値は変動します。<strong>この診断はサイトの機械可読性を測るものであり、企業の品質評価でも、ARI Awardの格付けでもありません。</strong>個社のスコアは、格付けとの混同を避けるため公開していません。</p>
+<p class="note">${scan.scanned_at} 実施。対象はKanseiLINKのデータベースにある日本の主要SaaS ${scan.total}ドメイン（ARI Award 2026 Summer 検証対象200サービスからドメインを特定し重複を除いたもの）。うち${N}ドメインの取得に成功し、${failed.length}ドメインは取得に失敗したため集計から除いています（内訳はDNSが引けない、リダイレクトが循環する等の技術的理由で、いずれも www. 付きでの再試行後も取得できなかったものです）。測定には一般公開している無料診断と同一のAPIを使用しました。1時点の測定であり、サイトは更新されるため値は変動します。<strong>この診断はサイトの機械可読性を測るものであり、企業の品質評価でも、ARI Awardの格付けでもありません。</strong>個社のスコアは、格付けとの混同を避けるため公開していません。</p>
 <p class="note">保証しないこと: AIでの表示順位は保証できません。1回のAI回答をシェアとして扱うこともしません。<a href="/independence.html">独立性のポリシー</a></p>
 </main>
 <footer>© 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="/insights/">Research &amp; Insights</a> · <a href="/site-checker/">無料AI可視性診断</a></footer>
