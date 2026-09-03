@@ -230,6 +230,22 @@
     .copied-toast.show { opacity: 1; }
 
     /* ===== CTA ===== */
+
+    /* 分岐ブロック — 診断ドメインが評価対象と一致するかで案内を変える */
+    .branch { max-width: 760px; margin: 28px auto 0; border: 1px solid #e4e7ec; border-radius: 14px; padding: 24px; background: #fff; text-align: left; display: none; }
+    .branch.show { display: block; }
+    .branch .b-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .06em; color: #1a3fd6; margin-bottom: 8px; }
+    .branch h3 { font-size: 20px; margin: 0 0 10px; }
+    .branch p { font-size: 15px; color: #475467; line-height: 1.8; margin: 0 0 14px; }
+    .branch .b-svc { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
+    .branch .b-svc a { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #e4e7ec; border-radius: 999px; padding: 7px 14px; font-size: 14px; text-decoration: none; color: #101828; }
+    .branch .b-svc a:hover { border-color: #1a3fd6; }
+    .branch .b-svc .g { font-size: 12px; font-weight: 700; color: #1a3fd6; }
+    .branch .b-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .branch .b-actions a, .branch .b-actions button { border: 0; cursor: pointer; border-radius: 10px; padding: 12px 20px; font-size: 15px; font-weight: 700; text-decoration: none; font-family: inherit; }
+    .branch .b-actions .primary { background: #1a3fd6; color: #fff; }
+    .branch .b-actions .ghost { background: #f4f5fd; color: #1a3fd6; }
+    .branch .b-note { font-size: 13px; color: #667085; margin-top: 14px; line-height: 1.8; }
     .cta-section {
       background: var(--blue); color: var(--white); text-align: center; padding: 56px 24px;
     }
@@ -344,6 +360,8 @@
     </button>
   </div>
 </div>
+
+<div class="branch" id="branch"></div>
 
 <!-- CTA -->
 <section class="cta-section">
@@ -537,7 +555,119 @@ function renderResult(data) {
   document.getElementById('cta-meeting').href =
     `mailto:contact@synapse-arrows.com?subject=${encodeURIComponent('15分オンライン相談希望')}&body=${bodyJa}`;
 
+  renderBranch(data);
+
   cardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+
+// ========================================
+// 分岐CTA — 診断ドメインが評価対象と一致するか
+// 一致の判定は「案内の出し分け」にのみ使う。運営者確認そのものの認可は
+// サーバー側のドメイン検証（nonce/TXT/PSL/IDN）が別途行う。
+// ========================================
+var DOMAIN_MAP = null;
+var MULTI_TLD = ['co.jp','or.jp','ne.jp','ac.jp','go.jp','gr.jp','ed.jp','lg.jp','co.uk','org.uk','ac.uk','com.au','net.au','com.br','co.kr','com.cn','com.tw','co.nz','com.sg','co.id','com.hk','co.th','com.my','co.in'];
+
+function escapeHtml(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function registrableDomain(rawUrl) {
+  var host;
+  try { host = new URL(rawUrl).hostname.toLowerCase(); } catch (e) { return null; }
+  if (host.indexOf('www.') === 0) host = host.slice(4);
+  if (host.indexOf('.') === -1) return null;
+  var parts = host.split('.');
+  var last2 = parts.slice(-2).join('.');
+  return (parts.length >= 3 && MULTI_TLD.indexOf(last2) !== -1) ? parts.slice(-3).join('.') : last2;
+}
+
+function loadDomainMap() {
+  if (DOMAIN_MAP) return Promise.resolve(DOMAIN_MAP);
+  return fetch('domain-map.json')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) { DOMAIN_MAP = d; return d; })
+    .catch(function () { return null; });
+}
+
+function openOwnerWaitlist(domain, hits) {
+  var names = (hits || []).map(function (s) { return s.name; }).join(' / ');
+  var body = 'ドメイン: ' + domain + '\n' +
+    '対象サービス: ' + names + '\n\n' +
+    'サービスページの運営者確認について、受付開始時にご連絡ください。\n' +
+    '（このままお送りください）';
+  window.location.href = 'mailto:contact@synapse-arrows.com?subject=' +
+    encodeURIComponent('運営者確認の受付開始のお知らせ希望') + '&body=' + encodeURIComponent(body);
+}
+
+function renderBranch(data) {
+  var el = document.getElementById('branch');
+  if (!el) return;
+  el.className = 'branch';
+  el.innerHTML = '';
+  loadDomainMap().then(function (map) {
+    // 対応表が引けないときは何も出さない。誤った案内より無言を選ぶ。
+    if (!map || !map.domains) return;
+    var domain = registrableDomain(data.final_url || data.url);
+    var hits = (domain && map.domains[domain]) || null;
+    var en = lang === 'en';
+    var scanned = data.final_url || data.url;
+    var html;
+
+    if (hits && hits.length) {
+      var chips = hits.map(function (svc) {
+        return '<a href="/checker/?s=' + encodeURIComponent(svc.id) + '">' + escapeHtml(svc.name) +
+          (svc.grade ? '<span class="g">' + escapeHtml(svc.grade) + '</span>' : '') + '</a>';
+      }).join('');
+      html =
+        '<div class="b-eyebrow">' + (en ? 'THIS DOMAIN IS ALREADY RATED' : 'このドメインは評価対象です') + '</div>' +
+        '<h3>' + (en
+          ? 'KanseiLINK already rates ' + hits.length + ' service' + (hits.length > 1 ? 's' : '') + ' on ' + escapeHtml(domain)
+          : escapeHtml(domain) + ' のサービスは、すでにKanseiLINKの評価対象に入っています') + '</h3>' +
+        '<div class="b-svc">' + chips + '</div>' +
+        '<p>' + (en
+          ? 'That rating is built from publicly verifiable facts. If you operate this service you can take over the official contact for its service page. It is free, and it does not change the rating or the ranking.'
+          : '格付けは公開情報の検証に基づくものです。運営者の方は、サービスページの公式窓口を引き受けられます（<strong>無料</strong>）。<strong>運営者確認によって格付けや順位が変わることはありません。</strong>') + '</p>' +
+        '<div class="b-actions">' +
+          '<button class="primary" id="branch-owner">' + (en ? 'I operate this service' : 'このサービスの運営者です') + '</button>' +
+          '<a class="ghost" href="/when-to-use-kanseilink.html">' + (en ? 'How recommendation is measured' : 'AI推薦率の測り方') + '</a>' +
+        '</div>' +
+        '<p class="b-note">' + (en
+          ? 'Owner verification opens in stages and is not accepting applications yet. Leave an address and we will contact you once, when it opens.'
+          : '運営者確認は段階的に受付を開始します。現在は準備中です。ご連絡いただければ、受付開始時に一度だけお知らせします。') + '</p>';
+    } else {
+      var mailBody = '診断したサイト: ' + scanned + '\n\n（このままお送りください）';
+      html =
+        '<div class="b-eyebrow">' + (en ? 'NOT IN THE RATED SET YET' : 'まだ評価対象ではありません') + '</div>' +
+        '<h3>' + (en ? 'This domain is not in the rated set' : 'このドメインは、まだ評価対象に入っていません') + '</h3>' +
+        '<p>' + (en
+          ? 'KanseiLINK rates SaaS and API services on how well AI agents can actually use them. The score above is a different question — whether AI can read this site at all — and the findings above are where to start.'
+          : 'KanseiLINKは、AIエージェントが実際に使えるかという観点でSaaS・APIサービスを格付けしています。上のスコアはそれとは別の問い——「AIがこのサイトを読めているか」——で、改善は上の指摘から始められます。') + '</p>' +
+        '<div class="b-actions">' +
+          '<a class="primary" href="/insights/ai-visibility-jp-who-gets-recommended-2026-09.html">' + (en ? 'What AI actually recommends' : 'AIは誰を推薦しているのか（実測）') + '</a>' +
+          '<a class="ghost" href="/webinar/">' + (en ? 'Recorded sessions' : '解説ウェビナー（録画版）') + '</a>' +
+          '<a class="ghost" href="/when-to-use-kanseilink.html">' + (en ? 'Where to start' : '何から始めるか') + '</a>' +
+        '</div>' +
+        '<p class="b-note">' + (en
+          ? 'If you operate a SaaS or API service that should be in the rated set, tell us and we will look at it.'
+          : '格付け対象に入るべきSaaS・APIサービスを運営されている場合は、お知らせください。確認します。') +
+          ' <a href="mailto:contact@synapse-arrows.com?subject=' + encodeURIComponent('掲載のご相談') +
+          '&body=' + encodeURIComponent(mailBody) + '">' + (en ? 'Request a listing' : '掲載をリクエスト') + '</a></p>';
+    }
+
+    el.innerHTML = html;
+    el.className = 'branch show';
+    var ownerBtn = document.getElementById('branch-owner');
+    if (ownerBtn) {
+      ownerBtn.addEventListener('click', function () {
+        if (typeof gtag === 'function') gtag('event', 'owner_verify_interest', { domain: domain });
+        openOwnerWaitlist(domain, hits);
+      });
+    }
+  });
 }
 
 // ========================================
