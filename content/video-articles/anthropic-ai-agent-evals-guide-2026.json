@@ -1,8 +1,105 @@
 {
-  "videoId":"Z6v1grGdaGs","slug":"anthropic-ai-agent-evals-guide-2026","title":"Anthropic公式AIエージェント評価入門｜回答ではなく仕事の結果を測る","description":"task、trial、grader、transcript、outcomeの違いと、部署別AIエージェント評価の始め方をAnthropic公式記事から解説します。","date":"2026-09-03",
-  "answer":"AIエージェントは最後の返答だけでなく、環境に残した結果、途中のツール操作、安全性、複数試行での安定性を分けて評価します。最初は実際の失敗や重要業務から20〜50課題を集め、成功状態と禁止行動を明文化するのが実践的です。",
-  "keyPoints":["taskは課題、trialは一回の試行、graderは採点ロジックです。","transcriptは行動記録、outcomeは最終的に環境へ残った状態です。","生成AIには揺らぎがあるため、一度の成功ではなく複数試行で安定性を測ります。","結果・過程・安全性・効率を一つの総合点に潰さず別々に採点します。","代表的な失敗を20〜50課題に変え、評価セットを継続的に育てます。"],
-  "transcript":["Anthropicが2026年1月9日に公開した『Demystifying evals for AI agents』は、道具を使い、何度も判断し、環境を変えるAIエージェントの評価方法を整理した実務記事です。","単発の回答なら入力と出力を比較できます。しかしエージェントは複数ターンでツールを使い、途中結果から行動を変えるため、評価対象を最後の文章から仕事全体へ広げる必要があります。","taskは一つの課題、trialは一回の試行、graderは採点ロジック、transcriptは返答やtool callを含む全記録、outcomeは最後に環境へ残った状態です。evaluation harnessは実行、記録、採点、集計を担います。","旅行AIが『予約しました』と言っても成功とは限りません。予約データベースに正しい便と条件が存在するかというoutcomeを外側から確認します。","同じ課題を一度通しただけでは安定性は分かりません。複数trialで成功率と失敗の型を見て、偶然の成功を実力と取り違えないようにします。","最終結果、必須条件、禁止操作、費用やtool call、人への引継ぎを別々のgraderで測ります。総合点だけでは、速いが危険なAIと遅いが安全なAIの違いが消えます。","失敗原因は途中のtranscriptに残ります。どの情報を読み、どのtoolを選び、どこで条件を誤解し、何を書き換えたかを調べることが改善と監査につながります。","評価環境には模擬チケット、テスト伝票、匿名化データなど、エージェントが実際に状態を変えられる環境が必要です。文章の美しさではなく、正しい変化が残ったかを測ります。","賢いエージェントは静的な評価表の想定外の正解を見つける場合があります。採点表だけに頼らず、人のレビューと利用者にとっての結果を組み合わせます。","最初から巨大な基盤は不要です。実際に失敗したくない20〜50課題を集め、典型例、境界例、危険例を混ぜ、障害やユーザー指摘を新しいtaskとして追加します。","営業、経理、人事、法務では良いoutcomeと禁止行動が異なります。AI評価とはモデルの偏差値ではなく、会社にとって良い仕事の終わり方を定義する作業です。"],
-  "faq":[{"question":"AIエージェントは何を評価すべきですか？","answer":"最終回答、環境に残った結果、途中のツール操作、安全性、効率、人への引継ぎ、複数試行での安定性を分けて評価します。"},{"question":"transcriptとoutcomeの違いは？","answer":"transcriptは返答やツール操作を含む試行の全記録、outcomeはデータベースやファイルなど環境へ最終的に残った状態です。"},{"question":"評価課題は何件から始めればよいですか？","answer":"Anthropicは実際の失敗や手動確認から20〜50の簡単な課題で始める方法を示しています。"}],
-  "sources":[{"name":"Anthropic — Demystifying evals for AI agents","url":"https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents","note":"評価用語、grader、複数試行、20〜50課題から始める方法の一次情報"},{"name":"Anthropic — Building effective agents","url":"https://www.anthropic.com/engineering/building-effective-agents","note":"エージェントとワークフロー設計の背景"}]
+ "videoId": "Z6v1grGdaGs",
+ "slug": "anthropic-ai-agent-evals-guide-2026",
+ "title": "Anthropic公式AIエージェント評価入門｜回答ではなく仕事の結果を測る",
+ "description": "task、trial、grader、transcript、outcomeの違いと、部署別AIエージェント評価の始め方をAnthropic公式記事から解説します。",
+ "date": "2026-09-03",
+ "answer": "AIエージェントは最後の返答だけでなく、環境に残した結果、途中のツール操作、安全性、複数試行での安定性を分けて評価します。最初は実際の失敗や重要業務から20〜50課題を集め、成功状態と禁止行動を明文化するのが実践的です。",
+ "keyPoints": [
+  "taskは課題、trialは一回の試行、graderは採点ロジックです。",
+  "transcriptは行動記録、outcomeは最終的に環境へ残った状態です。",
+  "生成AIには揺らぎがあるため、一度の成功ではなく複数試行で安定性を測ります。",
+  "結果・過程・安全性・効率を一つの総合点に潰さず別々に採点します。",
+  "代表的な失敗を20〜50課題に変え、評価セットを継続的に育てます。"
+ ],
+ "transcript": [
+  "Anthropicが2026年1月9日に公開した『Demystifying evals for AI agents』は、道具を使い、何度も判断し、環境を変えるAIエージェントの評価方法を整理した実務記事です。",
+  "単発の回答なら入力と出力を比較できます。しかしエージェントは複数ターンでツールを使い、途中結果から行動を変えるため、評価対象を最後の文章から仕事全体へ広げる必要があります。",
+  "taskは一つの課題、trialは一回の試行、graderは採点ロジック、transcriptは返答やtool callを含む全記録、outcomeは最後に環境へ残った状態です。evaluation harnessは実行、記録、採点、集計を担います。",
+  "旅行AIが『予約しました』と言っても成功とは限りません。予約データベースに正しい便と条件が存在するかというoutcomeを外側から確認します。",
+  "同じ課題を一度通しただけでは安定性は分かりません。複数trialで成功率と失敗の型を見て、偶然の成功を実力と取り違えないようにします。",
+  "最終結果、必須条件、禁止操作、費用やtool call、人への引継ぎを別々のgraderで測ります。総合点だけでは、速いが危険なAIと遅いが安全なAIの違いが消えます。",
+  "失敗原因は途中のtranscriptに残ります。どの情報を読み、どのtoolを選び、どこで条件を誤解し、何を書き換えたかを調べることが改善と監査につながります。",
+  "評価環境には模擬チケット、テスト伝票、匿名化データなど、エージェントが実際に状態を変えられる環境が必要です。文章の美しさではなく、正しい変化が残ったかを測ります。",
+  "賢いエージェントは静的な評価表の想定外の正解を見つける場合があります。採点表だけに頼らず、人のレビューと利用者にとっての結果を組み合わせます。",
+  "最初から巨大な基盤は不要です。実際に失敗したくない20〜50課題を集め、典型例、境界例、危険例を混ぜ、障害やユーザー指摘を新しいtaskとして追加します。",
+  "営業、経理、人事、法務では良いoutcomeと禁止行動が異なります。AI評価とはモデルの偏差値ではなく、会社にとって良い仕事の終わり方を定義する作業です。"
+ ],
+ "faq": [
+  {
+   "question": "AIエージェントは何を評価すべきですか？",
+   "answer": "最終回答、環境に残った結果、途中のツール操作、安全性、効率、人への引継ぎ、複数試行での安定性を分けて評価します。"
+  },
+  {
+   "question": "transcriptとoutcomeの違いは？",
+   "answer": "transcriptは返答やツール操作を含む試行の全記録、outcomeはデータベースやファイルなど環境へ最終的に残った状態です。"
+  },
+  {
+   "question": "評価課題は何件から始めればよいですか？",
+   "answer": "Anthropicは実際の失敗や手動確認から20〜50の簡単な課題で始める方法を示しています。"
+  }
+ ],
+ "sources": [
+  {
+   "name": "Anthropic — Demystifying evals for AI agents",
+   "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+   "note": "評価用語、grader、複数試行、20〜50課題から始める方法の一次情報"
+  },
+  {
+   "name": "Anthropic — Building effective agents",
+   "url": "https://www.anthropic.com/engineering/building-effective-agents",
+   "note": "エージェントとワークフロー設計の背景"
+  }
+ ],
+ "en": {
+  "title": "Anthropic on evaluating AI agents: measure the work, not the reply",
+  "description": "What task, trial, grader, transcript and outcome actually mean, and how to start evaluating AI agents department by department, based on Anthropic's official write-up.",
+  "answer": "An AI agent should not be judged on its final reply alone. Score the state it left behind in the environment, the tool calls it made along the way, its safety, and its stability across repeated trials — separately. A practical start is 20-50 tasks drawn from real failures and business-critical work, with the success state and the forbidden actions written down explicitly.",
+  "keyPoints": [
+   "A task is the problem, a trial is one attempt at it, and a grader is the scoring logic.",
+   "The transcript is the record of what the agent did; the outcome is the state finally left in the environment.",
+   "Generative models vary run to run, so measure stability across several trials rather than trusting one success.",
+   "Score outcome, process, safety and efficiency separately instead of collapsing them into a single number.",
+   "Turn your characteristic failures into 20-50 tasks and keep growing the evaluation set."
+  ],
+  "transcript": [
+   "Anthropic's \"Demystifying evals for AI agents\", published on 9 January 2026, is a practitioner's write-up on how to evaluate agents that use tools, decide repeatedly, and change their environment.",
+   "For a single-turn answer you can simply compare input with output. An agent, though, uses tools across many turns and changes its behaviour based on intermediate results, so what you evaluate has to widen from the final sentence to the whole job.",
+   "A task is one problem; a trial is one attempt; a grader is the scoring logic; a transcript is the complete record including replies and tool calls; an outcome is the state left in the environment at the end. The evaluation harness handles running, recording, scoring and aggregating.",
+   "A travel agent saying \"I booked it\" is not proof of success. You verify the outcome from the outside: does the booking database actually hold the right flight on the right terms?",
+   "Running a task once tells you nothing about stability. Use several trials to see the success rate and the shape of the failures, so you do not mistake a lucky run for real capability.",
+   "Use separate graders for the final result, the required conditions, the forbidden operations, cost and tool calls, and hand-off to a human. A single combined score erases the difference between an agent that is fast but dangerous and one that is slow but safe.",
+   "The cause of a failure is in the transcript. Which information it read, which tool it chose, where it misread a condition, and what it overwrote — investigating that is what makes improvement and auditing possible.",
+   "The evaluation environment needs mock tickets, test records, anonymised data — somewhere the agent can genuinely change state. You are measuring whether the right change was left behind, not whether the prose was elegant.",
+   "A capable agent will sometimes find a correct answer your static rubric never anticipated. Do not rely on the rubric alone; combine it with human review and with what the result meant for the user.",
+   "You do not need a large platform to begin. Collect 20-50 tasks you genuinely cannot afford to fail, mix in typical, boundary and dangerous cases, and add incidents and user complaints as new tasks.",
+   "Sales, accounting, HR and legal each have different good outcomes and different forbidden actions. Evaluating AI is not scoring a model's IQ; it is the work of defining what a good ending to a job looks like for your company."
+  ],
+  "faq": [
+   {
+    "question": "What should you evaluate in an AI agent?",
+    "answer": "Score these separately: the final answer, the state left in the environment, the tool calls made along the way, safety, efficiency, hand-off to a human, and stability across repeated trials."
+   },
+   {
+    "question": "What is the difference between a transcript and an outcome?",
+    "answer": "The transcript is the full record of one trial including replies and tool calls; the outcome is the state finally left in the environment, such as in a database or a file."
+   },
+   {
+    "question": "How many evaluation tasks should you start with?",
+    "answer": "Anthropic describes starting with 20-50 simple tasks drawn from real failures and from work you currently check by hand."
+   }
+  ],
+  "sources": [
+   {
+    "name": "Anthropic — Demystifying evals for AI agents",
+    "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+    "note": "Primary source for the terminology, graders, repeated trials, and starting with 20-50 tasks"
+   },
+   {
+    "name": "Anthropic — Building effective agents",
+    "url": "https://www.anthropic.com/engineering/building-effective-agents",
+    "note": "Background on agent and workflow design"
+   }
+  ]
+ }
 }

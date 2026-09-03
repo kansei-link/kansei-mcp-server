@@ -1,39 +1,115 @@
 {
-  "videoId": "_RPXg39Z6gs",
-  "slug": "pickle-browser-ai-agent-security-2026",
-  "title": "Pickle Browserとは？｜AIブラウザエージェントの仕組み・MCP・安全対策",
-  "description": "Pickle Browserのローカル実行、MCP接続、モデル選択、トークン効率と、ログイン済みブラウザをAIに操作させる際の安全対策を整理します。",
-  "date": "2026-09-03",
-  "answer": "Pickle Browserは、利用者の端末上の見えるブラウザをAIエージェントが操作し、人が途中で介入できるローカルファースト型ブラウザです。ただしクラウドモデルを選べばページ内容はその提供者へ送られます。実アカウントで使う前に、専用プロファイル、許可ドメイン、購入・送信前の人間承認、ログ、緊急停止を設計する必要があります。",
+ "videoId": "_RPXg39Z6gs",
+ "slug": "pickle-browser-ai-agent-security-2026",
+ "title": "Pickle Browserとは？｜AIブラウザエージェントの仕組み・MCP・安全対策",
+ "description": "Pickle Browserのローカル実行、MCP接続、モデル選択、トークン効率と、ログイン済みブラウザをAIに操作させる際の安全対策を整理します。",
+ "date": "2026-09-03",
+ "answer": "Pickle Browserは、利用者の端末上の見えるブラウザをAIエージェントが操作し、人が途中で介入できるローカルファースト型ブラウザです。ただしクラウドモデルを選べばページ内容はその提供者へ送られます。実アカウントで使う前に、専用プロファイル、許可ドメイン、購入・送信前の人間承認、ログ、緊急停止を設計する必要があります。",
+ "keyPoints": [
+  "端末上の実ブラウザを操作し、ユーザーがタブと操作を見て途中で引き継げる設計です。",
+  "ローカルモデル利用時はページ内容を端末内に保てますが、外部モデル利用時はタスクのページテキストが外部サーバーへ送信されます。",
+  "MCPを通じてClaude Desktopなどのエージェントから接続でき、購入や不可逆操作には承認ゲートがあると公式サイトは説明しています。",
+  "トークン削減値は公式サイト自身の測定であり、サイトや比較対象によって大きく変わるため、代表業務で再検証が必要です。",
+  "ログイン済み環境ではプロンプトインジェクション、誤送信、誤購入、秘密情報の露出を前提に権限を絞るべきです。"
+ ],
+ "transcript": [
+  "Pickle Browserは、AIが検索し、ページを開き、読み取り、結果を出典付きで返すエージェント向けブラウザです。クラウド上の見えないブラウザではなく、利用者の端末上で動き、操作中の画面を見て途中で引き継げる点を特徴としています。",
+  "AIブラウザには二つの課題があります。一つはクラウド上の操作が見えにくいこと。もう一つは生のHTMLをモデルへ渡すと、多くの不要なトークンを消費することです。Pickle Browserは可視のローカルブラウザと構造化したページ読取りで解決しようとしています。",
+  "通常のタブ、履歴、ブックマーク、ログイン状態を持つブラウザをエージェントと共有します。人はエージェントが開いたページを確認し、必要な場面で操作を止めたり、自分で引き継いだりできます。",
+  "動画制作時点の公式説明では、生HTMLと比べて最大32分の1程度という例が示されていました。現在の公式サイトでは10サイトの自己計測として中央値156倍少ないという別の表現もあります。いずれもベンダー計測で、比較対象とサイト構造に依存するため、独立した保証値ではありません。",
+  "モデルは一つに固定されません。組み込みのOllama系ローカルモデル、Claude、GPT、GeminiのAPI、さらにMCPクライアントからの接続を選べます。モデルを切り替えると、ページデータの送信先、ログ、費用、利用規約も変わります。",
+  "ローカル実行という言葉には注意が必要です。ブラウザ自体が端末上で動いても、クラウドモデルを使えば、そのタスクのページテキストは外部のモデル提供者へ送られます。公式サイトがページ内容を端末内に保つと説明するのは、ローカルモデルを使う場合です。",
+  "小さなローカルモデルは単一ページの要約や抽出には向きますが、長い複数工程の調査では精度が下がると公式サイト自身も注意しています。処理範囲を限定し、重要な結果は人が検証する必要があります。",
+  "実際のログインを使えることは便利である一方、誤送信や誤購入の影響も大きくなります。専用ブラウザプロファイル、テスト用アカウント、許可ドメイン、購入・送信前の承認、操作ログ、緊急停止を用意します。",
+  "Webページ内の文章を命令として誤認するプロンプトインジェクションも想定します。ページの内容と利用者の指示を区別し、秘密情報を必要以上に渡さず、外部送信や不可逆操作の直前に目的と宛先を再確認します。",
+  "導入は読み取り専用から始めるのが安全です。公開情報の検索、価格比較、公式文書の確認などで精度とログを評価し、その後に低リスクな社内情報の読取りへ広げます。書込み、購入、送信は人の承認を残します。",
+  "エージェント用のID、依頼者、許可されたサイト、権限の期限、操作ログを紐づけると、問題が起きたときに誰のどの依頼で何をしたか追跡できます。便利さを保ちながら責任の境界を明確にする設計です。",
+  "Pickle Browserは公式サイト自身がearly buildと表記する発展途上の製品です。ここでの紹介は推奨や安全保証ではありません。重要な考え方は、AIのブラウザ操作を見える、止められる、後から検証できる仕事にすることです。"
+ ],
+ "faq": [
+  {
+   "question": "Pickle Browserとは何ですか？",
+   "answer": "端末上の可視ブラウザをAIエージェントが操作し、人が途中で監視、停止、引継ぎできるローカルファースト型のエージェントブラウザです。"
+  },
+  {
+   "question": "Pickle Browserを使えばページデータは外部へ出ませんか？",
+   "answer": "ローカルモデルを使う場合は端末内に保てると公式サイトは説明しています。一方、Claude、GPT、Geminiなどのクラウドモデルを使うタスクではページテキストが各提供者のサーバーへ送られます。"
+  },
+  {
+   "question": "ログイン済みブラウザをAIに操作させる際の安全対策は？",
+   "answer": "専用プロファイルと低権限アカウントを使い、許可ドメインを絞り、購入・送信・削除前に人が承認し、操作ログと緊急停止手段を用意します。"
+  },
+  {
+   "question": "Pickle BrowserはMCPに対応していますか？",
+   "answer": "公式サイトはMCPサーバーを同梱し、Claude DesktopなどのMCPクライアントからブラウザ操作ツールへ接続できると説明しています。"
+  }
+ ],
+ "sources": [
+  {
+   "name": "Pickle Browser公式サイト",
+   "url": "https://www.picklebrowser.com/",
+   "note": "ローカル実行、モデル、MCP、承認ゲート、トークン計測、early build表記。2026年9月3日確認"
+  },
+  {
+   "name": "Product Hunt — Pickle Browser",
+   "url": "https://www.producthunt.com/products/pickle-browser",
+   "note": "公開時の製品概要。仕様は公式サイトの現行説明を優先"
+  }
+ ],
+ "en": {
+  "title": "What is Pickle Browser? How AI browser agents work, MCP, and staying safe",
+  "description": "Local execution, MCP connectivity, model choice and token efficiency in Pickle Browser — and the safeguards needed before you let an AI drive a logged-in browser.",
+  "answer": "Pickle Browser is a local-first browser in which an AI agent drives the visible browser on your own machine, with a human able to step in mid-task. But if you choose a cloud model, the page content goes to that provider. Before using it with real accounts, design a dedicated profile, an allowed-domain list, human approval before purchases and sends, logging, and an emergency stop.",
   "keyPoints": [
-    "端末上の実ブラウザを操作し、ユーザーがタブと操作を見て途中で引き継げる設計です。",
-    "ローカルモデル利用時はページ内容を端末内に保てますが、外部モデル利用時はタスクのページテキストが外部サーバーへ送信されます。",
-    "MCPを通じてClaude Desktopなどのエージェントから接続でき、購入や不可逆操作には承認ゲートがあると公式サイトは説明しています。",
-    "トークン削減値は公式サイト自身の測定であり、サイトや比較対象によって大きく変わるため、代表業務で再検証が必要です。",
-    "ログイン済み環境ではプロンプトインジェクション、誤送信、誤購入、秘密情報の露出を前提に権限を絞るべきです。"
+   "It drives the real browser on your machine, so the user can watch the tabs and the actions and take over mid-task.",
+   "With a local model the page content can stay on the machine; with an external model the page text for that task is sent to an outside server.",
+   "It can be connected from agents such as Claude Desktop over MCP, and the official site states there are approval gates for purchases and irreversible operations.",
+   "The token-reduction figures are the official site's own measurements and vary greatly by site and by what they are compared against, so re-test them on your own representative work.",
+   "In a logged-in environment, assume prompt injection, mistaken sends, mistaken purchases and exposure of secrets, and restrict permissions accordingly."
   ],
   "transcript": [
-    "Pickle Browserは、AIが検索し、ページを開き、読み取り、結果を出典付きで返すエージェント向けブラウザです。クラウド上の見えないブラウザではなく、利用者の端末上で動き、操作中の画面を見て途中で引き継げる点を特徴としています。",
-    "AIブラウザには二つの課題があります。一つはクラウド上の操作が見えにくいこと。もう一つは生のHTMLをモデルへ渡すと、多くの不要なトークンを消費することです。Pickle Browserは可視のローカルブラウザと構造化したページ読取りで解決しようとしています。",
-    "通常のタブ、履歴、ブックマーク、ログイン状態を持つブラウザをエージェントと共有します。人はエージェントが開いたページを確認し、必要な場面で操作を止めたり、自分で引き継いだりできます。",
-    "動画制作時点の公式説明では、生HTMLと比べて最大32分の1程度という例が示されていました。現在の公式サイトでは10サイトの自己計測として中央値156倍少ないという別の表現もあります。いずれもベンダー計測で、比較対象とサイト構造に依存するため、独立した保証値ではありません。",
-    "モデルは一つに固定されません。組み込みのOllama系ローカルモデル、Claude、GPT、GeminiのAPI、さらにMCPクライアントからの接続を選べます。モデルを切り替えると、ページデータの送信先、ログ、費用、利用規約も変わります。",
-    "ローカル実行という言葉には注意が必要です。ブラウザ自体が端末上で動いても、クラウドモデルを使えば、そのタスクのページテキストは外部のモデル提供者へ送られます。公式サイトがページ内容を端末内に保つと説明するのは、ローカルモデルを使う場合です。",
-    "小さなローカルモデルは単一ページの要約や抽出には向きますが、長い複数工程の調査では精度が下がると公式サイト自身も注意しています。処理範囲を限定し、重要な結果は人が検証する必要があります。",
-    "実際のログインを使えることは便利である一方、誤送信や誤購入の影響も大きくなります。専用ブラウザプロファイル、テスト用アカウント、許可ドメイン、購入・送信前の承認、操作ログ、緊急停止を用意します。",
-    "Webページ内の文章を命令として誤認するプロンプトインジェクションも想定します。ページの内容と利用者の指示を区別し、秘密情報を必要以上に渡さず、外部送信や不可逆操作の直前に目的と宛先を再確認します。",
-    "導入は読み取り専用から始めるのが安全です。公開情報の検索、価格比較、公式文書の確認などで精度とログを評価し、その後に低リスクな社内情報の読取りへ広げます。書込み、購入、送信は人の承認を残します。",
-    "エージェント用のID、依頼者、許可されたサイト、権限の期限、操作ログを紐づけると、問題が起きたときに誰のどの依頼で何をしたか追跡できます。便利さを保ちながら責任の境界を明確にする設計です。",
-    "Pickle Browserは公式サイト自身がearly buildと表記する発展途上の製品です。ここでの紹介は推奨や安全保証ではありません。重要な考え方は、AIのブラウザ操作を見える、止められる、後から検証できる仕事にすることです。"
+   "Pickle Browser is a browser for agents: the AI searches, opens pages, reads them and returns results with sources. Rather than an invisible browser in the cloud, it runs on the user's own machine, and its distinguishing feature is that you can watch the screen while it works and take over mid-task.",
+   "AI browsers have two problems. One is that operations in the cloud are hard to see. The other is that handing raw HTML to a model burns a great many unnecessary tokens. Pickle Browser tries to solve both with a visible local browser and structured page reading.",
+   "The agent shares a browser with your normal tabs, history, bookmarks and logged-in sessions. A human can check the pages the agent opened, halt an action where necessary, or take over themselves.",
+   "At the time the video was made, the official description gave an example of up to roughly 32 times less than raw HTML. The current official site instead states a median of 156 times less, self-measured across 10 sites. Both are vendor measurements that depend on the comparison and on page structure, and neither is an independently guaranteed figure.",
+   "The model is not fixed to one. You can choose a built-in Ollama-family local model, the Claude, GPT or Gemini APIs, or a connection from an MCP client. Switching models changes where page data is sent, the logs, the cost, and the terms of service that apply.",
+   "The phrase local execution needs care. Even though the browser itself runs on your machine, using a cloud model means that task's page text is sent to an external model provider. The official site's statement that page content stays on the machine applies to using a local model.",
+   "Small local models suit summarising or extracting from a single page, but the official site itself cautions that accuracy falls on long multi-step research. Limit the scope and have a human verify important results.",
+   "Being able to use real logins is convenient, but it also raises the impact of a mistaken send or purchase. Prepare a dedicated browser profile, test accounts, an allowed-domain list, approval before purchases and sends, action logs, and an emergency stop.",
+   "Assume prompt injection, where text inside a web page is mistaken for an instruction. Distinguish page content from the user's instruction, do not pass secrets beyond what is needed, and re-confirm the purpose and the recipient immediately before any external send or irreversible operation.",
+   "It is safest to start read-only. Evaluate accuracy and logs on searching public information, comparing prices and checking official documents, then widen to reading low-risk internal information. Keep human approval for writes, purchases and sends.",
+   "Tying together an agent identity, the person who requested the task, the permitted sites, an expiry on the permissions and the action log lets you trace, when something goes wrong, whose request led to what action. It is a design that keeps the convenience while making the boundary of responsibility clear.",
+   "Pickle Browser is a developing product that its own official site labels an early build. Nothing here is an endorsement or a guarantee of safety. The important idea is to make an AI's browser operations visible, stoppable, and verifiable after the fact."
   ],
   "faq": [
-    {"question": "Pickle Browserとは何ですか？", "answer": "端末上の可視ブラウザをAIエージェントが操作し、人が途中で監視、停止、引継ぎできるローカルファースト型のエージェントブラウザです。"},
-    {"question": "Pickle Browserを使えばページデータは外部へ出ませんか？", "answer": "ローカルモデルを使う場合は端末内に保てると公式サイトは説明しています。一方、Claude、GPT、Geminiなどのクラウドモデルを使うタスクではページテキストが各提供者のサーバーへ送られます。"},
-    {"question": "ログイン済みブラウザをAIに操作させる際の安全対策は？", "answer": "専用プロファイルと低権限アカウントを使い、許可ドメインを絞り、購入・送信・削除前に人が承認し、操作ログと緊急停止手段を用意します。"},
-    {"question": "Pickle BrowserはMCPに対応していますか？", "answer": "公式サイトはMCPサーバーを同梱し、Claude DesktopなどのMCPクライアントからブラウザ操作ツールへ接続できると説明しています。"}
+   {
+    "question": "What is Pickle Browser?",
+    "answer": "A local-first agent browser in which an AI agent drives a visible browser on your machine while a human can watch, stop and take over mid-task."
+   },
+   {
+    "question": "Does using Pickle Browser keep page data off the internet?",
+    "answer": "The official site states that page content can stay on the machine when a local model is used. For tasks using a cloud model such as Claude, GPT or Gemini, the page text is sent to that provider's servers."
+   },
+   {
+    "question": "What safeguards do you need when an AI drives a logged-in browser?",
+    "answer": "Use a dedicated profile and a low-privilege account, restrict the allowed domains, have a human approve before purchases, sends and deletions, and provide action logs and an emergency stop."
+   },
+   {
+    "question": "Does Pickle Browser support MCP?",
+    "answer": "The official site states that it ships an MCP server, so MCP clients such as Claude Desktop can connect to its browser-operation tools."
+   }
   ],
   "sources": [
-    {"name": "Pickle Browser公式サイト", "url": "https://www.picklebrowser.com/", "note": "ローカル実行、モデル、MCP、承認ゲート、トークン計測、early build表記。2026年9月3日確認"},
-    {"name": "Product Hunt — Pickle Browser", "url": "https://www.producthunt.com/products/pickle-browser", "note": "公開時の製品概要。仕様は公式サイトの現行説明を優先"}
+   {
+    "name": "Pickle Browser official site",
+    "url": "https://www.picklebrowser.com/",
+    "note": "Local execution, models, MCP, approval gates, token measurements and the early-build label. Checked 3 September 2026"
+   },
+   {
+    "name": "Product Hunt — Pickle Browser",
+    "url": "https://www.producthunt.com/products/pickle-browser",
+    "note": "Product overview at launch; prefer the official site's current description for specifications"
+   }
   ]
+ }
 }
