@@ -22,7 +22,11 @@ const DATE = new Date().toISOString().slice(0, 10);
 const limitArg = process.argv.indexOf('--limit');
 const LIMIT = limitArg > -1 ? Number(process.argv[limitArg + 1]) : Infinity;
 
-const targets = JSON.parse(await readFile(resolve(root, 'targets.json'), 'utf8')).slice(0, LIMIT);
+const tArg = process.argv.indexOf('--targets');
+const TARGETS = tArg > -1 ? process.argv[tArg + 1] : 'targets.json';
+const oArg = process.argv.indexOf('--out');
+const OUT_NAME = oArg > -1 ? process.argv[oArg + 1] : `jp-saas-scan-${DATE}`;
+const targets = JSON.parse(await readFile(resolve(root, TARGETS), 'utf8')).slice(0, LIMIT);
 const out = [];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -60,7 +64,7 @@ for (const [i, t] of targets.entries()) {
 
 const dir = resolve(root, 'data/discoverability');
 await mkdir(dir, { recursive: true });
-const path = resolve(dir, `jp-saas-scan-${DATE}.json`);
+const path = resolve(dir, `${OUT_NAME}.json`);
 await writeFile(path, JSON.stringify({ scanned_at: DATE, api: API, total: out.length, results: out }, null, 1), 'utf8');
 console.log(`\nWrote ${path}`);
 console.log(`  成功 ${out.filter(r => r.ok).length} / ${out.length}`);
