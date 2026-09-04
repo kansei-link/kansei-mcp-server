@@ -25,6 +25,7 @@ import { ingestCandidates } from "./pipeline/ingest.js";
 import { refreshExistingServices } from "./refresh.js";
 import { snapshotAllServices } from "./snapshot.js";
 import { recomputeAxrGrades } from "./recompute-axr.js";
+import { ingestVendorSubmissions } from "./sources/vendor-submissions-step.js";
 import { detectRecipeDrift } from "./drift.js";
 import { runHealthProbe } from "./health-probe.js";
 
@@ -129,7 +130,7 @@ export async function runCrawler(
     // tend to announce on X / PR TIMES / Zenn instead of tagging GitHub
     // repos with `mcp-server`. See src/data/jp-watchlist.txt for the
     // Michie-curated entry point.
-    console.log("[crawler] step 1/11: discovering from 5 sources (global + JP)");
+    console.log("[crawler] step 1/12: discovering from 5 sources (global + JP)");
     const [githubResults, awesomeResults, watchlistResults, zennResults, jpOrgResults] =
       await Promise.all([
         crawlGitHubTopics({ sinceDays, maxResults }).catch((e) => {
@@ -166,7 +167,7 @@ export async function runCrawler(
     );
 
     // 2. Dedupe
-    console.log("[crawler] step 2/11: deduping against existing services + queue");
+    console.log("[crawler] step 2/12: deduping against existing services + queue");
     const dedupe = dedupeAgainstDb(db, allCandidates);
     summaryOut.fresh = dedupe.fresh.length;
     summaryOut.duplicates = dedupe.duplicates.length;
@@ -194,7 +195,7 @@ export async function runCrawler(
     }
 
     // 3. Enrich (fetch README, star counts for awesome-list entries)
-    console.log("[crawler] step 3/11: enriching via GitHub API");
+    console.log("[crawler] step 3/12: enriching via GitHub API");
     const enriched = await enrichCandidates(dedupe.fresh);
     console.log(`[crawler]   enriched: ${enriched.length}`);
 
@@ -216,12 +217,12 @@ export async function runCrawler(
     );
 
     // 4. Classify
-    console.log("[crawler] step 4/11: LLM classification");
+    console.log("[crawler] step 4/12: LLM classification");
     const classified = await classifyCandidates(mainstream);
     console.log(`[crawler]   classified: ${classified.length}`);
 
     // 5. Score + triage
-    console.log("[crawler] step 5/11: scoring + tier triage");
+    console.log("[crawler] step 5/12: scoring + tier triage");
     const scored = scoreAll(classified);
     const byTier = scored.reduce(
       (acc, c) => {
@@ -234,19 +235,19 @@ export async function runCrawler(
 
     // 6. Ingest
     if (!dryRun) {
-      console.log("[crawler] step 6/11: ingesting into DB");
+      console.log("[crawler] step 6/12: ingesting into DB");
       const ingest = ingestCandidates(db, scored);
       summaryOut.auto_accepted = ingest.autoAccepted;
       summaryOut.queued_for_review = ingest.queuedForReview;
       summaryOut.rejected = ingest.rejected;
       summaryOut.ingested_service_ids = ingest.ingestedServiceIds;
     } else {
-      console.log("[crawler] step 6/11: dry-run — skipping DB writes");
+      console.log("[crawler] step 6/12: dry-run — skipping DB writes");
     }
 
     // 7. Refresh
     if (!dryRun) {
-      console.log("[crawler] step 7/11: refreshing existing service metadata");
+      console.log("[crawler] step 7/12: refreshing existing service metadata");
       try {
         const r = await refreshExistingServices(db);
         summaryOut.refresh = {
@@ -266,12 +267,12 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 7/11: dry-run — skipping refresh");
+      console.log("[crawler] step 7/12: dry-run — skipping refresh");
     }
 
     // 8. Daily snapshots
     if (!dryRun) {
-      console.log("[crawler] step 8/11: writing daily snapshots");
+      console.log("[crawler] step 8/12: writing daily snapshots");
       try {
         const snap = snapshotAllServices(db);
         summaryOut.snapshot = {
@@ -288,12 +289,12 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 8/11: dry-run — skipping snapshot");
+      console.log("[crawler] step 8/12: dry-run — skipping snapshot");
     }
 
     // 9. Recipe drift detection
     if (!dryRun) {
-      console.log("[crawler] step 9/11: recipe drift detection");
+      console.log("[crawler] step 9/12: recipe drift detection");
       try {
         const d = detectRecipeDrift(db);
         summaryOut.drift = d;
@@ -306,13 +307,13 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 9/11: dry-run — skipping drift detection");
+      console.log("[crawler] step 9/12: dry-run — skipping drift detection");
     }
 
     // 10. Weekly MCP health probe (POST initialize sweep of hosted endpoints).
     // Runs before AXR so fresh reachability/handshake data feeds the grades.
     if (!dryRun && probeDay) {
-      console.log("[crawler] step 10/11: weekly MCP health probe");
+      console.log("[crawler] step 10/12: weekly MCP health probe");
       try {
         const p = await runHealthProbe(db, { limit: 10000 });
         console.log(
@@ -324,17 +325,44 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log(`[crawler] step 10/11: ${dryRun ? "dry-run" : "not probe day"} — skipping health probe`);
+      console.log(`[crawler] step 10/12: ${dryRun ? "dry-run" : "not probe day"} — skipping health probe`);
     }
 
-    // 11. AXR (Agent Experience Rating) dynamic recompute
+    // 11. 事業者の自己申告の取り込み（①の第2ソース）
+    //
+    // 公式MCPレジストリに一次提供者がほとんど載っていないため、その穴を
+    // 事業者自身に埋めてもらう経路。検証ゲートを通ったものだけを反映する
+    // （founder-ops/SEAM-AgentWiki-VerificationGate_2026-09-04.md）。
+    //
+    // **既定は無効。** VENDOR_SUBMISSIONS_DIR を指定したときだけ動く。
+    // 申告の入口がまだ本番に無い段階で自動書き込みを始めると、
+    // 変化の出どころが分からなくなる（④をゲートで止めているのと同じ理由）。
+    // recompute の直前に置くのは、同じ実行で等級に反映させるため。
+    try {
+      const vendor = await ingestVendorSubmissions(db, { dryRun });
+      if (!vendor.enabled) {
+        console.log("[crawler] step 11/12: vendor submissions — 無効（VENDOR_SUBMISSIONS_DIR 未設定）");
+      } else {
+        console.log(
+          `[crawler] step 11/12: vendor submissions — ${vendor.submissions}件中 ` +
+          `受理 ${vendor.verified} / 要確認 ${vendor.needs_review} / 却下 ${vendor.rejected}`
+        );
+        if (vendor.applied.length) console.log(`[crawler]   applied: ${vendor.applied.join(", ")}`);
+      }
+    } catch (e) {
+      const msg = `vendor-submissions: ${(e as Error).message}`;
+      errors.push(msg);
+      console.error(`[crawler]   ${msg}`);
+    }
+
+    // 12. AXR (Agent Experience Rating) dynamic recompute
     //
     // Keeps axr_score/axr_grade honest: hardcoded seed values drift away from
     // reality as total_calls / success_rate / trust_score evolve. Without this
     // step, services retain "AAA" from seed even after agents find them
     // unreliable. Safe & cheap: no external calls, pure SQL.
     if (!dryRun) {
-      console.log("[crawler] step 11/11: recomputing AXR grades");
+      console.log("[crawler] step 12/12: recomputing AXR grades");
       try {
         const axr = recomputeAxrGrades(db);
         const dist = Object.entries(axr.grade_distribution)
@@ -354,7 +382,7 @@ export async function runCrawler(
         console.error(`[crawler]   ${msg}`);
       }
     } else {
-      console.log("[crawler] step 11/11: dry-run — skipping AXR recompute");
+      console.log("[crawler] step 12/12: dry-run — skipping AXR recompute");
     }
 
     summaryOut.status = errors.length > 0 ? "success_with_errors" : "success";
