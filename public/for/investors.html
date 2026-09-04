@@ -127,6 +127,30 @@
       .footer-top, .footer-bottom { flex-direction: column; gap: 14px; text-align: center; }
       .footer-links { justify-content: center; }
     }
+  
+    /* 投資先を並べて見る。3件までに絞るのは公開APIのレート制限(5回/分)のため */
+    .pf-scan { max-width: 880px; margin: 0 auto; }
+    .pf-scan .pf-rows { display: grid; gap: 10px; margin: 18px 0; }
+    .pf-scan input[type=url] {
+      width: 100%; padding: 13px 15px; font-size: 16px;
+      border: 1px solid var(--gray-mid); border-radius: 10px; font-family: inherit;
+    }
+    .pf-scan .pf-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .pf-scan button {
+      padding: 13px 26px; font-size: 16px; font-weight: 700; border: 0; border-radius: 10px;
+      background: var(--blue); color: #fff; cursor: pointer; font-family: inherit;
+    }
+    .pf-scan button[disabled] { opacity: .55; cursor: not-allowed; }
+    .pf-scan .pf-status { font-size: 14px; color: var(--gray-text); }
+    .pf-table { width: 100%; border-collapse: collapse; margin-top: 22px; font-size: 15px; }
+    .pf-table th, .pf-table td { border-bottom: 1px solid var(--gray-mid); padding: 11px 10px; text-align: left; }
+    .pf-table th { background: var(--lavender); font-size: 13px; }
+    .pf-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .pf-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .pf-badge.rated { background: #ECFDF5; color: #065F46; }
+    .pf-badge.unrated { background: var(--gray-light); color: var(--gray-text); }
+    .pf-note { font-size: 13px; color: var(--gray-text); line-height: 1.9; margin-top: 16px;
+      border-left: 3px solid var(--gray-mid); padding-left: 12px; }
   </style>
 </head>
 <body>
@@ -262,6 +286,38 @@
 </div>
 
 <!-- CTA -->
+
+<section class="alt">
+  <div class="container pf-scan">
+    <h2>投資先・検討先を、並べて見る</h2>
+    <p>URLを入れると、それぞれが<strong>AIから読める状態にあるか</strong>、そして<strong>KanseiLINKの評価対象に入っているか</strong>を並べて表示します。登録不要・無料です。</p>
+
+    <div class="pf-rows">
+      <input type="url" class="pf-url" inputmode="url" spellcheck="false" placeholder="https://portfolio-company-1.com" aria-label="1社目のURL">
+      <input type="url" class="pf-url" inputmode="url" spellcheck="false" placeholder="https://portfolio-company-2.com" aria-label="2社目のURL">
+      <input type="url" class="pf-url" inputmode="url" spellcheck="false" placeholder="https://portfolio-company-3.com（任意）" aria-label="3社目のURL">
+    </div>
+    <div class="pf-actions">
+      <button type="button" id="pf-run">並べて診断する</button>
+      <span class="pf-status" id="pf-status">最大3社まで。1社あたり5〜15秒かかります。</span>
+    </div>
+
+    <div id="pf-result"></div>
+
+    <p class="pf-note">
+      ここで出るのは<strong>サイトの機械可読性</strong>と<strong>評価対象かどうか</strong>までです。
+      AXRスコアの内訳、同業他社との比較、改善余地の個社別レポートは
+      <strong>カスタム評価（$2,990〜/案件）</strong>で提供しています。ARI Award対象外の企業も同一基準で評価します。
+      ポートフォリオ全社の一括評価・継続モニタリングは<strong>DDデータパッケージ</strong>（要問い合わせ）です。
+      <a href="../contact.html">お問い合わせ</a>
+    </p>
+    <p class="pf-note">
+      この診断は軽量な機械可読性チェックであり、ARI Awardの格付けとは別物です。
+      スコアが低いことは企業の品質や投資価値を意味しません。公開ページのみを取得します。
+    </p>
+  </div>
+</section>
+
 <section class="cta-section">
   <div class="container">
     <h2>まずはARI Award 2026 Summerをご確認ください</h2>
@@ -290,5 +346,96 @@
   </div>
 </footer>
 
+
+<script>
+(function () {
+  // APIのCORSは本番オリジンのみ許可。ローカル検証では site-checker と同じくローカルAPIを見る
+  var LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  var API = (LOCAL ? 'http://localhost:3000' : 'https://kansei-link-mcp-production-b054.up.railway.app') + '/api/site-check';
+  var MULTI_TLD = ['co.jp','or.jp','ne.jp','ac.jp','go.jp','co.uk','com.au','com.br','co.kr','com.tw','co.nz','com.sg'];
+  var map = null;
+
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function regDomain(u) {
+    var h; try { h = new URL(u).hostname.toLowerCase(); } catch (e) { return null; }
+    if (h.indexOf('www.') === 0) h = h.slice(4);
+    var p = h.split('.');
+    if (p.length < 2) return null;
+    var last2 = p.slice(-2).join('.');
+    return (p.length >= 3 && MULTI_TLD.indexOf(last2) !== -1) ? p.slice(-3).join('.') : last2;
+  }
+  function loadMap() {
+    if (map) return Promise.resolve(map);
+    return fetch('../site-checker/domain-map.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { map = d; return d; })
+      .catch(function () { return null; });
+  }
+
+  var btn = document.getElementById('pf-run');
+  var status = document.getElementById('pf-status');
+  var out = document.getElementById('pf-result');
+  if (!btn) return;
+
+  btn.addEventListener('click', function () {
+    var urls = [].slice.call(document.querySelectorAll('.pf-url'))
+      .map(function (i) { return i.value.trim(); })
+      .filter(Boolean)
+      .map(function (u) { return /^https?:\/\//i.test(u) ? u : 'https://' + u; })
+      .slice(0, 3);
+    if (!urls.length) { status.textContent = 'URLを1つ以上入力してください。'; return; }
+
+    btn.disabled = true;
+    out.innerHTML = '';
+    var rows = [];
+
+    loadMap().then(function () {
+      var i = 0;
+      function next() {
+        if (i >= urls.length) {
+          btn.disabled = false;
+          status.textContent = '完了しました。';
+          render(rows);
+          return;
+        }
+        var u = urls[i];
+        status.textContent = '診断中… (' + (i + 1) + '/' + urls.length + ') ' + u;
+        fetch(API, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: u })
+        })
+          .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+          .then(function (d) { rows.push({ url: u, ok: true, score: d.score, grade: d.grade, final: d.final_url }); })
+          .catch(function () { rows.push({ url: u, ok: false }); })
+          .then(function () { i++; render(rows); setTimeout(next, 900); });
+      }
+      next();
+    });
+  });
+
+  function render(rows) {
+    if (!rows.length) return;
+    var html = '<table class="pf-table"><thead><tr>' +
+      '<th>ドメイン</th><th>AI可読性</th><th>KanseiLINKの評価対象</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      var d = regDomain(r.final || r.url);
+      var hits = (map && d && map.domains[d]) || null;
+      var rated = hits && hits.length
+        ? '<span class="pf-badge rated">評価対象</span> ' +
+          hits.map(function (s) { return esc(s.name) + (s.grade ? '（' + esc(s.grade) + '）' : ''); }).join('、')
+        : '<span class="pf-badge unrated">対象外</span>';
+      html += '<tr><td>' + esc(d || r.url) + '</td>' +
+        '<td class="num">' + (r.ok ? r.score + ' / 100（' + esc(r.grade) + '）' : '取得できず') + '</td>' +
+        '<td>' + rated + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    out.innerHTML = html;
+  }
+})();
+</script>
 </body>
 </html>
