@@ -134,6 +134,7 @@ const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta n
 <title>日本とグローバルの主要SaaSを同じ基準で測った — このサンプルでは、差は一点に集中していた | KanseiLink</title>
 <meta name="description" content="${esc(`日本の主要SaaS ${jp.length}ドメインとグローバルSaaS ${gl.length}ドメインを同一の診断ツールで比較。カテゴリを揃えて集計したところ、差はllms.txtの設置率に集中し、sitemapは日本のほうが整備されていました。`)}">
 <meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${CANONICAL}">
+<link rel="alternate" hreflang="ja" href="${CANONICAL}"><link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/jp-vs-global-ai-readability-2026-09.html"><link rel="alternate" hreflang="x-default" href="${CANONICAL}">
 <meta property="og:type" content="article"><meta property="og:title" content="日本とグローバルの主要SaaSを同じ基準で測った — このサンプルでは、差は一点に集中していた"><meta property="og:url" content="${CANONICAL}"><meta property="og:locale" content="ja_JP">
 <script type="application/ld+json">${JSON.stringify(schema)}</script>
 ${STYLE}</head>
@@ -197,7 +198,7 @@ ${faq.map(f => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></detai
 <p class="note"><strong>限界:</strong> ①両市場で母数が異なり（${jp.length}対${gl.length}）、カテゴリ別のグローバル側は n=${Math.min(...shared.map(k => gGl.get(k).length))}〜${Math.max(...shared.map(k => gGl.get(k).length))}と小さいため、1社の違いで率が動きます。②選定基準が同一ではありません（日本＝既存の検証対象リスト、グローバル＝製品ドメインが判明した全件）。③グローバル側には大手が多く含まれるため、差の一部が市場ではなく企業規模に由来する可能性を排除できていません。<strong>したがって「差はある」までは言えますが、その原因が市場なのか企業規模なのかは、この設計では切り分けられていません。</strong>④1時点の測定であり、サイトは更新されるため値は変動します。</p>
 <p class="note">この診断はサイトの機械可読性を測るものであり、企業の品質評価でも、ARI Awardの格付けでもありません。個社のスコアは、格付けとの混同を避けるため公開していません。保証しないこと: AIでの表示順位は保証できません。1回のAI回答をシェアとして扱うこともしません。<a href="/independence.html">独立性のポリシー</a></p>
 </main>
-<footer>© 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="/insights/">Research &amp; Insights</a> · <a href="/site-checker/">無料AI可視性診断</a> · <a href="/insights/jp-saas-ai-readability-2026-09.html">日本のSaaS ${jp.length}サイトの調査</a></footer>
+<footer>© 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="/insights/">Research &amp; Insights</a> · <a href="/site-checker/">無料AI可視性診断</a> · <a href="/insights/jp-saas-ai-readability-2026-09.html">日本のSaaS ${jp.length}サイトの調査</a> · <a href="https://kansei-link.com/en/insights/jp-vs-global-ai-readability-2026-09.html">English version</a></footer>
 </body></html>`;
 
 await writeFile(resolve(root, 'public/insights', `${SLUG}.html`), html, 'utf8');

@@ -118,6 +118,7 @@ const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta n
 <title>日本のSaaS ${N}サイトを診断したら、AIに読まれる準備はどこまでできていたか | KanseiLink</title>
 <meta name="description" content="${esc(`${ATTRIB}が日本の主要SaaS ${N}ドメインを同一の診断ツールで測定。AIクローラーの可否、構造化データ、連絡先の記載、llms.txt設置率の分布を公開します。`)}">
 <meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${CANONICAL}">
+<link rel="alternate" hreflang="ja" href="${CANONICAL}"><link rel="alternate" hreflang="en" href="https://kansei-link.com/en/insights/jp-saas-ai-readability-2026-09.html"><link rel="alternate" hreflang="x-default" href="${CANONICAL}">
 <meta property="og:type" content="article"><meta property="og:title" content="${esc(`日本のSaaS ${N}サイトを診断したら、AIに読まれる準備はどこまでできていたか`)}"><meta property="og:url" content="${CANONICAL}"><meta property="og:locale" content="ja_JP">
 <script type="application/ld+json">${JSON.stringify(schema)}</script>
 ${STYLE}</head>
@@ -188,7 +189,7 @@ ${faq.map(f => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></detai
 <p class="note">${scan.scanned_at} 実施。対象はKanseiLINKのデータベースにある日本の主要SaaS ${scan.total}ドメイン（ARI Award 2026 Summer 検証対象200サービスからドメインを特定し重複を除いたもの）。うち${N}ドメインの取得に成功し、${failed.length}ドメインは取得に失敗したため集計から除いています（内訳はDNSが引けない、リダイレクトが循環する等の技術的理由で、いずれも www. 付きでの再試行後も取得できなかったものです）。測定には一般公開している無料診断と同一のAPIを使用しました。1時点の測定であり、サイトは更新されるため値は変動します。<strong>この診断はサイトの機械可読性を測るものであり、企業の品質評価でも、ARI Awardの格付けでもありません。</strong>個社のスコアは、格付けとの混同を避けるため公開していません。</p>
 <p class="note">保証しないこと: AIでの表示順位は保証できません。1回のAI回答をシェアとして扱うこともしません。<a href="/independence.html">独立性のポリシー</a></p>
 </main>
-<footer>© 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="/insights/">Research &amp; Insights</a> · <a href="/site-checker/">無料AI可視性診断</a></footer>
+<footer>© 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="/insights/">Research &amp; Insights</a> · <a href="/site-checker/">無料AI可視性診断</a> · <a href="https://kansei-link.com/en/insights/jp-saas-ai-readability-2026-09.html">English version</a></footer>
 </body></html>`;
 
 await writeFile(resolve(root, 'public/insights', `${SLUG}.html`), html, 'utf8');
