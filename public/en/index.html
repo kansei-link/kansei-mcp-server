@@ -907,6 +907,52 @@
       table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
       th, td { padding: 8px 10px; white-space: nowrap; }
     }
+  
+    .urlprobe{background:#fff;border:1px solid #e4e7ec;border-radius:14px;padding:22px;margin:28px auto 0;max-width:720px;color:#101828;text-align:left}
+    .urlprobe label{display:block;font-size:18px;font-weight:700;margin-bottom:6px}
+    .urlprobe p.up-sub{color:#667085;font-size:14px;margin:0 0 14px;line-height:1.7}
+    .urlprobe form{display:flex;gap:10px;flex-wrap:wrap}
+    .urlprobe input{flex:1 1 260px;min-width:0;padding:12px 14px;font-size:16px;border:1px solid #e4e7ec;border-radius:10px}
+    .urlprobe button{padding:12px 22px;font-size:16px;font-weight:700;border:0;border-radius:10px;background:#1a3fd6;color:#fff;cursor:pointer;font-family:inherit}
+    .urlprobe button:hover{opacity:.9}
+    /* ヒーロー2カラム — 左に主張、右に行動（JP版と同じ構成） */
+    .hero-grid { display: grid; grid-template-columns: minmax(0,1.05fr) minmax(0,0.95fr); gap: 56px; align-items: center; }
+    .hero-copy { min-width: 0; }
+    .hero-copy > p[style] { max-width: 100% !important; }
+    .hero-panel { position: relative; min-width: 0; padding: 52px 44px; border-radius: 20px; overflow: hidden; isolation: isolate; }
+    .hero-panel::before {
+      content: '';
+      position: absolute; inset: 0; z-index: -2;
+      background:
+        radial-gradient(120% 100% at 88% 18%, rgba(26,63,214,.10) 0%, rgba(26,63,214,0) 62%),
+        linear-gradient(135deg, #F7F8FE 0%, #EEF0FB 100%);
+    }
+    /* ロゴの六角形リングを大きく薄く。装飾ではなく、面の奥行きのため */
+    .hero-panel::after {
+      content: '';
+      position: absolute; inset: 0; z-index: -1;
+      background: url('../img/kansei-logo.svg') no-repeat;
+      background-position: right -88px top 50%;
+      background-size: 380px auto;
+      opacity: .13;
+    }
+    .hero .urlprobe { margin: 0; max-width: 100%; background: #fff;
+      box-shadow: 0 22px 60px rgba(16,24,40,.22), 0 2px 8px rgba(16,24,40,.08);
+      border-color: rgba(255,255,255,.9); }
+    .hero .urlprobe label { font-size: 19px; }
+    .hero .urlprobe .up-foot { margin: 14px 0 0; font-size: 12px; color: #667085; line-height: 1.7; }
+
+    @media (max-width: 960px) {
+      .hero-grid { display: flex; flex-direction: column; align-items: stretch; gap: 20px; }
+      .hero-copy { display: contents; }
+      .hero-copy .breadcrumb { order: 1; }
+      .hero-copy h1 { order: 2; }
+      .hero-copy .subtitle { order: 3; margin-bottom: 4px; }
+      .hero-panel { order: 4; margin: 4px 0 8px; padding: 28px 20px; border-radius: 16px; }
+      .hero-panel::after { background-position: right -120px top 50%; background-size: 300px auto; opacity: .10; }
+      .hero-copy > p[style] { order: 5; margin-bottom: 24px !important; }
+      .hero-copy .btn-primary { order: 6; align-self: flex-start; }
+    }
   </style>
   <link rel="icon" type="image/x-icon" href="/favicon.ico?v=3" sizes="any">
   <link rel="icon" type="image/png" href="/favicon-32x32.png?v=3" sizes="32x32">
@@ -961,7 +1007,8 @@
 
 <!-- HERO -->
 <section class="hero">
-  <div class="container">
+  <div class="container hero-grid">
+   <div class="hero-copy">
     <div class="breadcrumb">
       <span>Ratings & Research</span> / Agent Readiness
     </div>
@@ -969,6 +1016,21 @@
     <p class="subtitle">Agent Readiness — the competitive edge of being chosen by AI</p>
     <p style="font-size:17px;line-height:1.8;max-width:640px;margin-bottom:32px">We independently rate the Agent Readiness of companies and software, based on public facts and measured data.</p>
     <a href="/en/ari-award/2026-summer.html" class="btn-primary">View ARI Award 2026 Summer</a>
+   </div>
+
+   <div class="hero-panel">
+    <div class="urlprobe">
+      <label for="urlprobe-input">First: how does AI see your site?</label>
+      <p class="up-sub">Just enter a URL. Free, no signup: we check in 5-15 seconds whether AI can read your site and tell what your business is.</p>
+      <form action="../site-checker/" method="get">
+        <input id="urlprobe-input" name="url" type="url" inputmode="url" spellcheck="false"
+               placeholder="https://example.com" aria-label="URL to check" required>
+        <button type="submit">Check for free</button>
+      </form>
+      <p class="up-foot">Public pages only. No signup, no email required.</p>
+    </div>
+   </div>
+
   </div>
 </section>
 

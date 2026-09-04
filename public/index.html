@@ -838,13 +838,18 @@
     .hero-panel::before {
       content: '';
       position: absolute; inset: 0; z-index: -2;
-      background: #eef1fb url('img/hero-office.webp') center right / cover no-repeat;
+      background:
+        radial-gradient(120% 100% at 88% 18%, rgba(26,63,214,.10) 0%, rgba(26,63,214,0) 62%),
+        linear-gradient(135deg, #F7F8FE 0%, #EEF0FB 100%);
     }
-    /* 左端を白へ溶かして、本文カラムとの境目を作らない */
+    /* ロゴの六角形リングを大きく薄く。装飾ではなく、面の奥行きのため */
     .hero-panel::after {
       content: '';
       position: absolute; inset: 0; z-index: -1;
-      background: linear-gradient(100deg, #fff 0%, rgba(255,255,255,0.82) 26%, rgba(255,255,255,0.38) 62%, rgba(255,255,255,0.22) 100%);
+      background: url('img/kansei-logo.svg') no-repeat;
+      background-position: right -88px top 50%;
+      background-size: 380px auto;
+      opacity: .13;
     }
     .hero .urlprobe {
       margin: 0;
@@ -872,8 +877,7 @@
       .hero-copy > p[style] { order: 5; margin-bottom: 24px !important; }
       .hero-copy .btn-primary { order: 6; align-self: flex-start; }
       .hero-panel { padding: 28px 20px; border-radius: 16px; }
-      .hero-panel::before { background-image: url('img/hero-office-mobile.webp'); background-position: center; }
-      .hero-panel::after { background: linear-gradient(180deg, rgba(255,255,255,.92) 0%, rgba(244,245,253,.88) 100%); }
+      .hero-panel::after { background-position: right -120px top 50%; background-size: 300px auto; opacity: .10; }
       .hero h1 { font-size: 40px; letter-spacing: -1.6px; }
       .hero .subtitle { font-size: 24px; letter-spacing: -1px; }
     }
