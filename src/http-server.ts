@@ -13,7 +13,7 @@
  */
 
 import express from "express";
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -158,7 +158,45 @@ const siteCheckLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many scans, please wait a minute and try again." },
 });
-app.post("/api/site-check", siteCheckLimiter, handleSiteCheck);
+
+// 分単位だけでは持続的な濫用を止められない。5/分を維持されると1IPで7,200件/日になり、
+// その全部が外部サイトへの取得なので、こちらがスキャナと見なされてIPを弾かれる。
+// 金額よりもそちらが痛い（診断そのものが動かなくなる）ため、日次でも締める。
+const siteCheckDailyLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  limit: 40,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: "Daily scan limit reached. The free check allows 40 scans per day. Please contact us if you need bulk evaluation.",
+    code: "daily_limit",
+  },
+});
+
+// サービス全体のブレーカー。多数のIPから薄く叩かれると per-IP 制限は効かない。
+// 上限に達したら新規スキャンを止める（既存の結果参照は生かす）。
+const SITE_CHECK_DAILY_CAP = Number(process.env.SITE_CHECK_DAILY_CAP ?? 3000);
+let siteCheckDay = new Date().toISOString().slice(0, 10);
+let siteCheckCount = 0;
+function siteCheckGlobalCap(_req: Request, res: Response, next: NextFunction): void {
+  const today = new Date().toISOString().slice(0, 10);
+  if (today !== siteCheckDay) {
+    siteCheckDay = today;
+    siteCheckCount = 0;
+  }
+  if (siteCheckCount >= SITE_CHECK_DAILY_CAP) {
+    console.warn(`[site-check] global daily cap reached (${SITE_CHECK_DAILY_CAP})`);
+    res.status(503).json({
+      error: "The free check has reached today's capacity. Please try again tomorrow.",
+      code: "capacity",
+    });
+    return;
+  }
+  siteCheckCount++;
+  next();
+}
+
+app.post("/api/site-check", siteCheckLimiter, siteCheckDailyLimiter, siteCheckGlobalCap, handleSiteCheck);
 app.get("/api/site-check/:id", apiLimiter, handleSiteCheckGet);
 
 app.get("/api/access", apiLimiter, handleAccessCheck);
@@ -894,9 +932,20 @@ const rankingLeadLimiter = rateLimit({
   message: { error: "rate_limited" },
 });
 
+
+// 1件ごとに確認メールを送る＝従量課金。分単位に加えて日次でも締める。
+const rankingLeadDailyLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "rate_limited_daily" },
+});
+
 app.post(
   "/api/ranking-lead",
   rankingLeadLimiter,
+  rankingLeadDailyLimiter,
   express.json({ limit: "2kb" }),
   async (req: Request, res: Response) => {
     try {
