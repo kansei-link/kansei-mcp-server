@@ -106,3 +106,39 @@ export function matchByPublisher<T extends RegistryLike>(
   }
   return null;
 }
+
+// ── mcp_status の出所 ───────────────────────────────────────────────
+//
+// 同じ `official` でも、根拠の強さがまったく違う:
+//   - 人が一次資料で確認した（verdicts.json・evidence_url 必須）
+//   - 発行元が製品ドメインを保有していることをレジストリのネームスペースで確認できる
+//   - レジストリの推論（通信方式がHTTP/SSEなら official）——発行元を見ていない
+//
+// 最後のものが等級を動かしていたのが RCA ③。ここでは値を書き換えず、
+// 「どの根拠で付いた値か」を判定できるようにする。値の書き換えと等級への反映は
+// ④（raw を等級の自動決定者から外す）で一度だけ行う。
+//
+// スキーマは変更しない。namespace から導出できるため、配布データでもそのまま判定できる。
+
+export type StatusProvenance =
+  /** 人が一次資料で確認した。最も強い */
+  | "verdict"
+  /** 発行元が製品ドメインを保有（レジストリのDNS検証済みネームスペース） */
+  | "publisher_verified"
+  /** レジストリの推論のみ。発行元を見ていないので、等級の根拠にはできない */
+  | "registry_inferred"
+  /** 手作業で登録した行。レジストリ由来ではない */
+  | "curated";
+
+export function statusProvenance(
+  service: { id: string; namespace?: string | null },
+  adjudicatedIds?: ReadonlySet<string>
+): StatusProvenance {
+  if (adjudicatedIds?.has(service.id)) return "verdict";
+  const ns = service.namespace?.trim();
+  if (!ns) return "curated";
+  // io.github.<org> は GitHub 上の組織であって製品ドメインの保有証明にはならない。
+  // 組織が製品の持ち主であることは十分ありうるが（例: makenotion）、
+  // それを機械で確かめる手段が無いので、ここでは推論扱いに留める。
+  return namespaceToDomain(ns) ? "publisher_verified" : "registry_inferred";
+}

@@ -17,6 +17,7 @@ import type { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { scaleLegend } from "./scales.js";
+import { statusProvenance } from "./crawler/sources/publisher-match.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -286,7 +287,7 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
 
     const rows = db.prepare(`
       SELECT s.id, s.name, s.category, s.axr_grade, s.axr_score,
-             s.mcp_status, s.mcp_endpoint,
+             s.mcp_status, s.mcp_endpoint, s.namespace,
              COALESCE(ps.avg_latency_ms, 0) as avg_latency_ms
       FROM services s
       LEFT JOIN (
@@ -306,6 +307,9 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
       const rel = classifyReliabilitySource(db, s.id);
       return {
         ...s,
+        // 同じ official でも根拠の強さが違う。受け手が区別できないと、
+        // レジストリの推論が確認済みの事実と同じ重みで扱われる
+        mcp_status_provenance: statusProvenance(s as { id: string; namespace?: string | null }),
         success_rate: rel.public_success_rate != null
           ? Math.round(rel.public_success_rate * 100) / 100
           : null,
@@ -317,7 +321,15 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
 
     // グレードは AXR Runtime（実測フロア込み・日次）。ARI Award の
     // AI Access Level 0 とは式が違うので、どちらの数字かを明示して返す
-    res.json({ services, total, grade_scale: "axr_runtime", scales: scaleLegend(["axr_runtime"]) });
+    res.json({
+      services, total, grade_scale: "axr_runtime", scales: scaleLegend(["axr_runtime"]),
+      provenance_legend: {
+        verdict: "A person confirmed this against the vendor's own documentation.",
+        publisher_verified: "The publisher owns the product's domain (registry namespace is DNS-verified).",
+        registry_inferred: "Inferred from the registry entry alone; the publisher was not checked. Weakest.",
+        curated: "Hand-registered service row, not sourced from the registry.",
+      },
+    });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
