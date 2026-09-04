@@ -645,8 +645,14 @@ function renderBranch(data) {
 
     if (hits && hits.length) {
       var chips = hits.map(function (svc) {
-        return '<a href="/checker/?s=' + encodeURIComponent(svc.id) + '">' + escapeHtml(svc.name) +
-          (svc.grade ? '<span class="g">' + escapeHtml(svc.grade) + '</span>' : '') + '</a>';
+        // 出せるのは公開しているARI Awardの格付け（A以上）だけ。
+        // 以前はDBのaxr_gradeを出していたが、その69%は一度も採点していない
+        // 既定値で、AAA認定のサービスにBBと表示していた
+        var g = svc.award_grade;
+        return '<a href="/checker/?s=' + encodeURIComponent(svc.id) + '"' +
+          (g ? ' title="ARI Award 2026 Summer ' + escapeHtml(g) + '"' : '') + '>' +
+          escapeHtml(svc.name) +
+          (g ? '<span class="g">' + escapeHtml(g) + '</span>' : '') + '</a>';
       }).join('');
       html =
         '<div class="b-eyebrow">' + (en ? 'THIS DOMAIN IS ALREADY RATED' : 'このドメインは評価対象です') + '</div>' +

@@ -312,7 +312,7 @@
       <a href="../contact.html">お問い合わせ</a>
     </p>
     <p class="pf-note">
-      この診断は軽量な機械可読性チェックであり、ARI Awardの格付けとは別物です。
+      この診断は軽量な機械可読性チェックであり、ARI Awardの格付けとは別物です。格付けを公開しているのはA以上のみです。「格付け未公開」は、公開基準に達していないか、まだ採点していないかのいずれかで、両者は区別しません（低評価を意味しません）。
       スコアが低いことは企業の品質や投資価値を意味しません。公開ページのみを取得します。
     </p>
   </div>
@@ -424,9 +424,17 @@
     rows.forEach(function (r) {
       var d = regDomain(r.final || r.url);
       var hits = (map && d && map.domains[d]) || null;
+      // 表示するのは ARI Award の認定か、実測済みのAXRのみ。
+      // 未実測のサービスは既定値を持っており、それを格付けとして出すと
+      // 公開しているAward結果と矛盾する
       var rated = hits && hits.length
         ? '<span class="pf-badge rated">評価対象</span> ' +
-          hits.map(function (s) { return esc(s.name) + (s.grade ? '（' + esc(s.grade) + '）' : ''); }).join('、')
+          hits.map(function (s) {
+            if (s.award_grade) return esc(s.name) + '（ARI Award ' + esc(s.award_grade) + '）';
+            // 採点済みか未採点かは区別しない。分けるとA未満だと逆算でき、
+            // 公開していない格付けを実質的に開示することになる
+            return esc(s.name) + '（格付け未公開）';
+          }).join('、')
         : '<span class="pf-badge unrated">対象外</span>';
       html += '<tr><td>' + esc(d || r.url) + '</td>' +
         '<td class="num">' + (r.ok ? r.score + ' / 100（' + esc(r.grade) + '）' : '取得できず') + '</td>' +

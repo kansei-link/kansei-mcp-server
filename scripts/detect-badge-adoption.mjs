@@ -38,7 +38,10 @@ const svc2domain = new Map();
 for (const [domain, list] of Object.entries(domainMap)) {
   for (const s of list) if (!svc2domain.has(s.id)) svc2domain.set(s.id, domain);
 }
-const scores = JSON.parse(await readFile(resolve(root, '..', 'ari-axr-scores-200.json'), 'utf8')).scores;
+// 採点ファイルの生idはサービスDBと6件ずれており、そのままだと
+// agileworks（エイトレッド）などが対象から漏れる。id解決済みの正本を読む
+const scores = JSON.parse(await readFile(resolve(root, 'data/ari-award-2026-summer.json'), 'utf8'))
+  .services.map(s => ({ id: s.service_id, axr_grade: s.grade }));
 // 同一ドメインに複数サービスがぶら下がる（freee系など）。ドメイン単位で1回だけ見る。
 const byDomain = new Map();
 for (const s of scores) {

@@ -13,6 +13,7 @@
  *   node scripts/generate-domain-map.mjs
  */
 import { writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -70,8 +71,21 @@ const rows = [
 ];
 
 const meta = new Map(
-  db.prepare('SELECT id, name, category, axr_grade FROM services').all().map(r => [r.id, r])
+  db.prepare('SELECT id, name, category FROM services').all()
+    .map(r => [r.id, r])
 );
+
+// Award の格付けは DB に入っていない（掲載ページが唯一の正本だった）。
+// 抽出済みJSONをサービス名で突き合わせる。名寄せは正規化した完全一致だけ——
+// 部分一致にすると「freee会計」と「freee人事労務」を取り違える。
+// Award の格付け。公開しているのはA以上だけなので、それ以外は
+// 「採点済み」であることだけを持ち、グレードは出さない
+const PUBLISHED = new Set(['AAA', 'AA', 'A']);
+const awardById = new Map();
+{
+  const a = JSON.parse(readFileSync(resolve(root, 'data/ari-award-2026-summer.json'), 'utf8'));
+  for (const r of a.services) if (PUBLISHED.has(r.grade)) awardById.set(r.service_id, r.grade);
+}
 
 const byDomain = new Map();
 for (const { sid, url } of rows) {
@@ -86,7 +100,14 @@ const domains = {};
 for (const [domain, ids] of [...byDomain.entries()].sort()) {
   domains[domain] = [...ids].sort().map(id => {
     const m = meta.get(id);
-    return { id, name: m.name, category: m.category ?? null, grade: m.axr_grade ?? null };
+    // axr_grade は出さない。419件中291件が一度も採点されていない既定値（50/BB）で、
+    // それを格付けとして出していたためAAA認定のサービスがBBと表示されていた
+    return {
+      id, name: m.name, category: m.category ?? null,
+      // 採点済みかどうかは出さない。この対応表は公開ファイルなので、
+      // 「採点済みだが格付けが載っていない」= A未満 と逆算されてしまう
+      award_grade: awardById.get(id) ?? null
+    };
   });
 }
 
