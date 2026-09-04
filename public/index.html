@@ -815,6 +815,73 @@
     .related-link:hover { color: var(--blue); }
 
     /* ===== CTA SECTION ===== */
+
+    /* ヒーロー2カラム — 左に主張、右に行動。入力欄を見出しと対等の位置に置く */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 56px;
+      align-items: center;
+    }
+    .hero-copy { min-width: 0; }
+    .hero-copy > p[style] { max-width: 100% !important; }
+
+    /* 右カラム: オフィス写真を薄く敷き、カードが宙に浮かないようにする */
+    .hero-panel {
+      position: relative;
+      min-width: 0;
+      padding: 52px 44px;
+      border-radius: 20px;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .hero-panel::before {
+      content: '';
+      position: absolute; inset: 0; z-index: -2;
+      background: #eef1fb url('img/hero-office.webp') center right / cover no-repeat;
+    }
+    /* 左端を白へ溶かして、本文カラムとの境目を作らない */
+    .hero-panel::after {
+      content: '';
+      position: absolute; inset: 0; z-index: -1;
+      background: linear-gradient(100deg, #fff 0%, rgba(255,255,255,0.82) 26%, rgba(255,255,255,0.38) 62%, rgba(255,255,255,0.22) 100%);
+    }
+    .hero .urlprobe {
+      margin: 0;
+      max-width: 100%;
+      background: #fff;
+      box-shadow: 0 22px 60px rgba(16,24,40,.22), 0 2px 8px rgba(16,24,40,.08);
+      border-color: rgba(255,255,255,.9);
+    }
+    .hero .urlprobe label { font-size: 19px; }
+    .hero .urlprobe .up-foot {
+      margin: 14px 0 0; font-size: 12px; color: #667085; line-height: 1.7;
+    }
+
+    /* 画面が狭いときは縦積み。写真は帯として残す（消すと下が急に白く抜ける） */
+    @media (max-width: 960px) {
+      /* 縦積みにすると、入力欄が長い説明文の下に埋もれる。
+         display:contents で hero-copy の子を直接並べ、見出しの直後へ繰り上げる */
+      /* align-items:center を継ぐと縦積み時に横中央寄せになるので戻す */
+      .hero-grid { display: flex; flex-direction: column; align-items: stretch; gap: 20px; }
+      .hero-copy { display: contents; }
+      .hero-copy .breadcrumb { order: 1; }
+      .hero-copy h1 { order: 2; }
+      .hero-copy .subtitle { order: 3; margin-bottom: 4px; }
+      .hero-panel { order: 4; margin: 4px 0 8px; }
+      .hero-copy > p[style] { order: 5; margin-bottom: 24px !important; }
+      .hero-copy .btn-primary { order: 6; align-self: flex-start; }
+      .hero-panel { padding: 28px 20px; border-radius: 16px; }
+      .hero-panel::before { background-image: url('img/hero-office-mobile.webp'); background-position: center; }
+      .hero-panel::after { background: linear-gradient(180deg, rgba(255,255,255,.92) 0%, rgba(244,245,253,.88) 100%); }
+      .hero h1 { font-size: 40px; letter-spacing: -1.6px; }
+      .hero .subtitle { font-size: 24px; letter-spacing: -1px; }
+    }
+    @media (max-width: 560px) {
+      .hero h1 { font-size: 32px; letter-spacing: -1.2px; }
+      .hero .subtitle { font-size: 20px; letter-spacing: -.6px; }
+      .hero .urlprobe label { font-size: 17px; }
+    }
     .cta-section {
       background: var(--lavender);
       padding: 80px 0;
@@ -1009,7 +1076,8 @@
 
 <!-- HERO -->
 <section class="hero">
-  <div class="container">
+  <div class="container hero-grid">
+   <div class="hero-copy">
     <div class="breadcrumb">
       <span>Ratings & Research</span> / Agent Readiness
     </div>
@@ -1017,7 +1085,9 @@
     <p class="subtitle" data-en="Independent ratings of SaaS Agent Readiness">SaaSのAgent Readinessを、独立した立場で格付けする</p>
     <p style="font-size:17px;line-height:1.8;max-width:640px;margin-bottom:32px" data-en="We independently rate the Agent Readiness of companies and software — based on public facts and measured data — so that IT buyers, investors, and procurement teams can make informed decisions.">導入するSaaSがAIエージェントに対応しているか——公開情報と実測データに基づき、独立した立場で格付けします。IT購買・投資家・調達担当のSaaS選定に、客観的な評価データを提供します。</p>
     <a href="ari-award/2026-summer.html" class="btn-primary" data-en="View ARI Award 2026 Summer">ARI Award 2026 Summer を見る</a>
+   </div>
 
+   <div class="hero-panel">
     <div class="urlprobe">
       <label for="urlprobe-input" data-en="First: how does AI see your site?">まず、AIから自社サイトはどう見えているか</label>
       <p class="up-sub" data-en="Just enter a URL. Free, no signup: we check in 5-15 seconds whether AI can read your site and tell what your business is.">URLを入れるだけ。登録不要・無料で、AIがサイトを読める状態か、何の会社だと判別できるかを5〜15秒で診断します。</p>
@@ -1026,7 +1096,9 @@
                placeholder="https://example.co.jp" aria-label="診断するサイトのURL" required>
         <button type="submit" data-en="Check for free">無料で診断する</button>
       </form>
+      <p class="up-foot" data-en="Public pages only. No signup, no email required.">公開ページのみを取得します。登録もメールアドレスも不要です。</p>
     </div>
+   </div>
 
   </div>
 </section>
