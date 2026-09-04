@@ -28,10 +28,13 @@ const byId = new Map(list.map(s => [s.id, s]));
 
 let applied = 0, skipped = 0;
 for (const [id, v] of Object.entries(ledger.verdicts)) {
-  const APPLICABLE = ['seed_wrong', 'vendor_verified'];
-  if (!APPLICABLE.includes(v.verdict)) { skipped++; continue; }
+  // 適用するかは verdict の種類ではなく「訂正内容があるか」で決める。
+  // 例: legalon は distributed_correct（APIはある＝配布値は正しい）だが、
+  // 別件で api_url が死んだドメインを指しており、その訂正は必要だった
+  const fields = Object.keys(v.correction ?? {});
+  if (fields.length === 0) { skipped++; continue; }
   // 根拠の無い訂正は通さない。自動経路(vendor_verified)でも同じ
-  if (!v.evidence_url) throw new Error(`${id}: ${v.verdict} なのに evidence_url が無い`);
+  if (!v.evidence_url) throw new Error(`${id}: 訂正(${fields.join(',')})があるのに evidence_url が無い`);
   const s = byId.get(id);
   if (!s) { console.warn(`  ${id}: seed に無い`); continue; }
   for (const [field, val] of Object.entries(v.correction ?? {})) {
