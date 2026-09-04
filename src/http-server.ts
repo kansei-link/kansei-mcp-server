@@ -1178,6 +1178,37 @@ function requireAdminSecret(req: Request, res: Response): boolean {
 }
 
 /**
+ * GET /admin/dualrun-digest
+ *   Headers: Authorization: Bearer <CRAWLER_SECRET>
+ *   Query:   since=YYYY-MM-DD HH:MM:SS （既定はdual-run開始時刻）
+ *
+ * dual-run照合が必要とする集合だけを返す。読み取り専用。
+ *
+ * これがあると照合スクリプトが `railway ssh` を使わずに済む。CLI依存を外すと
+ * 実行場所を選ばなくなり（Railway cron / GH Actions / ローカル）、
+ * インフラ全体に効くトークンを実行環境に置く必要も無くなる。
+ */
+app.get("/admin/dualrun-digest", (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+  try {
+    const db = getDb();
+    // dual-run開始時刻より前のイベントは片側にしか無いので、照合対象から外す
+    const since = (req.query.since as string) || "2026-08-16 04:05:00";
+    const events = db.prepare(
+      "SELECT event_id, event_type FROM stripe_webhook_events WHERE processed_at >= ?"
+    ).all(since);
+    const subs = db.prepare(
+      `SELECT stripe_subscription_id id, status, tier,
+              cancel_at_period_end cape, last_stripe_event_created lec
+         FROM subscriptions ORDER BY stripe_subscription_id`
+    ).all();
+    res.json({ since, events, subs, generated_at: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+/**
  * POST /admin/run-crawler
  *   Headers:  Authorization: Bearer <CRAWLER_SECRET>
  *   Body:     { dry_run?: boolean, since_days?: number, max?: number }
