@@ -16,6 +16,8 @@ import type Database from "better-sqlite3";
 import { statusProvenance } from "./sources/publisher-match.js";
 
 export interface AxrRecomputeSummary {
+  /** 出所ゲーティングが効いた実行かどうか。後から判別できないと事故のもと */
+  provenance_gating: boolean;
   services_evaluated: number;
   changed: number;
   unchanged: number;
@@ -37,6 +39,20 @@ interface ServiceRow {
   total_calls: number;
 }
 
+/**
+ * 出所ゲーティングを有効にするか。
+ *
+ * **既定は無効＝従来どおり。** この関数は日次クローラから自動で走るため、
+ * 既定を有効にすると次の定時クロールで本番の773件が予告なく動く。
+ * ダッシュボードは新等級・npx配布は旧等級、という食い違いの窓が開き、
+ * 格付け機関としてはそこが一番まずい。
+ *
+ * 全面同時の切り替えはゲート済みリリース（pack-gate→release-gate→L3）で行う。
+ * そのとき本番recompute＋seed訂正＋verdict＋④を一度に出す。
+ * それまでは、コードは入っているが効かない状態で置く。
+ */
+const PROVENANCE_GATING_ENABLED = process.env.AXR_PROVENANCE_GATING === "1";
+
 function computeScore(svc: ServiceRow, adjudicated?: ReadonlySet<string>): number {
   let score = 0;
 
@@ -45,8 +61,8 @@ function computeScore(svc: ServiceRow, adjudicated?: ReadonlySet<string>): numbe
   // 発行元を確認できていない値に等級の0.5点を渡すと、個人のラッパーが
   // ベンダー公式と同じ重みを持つ。等級では credit しない。
   // 値そのものは残す——発見性の信号としては引き続き有用なので。
-  const provenance = statusProvenance(svc, adjudicated);
-  const statusIsCredited = provenance !== "registry_inferred";
+  const statusIsCredited =
+    !PROVENANCE_GATING_ENABLED || statusProvenance(svc, adjudicated) !== "registry_inferred";
 
   if (statusIsCredited && svc.mcp_status === "official") score += 0.5;
   else if (statusIsCredited && svc.mcp_status === "third_party") score += 0.4;
@@ -125,7 +141,12 @@ export function recomputeAxrGrades(
   });
   tx();
 
+  console.log(
+    `[axr] provenance gating: ${PROVENANCE_GATING_ENABLED ? "ON" : "OFF (pinned to legacy scoring)"}`
+  );
+
   return {
+    provenance_gating: PROVENANCE_GATING_ENABLED,
     services_evaluated: services.length,
     changed,
     unchanged,
