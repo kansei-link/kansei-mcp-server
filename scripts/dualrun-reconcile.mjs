@@ -21,7 +21,12 @@
  * 環境変数:
  *   DUALRUN_BELIEVABLE_URL  例 https://<believable>.up.railway.app
  *   DUALRUN_CANONICAL_URL   例 https://<canonical>.up.railway.app
- *   CRAWLER_SECRET          両サービス共通のadmin秘密
+ *   DUALRUN_BELIEVABLE_SECRET / DUALRUN_CANONICAL_SECRET
+ *                           側ごとのadmin秘密。実機で確認したところ両サービスの
+ *                           CRAWLER_SECRET は別値だった。揃えるには稼働中サービスの
+ *                           環境変数を書き換えることになり、同じ秘密を使う
+ *                           クローラ起動などを巻き込むので、側ごとに渡す。
+ *                           未設定なら CRAWLER_SECRET にフォールバック
  *   KANSEI_DB_PATH          ログ書き込み先DB（既定 /data/kansei-link.db）
  *
  *   node scripts/dualrun-reconcile.mjs [--local-csv <path>] [--dry-run]
@@ -38,18 +43,24 @@ const SIDES = {
   believable: process.env.DUALRUN_BELIEVABLE_URL,
   canonical: process.env.DUALRUN_CANONICAL_URL,
 };
-const SECRET = process.env.CRAWLER_SECRET;
+const SECRETS = {
+  believable: process.env.DUALRUN_BELIEVABLE_SECRET || process.env.CRAWLER_SECRET,
+  canonical: process.env.DUALRUN_CANONICAL_SECRET || process.env.CRAWLER_SECRET,
+};
 for (const [name, url] of Object.entries(SIDES)) {
   if (!url) { console.error(`[dualrun] ${name} のURLが未設定（DUALRUN_${name.toUpperCase()}_URL）`); process.exit(2); }
+  if (!SECRETS[name]) { console.error(`[dualrun] ${name} の秘密が未設定（DUALRUN_${name.toUpperCase()}_SECRET または CRAWLER_SECRET）`); process.exit(2); }
 }
-if (!SECRET) { console.error('[dualrun] CRAWLER_SECRET が未設定'); process.exit(2); }
 
 async function fetchSide(name, base) {
+  const secret = SECRETS[name];
   const url = `${base.replace(/\/+$/, '')}/admin/dualrun-digest?since=${encodeURIComponent(BASELINE_CUTOFF)}`;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 60_000);
   try {
-    const res = await fetch(url, { headers: { authorization: `Bearer ${SECRET}` }, signal: ctl.signal });
+    const res = await fetch(url, { headers: { authorization: `Bearer ${secret}` }, signal: ctl.signal });
+    // 401 は「その側の秘密が違う」。設定ミスを取り違えないよう区別して出す
+    if (res.status === 401) throw new Error(`${name}: 401 unauthorized — その側の秘密が違う（DUALRUN_${name.toUpperCase()}_SECRET を確認）`);
     if (!res.ok) throw new Error(`${name}: HTTP ${res.status}`);
     return await res.json();
   } finally {
