@@ -16,6 +16,7 @@ import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { scaleLegend } from "./scales.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -267,6 +268,9 @@ app.get("/api/dashboard/stats", apiLimiter, (_req: Request, res: Response) => {
       services: { total: serviceStats.total, avgAeo: serviceStats.avg_aeo || 0, mcpCount: serviceStats.mcp_count, mcpRate },
       recipes: { total: recipeCount },
       grades,
+      // この分布は AXR Runtime のもの。ARI Award の AI Access Level 0 とは別尺度
+      grade_scale: "axr_runtime",
+      scales: scaleLegend(["axr_runtime"]),
       categories,
     });
   } catch (e: any) {
@@ -311,7 +315,9 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
 
     const total = (db.prepare(`SELECT COUNT(*) as c FROM services WHERE axr_score IS NOT NULL`).get() as any).c;
 
-    res.json({ services, total });
+    // グレードは AXR Runtime（実測フロア込み・日次）。ARI Award の
+    // AI Access Level 0 とは式が違うので、どちらの数字かを明示して返す
+    res.json({ services, total, grade_scale: "axr_runtime", scales: scaleLegend(["axr_runtime"]) });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
@@ -343,7 +349,7 @@ app.get("/api/dashboard/voices", apiLimiter, (_req: Request, res: Response) => {
       response_text: wrapUntrusted(v.response_text, 500),
     }));
 
-    res.json({ voices });
+    res.json({ voices, grade_scale: "axr_runtime", scales: scaleLegend(["axr_runtime"]) });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
@@ -555,7 +561,7 @@ app.get("/api/dashboard/changelog", apiLimiter, (req: Request, res: Response) =>
       total = 0;
     }
 
-    res.json({ entries, total, limit, offset });
+    res.json({ entries, total, limit, offset, grade_scale: "axr_runtime", scales: scaleLegend(["axr_runtime"]) });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
