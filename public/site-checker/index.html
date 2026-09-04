@@ -703,7 +703,9 @@ function renderBranch(data) {
 // 価格は pricing.html の既存プランに合わせる。ここで新しい値段を作らない。
 // 改善の実装は Synapse Arrows へ出す（格付け機関が被評価者に改善を売らない）
 // ========================================
-var PRICING = '/pricing.html';
+// pricing.html は対象別タブ。深リンクを使わないと全員がSaaSタブに落ちる
+var PRICING_SAAS = '/pricing.html#team-plan';
+var PRICING_DEV = '/pricing.html#developers';
 var SA_AEO = 'https://synapsearrows.com/services/ai-aeo/';
 
 function card(o) {
@@ -729,7 +731,7 @@ function renderPlans(matched) {
     cards = [
       card({ name: 'Team', price: '$149', unit: en ? '/mo per service' : '/月・サービスあたり',
              desc: en ? 'Your rating breakdown, benchmark against your category, AXR history.' : '格付けの内訳（加点・減点）、同業ベンチマーク、AXR推移。',
-             cta: en ? 'See plan' : 'プランを見る', href: PRICING, featured: true }),
+             cta: en ? 'See plan' : 'プランを見る', href: PRICING_SAAS, featured: true }),
       card({ name: 'Enterprise', price: '$2,990', unit: en ? 'from' : '〜',
              desc: en ? 'Custom reports and evaluation of a scope you specify, including services outside ARI Award.' : 'カスタムレポート、対象範囲を指定した評価。ARI Award対象外のサービスも同一基準で。',
              cta: en ? 'Enquire' : '問い合わせる', href: '/contact.html' }),
@@ -745,7 +747,7 @@ function renderPlans(matched) {
     cards = [
       card({ name: 'Pro', price: '$19', unit: en ? '/mo' : '/月',
              desc: en ? 'Full access to the research, Agent Voice detail, multi-engine comparison. Annual $149.' : '全記事のフルアクセス、Agent Voice詳細、マルチエージェント比較。年額$149。',
-             cta: en ? 'See plan' : 'プランを見る', href: PRICING }),
+             cta: en ? 'See plan' : 'プランを見る', href: PRICING_DEV }),
       card({ name: en ? 'Improvement' : '改善の実装・相談', price: 'Synapse Arrows', unit: '',
              desc: en ? 'Fixing what this check surfaced — crawler access, structured data, llms.txt, information design.' : 'この診断で出た指摘の改善——クローラー対応・構造化データ・llms.txt・情報設計。',
              cta: en ? 'Go to Synapse Arrows' : 'Synapse Arrows を見る', href: SA_AEO, blank: true, featured: true })
