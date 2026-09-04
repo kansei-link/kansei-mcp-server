@@ -39,6 +39,15 @@ export interface VendorSubmission {
   mcp_endpoint: string;
   /** 申告の裏づけになる、事業者自身のページ。**必須**。 */
   evidence_url: string;
+  /**
+   * サーバーの公開場所（GitHubリポジトリ等）。任意。
+   *
+   * self-hosted のサーバーでは、**裏づけの対象と接続方法が一致しない**。
+   * エイトレッドの接続方法は `npx -y mcp-remote https://<host>/mcp` だが、
+   * 自社ニュースが参照しているのはリポジトリURLのほう。
+   * 裏づけの照合にはこちらを使い、保存するのは mcp_endpoint。
+   */
+  repo_url?: string | null;
   /** 申告者の自己申告メール等。検証には使わない（記録のみ） */
   submitted_by?: string | null;
   submitted_at?: string | null;
@@ -97,11 +106,34 @@ export function isSafeFetchTarget(raw: string): { ok: true; url: URL } | { ok: f
  * @param fetchEvidence  evidence_url の本文を取りに行く関数。呼び出し側が渡す
  *                       （ネットワークをこのモジュールに埋めない＝テストできるように）
  */
+/**
+ * mcp_endpoint が「接続方法」として成立しているか。
+ * リポジトリURLは在り処であって接続方法ではない——これを保存すると繋げない。
+ */
+export function isUsableEndpoint(endpoint: string): { ok: true } | { ok: false; reason: string } {
+  const e = endpoint.trim();
+  if (!e) return { ok: false, reason: "空" };
+  const host = (() => { try { return new URL(e).hostname.toLowerCase(); } catch { return null; } })();
+  if (host) {
+    if (/^(www\.)?(github|gitlab|bitbucket)\.com$/.test(host)) {
+      return { ok: false, reason: "リポジトリURLは在り処であって接続方法ではない。repo_url に入れ、mcp_endpoint には起動コマンドかリモートMCPのURLを" };
+    }
+    return { ok: true };
+  }
+  if (/^(npx|node|uvx|python|docker)(\s|$)/.test(e)) return { ok: true };
+  return { ok: false, reason: "https のURLでも、既知の起動コマンドでもない" };
+}
+
 export async function verifyVendorSubmission(
   submission: VendorSubmission,
   serviceApiUrl: string | null | undefined,
   fetchEvidence: (url: string) => Promise<string | null>
 ): Promise<VerificationOutcome> {
+  const usable = isUsableEndpoint(submission.mcp_endpoint);
+  if (!usable.ok) {
+    return { status: "unverified", detail: `mcp_endpoint が接続方法になっていない: ${usable.reason}` };
+  }
+
   const serviceDomain = registrableDomain(serviceApiUrl);
   if (!serviceDomain) {
     return { status: "needs_review", detail: "サービス側のドメインが判定できない。基準が無いので自動では通せない" };
@@ -146,7 +178,11 @@ export async function verifyVendorSubmission(
   }
   // 申告されたエンドポイントが、そのページに実際に書かれているか。
   // npx コマンドならパッケージ名、URLならホストを含む形で照合する。
-  const needle = endpointDomain ?? extractPackageName(submission.mcp_endpoint);
+  // 照合に使うのは、リポジトリURL → エンドポイントのドメイン → パッケージ名 の順。
+  // self-hosted のサーバーでは接続方法がページに書かれていないことがあり、
+  // そこで諦めると①の発端（エイトレッド）が通らない
+  const needle =
+    submission.repo_url?.trim() || endpointDomain || extractPackageName(submission.mcp_endpoint);
   if (!needle) {
     return { status: "needs_review", detail: "申告されたエンドポイントから照合できる文字列を取り出せない" };
   }

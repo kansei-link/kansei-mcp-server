@@ -7,6 +7,7 @@
  *
  * 判定の種類:
  *   seed_wrong           配布値が誤り。evidence_url を根拠に訂正する
+ *   vendor_verified      事業者の自己申告を検証ゲートが承認した（①の第2ソース）
  *   distributed_correct  配布値が現況。Award側が古いか誤り。Awardは凍結なので触らない
  *   unknown              一次資料で確定できない。次回に持ち越す
  *
@@ -27,8 +28,10 @@ const byId = new Map(list.map(s => [s.id, s]));
 
 let applied = 0, skipped = 0;
 for (const [id, v] of Object.entries(ledger.verdicts)) {
-  if (v.verdict !== 'seed_wrong') { skipped++; continue; }
-  if (!v.evidence_url) throw new Error(`${id}: seed_wrong なのに evidence_url が無い`);
+  const APPLICABLE = ['seed_wrong', 'vendor_verified'];
+  if (!APPLICABLE.includes(v.verdict)) { skipped++; continue; }
+  // 根拠の無い訂正は通さない。自動経路(vendor_verified)でも同じ
+  if (!v.evidence_url) throw new Error(`${id}: ${v.verdict} なのに evidence_url が無い`);
   const s = byId.get(id);
   if (!s) { console.warn(`  ${id}: seed に無い`); continue; }
   for (const [field, val] of Object.entries(v.correction ?? {})) {
