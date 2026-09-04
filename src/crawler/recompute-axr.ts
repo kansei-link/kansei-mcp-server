@@ -13,6 +13,7 @@
 // Pure JS, pure SQL — no LLM calls, safe to run every day.
 
 import type Database from "better-sqlite3";
+import { statusProvenance } from "./sources/publisher-match.js";
 
 export interface AxrRecomputeSummary {
   services_evaluated: number;
@@ -24,6 +25,8 @@ export interface AxrRecomputeSummary {
 
 interface ServiceRow {
   id: string;
+  /** 出所の判定に要る。誰が公開したかはこれでしか分からない */
+  namespace: string | null;
   mcp_status: string | null;
   api_url: string | null;
   api_auth_method: string | null;
@@ -34,10 +37,19 @@ interface ServiceRow {
   total_calls: number;
 }
 
-function computeScore(svc: ServiceRow): number {
+function computeScore(svc: ServiceRow, adjudicated?: ReadonlySet<string>): number {
   let score = 0;
-  if (svc.mcp_status === "official") score += 0.5;
-  else if (svc.mcp_status === "third_party") score += 0.4;
+
+  // レジストリは「HTTP/SSEでホストされているか」だけで official を付けており、
+  // 誰が公開したかを見ていない（founder-ops/RCA-MCP-Ingestion_2026-09-04.md ③）。
+  // 発行元を確認できていない値に等級の0.5点を渡すと、個人のラッパーが
+  // ベンダー公式と同じ重みを持つ。等級では credit しない。
+  // 値そのものは残す——発見性の信号としては引き続き有用なので。
+  const provenance = statusProvenance(svc, adjudicated);
+  const statusIsCredited = provenance !== "registry_inferred";
+
+  if (statusIsCredited && svc.mcp_status === "official") score += 0.5;
+  else if (statusIsCredited && svc.mcp_status === "third_party") score += 0.4;
   else if (svc.api_url) score += 0.3;
   else score += 0.1;
 
@@ -66,11 +78,15 @@ function gradeFromScore(score: number, hasEvidence: boolean): string {
   return "D";
 }
 
-export function recomputeAxrGrades(db: Database.Database): AxrRecomputeSummary {
+export function recomputeAxrGrades(
+  db: Database.Database,
+  /** 人が一次資料で確認済みのサービスid。渡されたものは出所 verdict として credit する */
+  adjudicated?: ReadonlySet<string>
+): AxrRecomputeSummary {
   const services = db
     .prepare(
       `
-      SELECT s.id, s.mcp_status, s.api_url, s.api_auth_method,
+      SELECT s.id, s.namespace, s.mcp_status, s.api_url, s.api_auth_method,
              s.trust_score, s.axr_score as old_score, s.axr_grade as old_grade,
              COALESCE(ss.success_rate, 0) as success_rate,
              COALESCE(ss.total_calls, 0) as total_calls
@@ -91,7 +107,7 @@ export function recomputeAxrGrades(db: Database.Database): AxrRecomputeSummary {
 
   const tx = db.transaction(() => {
     for (const svc of services) {
-      const score = computeScore(svc);
+      const score = computeScore(svc, adjudicated);
       const scoreInt = Math.round(score * 100);
       const hasEvidence = (svc.total_calls ?? 0) >= 3;
       const newGrade = gradeFromScore(score, hasEvidence);
