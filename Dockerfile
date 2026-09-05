@@ -14,6 +14,10 @@ COPY tsconfig.json ./
 COPY src/ ./src/
 RUN npm run build
 
+# dual-run照合はcronサービスがこのイメージから走らせる。scripts/ 全体を入れると
+# 開発用スクリプトまで本番イメージに載るので、必要な1本だけコピーする
+COPY scripts/dualrun-reconcile.mjs ./scripts/
+
 # Remove dev dependencies after build to slim down image
 RUN npm prune --omit=dev
 
