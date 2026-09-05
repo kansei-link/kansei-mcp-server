@@ -1,0 +1,23 @@
+# cronサービス（dualrun-reconciler）専用のconfig-as-code。
+#
+# ルートの railway.toml は healthcheckPath="/health" を指定している。これは
+# 同じリポジトリからデプロイする**全サービスに効く**ので、1回走って終了する
+# cronサービスにも適用されてしまう。照合スクリプトはHTTPサーバーではないので
+# /health に応答せず、Railwayがヘルスチェック失敗と判定しうる。
+#
+# ルートの railway.toml を書き換えると本番Webサービス側のデプロイ検証が弱まるため、
+# cronサービスだけがこのファイルを見るようにする。
+# Railwayダッシュボード → 該当サービス → Settings → Config-as-code に
+# `railway.cron.toml` を指定すること。
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# ヘルスチェックは指定しない。1回実行して終了するプロセスなので、
+# 応答を待つ相手がいない
+startCommand = "node scripts/dualrun-reconcile.mjs"
+# 照合が失敗したとき（不一致検出=exit 1、記録先なし=exit 3）に再実行しても
+# 同じ結果になる。リトライで隠さず、失敗として残す
+restartPolicyType = "never"
