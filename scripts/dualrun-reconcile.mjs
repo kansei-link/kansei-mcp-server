@@ -33,6 +33,7 @@
  */
 import { DatabaseSync } from 'node:sqlite';
 import { appendFileSync, existsSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : null; };
 const LOCAL_CSV = arg('--local-csv');
@@ -112,12 +113,17 @@ if (LOCAL_CSV) {
   console.log(`[dualrun] recorded -> ${LOCAL_CSV}（ローカル実行モード）`);
 } else {
   const dbPath = process.env.KANSEI_DB_PATH || '/data/kansei-link.db';
-  if (!existsSync(dbPath)) {
-    console.error(`[dualrun] 記録先DBが無い: ${dbPath}`);
-    console.error('[dualrun] 揮発FSに書いて記録が消えるのを避けるため、ここで失敗させる。');
+  // 見るのはDBファイルではなく**置き場**。初回はファイルが無いのが当たり前で、
+  // ファイルの有無で弾くと1行目が永久に書けない。
+  // ディレクトリが無い＝ボリュームが付いていない＝書いても消える、なのでそこで止める。
+  const dbDir = dirname(dbPath);
+  if (!existsSync(dbDir)) {
+    console.error(`[dualrun] 記録先のディレクトリが無い: ${dbDir}`);
+    console.error('[dualrun] ボリュームが付いていない可能性が高い。揮発FSに書いて記録が消えるのを避けるため、ここで失敗させる。');
     console.error('[dualrun] ローカルで試すなら --local-csv <path> を付けること。');
     process.exit(3);
   }
+  const firstRun = !existsSync(dbPath);
   const db = new DatabaseSync(dbPath);
   db.exec(`CREATE TABLE IF NOT EXISTS dualrun_reconcile_log (
     ran_at TEXT PRIMARY KEY,
@@ -130,6 +136,6 @@ if (LOCAL_CSV) {
     (ran_at,believable_total,canonical_total,common,only_believable,only_canonical,type_diff,state_diff,status,runner)
     VALUES (?,?,?,?,?,?,?,?,?,?)`).run(...Object.values(row));
   const n = db.prepare('SELECT COUNT(*) c FROM dualrun_reconcile_log').get().c;
-  console.log(`[dualrun] recorded -> ${dbPath}:dualrun_reconcile_log（通算 ${n} 行）`);
+  console.log(`[dualrun] recorded -> ${dbPath}:dualrun_reconcile_log（通算 ${n} 行${firstRun ? '・DBを新規作成' : ''}）`);
 }
 process.exit(mismatch ? 1 : 0);
