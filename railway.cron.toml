@@ -1,0 +1,19 @@
+# cronサービス（dualrun-reconciler）専用のconfig-as-code。
+#
+# 起動コマンドをここにも書いてある。ダッシュボードのCustom Start Commandと
+# 二重になるが、意図的にそうしている——2026-09-05 に一度、
+# HTTPサーバーとして起動してしまった（Dockerfileの既定CMDが使われた）。
+# 片方が失われても、もう片方が正しいコマンドを指すようにしておく。
+#
+# ルートの railway.toml は healthcheckPath="/health" を持つ。1回走って終了する
+# このサービスは /health に応答しないので、ここでは指定しない。
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "node scripts/dualrun-reconcile.mjs"
+# 不一致検出(exit 1)も記録先なし(exit 3)も、再実行すれば同じ結果になる。
+# リトライで隠さず、失敗として残す
+restartPolicyType = "never"
