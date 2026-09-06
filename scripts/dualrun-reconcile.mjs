@@ -88,16 +88,17 @@ const stateDiff = B.subs.filter((s) => {
 });
 
 const mismatch = onlyB.length || onlyC.length || typeDiff.length || stateDiff.length;
-const status = mismatch ? 'MISMATCH' : 'OK';
 const row = {
   ran_at: new Date().toISOString(),
   believable_total: bMap.size, canonical_total: cMap.size, common,
   only_believable: onlyB.length, only_canonical: onlyC.length,
   type_diff: typeDiff.length, state_diff: stateDiff.length,
-  status, runner: process.env.DUALRUN_RUNNER || 'unknown',
+  status: mismatch ? 'MISMATCH' : 'OK',
+  runner: process.env.DUALRUN_RUNNER || 'unknown',
+  gap_hours: null,
 };
 
-console.log(`[dualrun] ${status} common=${common} onlyB=${onlyB.length} onlyC=${onlyC.length} ` +
+console.log(`[dualrun] ${row.status} common=${common} onlyB=${onlyB.length} onlyC=${onlyC.length} ` +
   `typeDiff=${typeDiff.length} stateDiff=${stateDiff.length} runner=${row.runner}`);
 if (mismatch) {
   console.error(`[dualrun] onlyB=${JSON.stringify(onlyB.slice(0, 5))} onlyC=${JSON.stringify(onlyC.slice(0, 5))}`);
@@ -130,11 +131,36 @@ if (LOCAL_CSV) {
     believable_total INTEGER, canonical_total INTEGER, common INTEGER,
     only_believable INTEGER, only_canonical INTEGER,
     type_diff INTEGER, state_diff INTEGER,
-    status TEXT, runner TEXT
+    status TEXT, runner TEXT, gap_hours REAL
   )`);
+  // 既存DBには gap_hours が無い。追加を試み、既にあれば黙って進む
+  try { db.exec('ALTER TABLE dualrun_reconcile_log ADD COLUMN gap_hours REAL'); } catch { /* 既存 */ }
+
+  // 前回からどれだけ空いたか。GO条件は「連続」なので、飛びが分からないと判定できない。
+  // 30時間を超えたら1日抜けたとみなす（日次実行の揺れを吸収して、なお検出できる幅）
+  const prev = db.prepare(
+    'SELECT ran_at FROM dualrun_reconcile_log ORDER BY ran_at DESC LIMIT 1'
+  ).get();
+  if (prev?.ran_at) {
+    const hours = (Date.parse(row.ran_at) - Date.parse(prev.ran_at)) / 3_600_000;
+    row.gap_hours = Math.round(hours * 10) / 10;
+    if (!mismatch && hours > 30) {
+      row.status = `OK_GAP_${Math.round(hours)}h`;
+      console.warn(`[dualrun] 前回から ${row.gap_hours}h 空いている。連続カウントはここでリセット`);
+    }
+  }
+
   db.prepare(`INSERT OR REPLACE INTO dualrun_reconcile_log
-    (ran_at,believable_total,canonical_total,common,only_believable,only_canonical,type_diff,state_diff,status,runner)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`).run(...Object.values(row));
+    (ran_at,believable_total,canonical_total,common,only_believable,only_canonical,type_diff,state_diff,status,runner,gap_hours)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(...Object.values(row));
+
+  // 現時点の連続本数。ゲート判定を毎回ログに出しておけば、後から数え直さずに済む
+  const recent = db.prepare(
+    'SELECT status FROM dualrun_reconcile_log ORDER BY ran_at DESC LIMIT 14'
+  ).all();
+  let streak = 0;
+  for (const r of recent) { if (r.status === 'OK') streak++; else break; }
+  console.log(`[dualrun] 連続OK: ${streak} 回（GO条件は週末を1回以上含む7連続）`);
   const n = db.prepare('SELECT COUNT(*) c FROM dualrun_reconcile_log').get().c;
   console.log(`[dualrun] recorded -> ${dbPath}:dualrun_reconcile_log（通算 ${n} 行${firstRun ? '・DBを新規作成' : ''}）`);
 }
