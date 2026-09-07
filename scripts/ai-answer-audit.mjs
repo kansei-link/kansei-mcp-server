@@ -1,3 +1,15 @@
+/**
+ * 実行正本は `kansei-ops-runtime`（OPS-RUNTIME-MANIFEST.md の固定commit）。
+ * このファイルはその写しで、内容を同一に保つ。分岐させないこと。
+ *
+ * アドホックにバッテリーを回すときも worktree 側から起動する:
+ *   cd kansei-ops-runtime
+ *   node --env-file=../kansei-link-mcp/.env scripts/ai-answer-audit.mjs <battery.json> --engines ...
+ *
+ * 2026-09-07: main側が引用取得を持たない旧版のまま残っており、そちらを走らせて
+ * 「引用が取れない＝計測装置に穴がある」と誤診した。マニフェストには同じ事故が
+ * 2026-09-03の例として記録されていた。写しを正本と揃えて罠を消す。
+ */
 #!/usr/bin/env node
 /**
  * AI Answer Audit — multi-engine question battery runner
@@ -11,7 +23,12 @@
  *
  * Battery file format:
  *   { "target": "久光製薬 / Salonpas",
+ *     "brand_patterns": ["kansei-?link"],   // optional — self-scores the run
  *     "questions": [{ "id": "listed", "lang": "ja", "question": "...", "official_fact": "...", "risk_note": "..." }] }
+ *
+ * Web-searching engines (perplexity, grounded gemini) also return the sources
+ * they used; those are captured per answer and aggregated into a ranking of the
+ * domains occupying each answer.
  *
  * Engines run only when their API key is present in the environment:
  *   ANTHROPIC_API_KEY  (model: ANTHROPIC_AUDIT_MODEL, default claude-opus-4-8)
@@ -37,6 +54,18 @@ const MAX_ANSWER_TOKENS = Number(process.env.AUDIT_MAX_TOKENS ?? 4096);
 
 // ─── Engine adapters ───────────────────────────────────────────────
 
+// Engines that search the live web return the sources they used. Capturing them
+// is the other half of the measurement: without it a run only tells us we were
+// absent, not who occupied the answer instead.
+const normCitations = (raw) =>
+  (raw ?? [])
+    .map((c) =>
+      typeof c === "string"
+        ? { url: c }
+        : { url: c.url ?? c.link ?? c.web?.uri, title: c.title ?? c.web?.title }
+    )
+    .filter((c) => c.url);
+
 const ENGINES = {
   anthropic: {
     keyEnv: "ANTHROPIC_API_KEY",
@@ -48,10 +77,11 @@ const ENGINES = {
         max_tokens: MAX_ANSWER_TOKENS,
         messages: [{ role: "user", content: question }],
       });
-      return res.content
+      const text = res.content
         .filter((b) => b.type === "text")
         .map((b) => b.text)
         .join("\n");
+      return { text, citations: [] };
     },
   },
   openai: {
@@ -72,7 +102,7 @@ const ENGINES = {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message ?? `HTTP ${res.status}`);
-      return data.choices?.[0]?.message?.content ?? "";
+      return { text: data.choices?.[0]?.message?.content ?? "", citations: [] };
     },
   },
   gemini: {
@@ -92,9 +122,12 @@ const ENGINES = {
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message ?? `HTTP ${res.status}`);
-      return (
-        data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("\n") ?? ""
-      );
+      const cand = data.candidates?.[0];
+      return {
+        text: cand?.content?.parts?.map((p) => p.text).join("\n") ?? "",
+        // Only populated when the request is grounded; ungrounded runs return [].
+        citations: normCitations(cand?.groundingMetadata?.groundingChunks),
+      };
     },
   },
   perplexity: {
@@ -115,12 +148,11 @@ const ENGINES = {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message ?? `HTTP ${res.status}`);
-      // 引用元を捨てない。名前が出る理由は「どの記事が読まれたか」にあるので、
-      // そこが分からないと、何を書けば入れるのかも決められない。
-      // Perplexityは citations と search_results を両方返す（実測で確認）
-      const citations = (data.citations?.length ? data.citations : null)
-        ?? (data.search_results ?? []).map((r) => r.url).filter(Boolean);
-      return { text: data.choices?.[0]?.message?.content ?? "", citations };
+      return {
+        text: data.choices?.[0]?.message?.content ?? "",
+        // search_results is the current field; citations is the legacy one.
+        citations: normCitations(data.search_results ?? data.citations),
+      };
     },
   },
 };
@@ -176,12 +208,10 @@ for (const q of questions) {
       const eng = ENGINES[name];
       const model = eng.model();
       try {
-        const out = await eng.ask(q.question, model);
-        // エンジンによって戻りが文字列か {text, citations}。両方受ける
-        answers[name] = typeof out === "string"
-          ? { model, text: out }
-          : { model, text: out.text, citations: out.citations?.length ? out.citations : undefined };
-        console.log(`  ✓ ${q.id} × ${name}`);
+        const { text, citations } = await eng.ask(q.question, model);
+        answers[name] = { model, text, citations };
+        const src = citations.length ? ` — ${citations.length} sources` : "";
+        console.log(`  ✓ ${q.id} × ${name}${src}`);
       } catch (err) {
         answers[name] = { model, error: String(err.message ?? err) };
         console.log(`  ✗ ${q.id} × ${name}: ${err.message}`);
@@ -191,6 +221,58 @@ for (const q of questions) {
   results.push({ ...q, answers });
 }
 
+// ─── Brand scoring ─────────────────────────────────────────────────
+
+// A battery may declare brand_patterns (regex strings) to self-score. Answer
+// hits and source hits are counted separately: being named in the prose and
+// being one of the sources the engine actually retrieved are different wins,
+// and the second is the one that predicts the first.
+const brandRe = battery.brand_patterns?.length
+  ? new RegExp(battery.brand_patterns.join("|"), "gi")
+  : null;
+
+const brandSummary = brandRe
+  ? (() => {
+      const per = {};
+      let measured = 0;
+      for (const r of results) {
+        for (const name of active) {
+          const a = r.answers[name];
+          if (a.error) continue;
+          measured++;
+          per[name] ??= { answered: 0, answer_hits: 0, source_hits: 0, hit_ids: [] };
+          per[name].answered++;
+          if (brandRe.test(a.text ?? "")) {
+            per[name].answer_hits++;
+            per[name].hit_ids.push(r.id);
+          }
+          brandRe.lastIndex = 0;
+          if ((a.citations ?? []).some((c) => brandRe.test(c.url))) {
+            per[name].source_hits++;
+          }
+          brandRe.lastIndex = 0;
+        }
+      }
+      const answer_hits = Object.values(per).reduce((s, p) => s + p.answer_hits, 0);
+      const source_hits = Object.values(per).reduce((s, p) => s + p.source_hits, 0);
+      return { patterns: battery.brand_patterns, measured, answer_hits, source_hits, per_engine: per };
+    })()
+  : null;
+
+// Who occupied the answers instead — ranked by how many answers cited them.
+const domainCounts = {};
+for (const r of results) {
+  for (const name of active) {
+    for (const c of r.answers[name].citations ?? []) {
+      try {
+        const d = new URL(c.url).hostname.replace(/^www\./, "");
+        domainCounts[d] = (domainCounts[d] ?? 0) + 1;
+      } catch {}
+    }
+  }
+}
+const topDomains = Object.entries(domainCounts).sort((a, b) => b[1] - a[1]);
+
 // ─── Write outputs ─────────────────────────────────────────────────
 
 const base = batteryPath.replace(/\.json$/i, "");
@@ -199,6 +281,8 @@ const out = {
   run_at: new Date().toISOString(),
   engines: Object.fromEntries(active.map((n) => [n, ENGINES[n].model()])),
   skipped_engines: skipped,
+  brand_summary: brandSummary,
+  top_cited_domains: Object.fromEntries(topDomains),
   results,
 };
 writeFileSync(`${base}-results.json`, JSON.stringify(out, null, 2));
@@ -210,6 +294,33 @@ const md = [
   skipped.length ? `未実行: ${skipped.join(", ")}` : ``,
   ``,
 ];
+if (brandSummary) {
+  md.push(
+    `## ブランド引用サマリ`,
+    ``,
+    `判定パターン: \`${brandSummary.patterns.join(" | ")}\``,
+    ``,
+    `| エンジン | 測定 | 本文で言及 | 出典に採用 |`,
+    `|---|---:|---:|---:|`,
+    ...active.map((n) => {
+      const p = brandSummary.per_engine[n];
+      if (!p) return `| ${n} | 0 | — | — |`;
+      return `| ${n} | ${p.answered} | ${p.answer_hits} | ${p.source_hits} |`;
+    }),
+    `| **合計** | **${brandSummary.measured}** | **${brandSummary.answer_hits}** | **${brandSummary.source_hits}** |`,
+    ``
+  );
+}
+if (topDomains.length) {
+  md.push(
+    `## 出典を占有しているドメイン（上位20）`,
+    ``,
+    ...topDomains.slice(0, 20).map(([d, n], i) => `${i + 1}. \`${d}\` — ${n}回`),
+    ``
+  );
+}
+md.push(`---`, ``);
+
 for (const r of results) {
   md.push(`## ${r.id}: ${r.question}`, ``);
   if (r.official_fact) md.push(`**公式情報:** ${r.official_fact}`, ``);
@@ -218,9 +329,25 @@ for (const r of results) {
     const a = r.answers[name];
     md.push(`### ${name} (${a.model})`, ``);
     md.push(a.error ? `> ERROR: ${a.error}` : a.text.trim(), ``);
+    if (a.citations?.length) {
+      md.push(`**出典 (${a.citations.length}):**`, ``);
+      a.citations.forEach((c, i) =>
+        md.push(`${i + 1}. ${c.title ? `${c.title} — ` : ""}${c.url}`)
+      );
+      md.push(``);
+    }
   }
   md.push(`---`, ``);
 }
 writeFileSync(`${base}-results.md`, md.join("\n"));
 
+if (brandSummary) {
+  console.log(
+    `\nBrand: ${brandSummary.answer_hits}/${brandSummary.measured} answers mention, ` +
+      `${brandSummary.source_hits}/${brandSummary.measured} cite us as a source`
+  );
+}
+if (topDomains.length) {
+  console.log(`Top cited: ${topDomains.slice(0, 5).map(([d, n]) => `${d}(${n})`).join(", ")}`);
+}
 console.log(`\nWrote ${base}-results.json and ${base}-results.md`);
