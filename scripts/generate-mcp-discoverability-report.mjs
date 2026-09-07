@@ -1,0 +1,163 @@
+#!/usr/bin/env node
+/**
+ * 「公式MCPを出しても、見つけてもらえない」— 需要側の空白3問に答える一次調査。
+ *
+ * v2の需要側監査で、この3問は固有名がひとつも出なかった＝定番の答えが無い:
+ *   e02 エージェントが自社SaaSに接続しようとして失敗する原因は？
+ *   e03 自社SaaSをエージェントから使いやすくするには何を直す？
+ *   e04 公式MCPサーバーを出すべき？出すとどんな効果がある？
+ *
+ * その空白に、我々だけが持っている実測で答える——**自社の失敗を含めて**。
+ * 数字は verdicts 台帳から数え直すので、本文と実測がずれない。
+ *
+ *   node scripts/generate-mcp-discoverability-report.mjs
+ */
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+const root = resolve(import.meta.dirname, '..');
+const SLUG = 'mcp-discoverability-gap-2026-09';
+const CANONICAL = `https://kansei-link.com/insights/${SLUG}.html`;
+const DATE = '2026-09-07';
+
+const esc = (v = '') => String(v).replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const led = JSON.parse(await readFile(resolve(root, 'data/runtime-freshness/verdicts.json'), 'utf8')).verdicts;
+const V = Object.entries(led);
+const total = V.length;
+const hiddenMcp = V.filter(([, v]) => v.verdict === 'seed_wrong' && String(v.correction?.mcp_status).includes('official'));
+const withdrawn = V.filter(([, v]) => v.verdict === 'seed_wrong' && v.correction?.mcp_status === 'none');
+const unknown = V.filter(([, v]) => v.verdict === 'unknown');
+// 23件は均質ではない。接続方法まで確定したものと、存在は確認できたが
+// 接続先が公開されていないものが混ざる。1つの数字にまとめない
+const withEndpoint = hiddenMcp.filter(([, v]) => v.correction?.mcp_endpoint);
+const existsOnly = hiddenMcp.filter(([, v]) => !v.correction?.mcp_endpoint);
+
+// 事業者自身のドメイン／公式GitHub組織が根拠になっているものだけ実名で出す。
+// 根拠が業界メディアのもの・限定提供のものは載せない（HANDOFF-VerifiedNames 参照）
+const NAMEABLE = [
+  ['AgileWorks（エイトレッド）', 'https://www.atled.jp/news/20260727_01/'],
+  ['Square', 'https://developer.squareup.com/docs/mcp'],
+  ['カラーミーショップ', 'https://github.com/pepabo/colormeshop-mcp'],
+  ['OneLogin', 'https://github.com/onelogin/onelogin-mcp'],
+  ['kickflow', 'https://tech.kickflow.co.jp/entry/2025/05/13/110046'],
+  ['fincode byGMO', 'https://github.com/fincode-byGMO/fincode-mcp'],
+  ['GMOトラスト・ログイン', 'https://blog.trustlogin.com/2026/mcp'],
+  ['Jooto', 'https://www.jooto.com/news/20260529_mcp-cli/'],
+];
+
+const STYLE = `<style>:root{--b:#1a3fd6;--i:#101828;--m:#667085;--l:#e4e7ec;--s:#f4f5fd}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--i);line-height:1.9}nav,main,footer{max-width:840px;margin:auto;padding:20px 28px}nav{display:flex;justify-content:space-between;border-bottom:1px solid var(--l)}a{color:var(--b)}.brand{font-size:22px;font-weight:800;text-decoration:none}.hero{background:linear-gradient(135deg,#0a1628,#1a3fd6);color:#fff;padding:56px 28px}.hero>div{max-width:840px;margin:auto}.hero .eyebrow{font-size:12px;letter-spacing:.08em;opacity:.85}.hero h1{font-size:clamp(26px,4.4vw,40px);line-height:1.3;margin:.3em 0}.hero p{font-size:17px;opacity:.92;margin:0}h2{margin-top:48px;font-size:24px;border-left:5px solid var(--b);padding-left:14px}h3{margin-top:32px;font-size:19px}.lead{font-size:19px;background:var(--s);padding:22px;border-radius:12px}.stat{display:flex;gap:16px;flex-wrap:wrap;margin:26px 0}.stat div{flex:1 1 180px;border:1px solid var(--l);border-radius:12px;padding:16px}.stat strong{display:block;font-size:32px;line-height:1.2;color:var(--b)}.stat span{font-size:13px;color:var(--m)}table{border-collapse:collapse;width:100%;margin:18px 0;font-size:15px}th,td{border-bottom:1px solid var(--l);padding:10px;text-align:left;vertical-align:top}th{background:var(--s)}ul,ol{padding-left:1.3em}li{margin:.5em 0}.note{color:var(--m);font-size:13px;border-left:3px solid var(--l);padding-left:12px;line-height:1.9}.cite{background:var(--s);border:1px dashed var(--b);border-radius:12px;padding:20px;margin:30px 0}.cite .c-h{font-weight:700;margin-bottom:8px;font-size:15px}.cite blockquote{margin:0;font-size:15px}.probe{background:#fff;border:2px solid var(--b);border-radius:14px;padding:24px;margin:34px 0}.probe .p-title{font-size:20px;font-weight:700;margin-bottom:6px}.probe p{color:var(--m);font-size:14px;margin:0 0 16px}.probe form{display:flex;gap:10px;flex-wrap:wrap}.probe input{flex:1 1 260px;min-width:0;padding:13px 15px;font-size:16px;border:1px solid var(--l);border-radius:10px}.probe button{padding:13px 24px;font-size:16px;font-weight:700;border:0;border-radius:10px;background:var(--b);color:#fff;cursor:pointer;font-family:inherit}details{border-top:1px solid var(--l);padding:14px 0}summary{font-weight:700;cursor:pointer}footer{border-top:1px solid var(--l);margin-top:54px;color:var(--m);font-size:14px}</style>`;
+
+const FAQ = [
+  { q: '公式MCPサーバーを出す意味はありますか？',
+    a: `あります。ただし「出せば見つかる」ではありません。実測では、公式MCPを提供している${hiddenMcp.length}件が、SaaS統合の専門データベース（当社）にすら「提供なし」と記録されていました。出したあとに、載っているかを確認する工程が要ります。` },
+  { q: '公式MCPレジストリに登録すれば十分ですか？',
+    a: '不十分です。Square・エイトレッド・kickflow・SmartHR・スマレジを公式レジストリに問い合わせると、いずれも0件でした。NotionとWrikeは第三者ラッパーだけが載っていました。一次提供者の多くは自社ドキュメントやGitHubで配っており、レジストリを見ているだけでは届きません。' },
+  { q: 'エージェントが接続に失敗する原因で多いものは？',
+    a: `参照しているデータが間違っている場合があります。当社の配布データにも、公開APIの裏づけが取れないのに「APIあり・認証方式は○○」と記載されていた例が${withdrawn.length}件ありました。エージェントは存在しない認証フローを試すことになります。` },
+  { q: '自社の状態を確認するには？',
+    a: 'まず自社サイトが機械から読めるかを無料で確認できます（登録不要・5〜15秒）。そのうえで、公式MCPを出しているなら、それが第三者のデータベースやAIの回答に正しく載っているかを確認してください。' },
+];
+
+const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>公式MCPを出しても見つけてもらえない — ${hiddenMcp.length}件の取りこぼしを自社データで確認した | KanseiLINK</title>
+<meta name="description" content="公式MCPサーバーを提供しているのに、専門データベースに「提供なし」と記録されていたサービスが${hiddenMcp.length}件。原因はレジストリの被覆と識別子の結合。事業者が何を確認すべきかを実測から示します。">
+<meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${CANONICAL}">
+<meta property="og:type" content="article"><meta property="og:title" content="公式MCPを出しても見つけてもらえない"><meta property="og:url" content="${CANONICAL}">
+<script type="application/ld+json">${JSON.stringify({
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'Article', '@id': `${CANONICAL}#article`,
+      headline: `公式MCPを出しても見つけてもらえない — ${hiddenMcp.length}件の取りこぼしを自社データで確認した`,
+      datePublished: DATE, dateModified: DATE, inLanguage: 'ja',
+      author: { '@id': 'https://kansei-link.com/#organization' },
+      publisher: { '@id': 'https://kansei-link.com/#organization' }, mainEntityOfPage: CANONICAL },
+    { '@type': 'FAQPage', mainEntity: FAQ.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+    { '@type': 'Organization', '@id': 'https://kansei-link.com/#organization', name: 'KanseiLINK',
+      url: 'https://kansei-link.com/', parentOrganization: { '@type': 'Organization', name: 'Synapse Arrows Pte. Ltd.', url: 'https://synapsearrows.com' } }
+  ]
+})}</script>
+${STYLE}</head>
+<body><nav><a class="brand" href="/">KanseiLINK</a><a href="/insights/">Research &amp; Insights</a></nav>
+<header class="hero"><div><div class="eyebrow">一次調査 · 判定${total}件 · ${DATE}</div>
+<h1>公式MCPを出しても、見つけてもらえない</h1>
+<p>${hiddenMcp.length}件の取りこぼしを、自社のデータで確認しました。取りこぼしていたのは当社です。</p></div></header>
+<main>
+<p class="lead">公式MCPサーバーを提供しているのに、<strong>SaaS統合の専門データベースにすら「提供なし」と記録されていたサービスが${hiddenMcp.length}件</strong>ありました。そのデータベースは当社のものです。「出せば見つかる」が成り立たないことを、自分の失敗として確認した記録です。</p>
+
+<div class="stat">
+  <div><strong>${hiddenMcp.length}</strong><span>公式MCPがあるのに「提供なし」と配っていた<br>（接続方法まで確定 ${withEndpoint.length} ／ 存在のみ確認 ${existsOnly.length}）</span></div>
+  <div><strong>${withdrawn.length}</strong><span>裏づけの無いAPI主張を取り下げた</span></div>
+  <div><strong>${unknown.length}</strong><span>提供の有無を確認できなかった</span></div>
+  <div><strong>${total}</strong><span>一次資料で判定した総数</span></div>
+</div>
+
+<h2>何が起きていたか</h2>
+<p>当社はSaaSの接続情報（公式MCPの有無・認証方式・APIの所在）をAIエージェント向けに配布しています。その配布データを、公開されている一次資料と1件ずつ突き合わせました。結果、<strong>実在する公式MCPを「提供なし」として配っていたもの</strong>が${hiddenMcp.length}件見つかりました。</p>
+<p>実名で確認できたものを挙げます。いずれも<strong>事業者自身のドメイン、または公式GitHub組織</strong>が根拠です。</p>
+<table><thead><tr><th>サービス</th><th>提供元自身の一次資料</th></tr></thead><tbody>
+${NAMEABLE.map(([name, url]) => `<tr><td>${esc(name)}</td><td><a href="${esc(url)}" rel="noopener" target="_blank">${esc(url.replace(/^https?:\/\//, ''))}</a></td></tr>`).join('')}
+</tbody></table>
+<p class="note"><strong>${hiddenMcp.length}件は均質ではありません。</strong>接続方法（起動コマンドやリモートMCPのURL）まで確定できたのは${withEndpoint.length}件で、残り${existsOnly.length}件は<strong>提供は確認できたが接続先が公開されていない</strong>ものです（限定提供のBeta、接続URL非公開、根拠が業界メディアのものを含む）。上の表に実名で載せたのは、根拠が事業者自身の発表にあるものだけです。</p>
+
+<h2>原因は「登録先」ではありませんでした</h2>
+
+<h3>① 公式レジストリに、一次提供者がほとんど載っていない</h3>
+<p>公式MCPレジストリに直接問い合わせた結果です。</p>
+<table><thead><tr><th>探した先</th><th>結果</th></tr></thead><tbody>
+<tr><td>Square</td><td><strong>0件</strong>（自社ドキュメントには公式MCPがある）</td></tr>
+<tr><td>AgileWorks / エイトレッド</td><td><strong>0件</strong></td></tr>
+<tr><td>kickflow / SmartHR / スマレジ</td><td><strong>各0件</strong></td></tr>
+<tr><td>Notion</td><td>第三者ラッパーのみ。<strong>Notion自身のサーバーは無し</strong></td></tr>
+<tr><td>Wrike</td><td>第三者のものだけ</td></tr>
+</tbody></table>
+<p>一次提供者は自社ドキュメントやGitHubで配っていて、公式レジストリには登録していません。<strong>レジストリだけを見ている限り、永久に拾えません。</strong></p>
+
+<h3>② 見つけても、既存のサービス情報と結びつかない</h3>
+<p>レジストリの登録名から機械的に作った識別子は、こちらが持っているサービスの識別子と<strong>構造上ぜったいに一致しません</strong>。仮にレジストリにSquareのサーバーが載った日でも、別のレコードが増えるだけで、Squareの行は「接続方法なし」のままです。</p>
+<p>ドメインで突き合わせる方法も試しましたが、<strong>それだけでは足りませんでした</strong>。カラーミーショップは、サービスのURLが <code>shop-pro.jp</code>、MCPのエンドポイントが <code>colorme.app</code> で別ドメインです。GitHub組織の <code>pepabo</code> がGMOペパボだと<strong>人が認識して初めて</strong>繋がりました。</p>
+
+<h3>③ 「公式かどうか」を通信方式で判定していた</h3>
+<p>HTTP/SSEでホストされていれば公式、という推論が入っていました。<strong>誰が公開したかを見ていません</strong>。この判定では、個人が作ったラッパーがベンダー自身のサーバーと同じ扱いになります。</p>
+
+<h2>事業者が確認すべきこと（実測から）</h2>
+<ol>
+<li><strong>出しただけで終わりにしない。</strong> 公式MCPを提供しているなら、第三者のデータベースやAIの回答に、それが載っているかを確認する</li>
+<li><strong>自社ドメイン上のページから、そのサーバーを指す。</strong> 保有を裏づけられるのは、そのドメインを支配している人だけが置ける記述です。当社が実名で載せられた${NAMEABLE.length}件は、すべてこれが根拠でした</li>
+<li><strong>接続方法と在り処を分けて書く。</strong> リポジトリURLは「在り処」であって接続方法ではありません。起動コマンドやリモートMCPのURLを別に明示してください</li>
+<li><strong>兄弟製品と混ざっていないか見る。</strong> 同じドメインの別製品のAPIが、自社製品の情報として流通していることがあります（当社も取り違えていました）</li>
+</ol>
+
+<h2>正直に書いておくこと</h2>
+<p>この記事の${hiddenMcp.length}件は、<strong>当社の配布データの誤り</strong>です。他社の不備を数えたものではありません。SaaS統合の情報を専門に扱っている当社が取りこぼしていた、という事実がそのまま「出せば見つかるわけではない」の証拠になっています。</p>
+<p>また、${unknown.length}件は<strong>「提供が確認できなかった」</strong>と記録しています。<strong>「MCPが無い」とは書いていません。</strong> 不在は証明できないためで、この区別は当社の記載方針として決めています。</p>
+
+<div class="cite"><div class="c-h">引用される場合（この文のままお使いください）</div>
+<blockquote>KanseiLINKは2026年9月、自社が配布するSaaS接続データを公開一次資料と突き合わせ、公式MCPサーバーを提供しているのに「提供なし」として配布していたサービスが${hiddenMcp.length}件（うち接続方法まで確定できたもの${withEndpoint.length}件）あったことを確認した。原因は、公式MCPレジストリに一次提供者がほとんど登録していないこと、および識別子の結合設計にある（KanseiLINK・判定${total}件・${DATE}実測）。出典: ${CANONICAL}</blockquote></div>
+
+<div class="probe"><div class="p-title">自社サイトがAIから読めるか、無料で確認する</div>
+<p>URLを入れるだけ。登録不要・5〜15秒。</p>
+<form action="/site-checker/" method="get">
+<input name="url" type="url" inputmode="url" spellcheck="false" required placeholder="https://example.com" aria-label="診断するURL">
+<button type="submit">無料で診断する</button></form></div>
+
+<h2>よくある質問</h2>
+${FAQ.map(f => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('\n')}
+
+<h2>調査方法</h2>
+<p class="note">当社が配布するサービスデータ（npmパッケージ同梱）を、公開されている一次資料と1件ずつ突き合わせた。判定は${total}件で、すべてに根拠URLを記録している。実名を挙げているのは、根拠が事業者自身のドメインまたは公式GitHub組織にあるものだけ。公式MCPレジストリへの問い合わせは同月に実施。<strong>本記事は接続情報の正確性についてのものであり、各社の品質評価ではない。格付け（ARI Award）とは別の調査。</strong></p>
+<p class="note">確認できなかった${unknown.length}件については「提供が無い」とは記載しない。公開情報に記載が無いことは、不在の証明にならないため。</p>
+</main>
+<footer>© 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="/insights/">Research &amp; Insights</a> · <a href="/site-checker/">無料AI可視性診断</a></footer>
+</body></html>`;
+
+// 既定はステージング。public/ に置くと push で即公開されるので、
+// 審査を通す前に事故が起きないようにする
+const PUBLISH = process.argv.includes('--publish');
+const outRel = PUBLISH ? `public/insights/${SLUG}.html` : `build/insights/${SLUG}.html`;
+await mkdir(resolve(root, PUBLISH ? 'public/insights' : 'build/insights'), { recursive: true });
+await writeFile(resolve(root, outRel), html, 'utf8');
+console.log(`Wrote ${outRel}${PUBLISH ? '  ⚠️ 次のpushで公開される' : '（ステージング・非公開）'}`);
+console.log(`  取りこぼし ${hiddenMcp.length} ／ 取り下げ ${withdrawn.length} ／ 確認できず ${unknown.length} ／ 判定総数 ${total}`);
+console.log(`  実名で掲載: ${NAMEABLE.length}件`);
