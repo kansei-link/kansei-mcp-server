@@ -11,19 +11,9 @@
 <p class="sub">2026-09-07・一次調査／基準点を取らずに施策を打ち、効果を判定できなくなった経験から</p>
 <div class="big"><div><strong>0 / 36</strong><span>施策後の自社言及数</span></div><div><strong>80</strong><span>狙ったクエリで測った引用元の数</span></div></div>
 
-<p class="lead">私たちは基準点を取らずに施策を打ち、<strong>効果があったのかどうかを判定できなくなりました</strong>。同じことを避けるために、変更を加える前に何を記録しておくかを整理します。</p>
-
-<h2>何が起きたか</h2>
-<p>構造化データ、llms.txt、想定質問の掲載を先に行い、そのあとで測りました。<strong>言及は0</strong>。ここで困ったのは、次のどれなのかが分からないことです。</p>
-<ul>
-<li>施策が間違っていたのか</li>
-<li>施策は正しいが、効果が出るまで時間がかかるのか</li>
-<li>そもそも施策前から0で、変化しようがなかったのか</li>
-</ul>
-<p>基準点を取っていなかったので、3つ目すら確かめられませんでした。<strong>先に測っておけば、この迷いは生まれません。</strong></p>
+<p class="lead">AI検索対策で何かを変える前に、<strong>4つだけ記録しておいてください</strong>。あとから「効いたのかどうか」を判定できるようにするためです。私たちはこれを取らずに施策を打ち、判定できなくなりました。</p>
 
 <h2>変更前に記録しておく4項目</h2>
-<p>あとから「効いたのか」を判定できるようにするために、変更を加える前に残しておく項目です。</p>
 <ol>
 <li><strong>問いの一覧。</strong> 買い手が実際に打ち込む言い回しで10問ほど。自社の用語に置き換えないでください。あとで問いを変えると、前後比較が成立しません</li>
 <li><strong>固有名の出現数。</strong> 自社名だけでなく、<strong>誰かの名前が出たか</strong>も数えます。誰も出ていない質問は、負けではなく空白です</li>
@@ -31,6 +21,46 @@
 <li><strong>測定した日付とエンジン。</strong> モデルは更新されます。いつ・何で測ったかが無いと、比較の意味が変わります</li>
 </ol>
 <p class="note">生成AIの回答は実行ごとに揺れます。1回の測定を基準点にせず、同じ問いを複数回・定期的に繰り返してください。</p>
+
+<h2>実際の記録は、こうなります</h2>
+<p>表計算ソフトで十分です。1回の測定で、1つの質問につき1行。私たちが実際に残している形です。</p>
+<table style="border-collapse:collapse;width:100%;font-size:14px;margin:16px 0">
+<thead><tr style="background:var(--s)">
+<th style="border:1px solid var(--l);padding:8px">測定日</th>
+<th style="border:1px solid var(--l);padding:8px">問い（買い手の言い回しのまま）</th>
+<th style="border:1px solid var(--l);padding:8px">エンジン</th>
+<th style="border:1px solid var(--l);padding:8px">自社名</th>
+<th style="border:1px solid var(--l);padding:8px">出た固有名</th>
+<th style="border:1px solid var(--l);padding:8px">引用元URL</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="border:1px solid var(--l);padding:8px">2026-09-07</td>
+<td style="border:1px solid var(--l);padding:8px">AI検索で自社が表示されません。原因は？</td>
+<td style="border:1px solid var(--l);padding:8px">Perplexity</td>
+<td style="border:1px solid var(--l);padding:8px">なし</td>
+<td style="border:1px solid var(--l);padding:8px">A社, B社</td>
+<td style="border:1px solid var(--l);padding:8px">（回答に付いていたURLを全部）</td>
+</tr>
+<tr>
+<td style="border:1px solid var(--l);padding:8px">2026-09-07</td>
+<td style="border:1px solid var(--l);padding:8px">（同じ問い）</td>
+<td style="border:1px solid var(--l);padding:8px">ChatGPT</td>
+<td style="border:1px solid var(--l);padding:8px">なし</td>
+<td style="border:1px solid var(--l);padding:8px">なし</td>
+<td style="border:1px solid var(--l);padding:8px">（引用元なし）</td>
+</tr>
+</tbody></table>
+<p>ここで大事なのは<strong>「出た固有名」の列</strong>です。空欄が並ぶなら、それは競合に負けているのではなく、まだ誰も取っていない状態です。自社名の欄だけ見ていると、この区別がつきません。</p>
+
+<h2>私たちの場合、どうなったか</h2>
+<p>構造化データ、llms.txt、想定質問の掲載を先に行い、そのあとで測りました。言及は0。ここで困ったのは、次のどれなのかが分からないことでした。</p>
+<ul>
+<li>施策が間違っていたのか</li>
+<li>施策は正しいが、効果が出るまで時間がかかるのか</li>
+<li>そもそも施策前から0で、変化しようがなかったのか</li>
+</ul>
+<p>基準点が無かったので、3つ目すら確かめられませんでした。<a href="/insights/jisha-site-naoshitemo-ai-ni-denai-2026.html">整備の前後で何が起きたか</a>は別の記事にまとめています。</p>
 
 <h2>引用元を残しておくと、何が分かるか</h2>
 <p>4つの質問について引用元を取得したところ、80件が集まりました。読まれていたのは大手メディアではなく、中小の事業者のブログが中心で、60のドメインに分かれていました。今回の範囲では、引用が少数のドメインに集中してはいませんでした。</p>
