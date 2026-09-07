@@ -33,10 +33,13 @@ const unknown = V.filter(([, v]) => v.verdict === 'unknown');
 // 接続先が公開されていないものが混ざる。1つの数字にまとめない
 const withEndpoint = hiddenMcp.filter(([, v]) => v.correction?.mcp_endpoint);
 const existsOnly = hiddenMcp.filter(([, v]) => !v.correction?.mcp_endpoint);
-// 「全件に根拠URL」は事実ではなかった（審査指摘）。実態をそのまま出す
-const withSourceUrl = V.filter(([, v]) => String(v.evidence_url ?? '').startsWith('http'));
+// 根拠の実態。分類名は実データどおりにする——「一次資料」と呼べるものばかりではなく
+// （PR TIMESや業界メディアを含む）、根拠URLが無いものも「未調査」とは限らない
+const withExternalUrl = V.filter(([, v]) => String(v.evidence_url ?? '').startsWith('http'));
 const internalRef = V.filter(([, v]) => v.evidence_url && !String(v.evidence_url).startsWith('http'));
-const notInvestigated = V.filter(([, v]) => !v.evidence_url);
+const noSourceUrl = V.filter(([, v]) => !v.evidence_url);
+// そのうち「一次資料をまだ見ていない」と明記したもの
+const uninvestigated = noSourceUrl.filter(([, v]) => /未確認|当たっていない/.test(v.finding ?? ''));
 
 // 事業者自身のドメイン／公式GitHub組織が根拠になっているものだけ実名で出す。
 // 根拠が業界メディアのもの・限定提供のものは載せない（HANDOFF-VerifiedNames 参照）
@@ -55,7 +58,7 @@ const STYLE = `<style>:root{--b:#1a3fd6;--i:#101828;--m:#667085;--l:#e4e7ec;--s:
 
 const FAQ = [
   { q: '公式MCPサーバーを出す意味はありますか？',
-    a: `あります。ただし「出せば見つかる」ではありません。事業者自身が提供を告知している${NAMEABLE.length}件が、SaaS統合の専門データベース（当社）では「提供なし」として配られていました。出したあとに、第三者のデータベースやAIの回答に載っているかを確認する工程が要ります。` },
+    a: `あります。ただし「出せば見つかる」ではありません。事業者自身が提供を告知している${NAMEABLE.length}件が、SaaS統合の専門データベース（当社）の配布データに反映されていませんでした。出したあとに、第三者のデータベースやAIの回答に載っているかを確認する工程が要ります。` },
   { q: '公式MCPレジストリに登録すれば十分ですか？',
     a: '当社の経験では不十分でした。実名で挙げた3件（Square・AgileWorks・kickflow）は公式レジストリの検索で見つからず、いずれも事業者自身のサイトやGitHubで告知されていました。レジストリを起点にした収集では、そうした提供に届きません。ただしこれは「登録されていない」の証明ではなく、検索で見つからなかったという測定結果です。' },
   { q: 'エージェントが接続に失敗する原因で多いものは？',
@@ -65,15 +68,15 @@ const FAQ = [
 ];
 
 const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>公式MCPを出しても見つけてもらえない — 事業者が告知している${NAMEABLE.length}件を当社は「提供なし」と配っていた | KanseiLINK</title>
-<meta name="description" content="事業者自身が提供を告知している公式MCPサーバー${NAMEABLE.length}件を、SaaS統合の専門データベースが「提供なし」として配っていた。MCP記載の訂正は計${hiddenMcp.length}件。事業者が何を確認すべきかを実測から示します。">
+<title>公式MCPを出しても見つけてもらえない — 告知されていた${NAMEABLE.length}件を当社は反映できていなかった | KanseiLINK</title>
+<meta name="description" content="事業者自身が提供を告知している公式MCPサーバー${NAMEABLE.length}件を、SaaS統合の専門データベースが反映できていなかった。MCP記載の訂正は計${hiddenMcp.length}件。事業者が何を確認すべきかを実測から示します。">
 <meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${CANONICAL}">
 <meta property="og:type" content="article"><meta property="og:title" content="公式MCPを出しても見つけてもらえない"><meta property="og:url" content="${CANONICAL}">
 <script type="application/ld+json">${JSON.stringify({
   '@context': 'https://schema.org',
   '@graph': [
     { '@type': 'Article', '@id': `${CANONICAL}#article`,
-      headline: `公式MCPを出しても見つけてもらえない — 事業者が告知している${NAMEABLE.length}件を当社は「提供なし」と配っていた`,
+      headline: `公式MCPを出しても見つけてもらえない — 告知されていた${NAMEABLE.length}件を当社は反映できていなかった`,
       datePublished: DATE, dateModified: DATE, inLanguage: 'ja',
       author: { '@id': 'https://kansei-link.com/#organization' },
       publisher: { '@id': 'https://kansei-link.com/#organization' }, mainEntityOfPage: CANONICAL },
@@ -86,12 +89,12 @@ ${STYLE}</head>
 <body><nav><a class="brand" href="/">KanseiLINK</a><a href="/insights/">Research &amp; Insights</a></nav>
 <header class="hero"><div><div class="eyebrow">一次調査 · 判定${total}件 · ${DATE}</div>
 <h1>公式MCPを出しても、見つけてもらえない</h1>
-<p>事業者自身が公開している${NAMEABLE.length}件のMCPサーバーを、当社は「提供なし」として配っていました。</p></div></header>
+<p>事業者自身が公式MCPの提供を告知している${NAMEABLE.length}件を、当社の配布データは正しく反映できていませんでした。</p></div></header>
 <main>
-<p class="lead">事業者が自社サイトやGitHubで<strong>公式MCPサーバーの提供を告知している${NAMEABLE.length}件</strong>を、SaaS統合の専門データベースが「提供なし」として配っていました。そのデータベースは当社のものです。<strong>「出せば見つかる」が成り立たない</strong>ことを、自分の失敗として確認した記録です。</p>
+<p class="lead">事業者が自社サイトやGitHubで<strong>公式MCPサーバーの提供を告知している${NAMEABLE.length}件</strong>について、SaaS統合の専門データベースがその提供を反映できていませんでした。そのデータベースは当社のものです。<strong>「出せば見つかる」が成り立たない</strong>ことを、自分の失敗として確認した記録です。</p>
 
 <div class="stat">
-  <div><strong>${NAMEABLE.length}</strong><span>事業者自身の告知で裏づけが取れ、実名で挙げられるもの</span></div>
+  <div><strong>${NAMEABLE.length}</strong><span>提供が告知されていたのに、配布データに反映できていなかった<br>（訂正前は「API のみ」3件・「不明」5件）</span></div>
   <div><strong>${hiddenMcp.length}</strong><span>MCPの記載を訂正した総数<br>（導入方法まで記録できたもの ${withEndpoint.length}）</span></div>
   <div><strong>${withdrawn.length}</strong><span>裏づけの取れないAPI記載を取り下げた</span></div>
   <div><strong>${unknown.length}</strong><span>提供の有無を確認できなかった</span></div>
@@ -99,7 +102,7 @@ ${STYLE}</head>
 
 <h2>何が起きていたか</h2>
 <p>当社はSaaSの接続情報（公式MCPの有無・認証方式・APIの所在）をAIエージェント向けに配布しています。その配布データを公開情報と突き合わせ、MCPに関する記載を${hiddenMcp.length}件訂正しました。</p>
-<p>そのうち<strong>事業者自身の告知で提供が裏づけられた${NAMEABLE.length}件</strong>を挙げます。根拠はすべて<strong>事業者自身のドメイン、または公式GitHub組織</strong>です。この${NAMEABLE.length}件については、<strong>提供されているものを当社が「提供なし」として配っていた</strong>と言い切れます。</p>
+<p>そのうち<strong>事業者自身の告知で提供が裏づけられた${NAMEABLE.length}件</strong>を挙げます。根拠はすべて<strong>事業者自身のドメイン、または公式GitHub組織</strong>です。訂正前の当社の記載は「APIのみ」が3件、「不明」が5件でした。<strong>「提供なし」と書いていたわけではありませんが、提供されている事実を反映できていなかった</strong>点は同じです。</p>
 <table><thead><tr><th>サービス</th><th>提供元自身の一次資料</th></tr></thead><tbody>
 ${NAMEABLE.map(([name, url]) => `<tr><td>${esc(name)}</td><td><a href="${esc(url)}" rel="noopener" target="_blank">${esc(url.replace(/^https?:\/\//, ''))}</a></td></tr>`).join('')}
 </tbody></table>
@@ -129,11 +132,11 @@ ${NAMEABLE.map(([name, url]) => `<tr><td>${esc(name)}</td><td><a href="${esc(url
 
 <h2>正直に書いておくこと</h2>
 <p>この記事の${hiddenMcp.length}件は、<strong>当社の配布データの誤り</strong>です。他社の不備を数えたものではありません。SaaS統合の情報を専門に扱っている当社が取りこぼしていた、という事実がそのまま「出せば見つかるわけではない」の証拠になっています。</p>
-<p>数字の性格も書いておきます。${hiddenMcp.length}件は<strong>MCPの記載を訂正した総数</strong>で、訂正前の値は様々です。「提供されているものを提供なしと配っていた」と言い切れるのは、<strong>事業者自身の告知で裏づけた${NAMEABLE.length}件</strong>です。見出しの数字にこの${NAMEABLE.length}件を使っているのはそのためです。</p>
+<p>数字の性格も書いておきます。${hiddenMcp.length}件は<strong>MCPの記載を訂正した総数</strong>で、訂正前の値は様々です。「提供されている事実を反映できていなかった」と言い切れるのは、<strong>事業者自身の告知で裏づけた${NAMEABLE.length}件</strong>です。見出しの数字にこの${NAMEABLE.length}件を使っているのはそのためです。</p>
 <p>また、${unknown.length}件は<strong>「提供が確認できなかった」</strong>と記録しています。<strong>「MCPが無い」とは書いていません。</strong> 不在は証明できないためで、この区別は当社の記載方針として決めています。</p>
 
 <div class="cite"><div class="c-h">引用される場合（この文のままお使いください）</div>
-<blockquote>KanseiLINKは2026年9月、自社が配布するSaaS接続データを公開情報と突き合わせ、<strong>事業者自身が提供を告知している公式MCPサーバー${NAMEABLE.length}件を「提供なし」として配布していた</strong>ことを確認した。MCPに関する記載の訂正は計${hiddenMcp.length}件。当社がレジストリを起点に収集していたことが要因のひとつで、実名で挙げた3件は公式レジストリの検索では見つからなかった（KanseiLINK・判定${total}件・${DATE}実測）。出典: ${CANONICAL}</blockquote></div>
+<blockquote>KanseiLINKは2026年9月、自社が配布するSaaS接続データを公開情報と突き合わせ、<strong>事業者自身が提供を告知している公式MCPサーバー${NAMEABLE.length}件を、配布データに反映できていなかった</strong>ことを確認した。MCPに関する記載の訂正は計${hiddenMcp.length}件。当社がレジストリを起点に収集していたことが要因のひとつで、実名で挙げた3件は公式レジストリの検索では見つからなかった（KanseiLINK・判定${total}件・${DATE}実測）。出典: ${CANONICAL}</blockquote></div>
 
 <div class="probe"><div class="p-title">自社サイトがAIから読めるか、無料で確認する</div>
 <p>URLを入れるだけ。登録不要・5〜15秒。</p>
@@ -145,8 +148,8 @@ ${NAMEABLE.map(([name, url]) => `<tr><td>${esc(name)}</td><td><a href="${esc(url
 ${FAQ.map(f => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('\n')}
 
 <h2>調査方法</h2>
-<p class="note">当社が配布するサービスデータ（npmパッケージ同梱）を公開情報と突き合わせ、${total}件について判定した。<strong>内訳は、一次資料のURLを根拠に持つもの${withSourceUrl.length}件、社内の作業記録を参照しているもの${internalRef.length}件、一次資料をまだ調べていないもの${notInvestigated.length}件。</strong>実名を挙げているのは、根拠が事業者自身のドメインまたは公式GitHub組織にある${NAMEABLE.length}件だけ。レジストリの検索は2026年9月に実施。<strong>本記事は当社の接続情報の正確性についてのものであり、各社の品質評価ではない。格付け（ARI Award）とは別の調査。</strong></p>
-<p class="note">確認できなかった${unknown.length}件については「提供が無い」とは記載しない。公開情報に記載が見当たらないことは、不在の証明にならないため。<strong>このうち一部は、一次資料をまだ調べていないもの</strong>で、調べれば提供が見つかる可能性がある。</p>
+<p class="note">当社が配布するサービスデータ（npmパッケージ同梱）を公開情報と突き合わせ、${total}件について判定した。<strong>内訳は、外部URLを根拠に持つもの${withExternalUrl.length}件（事業者自身の発表のほか、プレスリリース配信や業界メディアを含む）、社内の作業記録を参照しているもの${internalRef.length}件、根拠URLを記録していないもの${noSourceUrl.length}件。</strong>実名を挙げているのは、根拠が事業者自身のドメインまたは公式GitHub組織にある${NAMEABLE.length}件だけ。レジストリの検索は2026年9月に実施。<strong>本記事は当社の接続情報の正確性についてのものであり、各社の品質評価ではない。格付け（ARI Award）とは別の調査。</strong></p>
+<p class="note">確認できなかった${unknown.length}件については「提供が無い」とは記載しない。公開情報に記載が見当たらないことは、不在の証明にならないため。このうち${uninvestigated.length}件は<strong>一次資料をまだ調べていない</strong>ものと明記しており、調べれば提供が見つかる可能性がある。残りは調査したが確認できなかったもの。</p>
 </main>
 <footer>© 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="/insights/">Research &amp; Insights</a> · <a href="/site-checker/">無料AI可視性診断</a></footer>
 </body></html>`;
