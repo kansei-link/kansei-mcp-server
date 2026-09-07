@@ -115,7 +115,12 @@ const ENGINES = {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message ?? `HTTP ${res.status}`);
-      return data.choices?.[0]?.message?.content ?? "";
+      // 引用元を捨てない。名前が出る理由は「どの記事が読まれたか」にあるので、
+      // そこが分からないと、何を書けば入れるのかも決められない。
+      // Perplexityは citations と search_results を両方返す（実測で確認）
+      const citations = (data.citations?.length ? data.citations : null)
+        ?? (data.search_results ?? []).map((r) => r.url).filter(Boolean);
+      return { text: data.choices?.[0]?.message?.content ?? "", citations };
     },
   },
 };
@@ -171,8 +176,11 @@ for (const q of questions) {
       const eng = ENGINES[name];
       const model = eng.model();
       try {
-        const text = await eng.ask(q.question, model);
-        answers[name] = { model, text };
+        const out = await eng.ask(q.question, model);
+        // エンジンによって戻りが文字列か {text, citations}。両方受ける
+        answers[name] = typeof out === "string"
+          ? { model, text: out }
+          : { model, text: out.text, citations: out.citations?.length ? out.citations : undefined };
         console.log(`  ✓ ${q.id} × ${name}`);
       } catch (err) {
         answers[name] = { model, error: String(err.message ?? err) };
