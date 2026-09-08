@@ -25,6 +25,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2026-09-08 整合監査②: 計測（GA4）と被索引化（sitemap）の欠落を公開前に赤で止める。
+      # 生成器が新ページを作るたびGAが抜けていた（45ページ・最新記事ぜんぶ）再発防止。
+      # 直し方: node scripts/site-prepublish.mjs を commit 前に実行。
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Site gate (GA4 / sitemap)
+        run: node scripts/site-gate.mjs
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

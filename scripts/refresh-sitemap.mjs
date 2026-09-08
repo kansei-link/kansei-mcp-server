@@ -16,12 +16,13 @@ const today = process.argv.includes('--date')
   ? process.argv[process.argv.indexOf('--date') + 1]
   : new Date().toISOString().slice(0, 10);
 
+// 2026-09-08: Windows専用のパス区切り（'\\'）をOS非依存に。CI（Linux）でも動くように
 function locToFile(loc) {
   let p = loc.replace(/^https:\/\/kansei-link\.com/, '');
   if (p === '' || p === '/') p = '/index.html';
   if (p.endsWith('/')) p += 'index.html';
   if (!/\.[a-z]+$/i.test(p)) p += '.html';
-  return join(pub, p.replace(/\//g, '\\').replace(/^\\/, ''));
+  return join(pub, ...p.split('/').filter(Boolean));
 }
 
 // git変更ファイル一覧 (staged/unstaged 両方)
@@ -37,7 +38,7 @@ const changed = new Set(
 const xml = readFileSync(sitemapPath, 'utf8');
 const entries = xml.match(/<url>[\s\S]*?<\/url>/g) || [];
 const kept = [];
-let dropped = [], touched = 0;
+let dropped = [], droppedMissing = [], touched = 0;
 
 // insights URLは extensionless に正規化（canonicalタグの主流形式に一致させる）
 function normalizeLoc(loc) {
@@ -55,6 +56,11 @@ for (const rawEntry of entries) {
   seenLocs.add(loc);
   const entry = rawEntry.replace(`<loc>${rawLoc}</loc>`, `<loc>${loc}</loc>`);
   const file = locToFile(loc);
+  // 2026-09-08: 実ファイルの無いエントリ（=404を指す）は落とす。sitemapが404を指すのは被索引化の減点要因
+  if (!existsSync(file)) {
+    droppedMissing.push(loc);
+    continue;
+  }
   if (existsSync(file)) {
     const html = readFileSync(file, 'utf8');
     if (/name=["']robots["']\s+content=["']noindex/i.test(html)) {
@@ -83,7 +89,7 @@ import { readdirSync } from 'node:fs';
 const keptLocs = new Set(kept.map((e) => (e.match(/<loc>(.*?)<\/loc>/) || [])[1]));
 const added = [];
 for (const rel of ['insights', 'en/insights']) {
-  const dir = join(pub, rel.replace('/', '\\'));
+  const dir = join(pub, ...rel.split('/'));
   let files;
   try { files = readdirSync(dir).filter((f) => f.endsWith('.html')); } catch { continue; }
   for (const f of files) {
@@ -122,5 +128,6 @@ console.log(JSON.stringify({
   total_after: kept.length,
   lastmod_updated: touched,
   dropped_noindex: dropped.length,
+  dropped_missing_file: droppedMissing,
   added_back: added,
 }, null, 2));
