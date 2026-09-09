@@ -354,6 +354,9 @@ app.get("/api/dashboard/voices", apiLimiter, (_req: Request, res: Response) => {
              v.confidence, v.created_at
       FROM agent_voice_responses v
       JOIN services s ON v.service_id = s.id
+      -- 2026-09-09 hotfix: seed.ts が合成する行は agent_type='aggregated' だけ（「succeeds on N% of calls」等の
+      -- 捏造数値を実サービス名に付ける P0 #39 の対象）。根治(seed=[]・起動時隔離)は C1 で入るまで、公開面から除外する。
+      WHERE v.agent_type <> 'aggregated'
       ORDER BY v.created_at DESC
       LIMIT 20
     `).all() as Array<{ response_text: string; [k: string]: unknown }>).map((v) => ({

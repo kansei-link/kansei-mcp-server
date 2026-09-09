@@ -126,8 +126,10 @@ export function register(server: McpServer, db: Database.Database): void {
         .describe("Filter by agent type (claude, gpt, gemini)"),
     },
     async ({ service_id, question_id, agent_type }) => {
+      // 2026-09-09 hotfix: seed.ts が合成する行(agent_type='aggregated'・捏造成功率つき)は
+      // エージェント向け面にも出さない。根治(seed=[]・起動時隔離)は C1 で入る。
       let query =
-        "SELECT * FROM agent_voice_responses WHERE service_id = ?";
+        "SELECT * FROM agent_voice_responses WHERE service_id = ? AND agent_type <> 'aggregated'";
       const params: unknown[] = [service_id];
 
       if (question_id) {
@@ -148,7 +150,7 @@ export function register(server: McpServer, db: Database.Database): void {
         .prepare(
           `SELECT question_id, response_choice, agent_type, count(*) as cnt
            FROM agent_voice_responses
-           WHERE service_id = ? AND response_choice IS NOT NULL
+           WHERE service_id = ? AND response_choice IS NOT NULL AND agent_type <> 'aggregated'
            GROUP BY question_id, response_choice, agent_type
            ORDER BY question_id, cnt DESC`
         )
