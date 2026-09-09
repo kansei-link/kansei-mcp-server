@@ -1,0 +1,23 @@
+# P0 #39: リリースゲート（CI・検証のみ）
+# v* タグの push 時に release-gate を実行して「このタグから publish してよいか」を判定する。
+# ⚠️ publish 自体はこのワークフローでは実行しない — npm publish は常に
+#    pack-gate PASS → release-gate PASS → Michie L3承認 → 手動実行 の順（NPM_TOKEN も置かない）。
+name: release-gate
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # タグとHEADの一致検証にタグ実体が必要
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: release-gate (clean worktree + tag@HEAD + pack-gate + route-gate)
+        run: node scripts/release-gate.mjs

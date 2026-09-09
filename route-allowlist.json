@@ -1,0 +1,53 @@
+{
+  "_readme": "公開APIルートのallowlist正本 (P0 #39)。実装のルート追加/削除/変更は scripts/route-gate.mjs が検知してFAILします。変更手順: SECレビューでreview_idを発番 → route-gate --print-routes の出力でroutesを置換 → sec_reviews にエントリ追記 → コミットメッセージにreview_id記載。sec_reviews の追記なしにroutesを書き換えるとRG2でFAILします。",
+  "routes": [
+    "DELETE /mcp",
+    "GET /admin/last-crawl-run",
+    "GET /admin/premium-content",
+    "GET /api/access",
+    "GET /api/access-token",
+    "GET /api/admin/ranking-leads",
+    "GET /api/config",
+    "GET /api/dashboard/changelog",
+    "GET /api/dashboard/costs",
+    "GET /api/dashboard/freshness",
+    "GET /api/dashboard/rankings",
+    "GET /api/dashboard/recipes",
+    "GET /api/dashboard/stats",
+    "GET /api/dashboard/voices",
+    "GET /api/premium",
+    "GET /api/site-check/:id",
+    "GET /api/v1/metrics/was",
+    "GET /api/validate-key",
+    "GET /health",
+    "GET /mcp",
+    "POST /admin/backup-now",
+    "POST /admin/claim/approve",
+    "POST /admin/premium-content",
+    "POST /admin/run-crawler",
+    "POST /api/auth/request-link",
+    "POST /api/auth/verify",
+    "POST /api/checkout",
+    "POST /api/claim/start",
+    "POST /api/claim/verify-email",
+    "POST /api/claim/verify-txt",
+    "POST /api/keys",
+    "POST /api/portal",
+    "POST /api/ranking-lead",
+    "POST /api/report-outcome",
+    "POST /api/site-check",
+    "POST /api/telemetry/linksee",
+    "POST /api/v1/events",
+    "POST /api/wrapped",
+    "POST /mcp",
+    "POST /webhooks/stripe"
+  ],
+  "sec_reviews": [
+    {
+      "review_id": "SEC-2026-08-16-001",
+      "routes_sha256": "891f20396f0025462906cd2f19794c7b017147dc06a799e45d5f8f63accf45c4",
+      "date": "2026-08-16",
+      "note": "初期ベースライン40ルート (P0 #39 実装時点の全公開ルート棚卸し)。SECレーン(kl-security相当)のChecker監査+Codexクロスレビューで批准。"
+    }
+  ]
+}
