@@ -504,14 +504,34 @@ app.get("/api/dashboard/freshness", apiLimiter, (_req: Request, res: Response) =
     } catch { /* table may not exist in older deploys */ }
 
     // New services in the last 7 / 30 days (requires services.created_at)
-    let addedWindow = { services_added_7d: 0, services_added_30d: 0 };
+    //
+    // 2026-09-09: services.created_at は「発見した時刻」ではなく「この DB に最初に入った時刻」で、
+    // バルク seed（デプロイやボリューム移行）でも入る。そのため本番APIは
+    //   services_added_30d = 11293（= services_total 全件）
+    // を返していた。読み手には「30日で11,293件を新規発見した」と読める数字だが、実体は
+    // 母集団の投入イベント1回である。自社の規律「説明できない差分を成長と呼ばない」に反するので、
+    // 母集団の投入時刻が窓に入っている間は発見数として意味を持たない＝null を返す。
+    let addedWindow: { services_added_7d: number | null; services_added_30d: number | null } =
+      { services_added_7d: null, services_added_30d: null };
+    let populatedAt: string | null = null;
     try {
-      addedWindow = db.prepare(`
+      const raw = db.prepare(`
         SELECT
-          SUM(CASE WHEN created_at >= datetime('now','-7 days') THEN 1 ELSE 0 END) as services_added_7d,
-          SUM(CASE WHEN created_at >= datetime('now','-30 days') THEN 1 ELSE 0 END) as services_added_30d
+          MIN(created_at) as populated_at,
+          SUM(CASE WHEN created_at >= datetime('now','-7 days') THEN 1 ELSE 0 END) as added_7d,
+          SUM(CASE WHEN created_at >= datetime('now','-30 days') THEN 1 ELSE 0 END) as added_30d
         FROM services
       `).get() as any;
+      populatedAt = raw?.populated_at ?? null;
+      const inWindow = (days: number) => {
+        if (!populatedAt) return true; // 判定不能なら伏せる（保守側）
+        const cutoff = Date.now() - days * 86400000;
+        return Date.parse(String(populatedAt).replace(" ", "T") + "Z") >= cutoff;
+      };
+      addedWindow = {
+        services_added_7d: inWindow(7) ? null : (raw?.added_7d ?? 0),
+        services_added_30d: inWindow(30) ? null : (raw?.added_30d ?? 0),
+      };
     } catch { /* older schema: no created_at column */ }
 
     // API changes detected in last 7 days (service_changelog)
@@ -527,8 +547,14 @@ app.get("/api/dashboard/freshness", apiLimiter, (_req: Request, res: Response) =
     res.json({
       services_total: totals.services_total ?? 0,
       recipes_total: totals.recipes_total ?? 0,
-      services_added_7d: addedWindow.services_added_7d ?? 0,
-      services_added_30d: addedWindow.services_added_30d ?? 0,
+      // null = この窓では発見数として意味を持たない（母集団の投入イベントを含む）。0 ではない。
+      services_added_7d: addedWindow.services_added_7d,
+      services_added_30d: addedWindow.services_added_30d,
+      services_added_note:
+        addedWindow.services_added_30d === null
+          ? "null = 母集団の投入(バルクseed)が窓に入るため発見数として読めない。0件ではない"
+          : null,
+      db_populated_at: populatedAt,
       api_changes_7d: changes7d,
       last_crawl_at: lastCrawl?.finished_at ?? null,
       last_crawl_discovered: lastCrawl?.discovered_count ?? null,
