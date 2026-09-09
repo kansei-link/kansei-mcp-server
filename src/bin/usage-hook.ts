@@ -69,6 +69,24 @@ async function readStdin(): Promise<string> {
   });
 }
 
+/**
+ * 発火したこと自体の記録（上書き・1ファイル）。
+ * ログは失敗時にしか意味のある行が出ないため、「登録はされているが発火していない」と
+ * 「発火しているが失敗している」を区別できなかった（2026-08-25〜09-09 の空白がまさにそれ）。
+ */
+function heartbeat(event: string): void {
+  try {
+    mkdirSync(KANSEI_HOME, { recursive: true });
+    writeFileSync(
+      join(KANSEI_HOME, "last-fired.json"),
+      JSON.stringify({ last_fired_at: new Date().toISOString(), event }, null, 2),
+      "utf8"
+    );
+  } catch {
+    /* never throw */
+  }
+}
+
 async function main(): Promise<void> {
   const startedAt = Date.now();
   if (!ENABLED) {
@@ -79,11 +97,17 @@ async function main(): Promise<void> {
   let payload: any = {};
   try {
     const raw = await readStdin();
-    if (raw.trim()) payload = JSON.parse(raw);
+    // 2026-08-25 に実際に起きた失敗: payload が UTF-8 BOM 付きで届き JSON.parse が落ちていた
+    // （"Unexpected token '\uFEFF'"）。以後この hook は1件も計測できていなかった。
+    // BOM と前後の空白を剥がしてから読む。
+    const cleaned = raw.replace(/^\uFEFF/, "").trim();
+    if (cleaned) payload = JSON.parse(cleaned);
   } catch (e: any) {
     log(`stdin parse error: ${e?.message ?? e}`);
     process.exit(0);
   }
+
+  heartbeat(payload.hook_event_name ?? "unknown");
 
   const transcriptPath: string | undefined =
     payload.transcript_path || payload.transcriptPath;
@@ -91,7 +115,12 @@ async function main(): Promise<void> {
     payload.session_id || payload.sessionId || "unknown-session";
 
   if (!transcriptPath || !existsSync(transcriptPath)) {
-    log(`no transcript (session=${sessionId}, path=${transcriptPath ?? "missing"})`);
+    // 値は書かない（機微が混ざりうる）。届いたキー名だけ残せば、payload形状の変化を追える。
+    const keys = Object.keys(payload).sort().join(",") || "(empty)";
+    log(
+      `no transcript (session=${sessionId}, path=${transcriptPath ?? "missing"}, ` +
+        `event=${payload.hook_event_name ?? "?"}, keys=${keys})`
+    );
     process.exit(0);
   }
 
