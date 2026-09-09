@@ -2,7 +2,9 @@
 /**
  * 需要側クエリ実測レポートのページ生成。
  *
- * 本文の数字はすべて data/discoverability/demand-battery-v1-results.json から数える。
+ * 本文の数字はすべて、下の RUNS が指す**凍結済みの実行結果ファイル**から数える。
+ * （毎週上書きされる demand-battery-v1-results.json は読まない。上書き系列を公開記事の
+ *   入力にすると、古い測定日ラベルのまま数字だけが入れ替わる＝freeze law 違反になる）
  * 手で書き写さないのは、実測レポートで数字が本文とズレるのが一番効く事故だから。
  * 生データ（各エンジンの全回答）は実名を含む研究データなので公開しない
  * （data/discoverability は .gitignore 済み）。公開するのは集計と手法のみ。
@@ -43,6 +45,17 @@ const questionText = new Map(battery.questions.map(q => [q.id, q.question]));
 const runsData = [];
 for (const r of RUNS) {
   const j = JSON.parse(await readFile(resolve(root, r.path), 'utf8'));
+  // freeze law（2026-09-09 追加）: 公開ページは「測定日 RUN_DATE」と名乗る。入力がその日の
+  // 実行でなければ、古い日付ラベルのまま新しい数字を出すことになる。ここで止める。
+  // 生成AIの結果ファイルは同名で上書きされる運用があるため、日付の一致は人の記憶でなく機械で確かめる。
+  const ranAt = typeof j.run_at === 'string' ? j.run_at.slice(0, 10) : null;
+  if (ranAt !== RUN_DATE) {
+    console.error(`FATAL: ${r.path} の run_at=${ranAt ?? '(なし)'} が RUN_DATE=${RUN_DATE} と一致しません。`);
+    console.error('  公開ページは測定日を名乗ります。日付を変えるなら RUN_DATE と入力ファイルの両方を、');
+    console.error('  新しい測定の凍結コピー（例: -results-<日付>.json）に揃えてから再生成してください。');
+    console.error('  上書き系列（-results.json）を入力にしないこと。');
+    process.exit(1);
+  }
   runsData.push({ label: r.label, rows: Array.isArray(j) ? j : j.results });
 }
 const rows = runsData[0].rows; // 質問一覧など、実行間で変わらないものはここから
