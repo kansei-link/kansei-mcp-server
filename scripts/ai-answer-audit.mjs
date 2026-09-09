@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * 実行正本は `kansei-ops-runtime`（OPS-RUNTIME-MANIFEST.md の固定commit）。
  * このファイルはその写しで、内容を同一に保つ。分岐させないこと。
@@ -10,7 +11,6 @@
  * 「引用が取れない＝計測装置に穴がある」と誤診した。マニフェストには同じ事故が
  * 2026-09-03の例として記録されていた。写しを正本と揃えて罠を消す。
  */
-#!/usr/bin/env node
 /**
  * AI Answer Audit — multi-engine question battery runner
  *
@@ -45,6 +45,7 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 
 // Reasoning models (gpt-5.x, gemini flash thinking) spend this budget on hidden
@@ -189,6 +190,11 @@ for (const name of requested) {
   else skipped.push(`${name} (${eng.keyEnv} not set)`);
 }
 
+// 2026-09-09: どのコピーが走っているかを毎回名乗る。同名スクリプトが複数の worktree にあり、
+// 引用元を保存しない旧版を走らせて「引用が取れない」と誤診した事故が2回起きている
+// （2026-08-26 supply battery・2026-09-03 需要側監査）。OPS-RUNTIME-MANIFEST の回帰記録参照。
+console.log(`Script:   ${fileURLToPath(import.meta.url)}`);
+console.log(`Citations: yes（引用元を保存する版）`);
 console.log(`Target:   ${battery.target}`);
 console.log(`Battery:  ${questions.length} questions`);
 console.log(`Engines:  ${active.join(", ") || "(none)"}`);
@@ -351,3 +357,20 @@ if (topDomains.length) {
   console.log(`Top cited: ${topDomains.slice(0, 5).map(([d, n]) => `${d}(${n})`).join(", ")}`);
 }
 console.log(`\nWrote ${base}-results.json and ${base}-results.md`);
+
+// ---- 計器の健全性チェック（2026-09-09・週次プローブから移設して常時化） ----
+// perplexity が答えているのに引用元が1件も無い＝引用元を保存しない旧版が走っている疑い。
+// ガードは weekly-citation-probe.mjs 側だけにあり、アドホック実行は無防備だった。
+// 結果ファイルは証拠として残す。落とすのは「使ってよい」という判定の方。
+if (active.includes("perplexity")) {
+  const answered = results.filter((q) => q.answers?.perplexity && !q.answers.perplexity.error).length;
+  const cited = results.reduce(
+    (n, q) => n + ((q.answers?.perplexity?.citations || q.answers?.perplexity?.sources || []).length), 0);
+  if (answered > 0 && cited === 0) {
+    console.error(
+      `\nFATAL: perplexity が ${answered} 問に答えているのに引用元が0件です。` +
+      `\n  引用元を保存しない旧版が走っている疑い（実行正本は kansei-ops-runtime・OPS-RUNTIME-MANIFEST.md）。` +
+      `\n  この結果を判定・記事・trend系列に使わないこと。結果ファイルは証拠として残しています。`);
+    process.exit(2);
+  }
+}
