@@ -7,6 +7,11 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const data = JSON.parse(await readFile(resolve(root, 'content/video-insights.json'), 'utf8'));
 const SITE = 'https://kansei-link.com';
+// 2026-09-08 整合監査②: 逆リンクにUTMを機械付与。これが無いとGA4上でYouTube流入が「(direct)/referral」に溶けて
+// 「どの動画が効いたか」を原理的に測れない（UTM 0件・referrer捕捉0件だった）。
+// utm_source=youtube / utm_medium=video|channel / utm_campaign=<動画ID or channel>
+const utm = (url, campaign, medium = 'video') =>
+  `${url}${url.includes('?') ? '&' : '?'}utm_source=youtube&utm_medium=${medium}&utm_campaign=${encodeURIComponent(campaign)}`;
 const LIB = `${SITE}/insights/videos/`;
 const byId = new Map(data.videos.map(v => [v.id, v]));
 const articleFor = v => v.articleUrl || (v.parentId ? byId.get(v.parentId)?.articleUrl : null) || null;
@@ -14,11 +19,11 @@ const ytUrl = v => v.kind === 'short'
   ? `https://www.youtube.com/shorts/${v.id}`
   : `https://www.youtube.com/watch?v=${v.id}`;
 
-const SIGNATURE = [
+const signature = (campaign, medium) => [
   '制作: Synapse Arrows Pte. Ltd.（シンガポール・UEN 202308737G）',
   'https://synapsearrows.com',
   'KanseiLINK — AIエージェントがSaaSを実際に使えるかを実測して格付けする独立評価機関',
-  `${SITE}`
+  utm(SITE, campaign, medium)
 ].join('\n');
 
 const out = [];
@@ -35,13 +40,13 @@ out.push('名著の解説、AIサービスの検証、AnthropicやOpenAIの公�
 out.push('AI社員を交えた経営会議を配信しています。');
 out.push('');
 out.push('長尺動画にはすべて、要点・文字起こし・FAQ・出典を載せた解説記事があります。');
-out.push(`全動画＋解説記事の一覧: ${LIB}`);
+out.push(`全動画＋解説記事の一覧: ${utm(LIB, 'channel', 'channel')}`);
 out.push('');
-out.push(SIGNATURE);
+out.push(signature('channel', 'channel'));
 out.push('');
 out.push('# チャンネルのリンク欄（最大5件）に設定する:');
-out.push(`#   1. 動画ライブラリ        ${LIB}`);
-out.push(`#   2. KanseiLINK           ${SITE}`);
+out.push(`#   1. 動画ライブラリ        ${utm(LIB, 'channel-links', 'channel')}`);
+out.push(`#   2. KanseiLINK           ${utm(SITE, 'channel-links', 'channel')}`);
 out.push('#   3. Synapse Arrows       https://synapsearrows.com');
 out.push('#   4. Linksee Memory       https://linksee.app');
 out.push('#   5. Zenn                 https://zenn.dev/kanseilink');
@@ -59,11 +64,11 @@ for (const v of data.videos) {
   out.push('──────────');
   if (parent) out.push(`▼ 本編（長尺）\nhttps://youtu.be/${parent.id}`);
   if (art) {
-    out.push(`${parent ? '\n' : ''}▼ 解説記事（要点・文字起こし・FAQ・出典）\n${SITE}${art}`);
+    out.push(`${parent ? '\n' : ''}▼ 解説記事（要点・文字起こし・FAQ・出典）\n${utm(`${SITE}${art}`, v.id)}`);
   }
-  out.push(`\n▼ 全動画＋解説記事の一覧\n${LIB}`);
+  out.push(`\n▼ 全動画＋解説記事の一覧\n${utm(LIB, v.id)}`);
   out.push('');
-  out.push(SIGNATURE);
+  out.push(signature(v.id, 'video'));
   out.push('');
 }
 
