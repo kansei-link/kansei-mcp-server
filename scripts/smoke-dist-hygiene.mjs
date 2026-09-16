@@ -128,8 +128,12 @@ console.log("[T5] クリーンtarball");
 console.log("[T6] G3: Claim配布の恒久条件");
 {
   const claimTgz = makeTgz("t6.tgz", { "package/dist/claim/handlers.js": "// claim" });
-  let r = runNode([packGate, claimTgz]);
-  check("T6a enabled=false(現状) で dist/claim → G3 FAIL", r.status !== 0 && /G3/.test(r.stderr));
+  // 2026-09-16 (SEC-2026-09-16-001 で実ファイルは enabled=true になった): T6a は「無効状態なら
+  // G3 が閉じる」ことを検証するテストなので、実ファイルの現状に依存せず無効fixtureを明示して渡す。
+  const disabledFx = join(TMP, "claim-allow-disabled.json");
+  writeFileSync(disabledFx, JSON.stringify({ enabled: false, sec_review_id: null, allowed: [], allowed_sha256: "" }));
+  let r = runNode([packGate, claimTgz], { env: { KANSEI_CLAIM_DIST_ALLOWLIST: disabledFx } });
+  check("T6a enabled=false で dist/claim → G3 FAIL", r.status !== 0 && /G3/.test(r.stderr));
 
   const allowedList = ["package/dist/claim/handlers.js"];
   const allowedHash = createHash("sha256").update(JSON.stringify([...allowedList].sort())).digest("hex");
