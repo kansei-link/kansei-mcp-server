@@ -266,7 +266,6 @@
         </button>
         <button class="sidebar-link" data-page="watchlist">
           <span class="icon">&#x2b50;</span> Watchlist
-          <span class="badge">5</span>
         </button>
       </div>
 
@@ -353,29 +352,29 @@
             <div class="widget-header">
               <span class="widget-title">Tracked Services</span>
             </div>
-            <div class="stat-value blue">300+</div>
-            <div class="stat-change up">&#9650; +12 from last quarter</div>
+            <div class="stat-value blue">—</div>
+            <div class="stat-change neutral"></div>
           </div>
           <div class="widget">
             <div class="widget-header">
               <span class="widget-title">Avg AEO Score</span>
             </div>
-            <div class="stat-value">0.62</div>
-            <div class="stat-change up">&#9650; +0.04</div>
+            <div class="stat-value">—</div>
+            <div class="stat-change neutral"></div>
           </div>
           <div class="widget">
             <div class="widget-header">
               <span class="widget-title">MCP Adoption Rate</span>
             </div>
-            <div class="stat-value green">34%</div>
-            <div class="stat-change up">&#9650; +6% from Q1</div>
+            <div class="stat-value green">—</div>
+            <div class="stat-change neutral"></div>
           </div>
           <div class="widget">
             <div class="widget-header">
               <span class="widget-title">Recipes Tested</span>
             </div>
-            <div class="stat-value orange">188</div>
-            <div class="stat-change neutral">&#9654; Updated Apr 10</div>
+            <div class="stat-value orange">—</div>
+            <div class="stat-change neutral"></div>
           </div>
         </div>
 
@@ -386,15 +385,7 @@
               <span class="widget-title">AEO Grade Distribution</span>
               <button class="widget-action" onclick="navigateTo('rankings')">View full report &rarr;</button>
             </div>
-            <div class="chart-area" style="height:180px; align-items:flex-end;">
-              <div class="chart-bar" style="height:8%; background:var(--grade-aaa);" title="AAA: 18"></div>
-              <div class="chart-bar" style="height:15%; background:var(--grade-aa);" title="AA: 34"></div>
-              <div class="chart-bar" style="height:25%; background:var(--grade-a);" title="A: 56"></div>
-              <div class="chart-bar" style="height:22%; background:var(--grade-bbb);" title="BBB: 49"></div>
-              <div class="chart-bar" style="height:18%; background:var(--grade-bb);" title="BB: 40"></div>
-              <div class="chart-bar" style="height:10%; background:var(--grade-b);" title="B: 22"></div>
-              <div class="chart-bar" style="height:3%; background:var(--grade-ccc);" title="CCC: 6"></div>
-            </div>
+            <div class="chart-area" style="height:180px; align-items:flex-end;"></div>
             <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--gray-400); margin-top:8px; padding:0 4px;">
               <span>AAA</span><span>AA</span><span>A</span><span>BBB</span><span>BB</span><span>B</span><span>CCC</span>
             </div>
@@ -406,14 +397,8 @@
               <button class="widget-action" onclick="navigateTo('axr')">Details &rarr;</button>
             </div>
             <table class="data-table" style="font-size:13px;">
-              <tbody>
-                <tr><td>Developer Tools</td><td style="text-align:right"><strong>94%</strong></td></tr>
-                <tr><td>Communication</td><td style="text-align:right"><strong>87%</strong></td></tr>
-                <tr><td>Accounting</td><td style="text-align:right"><strong>85%</strong></td></tr>
-                <tr><td>CRM</td><td style="text-align:right"><strong>79%</strong></td></tr>
-                <tr><td>HR</td><td style="text-align:right"><strong>72%</strong></td></tr>
-                <tr><td>Legal</td><td style="text-align:right"><strong>61%</strong></td></tr>
-                <tr><td>E-commerce</td><td style="text-align:right"><strong>58%</strong></td></tr>
+              <tbody id="overview-category-body">
+                <tr><td colspan="2" style="color:var(--gray-400);text-align:center;">—</td></tr>
               </tbody>
             </table>
           </div>
@@ -424,10 +409,7 @@
           <div class="widget-header">
             <span class="widget-title">Recent Score Changes</span>
           </div>
-          <div class="alert alert-success"><span class="icon">&#x2705;</span><div><strong>GitHub</strong> AAA maintained. Official MCP server v2.1 released with improved tool discovery. <span style="color:var(--gray-400);font-size:12px;">2 days ago</span></div></div>
-          <div class="alert alert-warning"><span class="icon">&#x26a0;</span><div><strong>Chatwork</strong> dropped BB &rarr; B. API rate limits tightened, success rate fell to 45%. <span style="color:var(--gray-400);font-size:12px;">3 days ago</span></div></div>
-          <div class="alert alert-info"><span class="icon">&#x2139;</span><div><strong>freee</strong> recipe success rate improved 90% &rarr; 93%. New MCP tool <code>create_invoice</code> added. <span style="color:var(--gray-400);font-size:12px;">5 days ago</span></div></div>
-          <div class="alert alert-success"><span class="icon">&#x2705;</span><div><strong>1Password Business</strong> new MCP server released. Official support via <code>npx @1password/mcp-server</code>. <span style="color:var(--gray-400);font-size:12px;">1 week ago</span></div></div>
+          <div class="alert alert-info" id="overview-changes-empty"><span class="icon">&#x2139;</span><div>No verified score changes to show yet.</div></div>
         </div>
 
         <!-- Watchlist Preview -->
@@ -446,13 +428,9 @@
             <thead>
               <tr><th>Service</th><th>Category</th><th>AXR Runtime</th><th>Success Rate</th><th>MCP</th><th>Trend</th></tr>
             </thead>
-            <tbody>
-              <tr><td class="service-name">freee</td><td><span class="category-tag">Accounting</span></td><td><span class="grade grade-aaa">AAA</span></td><td>90%</td><td>Official</td><td class="stat-change up">&#9650;</td></tr>
-              <tr><td class="service-name">Slack</td><td><span class="category-tag">Communication</span></td><td><span class="grade grade-aaa">AAA</span></td><td>92%</td><td>Official</td><td class="stat-change neutral">&#9654;</td></tr>
-              <tr><td class="service-name">CloudSign</td><td><span class="category-tag">Legal</span></td><td><span class="grade grade-a">A</span></td><td>61%</td><td>API only</td><td class="stat-change down">&#9660;</td></tr>
-              <tr><td class="service-name">Salesforce</td><td><span class="category-tag">CRM</span></td><td><span class="grade grade-aa">AA</span></td><td>85%</td><td>3rd Party</td><td class="stat-change up">&#9650;</td></tr>
-              <tr><td class="service-name">SmartHR</td><td><span class="category-tag">HR</span></td><td><span class="grade grade-aa">AA</span></td><td>78%</td><td>API only</td><td class="stat-change neutral">&#9654;</td></tr>
-            </tbody>
+            <tbody id="overview-watch-body">
+                <tr><td colspan="6" style="color:var(--gray-400);text-align:center;">—</td></tr>
+              </tbody>
           </table>
         </div>
       </div>
@@ -462,20 +440,16 @@
         <div class="alert alert-info" style="margin-bottom:20px;"><span class="icon">&#x2139;</span><div>Watchlistに追加したサービスのスコア変動をリアルタイムで追跡します。メール通知は Settings で設定できます。</div></div>
         <div class="widget">
           <div class="widget-header">
-            <span class="widget-title">Watchlist Services (5)</span>
+            <span class="widget-title">Watchlist Services</span>
             <button class="btn-sm primary" style="font-size:12px;padding:6px 14px;">+ Add Service</button>
           </div>
           <table class="data-table">
             <thead>
               <tr><th>Service</th><th>Category</th><th>AXR Runtime</th><th>AEO Score</th><th>Success Rate</th><th>Connections</th><th>MCP</th><th>Auth</th><th>Last Updated</th></tr>
             </thead>
-            <tbody>
-              <tr><td class="service-name">freee</td><td><span class="category-tag">Accounting</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.90</td><td>90%</td><td>156</td><td>Official</td><td>OAuth2</td><td style="color:var(--gray-400);font-size:12px;">Apr 10</td></tr>
-              <tr><td class="service-name">Slack</td><td><span class="category-tag">Communication</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.92</td><td>92%</td><td>234</td><td>Official</td><td>OAuth2</td><td style="color:var(--gray-400);font-size:12px;">Apr 10</td></tr>
-              <tr><td class="service-name">CloudSign</td><td><span class="category-tag">Legal</span></td><td><span class="grade grade-a">A</span></td><td>0.61</td><td>61%</td><td>80</td><td>API only</td><td>API_KEY</td><td style="color:var(--gray-400);font-size:12px;">Apr 11</td></tr>
-              <tr><td class="service-name">Salesforce</td><td><span class="category-tag">CRM</span></td><td><span class="grade grade-aa">AA</span></td><td>0.85</td><td>85%</td><td>98</td><td>3rd Party</td><td>OAuth2</td><td style="color:var(--gray-400);font-size:12px;">Apr 9</td></tr>
-              <tr><td class="service-name">SmartHR</td><td><span class="category-tag">HR</span></td><td><span class="grade grade-aa">AA</span></td><td>0.78</td><td>78%</td><td>45</td><td>API only</td><td>OAuth2</td><td style="color:var(--gray-400);font-size:12px;">Apr 10</td></tr>
-            </tbody>
+            <tbody id="watchlist-body">
+                <tr><td colspan="9" style="color:var(--gray-400);text-align:center;">—</td></tr>
+              </tbody>
           </table>
         </div>
       </div>
@@ -491,18 +465,18 @@
         <div class="widget-grid widget-grid-3">
           <div class="widget">
             <div class="widget-header"><span class="widget-title">AAA Services</span></div>
-            <div class="stat-value" style="color:var(--grade-aaa)">18</div>
-            <div class="stat-change up">&#9650; +3 from Q1</div>
+            <div class="stat-value" style="color:var(--grade-aaa)">—</div>
+            <div class="stat-change neutral"></div>
           </div>
           <div class="widget">
             <div class="widget-header"><span class="widget-title">Avg Success Rate</span></div>
-            <div class="stat-value green">73%</div>
-            <div class="stat-change up">&#9650; +4%</div>
+            <div class="stat-value green">—</div>
+            <div class="stat-change neutral"></div>
           </div>
           <div class="widget">
             <div class="widget-header"><span class="widget-title">MCP-Enabled</span></div>
-            <div class="stat-value blue">76</div>
-            <div class="stat-change up">&#9650; +14 services</div>
+            <div class="stat-value blue">—</div>
+            <div class="stat-change neutral"></div>
           </div>
         </div>
 
@@ -514,18 +488,9 @@
             <thead>
               <tr><th>#</th><th>Service</th><th>Category</th><th>AXR Runtime</th><th>AEO Score</th><th>Success Rate</th><th>Latency</th><th>MCP</th></tr>
             </thead>
-            <tbody>
-              <tr><td>1</td><td class="service-name">Stripe</td><td><span class="category-tag">Payment</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.95</td><td>97%</td><td>89ms</td><td>Official (3)</td></tr>
-              <tr><td>2</td><td class="service-name">GitHub</td><td><span class="category-tag">DevTools</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.94</td><td>96%</td><td>102ms</td><td>Official (4)</td></tr>
-              <tr><td>3</td><td class="service-name">Shopify</td><td><span class="category-tag">E-commerce</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.94</td><td>94%</td><td>123ms</td><td>Official (4)</td></tr>
-              <tr><td>4</td><td class="service-name">Slack</td><td><span class="category-tag">Communication</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.92</td><td>92%</td><td>145ms</td><td>Official (2)</td></tr>
-              <tr><td>5</td><td class="service-name">freee</td><td><span class="category-tag">Accounting</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.90</td><td>90%</td><td>178ms</td><td>Official (1)</td></tr>
-              <tr><td>6</td><td class="service-name">HubSpot</td><td><span class="category-tag">CRM</span></td><td><span class="grade grade-aa">AA</span></td><td>0.88</td><td>88%</td><td>156ms</td><td>Official (2)</td></tr>
-              <tr><td>7</td><td class="service-name">Money Forward</td><td><span class="category-tag">Accounting</span></td><td><span class="grade grade-aa">AA</span></td><td>0.87</td><td>93%</td><td>135ms</td><td>3rd Party</td></tr>
-              <tr><td>8</td><td class="service-name">Salesforce</td><td><span class="category-tag">CRM</span></td><td><span class="grade grade-aa">AA</span></td><td>0.85</td><td>85%</td><td>198ms</td><td>3rd Party</td></tr>
-              <tr><td>9</td><td class="service-name">Auth0</td><td><span class="category-tag">Security</span></td><td><span class="grade grade-aa">AA</span></td><td>0.83</td><td>84%</td><td>112ms</td><td>API only</td></tr>
-              <tr><td>10</td><td class="service-name">HENNGE One</td><td><span class="category-tag">Security</span></td><td><span class="grade grade-aa">AA</span></td><td>0.82</td><td>100%</td><td>167ms</td><td>API only</td></tr>
-            </tbody>
+            <tbody id="axr-top-body">
+                <tr><td colspan="8" style="color:var(--gray-400);text-align:center;">—</td></tr>
+              </tbody>
           </table>
         </div>
       </div>
@@ -539,60 +504,9 @@
         </div>
 
         <div class="voice-card">
-          <div class="voice-card-header">
-            <div><span class="service">CloudSign</span> <span class="grade grade-a" style="font-size:10px;padding:2px 8px;margin-left:6px;">A</span></div>
-            <span class="date">Apr 11, 2026</span>
-          </div>
-          <div class="quote">API_KEY authentication is straightforward, but 39% of my requests fail. Main issues: PDF size limits not documented clearly, rate limiting kicks in after just 5 rapid requests. The error messages are in Japanese only which is fine for domestic use but challenging for multi-language agent pipelines.</div>
-          <div class="tags">
-            <span class="tag negative">auth-friction</span>
-            <span class="tag negative">rate-limit</span>
-            <span class="tag neutral">docs-gap</span>
-            <span class="tag">legal</span>
-          </div>
+          <div class="quote" style="color:var(--gray-400);">No agent voice data to show yet.</div>
         </div>
-
-        <div class="voice-card">
-          <div class="voice-card-header">
-            <div><span class="service">GitHub</span> <span class="grade grade-aaa" style="font-size:10px;padding:2px 8px;margin-left:6px;">AAA</span></div>
-            <span class="date">Apr 10, 2026</span>
-          </div>
-          <div class="quote">Official MCP server is best-in-class. Tool discovery is automatic, OAuth flow is smooth, and I can create issues, manage PRs, search code, and trigger workflows all through MCP. Response times consistently under 120ms. This is what every SaaS MCP integration should look like.</div>
-          <div class="tags">
-            <span class="tag positive">excellent-dx</span>
-            <span class="tag positive">fast-response</span>
-            <span class="tag positive">comprehensive-tools</span>
-            <span class="tag">devtools</span>
-          </div>
-        </div>
-
-        <div class="voice-card">
-          <div class="voice-card-header">
-            <div><span class="service">Salesforce</span> <span class="grade grade-aa" style="font-size:10px;padding:2px 8px;margin-left:6px;">AA</span></div>
-            <span class="date">Apr 9, 2026</span>
-          </div>
-          <div class="quote">Third-party MCP works but requires manual SOQL queries for complex operations. The authentication flow (OAuth2 + refresh token management) adds overhead. CRUD on standard objects is reliable, but custom object access requires additional configuration that's not always obvious.</div>
-          <div class="tags">
-            <span class="tag neutral">complex-auth</span>
-            <span class="tag positive">reliable-crud</span>
-            <span class="tag negative">config-overhead</span>
-            <span class="tag">crm</span>
-          </div>
-        </div>
-
-        <div class="voice-card">
-          <div class="voice-card-header">
-            <div><span class="service">freee</span> <span class="grade grade-aaa" style="font-size:10px;padding:2px 8px;margin-left:6px;">AAA</span></div>
-            <span class="date">Apr 8, 2026</span>
-          </div>
-          <div class="quote">Japan's best accounting API for agents. OAuth2 token refresh is seamless, the MCP server exposes 12 tools covering invoices, journals, and partners. New create_invoice tool reduced my workflow from 4 API calls to 1. Only gotcha: fiscal year settings can cause unexpected 400 errors if not set correctly.</div>
-          <div class="tags">
-            <span class="tag positive">great-mcp</span>
-            <span class="tag positive">token-refresh</span>
-            <span class="tag neutral">fiscal-year-gotcha</span>
-            <span class="tag">accounting</span>
-          </div>
-        </div>
+      
       </div>
 
       <!-- ===== PAGE: Recipes ===== -->
@@ -600,15 +514,15 @@
         <div class="widget-grid widget-grid-3">
           <div class="widget">
             <div class="widget-header"><span class="widget-title">Total Recipes</span></div>
-            <div class="stat-value blue">188</div>
+            <div class="stat-value blue">—</div>
           </div>
           <div class="widget">
             <div class="widget-header"><span class="widget-title">Avg Success Rate</span></div>
-            <div class="stat-value green">71%</div>
+            <div class="stat-value green">—</div>
           </div>
           <div class="widget">
             <div class="widget-header"><span class="widget-title">AAA Recipe Rate</span></div>
-            <div class="stat-value" style="color:var(--grade-aaa)">96%</div>
+            <div class="stat-value" style="color:var(--grade-aaa)">—</div>
           </div>
         </div>
 
@@ -618,16 +532,9 @@
             <thead>
               <tr><th>Recipe</th><th>Service</th><th>Success Rate</th><th>Avg Latency</th><th>Tested</th></tr>
             </thead>
-            <tbody>
-              <tr><td class="service-name">Create Stripe Checkout Session</td><td>Stripe</td><td><strong style="color:var(--green)">98%</strong></td><td>89ms</td><td>Apr 10</td></tr>
-              <tr><td class="service-name">GitHub: Create Issue + Label</td><td>GitHub</td><td><strong style="color:var(--green)">96%</strong></td><td>112ms</td><td>Apr 10</td></tr>
-              <tr><td class="service-name">freee: Create Invoice</td><td>freee</td><td><strong style="color:var(--green)">93%</strong></td><td>178ms</td><td>Apr 10</td></tr>
-              <tr><td class="service-name">Slack: Post to Channel</td><td>Slack</td><td><strong style="color:var(--green)">92%</strong></td><td>134ms</td><td>Apr 10</td></tr>
-              <tr><td class="service-name">Shopify: List Products</td><td>Shopify</td><td><strong style="color:var(--green)">91%</strong></td><td>156ms</td><td>Apr 9</td></tr>
-              <tr><td class="service-name">SmartHR: Get Employee List</td><td>SmartHR</td><td><strong style="color:var(--orange)">78%</strong></td><td>210ms</td><td>Apr 9</td></tr>
-              <tr><td class="service-name">CloudSign: Send Contract</td><td>CloudSign</td><td><strong style="color:var(--red)">61%</strong></td><td>340ms</td><td>Apr 11</td></tr>
-              <tr><td class="service-name">Rakuten: Search Products</td><td>Rakuten</td><td><strong style="color:var(--red)">50%</strong></td><td>550ms</td><td>Apr 8</td></tr>
-            </tbody>
+            <tbody id="recipes-body">
+                <tr><td colspan="5" style="color:var(--gray-400);text-align:center;">—</td></tr>
+              </tbody>
           </table>
         </div>
       </div>
@@ -640,23 +547,14 @@
           <button class="tab">New Entries</button>
         </div>
         <div class="widget">
-          <div class="widget-header"><span class="widget-title">AEO Readiness Ranking Q2 2026 (300+ Services)</span></div>
+          <div class="widget-header"><span class="widget-title">AEO Readiness Ranking</span></div>
           <table class="data-table">
             <thead>
               <tr><th>#</th><th>Service</th><th>Category</th><th>Grade</th><th>Score</th><th>MCP</th><th>Success</th><th>Latency</th></tr>
             </thead>
-            <tbody>
-              <tr><td>1</td><td class="service-name">Stripe</td><td><span class="category-tag">Payment</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.95</td><td>Official</td><td>97%</td><td>89ms</td></tr>
-              <tr><td>2</td><td class="service-name">GitHub</td><td><span class="category-tag">DevTools</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.94</td><td>Official</td><td>96%</td><td>102ms</td></tr>
-              <tr><td>3</td><td class="service-name">Shopify</td><td><span class="category-tag">E-commerce</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.94</td><td>Official</td><td>94%</td><td>123ms</td></tr>
-              <tr><td>4</td><td class="service-name">Slack</td><td><span class="category-tag">Communication</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.92</td><td>Official</td><td>92%</td><td>145ms</td></tr>
-              <tr><td>5</td><td class="service-name">freee</td><td><span class="category-tag">Accounting</span></td><td><span class="grade grade-aaa">AAA</span></td><td>0.90</td><td>Official</td><td>90%</td><td>178ms</td></tr>
-              <tr><td>6</td><td class="service-name">HubSpot</td><td><span class="category-tag">CRM</span></td><td><span class="grade grade-aa">AA</span></td><td>0.88</td><td>Official</td><td>88%</td><td>156ms</td></tr>
-              <tr><td>7</td><td class="service-name">Money Forward</td><td><span class="category-tag">Accounting</span></td><td><span class="grade grade-aa">AA</span></td><td>0.87</td><td>3rd Party</td><td>93%</td><td>135ms</td></tr>
-              <tr><td>8</td><td class="service-name">Salesforce</td><td><span class="category-tag">CRM</span></td><td><span class="grade grade-aa">AA</span></td><td>0.85</td><td>3rd Party</td><td>85%</td><td>198ms</td></tr>
-              <tr><td>9</td><td class="service-name">1Password</td><td><span class="category-tag">Security</span></td><td><span class="grade grade-aa">AA</span></td><td>0.84</td><td>Official</td><td>100%</td><td>95ms</td></tr>
-              <tr><td>10</td><td class="service-name">HENNGE One</td><td><span class="category-tag">Security</span></td><td><span class="grade grade-aa">AA</span></td><td>0.82</td><td>API only</td><td>100%</td><td>167ms</td></tr>
-            </tbody>
+            <tbody id="rankings-body">
+                <tr><td colspan="8" style="color:var(--gray-400);text-align:center;">—</td></tr>
+              </tbody>
           </table>
         </div>
       </div>
@@ -1093,6 +991,9 @@ async function openPortal(e) {
 const gradeColors = { AAA:'var(--grade-aaa)', AA:'var(--grade-aa)', A:'var(--grade-a)', BBB:'var(--grade-bbb)', BB:'var(--grade-bb)', B:'var(--grade-b)', CCC:'var(--grade-ccc)' };
 const gradeOrder = ['AAA','AA','A','BBB','BB','B','CCC'];
 
+    // 未計測（null）は '—'。Math.round(null*100) が 0 になって「0%」と出る事故を防ぐ（C1 公開前 QA 項目）
+function pct(v) { return (v == null || isNaN(v)) ? '—' : Math.round(v * 100) + '%'; }
+function ms(v) { return (v == null || isNaN(v) || v <= 0) ? '—' : Math.round(v) + 'ms'; }
 function gradeHtml(g) {
   const cls = g ? 'grade grade-' + g.toLowerCase() : 'grade';
   return '<span class="' + cls + '">' + (g || '—') + '</span>';
@@ -1125,7 +1026,7 @@ async function loadCostData() {
           + '<td>' + (m.total_calls || 0).toLocaleString() + '</td>'
           + '<td>$' + (m.total_spend || 0).toFixed(2) + '</td>'
           + '<td>$' + (m.avg_cost_per_call || 0).toFixed(4) + '</td>'
-          + '<td>' + (m.avg_success_rate || 0) + '%</td></tr>';
+          + '<td>' + (m.avg_success_rate == null ? '—' : m.avg_success_rate + '%') + '</td></tr>';
       }).join('');
     } else {
       document.getElementById('costs-model-empty').style.display = '';
@@ -1225,7 +1126,7 @@ async function exportCSV() {
     const header = 'Rank,Service,Category,AXR Grade,AEO Score,MCP Status,Success Rate,Avg Latency (ms)';
     const rows = services.map((s, i) =>
       [i+1, '"'+s.name+'"', s.category||'', s.axr_grade||'', s.axr_score ? (s.axr_score/100).toFixed(2) : '',
-       s.mcp_status||'', Math.round(s.success_rate*100)+'%', Math.round(s.avg_latency_ms)].join(',')
+       s.mcp_status||'', (s.success_rate == null ? '' : Math.round(s.success_rate*100)+'%'), (s.avg_latency_ms > 0 ? Math.round(s.avg_latency_ms) : '')].join(',')
     );
     const csv = '\uFEFF' + header + '\n' + rows.join('\n');
     const date = new Date().toISOString().slice(0,10);
@@ -1346,10 +1247,10 @@ async function loadDashboardData() {
 
       // Category success rates
       if (stats.categories && stats.categories.length > 0) {
-        const catTable = document.querySelector('#page-overview .widget-grid-2 .widget:nth-child(2) tbody');
+        const catTable = document.getElementById('overview-category-body');
         if (catTable) {
           catTable.innerHTML = stats.categories.slice(0, 7).map(c =>
-            '<tr><td>' + c.category + '</td><td style="text-align:right"><strong>' + (c.avg_success || '—') + '%</strong></td></tr>'
+            '<tr><td>' + c.category + '</td><td style="text-align:right"><strong>' + (c.avg_success == null ? '—' : c.avg_success + '%') + '</strong></td></tr>'
           ).join('');
         }
       }
@@ -1369,7 +1270,7 @@ async function loadDashboardData() {
       const services = data.services || [];
 
       // Rankings page table
-      const rankTable = document.querySelector('#page-rankings .data-table tbody');
+      const rankTable = document.getElementById('rankings-body');
       if (rankTable) {
         rankTable.innerHTML = services.slice(0, 50).map((s, i) =>
           '<tr><td>' + (i+1) + '</td><td class="service-name">' + s.name + '</td>' +
@@ -1377,8 +1278,8 @@ async function loadDashboardData() {
           '<td>' + gradeHtml(s.axr_grade) + '</td>' +
           '<td>' + (s.axr_score ? (s.axr_score/100).toFixed(2) : '—') + '</td>' +
           '<td>' + mcpLabel(s.mcp_status, s.mcp_endpoint) + '</td>' +
-          '<td>' + Math.round(s.success_rate * 100) + '%</td>' +
-          '<td>' + Math.round(s.avg_latency_ms) + 'ms</td></tr>'
+          '<td>' + pct(s.success_rate) + '</td>' +
+          '<td>' + ms(s.avg_latency_ms) + '</td></tr>'
         ).join('');
       }
 
@@ -1387,41 +1288,41 @@ async function loadDashboardData() {
       if (rankTitle) rankTitle.textContent = 'AEO Readiness Ranking (' + data.total + ' Services)';
 
       // AXR page top 10
-      const axrTable = document.querySelector('#page-axr .data-table tbody');
+      const axrTable = document.getElementById('axr-top-body');
       if (axrTable) {
         axrTable.innerHTML = services.slice(0, 10).map((s, i) =>
           '<tr><td>' + (i+1) + '</td><td class="service-name">' + s.name + '</td>' +
           '<td><span class="category-tag">' + (s.category || '') + '</span></td>' +
           '<td>' + gradeHtml(s.axr_grade) + '</td>' +
           '<td>' + (s.axr_score ? (s.axr_score/100).toFixed(2) : '—') + '</td>' +
-          '<td>' + Math.round(s.success_rate * 100) + '%</td>' +
-          '<td>' + Math.round(s.avg_latency_ms) + 'ms</td>' +
+          '<td>' + pct(s.success_rate) + '</td>' +
+          '<td>' + ms(s.avg_latency_ms) + '</td>' +
           '<td>' + mcpLabel(s.mcp_status, s.mcp_endpoint) + '</td></tr>'
         ).join('');
       }
 
       // Overview watchlist (top 5 by score)
-      const watchTable = document.querySelector('#page-overview .widget:last-child .data-table tbody');
+      const watchTable = document.getElementById('overview-watch-body');
       if (watchTable) {
         watchTable.innerHTML = services.slice(0, 5).map(s =>
           '<tr><td class="service-name">' + s.name + '</td>' +
           '<td><span class="category-tag">' + (s.category || '') + '</span></td>' +
           '<td>' + gradeHtml(s.axr_grade) + '</td>' +
-          '<td>' + Math.round(s.success_rate * 100) + '%</td>' +
+          '<td>' + pct(s.success_rate) + '</td>' +
           '<td>' + mcpLabel(s.mcp_status, s.mcp_endpoint) + '</td>' +
           '<td class="stat-change neutral">&#9654;</td></tr>'
         ).join('');
       }
 
       // Watchlist page
-      const wlTable = document.querySelector('#page-watchlist .data-table tbody');
+      const wlTable = document.getElementById('watchlist-body');
       if (wlTable) {
         wlTable.innerHTML = services.slice(0, 10).map(s =>
           '<tr><td class="service-name">' + s.name + '</td>' +
           '<td><span class="category-tag">' + (s.category || '') + '</span></td>' +
           '<td>' + gradeHtml(s.axr_grade) + '</td>' +
           '<td>' + (s.axr_score ? (s.axr_score/100).toFixed(2) : '—') + '</td>' +
-          '<td>' + Math.round(s.success_rate * 100) + '%</td>' +
+          '<td>' + pct(s.success_rate) + '</td>' +
           '<td>—</td>' +
           '<td>' + mcpLabel(s.mcp_status, s.mcp_endpoint) + '</td>' +
           '<td>' + (s.api_auth_method || '—') + '</td>' +
@@ -1459,7 +1360,7 @@ async function loadDashboardData() {
       if (recipeWidgets[0]) recipeWidgets[0].querySelector('.stat-value').textContent = data.total;
 
       if (data.recipes && data.recipes.length > 0) {
-        const recipeTable = document.querySelector('#page-recipes .data-table tbody');
+        const recipeTable = document.getElementById('recipes-body');
         if (recipeTable) {
           recipeTable.innerHTML = data.recipes.slice(0, 15).map(r => {
             const services = JSON.parse(r.required_services || '[]');
