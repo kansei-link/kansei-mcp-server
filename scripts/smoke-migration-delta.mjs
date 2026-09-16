@@ -51,7 +51,7 @@ db.exec(`
     description TEXT, created_at TEXT, source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
   CREATE TABLE inspections (id INTEGER PRIMARY KEY AUTOINCREMENT, service_id TEXT, status TEXT, findings TEXT, created_at TEXT,
     source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
-  CREATE TABLE site_checks (id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT, service_id TEXT, created_at TEXT,
+  CREATE TABLE site_checks (id TEXT PRIMARY KEY, url TEXT, service_id TEXT, created_at TEXT,
     source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
   CREATE TABLE infrastructure_tips (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, body TEXT, category TEXT,
     source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
@@ -69,6 +69,8 @@ db.prepare("INSERT INTO ranking_leads (email,source,created_at) VALUES ('both@b.
 // batch-01移行済みのmodel_service_stats（source側で数値が動いたものと動かないもの）
 db.prepare("INSERT INTO model_service_stats (service_id,model_name,task_type,success_rate,total_calls,last_updated,source_system) VALUES ('freee','claude','T1',0.8,10,'2026-08-15 00:00:00','believable-vibrancy')").run();
 db.prepare("INSERT INTO model_service_stats (service_id,model_name,task_type,success_rate,total_calls,last_updated,source_system) VALUES ('mf','gpt','T1',0.5,4,'2026-08-15 00:00:00','believable-vibrancy')").run();
+// canonical 独自の site_check（TEXT PK・12桁トークン）。source 側に同じ id で別内容の行を置いて衝突を試験する
+db.prepare("INSERT INTO site_checks (id,url,created_at) VALUES ('aaaaaaaaaaaa','https://own.example/','2026-08-17 08:00:00')").run();
 db.close();
 
 // ── source ペイロード
@@ -85,7 +87,11 @@ const payload = { schemas: {}, rows: {
     { service_id: "mf", model_name: "gpt", task_type: "T1", success_rate: 0.5, total_calls: 4, last_updated: "2026-08-15 00:00:00" },        // 未変更→skip
   ],
   agent_voice_responses: [], agent_feedback: [], outcomes: [], service_events: [],
-  inspections: [], site_checks: [], infrastructure_tips: [], execution_attempts: [],
+  inspections: [], infrastructure_tips: [], execution_attempts: [],
+  site_checks: [
+    { id: "bbbbbbbbbbbb", url: "https://new.example/", created_at: "2026-08-18 01:00:00" },  // 新規・TEXT PK は id を保持して挿入されること
+    { id: "aaaaaaaaaaaa", url: "https://other.example/", created_at: "2026-08-18 02:00:00" }, // 既存 id と衝突（自然キーは別）→ skipped_pk_collision
+  ],
 } };
 writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(payload)));
 
@@ -98,6 +104,7 @@ const dry = run("dry");
 check("1. dry: leads 新規2挿入・移行済み1+同内容1=skip・payload内重複1=skip", dry.summary.ranking_leads.inserted === 2 && dry.summary.ranking_leads.skippedExisting === 2 && dry.summary.ranking_leads.skippedDupInPayload === 1,
   JSON.stringify(dry.summary.ranking_leads)); // 60,62=挿入 / 1,61=skip / 63=payload内重複
 check("2. dry: model_service_stats 更新1・未変更skip1", dry.summary.model_service_stats.updated === 1 && dry.summary.model_service_stats.skippedExisting === 1);
+check("2b. dry: site_checks 新規1挿入・id衝突1skip（TEXT PK 経路が dry でも数える）", dry.summary.site_checks.inserted === 1 && dry.summary.site_checks.skippedPkCollision === 1, JSON.stringify(dry.summary.site_checks));
 
 // 2. apply
 const ap = run("apply");
@@ -107,6 +114,12 @@ check("3. apply: 挿入はid自動採番で衝突なし", ap.summary.ranking_lea
 const freee = dbr.prepare("SELECT success_rate,total_calls,migration_batch_id FROM model_service_stats WHERE service_id='freee'").get();
 check("4. apply: statsのUPSERT反映（0.8→0.9・batch刻印）", freee.success_rate === 0.9 && freee.total_calls === 15 && freee.migration_batch_id === "mig-believable-test-02");
 check("5. apply: both@b.jpは1行のまま（二重挿入なし）", dbr.prepare("SELECT COUNT(*) c FROM ranking_leads WHERE email='both@b.jp'").get().c === 1);
+// TEXT PK（site_checks）: id を保持して挿入・NULL id ゼロ・既存 id との衝突は skip（C0 batch-02 事故の再発防止）
+const sc = dbr.prepare("SELECT id,url,migration_batch_id FROM site_checks ORDER BY created_at").all();
+check("5b. apply: site_checks TEXT PK は source の id を保持（bbbb…）・NULL id なし", sc.some((r) => r.id === "bbbbbbbbbbbb" && r.migration_batch_id === "mig-believable-test-02") && sc.every((r) => r.id != null),
+  JSON.stringify(sc.map((r) => `${r.id}:${r.url}`)));
+check("5c. apply: 既存 id と衝突する source 行は skipped_pk_collision で既存を守る", ap.summary.site_checks.skippedPkCollision === 1 && sc.find((r) => r.id === "aaaaaaaaaaaa").url === "https://own.example/",
+  JSON.stringify(ap.summary.site_checks));
 dbr.close();
 
 // 3. idempotency
@@ -132,6 +145,14 @@ const freee3 = dbr3.prepare("SELECT success_rate,total_calls,migration_batch_id 
 dbr3.close();
 check("8. batch-03: ログ済み自然キーでも新last_updatedはUPDATEされる（0.9→0.95）", b3.summary.model_service_stats.updated === 1 && freee3.success_rate === 0.95 && freee3.migration_batch_id === "mig-believable-test-03",
   JSON.stringify({ summary: b3.summary.model_service_stats, row: freee3 }));
+
+// 6. NULL id 安全網: TEXT PK 表に id 無しの source 行が来たら表ごと ABORT する（dry でも検出）
+const payload4 = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])),
+  site_checks: [{ url: "https://noid.example/", created_at: "2026-08-19 00:00:00" }] } };
+writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(payload4)));
+let aborted = false, abortMsg = "";
+try { run("dry", ["--batch=mig-believable-test-04"]); } catch (e) { aborted = true; abortMsg = String(e.stderr || e.message); }
+check("9. NULL id 安全網: id 無し行は dry でも ABORT（exit≠0・メッセージに NULL id）", aborted && /NULL id/.test(abortMsg), abortMsg.trim().split(String.fromCharCode(10))[0].trim());
 
 rmSync(workDir, { recursive: true, force: true });
 const all = results.every(Boolean);

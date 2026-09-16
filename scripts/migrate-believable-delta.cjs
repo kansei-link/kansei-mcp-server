@@ -11,6 +11,8 @@
 //   5. subscriptions は対象外 — Stripe APIを正本として sync-subscriptions-from-stripe.mjs
 //      で再同期する（DB行コピーでは状態が古い）
 //   6. --since=<ISO> でsource抽出を絞れる（batch-03: 切替時刻以降の残留のみ）
+//   7. (2026-09-16 C0 事後修正) id を捨てるのは INTEGER PRIMARY KEY の表だけ。TEXT PK（site_checks）は
+//      source の id を保持・既存 id と衝突なら skipped_pk_collision。挿入後に id NULL を検査して throw
 //
 // 実行: NODE_PATH=/app/node_modules node migrate-believable-delta.cjs <dry|apply> \
 //         --batch=mig-believable-YYYYMMDD-NN [--since=2026-08-16T12:00:00] \
@@ -72,7 +74,15 @@ const tx = db.transaction(() => {
     // ISO("2026-08-17T00:00:00")とSQL("2026-08-17 09:00:00")の混在に耐えるよう'T'を空白へ正規化して比較
     const norm = (s) => String(s).replace("T", " ");
     if (SINCE) rows = rows.filter((r) => norm(r.created_at || r.last_updated || "9999") >= norm(SINCE));
-    const cols = db.prepare(`PRAGMA table_info(${t.name})`).all().map((c) => c.name);
+    const tinfo = db.prepare(`PRAGMA table_info(${t.name})`).all();
+    const cols = tinfo.map((c) => c.name);
+    // id を捨てるのは「id が INTEGER PRIMARY KEY（rowid 別名・AUTOINCREMENT）」の表だけ。
+    // TEXT PK（site_checks の 12 桁トークン等）は SQLite が NULL を通してしまい、到達不能行になる
+    // （C0 batch-02 で 297 行が id NULL になった事故の再発防止）。TEXT PK は source の id を保持し、
+    // 既存 id と衝突する場合だけ skip する。
+    const idCol = tinfo.find((c) => c.name === "id");
+    const dropId = !!idCol && idCol.pk === 1 && /^INTEGER$/i.test(idCol.type || "");
+    const idExists = idCol && !dropId ? db.prepare(`SELECT 1 FROM ${t.name} WHERE id = ?`) : null;
     for (const tag of ["source_system", "migrated_at", "migration_batch_id"]) {
       if (!cols.includes(tag)) { db.exec(`ALTER TABLE ${t.name} ADD COLUMN ${tag} TEXT`); cols.push(tag); }
     }
@@ -83,7 +93,7 @@ const tx = db.transaction(() => {
     // canonical独自の新規行も、同内容なら必ずここで一致する）
     const existing = new Map(db.prepare(`SELECT rowid AS __rid, * FROM ${t.name}`).all().map((r) => [t.key(r), r]));
     const logIns = db.prepare(`INSERT OR IGNORE INTO migration_log(batch_id,source_system,table_name,source_key,new_rowid,action) VALUES (?,?,?,?,?,?)`);
-    let inserted = 0, updated = 0, skippedExisting = 0, skippedLogged = 0, skippedDupInPayload = 0;
+    let inserted = 0, updated = 0, skippedExisting = 0, skippedLogged = 0, skippedDupInPayload = 0, skippedPkCollision = 0;
     const seenInPayload = new Set(); // 同一payload内の重複自然キーは1件だけ処理
     for (const row of rows) {
       const k = t.key(row);
@@ -110,7 +120,11 @@ const tx = db.transaction(() => {
         continue;
       }
       const r = { ...row, source_system: SOURCE, migrated_at: new Date().toISOString(), migration_batch_id: BATCH };
-      delete r.id; // id非保持 — AUTOINCREMENT衝突を構造的に排除
+      if (dropId) delete r.id; // INTEGER PK のみ非保持 — AUTOINCREMENT 衝突を構造的に排除
+      else if (idExists && r.id != null && idExists.get(r.id)) {
+        logIns.run(BATCH, SOURCE, t.name, logKey, null, "skipped_pk_collision");
+        skippedPkCollision++; continue;
+      }
       const useCols = Object.keys(r).filter((c) => cols.includes(c));
       const info = db.prepare(`INSERT INTO ${t.name} (${useCols.join(",")}) VALUES (${useCols.map(() => "?").join(",")})`)
         .run(...useCols.map((c) => r[c]));
@@ -118,7 +132,12 @@ const tx = db.transaction(() => {
       logIns.run(BATCH, SOURCE, t.name, logKey, info.lastInsertRowid, "inserted");
       inserted++;
     }
-    summary[t.name] = { source: rows.length, inserted, updated, skippedExisting, skippedLogged, skippedDupInPayload };
+    // 挿入後の安全網: この batch の行に id NULL があれば表ごと巻き戻す（dry でも apply でも検出）
+    if (idCol) {
+      const nullIds = db.prepare(`SELECT COUNT(*) c FROM ${t.name} WHERE id IS NULL AND migration_batch_id = ?`).get(BATCH).c;
+      if (nullIds > 0) throw new Error(`${t.name}: ${nullIds} rows would have NULL id — aborting batch`);
+    }
+    summary[t.name] = { source: rows.length, inserted, updated, skippedExisting, skippedLogged, skippedDupInPayload, skippedPkCollision };
   }
   if (MODE === "dry") throw new Error("__DRY_RUN_ROLLBACK__");
 });
