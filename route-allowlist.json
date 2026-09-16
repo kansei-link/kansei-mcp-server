@@ -2,6 +2,7 @@
   "_readme": "公開APIルートのallowlist正本 (P0 #39)。実装のルート追加/削除/変更は scripts/route-gate.mjs が検知してFAILします。変更手順: SECレビューでreview_idを発番 → route-gate --print-routes の出力でroutesを置換 → sec_reviews にエントリ追記 → コミットメッセージにreview_id記載。sec_reviews の追記なしにroutesを書き換えるとRG2でFAILします。",
   "routes": [
     "DELETE /mcp",
+    "GET /admin/dualrun-digest",
     "GET /admin/last-crawl-run",
     "GET /admin/premium-content",
     "GET /api/access",
@@ -48,6 +49,12 @@
       "routes_sha256": "891f20396f0025462906cd2f19794c7b017147dc06a799e45d5f8f63accf45c4",
       "date": "2026-08-16",
       "note": "初期ベースライン40ルート (P0 #39 実装時点の全公開ルート棚卸し)。SECレーン(kl-security相当)のChecker監査+Codexクロスレビューで批准。"
+    },
+    {
+      "review_id": "SEC-2026-09-16-001",
+      "routes_sha256": "67f652fd3d6dc4b02416f19a7f1ddc7ca903a38b3f6e6ce48e2abf8e3ed4d814",
+      "date": "2026-09-16",
+      "note": "GET /admin/dualrun-digest 追加（読取専用・admin秘密保護・PIIなし・DualRun常時ランナーの台帳取得経路）。C1統合。Founder批准 2026-09-16。正本=founder-ops/SEC-REVIEW-2026-09-16-001_Route-DualrunDigest-ClaimDist.md"
     }
   ]
 }
