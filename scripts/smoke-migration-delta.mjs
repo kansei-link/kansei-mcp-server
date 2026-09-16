@@ -44,18 +44,23 @@ db.exec(`
   CREATE TABLE agent_feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, agent_id TEXT, feedback_type TEXT, service_id TEXT,
     subject TEXT, body TEXT, priority TEXT, status TEXT, created_at TEXT,
     source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
-  CREATE TABLE outcomes (id INTEGER PRIMARY KEY AUTOINCREMENT, service_id TEXT, success INTEGER, created_at TEXT,
-    model_name TEXT, task_type TEXT, error_class TEXT, context TEXT, agent_id TEXT,
+  CREATE TABLE outcomes (id INTEGER PRIMARY KEY AUTOINCREMENT, service_id TEXT, agent_id_hash TEXT DEFAULT 'anonymous', success INTEGER,
+    latency_ms INTEGER, error_type TEXT, workaround TEXT, context_masked TEXT, provenance TEXT, verification_status TEXT,
+    attempt_id TEXT, recipe_id TEXT, recipe_version INTEGER, failed_step TEXT, created_at TEXT, is_retry INTEGER DEFAULT 0,
+    estimated_users INTEGER, model_name TEXT, agent_type TEXT, task_type TEXT, input_tokens INTEGER, output_tokens INTEGER, cost_usd REAL,
     source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
   CREATE TABLE service_events (id INTEGER PRIMARY KEY AUTOINCREMENT, service_id TEXT, event_type TEXT, title TEXT,
     description TEXT, created_at TEXT, source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
-  CREATE TABLE inspections (id INTEGER PRIMARY KEY AUTOINCREMENT, service_id TEXT, status TEXT, findings TEXT, created_at TEXT,
+  CREATE TABLE inspections (id INTEGER PRIMARY KEY AUTOINCREMENT, service_id TEXT, anomaly_type TEXT, severity TEXT, description TEXT,
+    evidence TEXT, status TEXT, resolution TEXT, resolved_by TEXT, created_at TEXT, resolved_at TEXT,
     source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
-  CREATE TABLE site_checks (id TEXT PRIMARY KEY, url TEXT, service_id TEXT, created_at TEXT,
+  CREATE TABLE site_checks (id TEXT PRIMARY KEY, url TEXT, score INTEGER, grade TEXT, findings TEXT, raw_signals TEXT, ip_hash TEXT, created_at TEXT,
     source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
-  CREATE TABLE infrastructure_tips (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, body TEXT, category TEXT,
-    source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
-  CREATE TABLE execution_attempts (attempt_id TEXT PRIMARY KEY, service_id TEXT, status TEXT, issued_at TEXT,
+  CREATE TABLE infrastructure_tips (id INTEGER PRIMARY KEY AUTOINCREMENT, tip_id TEXT UNIQUE NOT NULL, category TEXT, title TEXT, from_stack TEXT,
+    to_stack TEXT, savings_pct INTEGER, confidence TEXT, conditions TEXT, evidence_url TEXT, evidence_summary TEXT, related_services TEXT,
+    created_at TEXT, updated_at TEXT, source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
+  CREATE TABLE execution_attempts (attempt_id TEXT PRIMARY KEY, service_id TEXT, recipe_id TEXT, recipe_version INTEGER, parent_attempt_id TEXT,
+    status TEXT NOT NULL DEFAULT 'open', issued_at TEXT, expires_at TEXT, closed_at TEXT,
     source_system TEXT, migrated_at TEXT, migration_batch_id TEXT);
   CREATE TABLE migration_log (id INTEGER PRIMARY KEY AUTOINCREMENT, batch_id TEXT, source_system TEXT,
     table_name TEXT, source_key TEXT, new_rowid INTEGER, action TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -70,7 +75,7 @@ db.prepare("INSERT INTO ranking_leads (email,source,created_at) VALUES ('both@b.
 db.prepare("INSERT INTO model_service_stats (service_id,model_name,task_type,success_rate,total_calls,last_updated,source_system) VALUES ('freee','claude','T1',0.8,10,'2026-08-15 00:00:00','believable-vibrancy')").run();
 db.prepare("INSERT INTO model_service_stats (service_id,model_name,task_type,success_rate,total_calls,last_updated,source_system) VALUES ('mf','gpt','T1',0.5,4,'2026-08-15 00:00:00','believable-vibrancy')").run();
 // canonical 独自の site_check（TEXT PK・12桁トークン）。source 側に同じ id で別内容の行を置いて衝突を試験する
-db.prepare("INSERT INTO site_checks (id,url,created_at) VALUES ('aaaaaaaaaaaa','https://own.example/','2026-08-17 08:00:00')").run();
+db.prepare("INSERT INTO site_checks (id,url,score,grade,created_at) VALUES ('aaaaaaaaaaaa','https://own.example/',70,'A','2026-08-17 08:00:00')").run();
 db.close();
 
 // ── source ペイロード
@@ -86,10 +91,20 @@ const payload = { schemas: {}, rows: {
     { service_id: "freee", model_name: "claude", task_type: "T1", success_rate: 0.9, total_calls: 15, last_updated: "2026-08-16 12:00:00" }, // 更新あり→UPDATE
     { service_id: "mf", model_name: "gpt", task_type: "T1", success_rate: 0.5, total_calls: 4, last_updated: "2026-08-15 00:00:00" },        // 未変更→skip
   ],
-  agent_voice_responses: [], agent_feedback: [], outcomes: [], service_events: [],
+  agent_voice_responses: [], agent_feedback: [], service_events: [],
   inspections: [], infrastructure_tips: [], execution_attempts: [],
   site_checks: [
-    { id: "bbbbbbbbbbbb", url: "https://new.example/", created_at: "2026-08-18 01:00:00" },  // 新規・TEXT PK は id を保持して挿入されること
+    { id: "bbbbbbbbbbbb", url: "https://new.example/", score: 50, grade: "B", created_at: "2026-08-18 01:00:00" },  // 新規・TEXT PK は id を保持して挿入されること
+    // 同 URL・同秒の別チェック（別 id・別内容）。v1 の url|created_at キーはこれを「payload 内重複」として捨てた（C0 で実際に 1 行落ちた）
+    { id: "cccccccccccc", url: "https://new.example/", score: 30, grade: "CCC", created_at: "2026-08-18 01:00:00" },
+  ],
+  // outcomes: 実在列。v1 は error_class/context/agent_id（存在しない）を参照し、service|created_at|success|model|task に縮退していた
+  outcomes: [
+    { service_id: "freee", agent_id_hash: "h1", success: 1, latency_ms: 120, provenance: "user_reported", created_at: "2026-08-18 02:00:00", model_name: "claude", task_type: "T1" },
+    { service_id: "freee", agent_id_hash: "h2", success: 1, latency_ms: 120, provenance: "user_reported", created_at: "2026-08-18 02:00:00", model_name: "claude", task_type: "T1" }, // agent_id_hash だけ違う別報告
+    { service_id: "freee", agent_id_hash: "h1", success: 1, latency_ms: 120, provenance: "user_reported", created_at: "2026-08-18 02:00:00", model_name: "claude", task_type: "T1" }, // 1 行目と完全同一＝重複
+    { service_id: "mf", attempt_id: "att-x1", agent_id_hash: "h3", success: 0, error_type: "auth", provenance: "user_reported", created_at: "2026-08-18 03:00:00" },
+    { service_id: "mf", attempt_id: "att-x2", agent_id_hash: "h3", success: 0, error_type: "auth", provenance: "user_reported", created_at: "2026-08-18 03:00:00" }, // attempt_id だけ違う別実行
   ],
 } };
 writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(payload)));
@@ -103,7 +118,8 @@ const dry = run("dry");
 check("1. dry: leads 新規2挿入・移行済み1+同内容1=skip・payload内重複1=skip", dry.summary.ranking_leads.inserted === 2 && dry.summary.ranking_leads.skippedExisting === 2 && dry.summary.ranking_leads.skippedDupInPayload === 1,
   JSON.stringify(dry.summary.ranking_leads)); // 60,62=挿入 / 1,61=skip / 63=payload内重複
 check("2. dry: model_service_stats 更新1・未変更skip1", dry.summary.model_service_stats.updated === 1 && dry.summary.model_service_stats.skippedExisting === 1);
-check("2b. dry: site_checks 新規1挿入（TEXT PK 経路が dry でも数える）", dry.summary.site_checks.inserted === 1 && dry.summary.site_checks.skippedExisting === 0, JSON.stringify(dry.summary.site_checks));
+check("2b. dry: site_checks 同 URL 同秒の別 id 2 件はどちらも挿入（v1 は 1 件捨てていた）", dry.summary.site_checks.inserted === 2 && dry.summary.site_checks.skippedDupInPayload === 0, JSON.stringify(dry.summary.site_checks));
+check("2c. dry: outcomes は agent_id_hash 違い 2 件＋attempt_id 違い 2 件＝4 挿入・完全同一 1 件だけ重複", dry.summary.outcomes.inserted === 4 && dry.summary.outcomes.skippedDupInPayload === 1, JSON.stringify(dry.summary.outcomes));
 
 // 2. apply
 const ap = run("apply");
@@ -115,10 +131,14 @@ check("4. apply: statsのUPSERT反映（0.8→0.9・batch刻印）", freee.succe
 check("5. apply: both@b.jpは1行のまま（二重挿入なし）", dbr.prepare("SELECT COUNT(*) c FROM ranking_leads WHERE email='both@b.jp'").get().c === 1);
 // TEXT PK（site_checks）: id を保持して挿入・NULL id ゼロ・既存 id との衝突は skip（C0 batch-02 事故の再発防止）
 const sc = dbr.prepare("SELECT id,url,migration_batch_id FROM site_checks ORDER BY created_at").all();
-check("5b. apply: site_checks TEXT PK は source の id を保持（bbbb…）・NULL id なし", sc.some((r) => r.id === "bbbbbbbbbbbb" && r.migration_batch_id === "mig-believable-test-02") && sc.every((r) => r.id != null),
+check("5b. apply: site_checks TEXT PK は source の id を保持（bbbb…/cccc…）・NULL id なし", sc.some((r) => r.id === "bbbbbbbbbbbb") && sc.some((r) => r.id === "cccccccccccc") && sc.every((r) => r.id != null),
   JSON.stringify(sc.map((r) => `${r.id}:${r.url}`)));
-check("5c. apply: canonical 独自の site_check（aaaa…）は無傷", sc.find((r) => r.id === "aaaaaaaaaaaa")?.url === "https://own.example/" && sc.length === 2,
+check("5c. apply: canonical 独自の site_check（aaaa…）は無傷・合計 3 行", sc.find((r) => r.id === "aaaaaaaaaaaa")?.url === "https://own.example/" && sc.length === 3,
   JSON.stringify(ap.summary.site_checks));
+const oc = dbr.prepare("SELECT agent_id_hash, attempt_id FROM outcomes ORDER BY id").all();
+check("5d. apply: outcomes 4 行（h1/h2/att-x1/att-x2）・重複 1 件は migration_log に skipped_dup_in_payload で記録", oc.length === 4 && new Set(oc.map((r) => r.agent_id_hash + "|" + r.attempt_id)).size === 4
+  && dbr.prepare("SELECT COUNT(*) c FROM migration_log WHERE table_name='outcomes' AND action='skipped_dup_in_payload'").get().c === 1, JSON.stringify(oc));
+check("5e. migration_log の source_key は v2: 接頭辞（旧ログと分離）", dbr.prepare("SELECT COUNT(*) c FROM migration_log WHERE batch_id='mig-believable-test-02' AND source_key NOT LIKE 'v2:%'").get().c === 0);
 dbr.close();
 
 // 3. idempotency
@@ -161,27 +181,92 @@ const snap = () => { const d = new Database(dbPath, { readonly: true });
 const payload5 = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])),
   ranking_leads: [{ email: "should-not-land@e.jp", source: "webinar", created_at: "2026-08-19 01:00:00" }], // 他表の正常行も巻き戻ること
   site_checks: [
-    { id: "cccccccccccc", url: "https://fresh.example/", created_at: "2026-08-19 01:00:00" },   // 正常行（先に処理される）
-    { id: "aaaaaaaaaaaa", url: "https://other.example/", created_at: "2026-08-18 02:00:00" },   // 既存 id・自然キー別＝異内容衝突
+    { id: "dddddddddddd", url: "https://fresh.example/", score: 10, grade: "CCC", created_at: "2026-08-19 01:00:00" },   // 正常行（先に処理される）
+    { id: "aaaaaaaaaaaa", url: "https://other.example/", score: 70, grade: "A", created_at: "2026-08-18 02:00:00" },     // 既存 id・内容が違う＝同一視できない衝突
   ] } };
 writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(payload5)));
 const tryRun = (mode) => { try { run(mode, ["--batch=mig-believable-test-05"]); return { aborted: false, msg: "" }; }
   catch (e) { return { aborted: true, msg: String(e.stderr || e.message) }; } };
 const before5 = snap();
 const d5 = tryRun("dry");
-check("10. 異内容 ID 衝突: dry で ABORT（exit≠0・id collision を明示）", d5.aborted && /id collision with different content/.test(d5.msg), d5.msg.trim().split(String.fromCharCode(10))[0]);
+check("10. 同 id 別内容の衝突: dry で ABORT（exit≠0・identity … different content を明示）", d5.aborted && /identity .* exists with different content|id collision with different content/.test(d5.msg), d5.msg.trim().split(String.fromCharCode(10))[0]);
 const a5 = tryRun("apply");
 const after5 = snap();
-check("11. 異内容 ID 衝突: apply も ABORT し、同 batch の正常行（lead・site_check cccc…）も含め DB 無変更", a5.aborted && before5 === after5 && !after5.includes("cccccccccccc"),
+check("11. 同 id 別内容の衝突: apply も ABORT し、同 batch の正常行（lead・site_check dddd…）も含め DB 無変更", a5.aborted && before5 === after5 && !after5.includes("dddddddddddd"),
   a5.aborted ? "unchanged=" + (before5 === after5) : "apply did not abort");
 
 // 8. 同じ id・同じ自然キー（＝同内容）で migration_log に無い行は衝突扱いにしない（実データ照合で既存として skip）
 const payload6 = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])),
-  site_checks: [{ id: "aaaaaaaaaaaa", url: "https://own.example/", created_at: "2026-08-17 08:00:00" }] } }; // canonical 独自行と同 id・同内容・未ログ
+  site_checks: [{ id: "aaaaaaaaaaaa", url: "https://own.example/", score: 70, grade: "A", created_at: "2026-08-17 08:00:00" }] } }; // canonical 独自行と同 id・同内容・未ログ
 writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(payload6)));
 const d6 = run("dry", ["--batch=mig-believable-test-06"]);
-check("12. 同 id・同内容（未ログ）は停止せず skippedExisting（停止するのは異内容の衝突だけ）", d6.summary.site_checks.skippedExisting === 1 && d6.summary.site_checks.inserted === 0 && d6.summary.site_checks.skippedLogged === 0,
+check("12. 同 id・同内容（未ログ）は停止せず skippedExisting（停止するのは内容が違う衝突だけ）", d6.summary.site_checks.skippedExisting === 1 && d6.summary.site_checks.inserted === 0 && d6.summary.site_checks.skippedLogged === 0,
   JSON.stringify(d6.summary.site_checks));
+
+// 13. outcomes: 同じ attempt_id で内容が違う 2 行 → 実行識別子は同一視・内容不一致は停止（DB 無変更）
+{
+  const pl = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])),
+    outcomes: [{ service_id: "mf", attempt_id: "att-x1", agent_id_hash: "h3", success: 1, provenance: "user_reported", created_at: "2026-08-18 03:00:00" }] } }; // 既存 att-x1 は success=0
+  writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(pl)));
+  const before = snap(); const r = tryRun("apply"); const after = snap();
+  check("13. outcomes: 既存 attempt_id と内容が違う行は identity 不一致で ABORT・DB 無変更", r.aborted && /outcomes: identity .*att-x1.* different content/.test(r.msg) && before === after, r.msg.trim().split(String.fromCharCode(10))[0]);
+}
+// 14. payload 内で同 id・別内容の 2 行（同一性表）→ 停止
+{
+  const pl = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])),
+    site_checks: [
+      { id: "eeeeeeeeeeee", url: "https://e.example/", score: 10, grade: "CCC", created_at: "2026-08-20 00:00:00" },
+      { id: "eeeeeeeeeeee", url: "https://e.example/", score: 90, grade: "AAA", created_at: "2026-08-20 00:00:00" },
+    ] } };
+  writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(pl)));
+  const r = tryRun("dry");
+  check("14. payload 内の同 id 別内容（site_checks）は skip せず ABORT", r.aborted && /two payload rows share identity/.test(r.msg), r.msg.trim().split(String.fromCharCode(10))[0]);
+}
+// 15. キー列の実在検証: canonical に無い列をキーが参照したら起動時に停止（v1 の縮退事故の再発防止）
+{
+  const d = new Database(dbPath); d.exec("ALTER TABLE outcomes DROP COLUMN agent_id_hash"); d.close();
+  const pl = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])) } };
+  writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(pl)));
+  const r = tryRun("dry");
+  check("15. キー列が実スキーマに無い → 'key references unknown column' で ABORT", r.aborted && /outcomes: key references unknown column\(s\) agent_id_hash/.test(r.msg), r.msg.trim().split(String.fromCharCode(10))[0]);
+  const d2 = new Database(dbPath); d2.exec("ALTER TABLE outcomes ADD COLUMN agent_id_hash TEXT DEFAULT 'anonymous'"); d2.prepare("UPDATE outcomes SET agent_id_hash = CASE WHEN attempt_id IS NULL THEN CASE id WHEN 1 THEN 'h1' ELSE 'h2' END ELSE 'h3' END").run(); d2.close();
+}
+// 16. recheck（読取専用）: 旧 DB 相当の payload と canonical を再照合し、取りこぼし・内容不一致・重複を列挙する
+{
+  const d = new Database(dbPath);
+  d.prepare("DELETE FROM site_checks WHERE id='cccccccccccc'").run();                       // 取りこぼしを再現
+  d.prepare("INSERT INTO execution_attempts (attempt_id,status,issued_at) VALUES ('att1','closed','2026-08-10 00:00:00')").run(); // 旧 DB と内容が違う行を再現（旧 DB 側は open）
+  d.close();
+  const pl = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])),
+    site_checks: [
+      { id: "bbbbbbbbbbbb", url: "https://new.example/", score: 50, grade: "B", created_at: "2026-08-18 01:00:00" },
+      { id: "cccccccccccc", url: "https://new.example/", score: 30, grade: "CCC", created_at: "2026-08-18 01:00:00" },
+      { id: "ffffffffffff", url: "https://later.example/", score: 40, grade: "BB", created_at: "2026-09-01 00:00:00" }, // cutoff 後の新規
+    ],
+    execution_attempts: [{ attempt_id: "att1", status: "open", issued_at: "2026-08-10 00:00:00" }],
+  } };
+  writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(pl)));
+  const before = snap();
+  const out = run("recheck", ["--cutoff=2026-08-20T00:00:00"]);
+  const after = snap();
+  check("16a. recheck: site_checks の取りこぼし 1 件（cutoff 前）＋cutoff 後の新規 1 件を分けて報告", out.summary.site_checks.missing === 2 && out.summary.site_checks.missing_before_cutoff === 1 && out.summary.site_checks.missing_rows.some((m) => m.id === "cccccccccccc" && m.before_cutoff === true),
+    JSON.stringify({ missing: out.summary.site_checks.missing_rows.map((m) => [m.id, m.before_cutoff]) }));
+  check("16b. recheck: attempts の内容不一致 1 件（status）を報告し、DB は無変更", out.summary.execution_attempts.content_mismatch === 1 && out.summary.execution_attempts.mismatch_rows[0].differing.includes("status") && before === after,
+    JSON.stringify(out.summary.execution_attempts.mismatch_rows));
+  check("16c. recheck: 合計（missing 2・before_cutoff 1・mismatch 1）", out.totals.missing === 2 && out.totals.missing_before_cutoff === 1 && out.totals.mismatch === 1, JSON.stringify(out.totals));
+}
+// 17. 旧 migration_log（v1 キーの skipped_existing）は v2 キーの再回収を妨げない
+{
+  const d = new Database(dbPath);
+  // v1 の url|created_at キーで skipped_existing と記録された行（C0 で実際に落ちた形）。v2 では別キーになるので妨げない
+  d.prepare("INSERT OR IGNORE INTO migration_log (batch_id,source_system,table_name,source_key,new_rowid,action) VALUES ('mig-believable-20260916-02','believable-vibrancy','site_checks','site|https://own.example/|2026-08-17 08:00:00',1,'skipped_existing')").run();
+  d.close();
+  const pl = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])),
+    site_checks: [{ id: "gggggggggggg", url: "https://own.example/", score: 20, grade: "CCC", created_at: "2026-08-17 08:00:00" }] } }; // 同 URL 同秒の別チェック
+  writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(pl)));
+  const r = run("apply", ["--batch=mig-believable-test-07-recheck"]);
+  check("17. 旧 v1 キーの skipped_existing ログがあっても、v2 キーの再回収は skippedLogged にならず挿入される", r.summary.site_checks.inserted === 1 && r.summary.site_checks.skippedLogged === 0, JSON.stringify(r.summary.site_checks));
+}
 
 rmSync(workDir, { recursive: true, force: true });
 const all = results.every(Boolean);
