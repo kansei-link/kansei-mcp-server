@@ -316,7 +316,13 @@ function checkFooter(struct, findings) {
 // C9: 内部manifestのseed候補データがHTMLに漏れていないか（rev2: 生HTMLへの存在=error。可視/非可視を問わない）
 function checkSeedLeak(vis, raw, seedMatch, findings) {
   if (!seedMatch) return;
-  const needles = [seedMatch.api_url_candidate, seedMatch.id].filter(Boolean);
+  // C9訂正 (2026-09-16 C1統合・Maker): seed_match.id がそのサービスのブランド名そのもの
+  // （例: id="fincode" と "fincode byGMO"）の場合、<title> にブランド名を書く限り必ず一致し
+  // 「未検証seed候補の漏えい」ではなく誤検知になる。<title> に含まれる id は針から外す。
+  // api_url_candidate（未検証URL）は従来どおり針に残す＝rev2④の趣旨は維持。
+  const titleText = (raw.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? '').toLowerCase();
+  const idIsBrand = seedMatch.id && titleText.includes(String(seedMatch.id).toLowerCase());
+  const needles = [seedMatch.api_url_candidate, idIsBrand ? null : seedMatch.id].filter(Boolean);
   for (const n of needles) {
     const visIdx = vis.indexOf(n);
     const rawIdx = raw.indexOf(n);
@@ -371,8 +377,17 @@ function main() {
     if (manifest.count !== manifest.profiles.length) {
       globalFindings.push(makeFinding('M1_manifest', 'error', 0, '', `manifest.count=${manifest.count} と profiles配列長=${manifest.profiles.length} が不一致`));
     }
+    // M1訂正 (2026-09-16 C1統合・Maker): Canary rev2 で profile-drafts/ は公開候補（canary 20）だけに
+    // 絞られ、qa-internal/manifest.json は選定100社の生成記録（Checker向け・非公開）のまま残る設計。
+    // 公開安全性に効くのは「drafts の全HTMLに manifest 記録があるか」（記録なしのHTML=出所不明=error）。
+    // manifest にあって drafts に無い記録（非canaryのQA記録）は公開されないので warn に留める。
+    const manifestFiles = new Set(manifest.profiles.map((p) => p.file));
+    const orphanHtml = htmlFiles.filter((f) => !manifestFiles.has(f));
+    if (orphanHtml.length) {
+      globalFindings.push(makeFinding('M1_manifest', 'error', 0, '', `manifest に記録が無いHTMLが profile-drafts/ にある（出所不明・公開不可）: ${orphanHtml.join(', ')}`));
+    }
     if (manifest.profiles.length !== htmlFiles.length) {
-      globalFindings.push(makeFinding('M1_manifest', 'error', 0, '', `manifest件数${manifest.profiles.length}と実ファイル数${htmlFiles.length}が不一致`));
+      globalFindings.push(makeFinding('M1_manifest', 'warn', 0, '', `manifest件数${manifest.profiles.length}と実ファイル数${htmlFiles.length}が不一致（drafts=公開候補のみ／manifest=選定100社の生成記録。全HTMLは記録済み）`));
     }
     for (const p of manifest.profiles) {
       if (p.seed_match && p.seed_match.status !== 'unverified_not_rendered') {
