@@ -90,7 +90,6 @@ const payload = { schemas: {}, rows: {
   inspections: [], infrastructure_tips: [], execution_attempts: [],
   site_checks: [
     { id: "bbbbbbbbbbbb", url: "https://new.example/", created_at: "2026-08-18 01:00:00" },  // 新規・TEXT PK は id を保持して挿入されること
-    { id: "aaaaaaaaaaaa", url: "https://other.example/", created_at: "2026-08-18 02:00:00" }, // 既存 id と衝突（自然キーは別）→ skipped_pk_collision
   ],
 } };
 writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(payload)));
@@ -104,7 +103,7 @@ const dry = run("dry");
 check("1. dry: leads 新規2挿入・移行済み1+同内容1=skip・payload内重複1=skip", dry.summary.ranking_leads.inserted === 2 && dry.summary.ranking_leads.skippedExisting === 2 && dry.summary.ranking_leads.skippedDupInPayload === 1,
   JSON.stringify(dry.summary.ranking_leads)); // 60,62=挿入 / 1,61=skip / 63=payload内重複
 check("2. dry: model_service_stats 更新1・未変更skip1", dry.summary.model_service_stats.updated === 1 && dry.summary.model_service_stats.skippedExisting === 1);
-check("2b. dry: site_checks 新規1挿入・id衝突1skip（TEXT PK 経路が dry でも数える）", dry.summary.site_checks.inserted === 1 && dry.summary.site_checks.skippedPkCollision === 1, JSON.stringify(dry.summary.site_checks));
+check("2b. dry: site_checks 新規1挿入（TEXT PK 経路が dry でも数える）", dry.summary.site_checks.inserted === 1 && dry.summary.site_checks.skippedExisting === 0, JSON.stringify(dry.summary.site_checks));
 
 // 2. apply
 const ap = run("apply");
@@ -118,7 +117,7 @@ check("5. apply: both@b.jpは1行のまま（二重挿入なし）", dbr.prepare
 const sc = dbr.prepare("SELECT id,url,migration_batch_id FROM site_checks ORDER BY created_at").all();
 check("5b. apply: site_checks TEXT PK は source の id を保持（bbbb…）・NULL id なし", sc.some((r) => r.id === "bbbbbbbbbbbb" && r.migration_batch_id === "mig-believable-test-02") && sc.every((r) => r.id != null),
   JSON.stringify(sc.map((r) => `${r.id}:${r.url}`)));
-check("5c. apply: 既存 id と衝突する source 行は skipped_pk_collision で既存を守る", ap.summary.site_checks.skippedPkCollision === 1 && sc.find((r) => r.id === "aaaaaaaaaaaa").url === "https://own.example/",
+check("5c. apply: canonical 独自の site_check（aaaa…）は無傷", sc.find((r) => r.id === "aaaaaaaaaaaa")?.url === "https://own.example/" && sc.length === 2,
   JSON.stringify(ap.summary.site_checks));
 dbr.close();
 
@@ -153,6 +152,36 @@ writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(payload4)));
 let aborted = false, abortMsg = "";
 try { run("dry", ["--batch=mig-believable-test-04"]); } catch (e) { aborted = true; abortMsg = String(e.stderr || e.message); }
 check("9. NULL id 安全網: id 無し行は dry でも ABORT（exit≠0・メッセージに NULL id）", aborted && /NULL id/.test(abortMsg), abortMsg.trim().split(String.fromCharCode(10))[0].trim());
+
+// 7. 異内容 ID 衝突 = batch 停止（skip しない）。apply でも DB は 1 行も変わらない
+const snap = () => { const d = new Database(dbPath, { readonly: true });
+  const o = { leads: d.prepare("SELECT COUNT(*) c FROM ranking_leads").get().c, sc: d.prepare("SELECT id,url FROM site_checks ORDER BY id").all(),
+    log: d.prepare("SELECT COUNT(*) c FROM migration_log").get().c, b05: d.prepare("SELECT COUNT(*) c FROM migration_log WHERE batch_id='mig-believable-test-05'").get().c };
+  d.close(); return JSON.stringify(o); };
+const payload5 = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])),
+  ranking_leads: [{ email: "should-not-land@e.jp", source: "webinar", created_at: "2026-08-19 01:00:00" }], // 他表の正常行も巻き戻ること
+  site_checks: [
+    { id: "cccccccccccc", url: "https://fresh.example/", created_at: "2026-08-19 01:00:00" },   // 正常行（先に処理される）
+    { id: "aaaaaaaaaaaa", url: "https://other.example/", created_at: "2026-08-18 02:00:00" },   // 既存 id・自然キー別＝異内容衝突
+  ] } };
+writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(payload5)));
+const tryRun = (mode) => { try { run(mode, ["--batch=mig-believable-test-05"]); return { aborted: false, msg: "" }; }
+  catch (e) { return { aborted: true, msg: String(e.stderr || e.message) }; } };
+const before5 = snap();
+const d5 = tryRun("dry");
+check("10. 異内容 ID 衝突: dry で ABORT（exit≠0・id collision を明示）", d5.aborted && /id collision with different content/.test(d5.msg), d5.msg.trim().split(String.fromCharCode(10))[0]);
+const a5 = tryRun("apply");
+const after5 = snap();
+check("11. 異内容 ID 衝突: apply も ABORT し、同 batch の正常行（lead・site_check cccc…）も含め DB 無変更", a5.aborted && before5 === after5 && !after5.includes("cccccccccccc"),
+  a5.aborted ? "unchanged=" + (before5 === after5) : "apply did not abort");
+
+// 8. 同じ id・同じ自然キー（＝同内容）で migration_log に無い行は衝突扱いにしない（実データ照合で既存として skip）
+const payload6 = { schemas: {}, rows: { ...Object.fromEntries(Object.keys(payload.rows).map((t) => [t, []])),
+  site_checks: [{ id: "aaaaaaaaaaaa", url: "https://own.example/", created_at: "2026-08-17 08:00:00" }] } }; // canonical 独自行と同 id・同内容・未ログ
+writeFileSync(payloadPath, zlib.gzipSync(JSON.stringify(payload6)));
+const d6 = run("dry", ["--batch=mig-believable-test-06"]);
+check("12. 同 id・同内容（未ログ）は停止せず skippedExisting（停止するのは異内容の衝突だけ）", d6.summary.site_checks.skippedExisting === 1 && d6.summary.site_checks.inserted === 0 && d6.summary.site_checks.skippedLogged === 0,
+  JSON.stringify(d6.summary.site_checks));
 
 rmSync(workDir, { recursive: true, force: true });
 const all = results.every(Boolean);
