@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude CodeにKanseiLink MCPを1分でインストール | KanseiLink</title>
+<meta name="description" content="Claude CodeにKanseiLink MCPサーバー（@kansei-link/mcp-server）を1分で追加する手順。設定コマンド、接続確認、よくある設定ミスの自己診断、削除手順まで。">
+<style>
+  :root { --teal: #00bfa5; --ink: #1a2b32; --muted: #5f7480; --line: #e3ebee; --bg: #f7fafb; --card: #ffffff; --code-bg: #0f2027; --code-fg: #d7e7ec; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Inter", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; color: var(--ink); background: var(--bg); line-height: 1.75; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
+  header.site { border-bottom: 3px solid var(--teal); padding: 14px 0; margin-bottom: 32px; }
+  header.site .brand { font-weight: 700; letter-spacing: .02em; }
+  header.site .brand span { color: var(--teal); }
+  h1 { font-size: 1.55rem; line-height: 1.4; margin-bottom: 6px; }
+  .lede { color: var(--muted); font-size: .95rem; margin-bottom: 28px; }
+  .time-chip { display: inline-block; background: #e6f7f4; color: #00806f; border: 1px solid #bfe9e2; border-radius: 999px; padding: 1px 12px; font-size: .8rem; margin-bottom: 10px; font-weight: 700; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+  h2 { font-size: 1.05rem; border-left: 4px solid var(--teal); padding-left: 10px; margin-bottom: 12px; }
+  pre { background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.6; margin: 10px 0; user-select: all; }
+  code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+  p, li { font-size: .92rem; }
+  ol.diag { padding-left: 1.4em; }
+  ol.diag li { margin-bottom: 12px; }
+  ol.diag li strong { display: block; }
+  .hint { font-size: .82rem; color: var(--muted); }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--muted); }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e6edf0; --muted: #9db2bc; --line: #2a3b43; --bg: #101b20; --card: #16242b; }
+    .time-chip { background: #123833; color: #6fd9c9; border-color: #1d4f48; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site"><div class="brand">Kansei<span>Link</span> — MCP Install Guide</div></header>
+
+  <span class="time-chip">所要時間: 約1分</span>
+  <h1>Claude Code に KanseiLink を追加する</h1>
+  <p class="lede">SaaS連携の前にKanseiLinkを引くと、認証方式・落とし穴・接続手順を実測データベースから即座に取得できます。前提: Node.js 18以上。</p>
+
+  <section>
+    <h2>1. 追加コマンド（コピーして実行）</h2>
+    <pre><code>claude mcp add kansei-link -- npx -y @kansei-link/mcp-server</code></pre>
+    <p class="hint">プロジェクトのメンバー全員で共有したい場合は、リポジトリ直下の <code>.mcp.json</code> に以下を置く方法もあります。</p>
+    <pre><code>{
+  "mcpServers": {
+    "kansei-link": {
+      "command": "npx",
+      "args": ["-y", "@kansei-link/mcp-server"]
+    }
+  }
+}</code></pre>
+  </section>
+
+  <section>
+    <h2>2. 接続確認（1コマンド）</h2>
+    <pre><code>claude mcp list</code></pre>
+    <p>一覧に <code>kansei-link</code> が「connected」として表示されれば完了です。セッション内では <code>/mcp</code> でも確認できます。</p>
+  </section>
+
+  <section>
+    <h2>3. うまくいかないときの自己診断（代表的な設定ミス3種）</h2>
+    <ol class="diag">
+      <li><strong>「--」の入れ忘れ</strong>
+        <code>claude mcp add kansei-link npx -y ...</code> のように <code>--</code> を省くと、<code>-y</code> がClaude Code側のフラグとして解釈されてエラーになります。サーバーコマンドの前に必ず <code>--</code> を置いてください。</li>
+      <li><strong>Node.jsが古い・未インストール</strong>
+        <code>node -v</code> で v18 以上であることを確認してください。npxが見つからない場合はNode.jsのインストールが必要です。</li>
+      <li><strong>スコープの取り違え</strong>
+        既定では追加したプロジェクトでのみ有効です。全プロジェクトで使う場合は <code>claude mcp add --scope user kansei-link -- npx -y @kansei-link/mcp-server</code> を使ってください。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>4. 削除手順</h2>
+    <pre><code>claude mcp remove kansei-link</code></pre>
+    <p><code>.mcp.json</code> を使った場合は、該当エントリを削除してください。</p>
+  </section>
+
+  <section>
+    <p>Live Updates（利用データの送信を伴う更新通知）は<strong>任意・デフォルトOFF</strong>です。有効化する場合のみ、同意文（<a href="https://github.com/kansei-link/kansei-mcp-server#readme">README「Live Updates」節</a>）をご確認ください。</p>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 KanseiLink — 本ページの手順は @kansei-link/mcp-server v1.2 時点の内容です。</p>
+  </footer>
+</div>
+</body>
+</html>

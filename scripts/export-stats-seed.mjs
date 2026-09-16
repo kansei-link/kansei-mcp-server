@@ -1,23 +1,27 @@
 #!/usr/bin/env node
 /**
- * Export non-empty service_stats rows to src/data/service-stats-seed.json.
+ * Export non-empty service_stats rows — FIXTURE ONLY.
  *
- * Companion to aggregate-voices.mjs: voices-seed.json and this file are
- * synthesized from the same outcomes pool, so a fresh deploy's insights
- * agree with its voices instead of claiming "No usage data yet".
- * seed.ts backfills only rows still at total_calls = 0 — live stats win.
+ * ⚠️ P0 #39 (2026-08-16): 旧動作（src/data/service-stats-seed.json への書き出し）は
+ *    配布データ汚染経路だったため恒久的に削除。デフォルト拒否で、--fixture-out で
+ *    明示されたパス（fixtures/ 配下 or repo 外）にのみ書き出します。
+ *    復活は SEC レビュー付きコミットでのみ許可されます。
  *
- *   node scripts/export-stats-seed.mjs
+ *   node scripts/export-stats-seed.mjs --fixture-out fixtures/synthetic/<name>.json
  */
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { requireFixtureOut, assertSafeOutPath } from "./lib-synth-guard.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, "..", "kansei-link.db");
-const outPath = path.join(__dirname, "..", "src", "data", "service-stats-seed.json");
+const ROOT = path.join(__dirname, "..");
 
+const fixtureOut = requireFixtureOut(process.argv.slice(2), "export-stats-seed.mjs");
+const outAbs = assertSafeOutPath(fixtureOut, ROOT);
+
+const dbPath = path.join(ROOT, "kansei-link.db");
 const db = new Database(dbPath, { readonly: true });
 const rows = db
   .prepare(
@@ -29,5 +33,6 @@ const rows = db
   .all();
 db.close();
 
-fs.writeFileSync(outPath, JSON.stringify(rows, null, 1) + "\n");
-console.log(`wrote ${rows.length} stats rows -> ${path.relative(process.cwd(), outPath)}`);
+fs.mkdirSync(path.dirname(outAbs), { recursive: true });
+fs.writeFileSync(outAbs, JSON.stringify(rows, null, 1) + "\n");
+console.log(`wrote ${rows.length} stats rows -> ${path.relative(process.cwd(), outAbs)} (fixture only — NOT for src/data or distribution)`);

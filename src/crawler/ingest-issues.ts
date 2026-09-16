@@ -168,26 +168,23 @@ function main() {
   tx();
 
   // ── Update service_stats for affected services ──────────────────
+  // P0 #39 (2026-08-16): stats recompute MUST be provenance-filtered. The old
+  // unfiltered form re-blended synthetic/legacy_unknown/public rows into
+  // service_stats on every weekly crawl, silently undoing the stats rebuild.
+  // Mined issues stay in outcomes/tips; they no longer move success_rate.
+  // Same filter as report-outcome's incremental update.
   const affectedServices = new Set(mappable.map((f) => f.service_id!));
   const updateStats = db.prepare(`
-    INSERT INTO service_stats (service_id, total_calls, success_rate, last_updated)
-    VALUES (?, ?, ?, datetime('now'))
-    ON CONFLICT(service_id) DO UPDATE SET
-      total_calls = (SELECT count(*) FROM outcomes WHERE service_id = ?),
-      success_rate = (SELECT CAST(sum(success) AS REAL) / count(*) FROM outcomes WHERE service_id = ?),
+    UPDATE service_stats SET
+      total_calls = (SELECT count(*) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured')),
+      success_rate = COALESCE((SELECT avg(success) FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured')), 0),
       last_updated = datetime('now')
+    WHERE service_id = ?
+      AND EXISTS (SELECT 1 FROM outcomes WHERE service_id = ? AND provenance IN ('user_reported','kansei_measured'))
   `);
 
   for (const sid of Array.from(affectedServices)) {
-    const count = (
-      db.prepare("SELECT count(*) as c FROM outcomes WHERE service_id = ?").get(sid) as { c: number }
-    ).c;
-    const successRate = (
-      db
-        .prepare("SELECT CAST(sum(success) AS REAL) / count(*) as r FROM outcomes WHERE service_id = ?")
-        .get(sid) as { r: number | null }
-    ).r || 0;
-    updateStats.run(sid, count, successRate, sid, sid);
+    updateStats.run(sid, sid, sid, sid);
   }
 
   db.close();

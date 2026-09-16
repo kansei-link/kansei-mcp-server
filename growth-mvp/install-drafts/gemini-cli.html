@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemini CLIにKanseiLink MCPを1分でインストール | KanseiLink</title>
+<meta name="description" content="Gemini CLIにKanseiLink MCPサーバー（@kansei-link/mcp-server）を1分で追加する手順。settings.jsonの設定、接続確認、よくある設定ミスの自己診断、削除手順まで。">
+<style>
+  :root { --teal: #00bfa5; --ink: #1a2b32; --muted: #5f7480; --line: #e3ebee; --bg: #f7fafb; --card: #ffffff; --code-bg: #0f2027; --code-fg: #d7e7ec; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Inter", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; color: var(--ink); background: var(--bg); line-height: 1.75; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
+  header.site { border-bottom: 3px solid var(--teal); padding: 14px 0; margin-bottom: 32px; }
+  header.site .brand { font-weight: 700; letter-spacing: .02em; }
+  header.site .brand span { color: var(--teal); }
+  h1 { font-size: 1.55rem; line-height: 1.4; margin-bottom: 6px; }
+  .lede { color: var(--muted); font-size: .95rem; margin-bottom: 28px; }
+  .time-chip { display: inline-block; background: #e6f7f4; color: #00806f; border: 1px solid #bfe9e2; border-radius: 999px; padding: 1px 12px; font-size: .8rem; margin-bottom: 10px; font-weight: 700; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+  h2 { font-size: 1.05rem; border-left: 4px solid var(--teal); padding-left: 10px; margin-bottom: 12px; }
+  pre { background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.6; margin: 10px 0; user-select: all; }
+  code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+  p, li { font-size: .92rem; }
+  ol.diag { padding-left: 1.4em; }
+  ol.diag li { margin-bottom: 12px; }
+  ol.diag li strong { display: block; }
+  .hint { font-size: .82rem; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; margin: 8px 0; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--muted); }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e6edf0; --muted: #9db2bc; --line: #2a3b43; --bg: #101b20; --card: #16242b; }
+    .time-chip { background: #123833; color: #6fd9c9; border-color: #1d4f48; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site"><div class="brand">Kansei<span>Link</span> — MCP Install Guide</div></header>
+
+  <span class="time-chip">所要時間: 約1分</span>
+  <h1>Gemini CLI に KanseiLink を追加する</h1>
+  <p class="lede"><code>settings.json</code> に1ブロック追記するだけです。前提: Node.js 18以上。</p>
+
+  <section>
+    <h2>1. settings.json に追記（コピーして貼り付け）</h2>
+    <table>
+      <tr><th>ユーザー単位</th><td><code>~/.gemini/settings.json</code></td></tr>
+      <tr><th>プロジェクト単位</th><td>リポジトリ直下の <code>.gemini/settings.json</code></td></tr>
+    </table>
+    <pre><code>{
+  "mcpServers": {
+    "kansei-link": {
+      "command": "npx",
+      "args": ["-y", "@kansei-link/mcp-server"]
+    }
+  }
+}</code></pre>
+    <p class="hint">既存の設定がある場合は <code>mcpServers</code> の中にエントリだけを追加してください。</p>
+    <p>ファイルを直接編集する代わりに、コマンド1行で追加することもできます（既定はプロジェクト単位。ユーザー単位にする場合は <code>-s user</code> を付加）。</p>
+    <pre><code>gemini mcp add kansei-link npx -y @kansei-link/mcp-server</code></pre>
+    <p class="hint">構文は <code>gemini mcp add [options] &lt;name&gt; &lt;command&gt; [args...]</code> です。<code>npx</code> 以降の引数の前に <code>--</code> 区切りは<strong>不要</strong>です（付けると引数不足エラーになります）。参考: <a href="https://google-gemini.github.io/gemini-cli/docs/tools/mcp-server.html">Gemini CLI公式ドキュメント「MCP servers」</a>（gemini-cli v0.55.1にて上記コマンドで正しい設定が書き込まれることを実機確認済み）。</p>
+  </section>
+
+  <section>
+    <h2>2. 接続確認（1コマンド）</h2>
+    <p>Gemini CLIを起動し、次を入力します。</p>
+    <pre><code>/mcp</code></pre>
+    <p>一覧に <code>kansei-link</code> と、ツール <code>search_services</code> / <code>lookup</code> / <code>report</code> が表示されれば完了です。</p>
+  </section>
+
+  <section>
+    <h2>3. うまくいかないときの自己診断（代表的な設定ミス3種）</h2>
+    <ol class="diag">
+      <li><strong>ファイルの場所違い</strong>
+        ユーザー設定はホームディレクトリの <code>~/.gemini/settings.json</code> です。作業ディレクトリに新規作成した場合はプロジェクト設定（<code>.gemini/settings.json</code>）として扱われ、他のディレクトリでは読み込まれません。</li>
+      <li><strong>JSONの構文エラー</strong>
+        カンマの過不足・引用符の欠落があると設定全体が読み込まれず、<code>/mcp</code> に何も表示されません。</li>
+      <li><strong>Node.js/npxの未導入</strong>
+        <code>node -v</code> で v18 以上を確認してください。npxが見つからない環境ではサーバーの起動に失敗します。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>4. 削除手順</h2>
+    <p><code>settings.json</code> から <code>"kansei-link"</code> のエントリを削除し、Gemini CLIを再起動してください。</p>
+  </section>
+
+  <section>
+    <p>Live Updates（利用データの送信を伴う更新通知）は<strong>任意・デフォルトOFF</strong>です。有効化する場合のみ、同意文（<a href="https://github.com/kansei-link/kansei-mcp-server#readme">README「Live Updates」節</a>）をご確認ください。</p>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 KanseiLink — 本ページの手順は @kansei-link/mcp-server v1.2 時点の内容です。</p>
+  </footer>
+</div>
+</body>
+</html>

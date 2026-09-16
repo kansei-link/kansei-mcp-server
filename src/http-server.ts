@@ -37,6 +37,7 @@ import {
   handleCreateCheckout,
   handleCustomerPortal,
 } from "./stripe.js";
+import { handleClaimStart, handleClaimVerifyTxt, handleClaimVerifyEmail, handleClaimAdminApprove } from "./claim/handlers.js";
 import {
   handleAuthRequestLink,
   handleAuthVerify,
@@ -205,6 +206,12 @@ app.get("/api/access", apiLimiter, handleAccessCheck);
 app.get("/api/access-token", apiLimiter, handleAccessTokenIssue);
 app.post("/api/checkout", apiLimiter, handleCreateCheckout);
 app.post("/api/portal", apiLimiter, handleCustomerPortal);
+
+// ─── Claim MVP (growth-mvp-prep branch; unreachable until C1 GO + gates) ──
+app.post("/api/claim/start", apiLimiter, handleClaimStart);
+app.post("/api/claim/verify-txt", apiLimiter, handleClaimVerifyTxt);
+app.post("/api/claim/verify-email", apiLimiter, handleClaimVerifyEmail);
+app.post("/admin/claim/approve", handleClaimAdminApprove);
 
 // ─── Auth & Entitlements (magic-link login, API keys, premium content) ────
 // Magic-link requests get an extra-tight limiter: each request can trigger an
