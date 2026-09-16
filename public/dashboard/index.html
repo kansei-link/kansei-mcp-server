@@ -1093,6 +1093,9 @@ async function openPortal(e) {
 const gradeColors = { AAA:'var(--grade-aaa)', AA:'var(--grade-aa)', A:'var(--grade-a)', BBB:'var(--grade-bbb)', BB:'var(--grade-bb)', B:'var(--grade-b)', CCC:'var(--grade-ccc)' };
 const gradeOrder = ['AAA','AA','A','BBB','BB','B','CCC'];
 
+    // 未計測（null）は '—'。Math.round(null*100) が 0 になって「0%」と出る事故を防ぐ（C1 公開前 QA 項目）
+function pct(v) { return (v == null || isNaN(v)) ? '—' : Math.round(v * 100) + '%'; }
+function ms(v) { return (v == null || isNaN(v) || v <= 0) ? '—' : Math.round(v) + 'ms'; }
 function gradeHtml(g) {
   const cls = g ? 'grade grade-' + g.toLowerCase() : 'grade';
   return '<span class="' + cls + '">' + (g || '—') + '</span>';
@@ -1125,7 +1128,7 @@ async function loadCostData() {
           + '<td>' + (m.total_calls || 0).toLocaleString() + '</td>'
           + '<td>$' + (m.total_spend || 0).toFixed(2) + '</td>'
           + '<td>$' + (m.avg_cost_per_call || 0).toFixed(4) + '</td>'
-          + '<td>' + (m.avg_success_rate || 0) + '%</td></tr>';
+          + '<td>' + (m.avg_success_rate == null ? '—' : m.avg_success_rate + '%') + '</td></tr>';
       }).join('');
     } else {
       document.getElementById('costs-model-empty').style.display = '';
@@ -1225,7 +1228,7 @@ async function exportCSV() {
     const header = 'Rank,Service,Category,AXR Grade,AEO Score,MCP Status,Success Rate,Avg Latency (ms)';
     const rows = services.map((s, i) =>
       [i+1, '"'+s.name+'"', s.category||'', s.axr_grade||'', s.axr_score ? (s.axr_score/100).toFixed(2) : '',
-       s.mcp_status||'', Math.round(s.success_rate*100)+'%', Math.round(s.avg_latency_ms)].join(',')
+       s.mcp_status||'', (s.success_rate == null ? '' : Math.round(s.success_rate*100)+'%'), (s.avg_latency_ms > 0 ? Math.round(s.avg_latency_ms) : '')].join(',')
     );
     const csv = '\uFEFF' + header + '\n' + rows.join('\n');
     const date = new Date().toISOString().slice(0,10);
@@ -1349,7 +1352,7 @@ async function loadDashboardData() {
         const catTable = document.querySelector('#page-overview .widget-grid-2 .widget:nth-child(2) tbody');
         if (catTable) {
           catTable.innerHTML = stats.categories.slice(0, 7).map(c =>
-            '<tr><td>' + c.category + '</td><td style="text-align:right"><strong>' + (c.avg_success || '—') + '%</strong></td></tr>'
+            '<tr><td>' + c.category + '</td><td style="text-align:right"><strong>' + (c.avg_success == null ? '—' : c.avg_success + '%') + '</strong></td></tr>'
           ).join('');
         }
       }
@@ -1377,8 +1380,8 @@ async function loadDashboardData() {
           '<td>' + gradeHtml(s.axr_grade) + '</td>' +
           '<td>' + (s.axr_score ? (s.axr_score/100).toFixed(2) : '—') + '</td>' +
           '<td>' + mcpLabel(s.mcp_status, s.mcp_endpoint) + '</td>' +
-          '<td>' + Math.round(s.success_rate * 100) + '%</td>' +
-          '<td>' + Math.round(s.avg_latency_ms) + 'ms</td></tr>'
+          '<td>' + pct(s.success_rate) + '</td>' +
+          '<td>' + ms(s.avg_latency_ms) + '</td></tr>'
         ).join('');
       }
 
@@ -1394,8 +1397,8 @@ async function loadDashboardData() {
           '<td><span class="category-tag">' + (s.category || '') + '</span></td>' +
           '<td>' + gradeHtml(s.axr_grade) + '</td>' +
           '<td>' + (s.axr_score ? (s.axr_score/100).toFixed(2) : '—') + '</td>' +
-          '<td>' + Math.round(s.success_rate * 100) + '%</td>' +
-          '<td>' + Math.round(s.avg_latency_ms) + 'ms</td>' +
+          '<td>' + pct(s.success_rate) + '</td>' +
+          '<td>' + ms(s.avg_latency_ms) + '</td>' +
           '<td>' + mcpLabel(s.mcp_status, s.mcp_endpoint) + '</td></tr>'
         ).join('');
       }
@@ -1407,7 +1410,7 @@ async function loadDashboardData() {
           '<tr><td class="service-name">' + s.name + '</td>' +
           '<td><span class="category-tag">' + (s.category || '') + '</span></td>' +
           '<td>' + gradeHtml(s.axr_grade) + '</td>' +
-          '<td>' + Math.round(s.success_rate * 100) + '%</td>' +
+          '<td>' + pct(s.success_rate) + '</td>' +
           '<td>' + mcpLabel(s.mcp_status, s.mcp_endpoint) + '</td>' +
           '<td class="stat-change neutral">&#9654;</td></tr>'
         ).join('');
@@ -1421,7 +1424,7 @@ async function loadDashboardData() {
           '<td><span class="category-tag">' + (s.category || '') + '</span></td>' +
           '<td>' + gradeHtml(s.axr_grade) + '</td>' +
           '<td>' + (s.axr_score ? (s.axr_score/100).toFixed(2) : '—') + '</td>' +
-          '<td>' + Math.round(s.success_rate * 100) + '%</td>' +
+          '<td>' + pct(s.success_rate) + '</td>' +
           '<td>—</td>' +
           '<td>' + mcpLabel(s.mcp_status, s.mcp_endpoint) + '</td>' +
           '<td>' + (s.api_auth_method || '—') + '</td>' +
