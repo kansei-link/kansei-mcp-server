@@ -46,12 +46,23 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { parseAnthropicSearch, parseOpenAISearch, parseGeminiSearch } from "./lib/audit-search-parsers.mjs";
 
 // Reasoning models (gpt-5.x, gemini flash thinking) spend this budget on hidden
 // reasoning before emitting text — at 1024 they return an empty answer, which
 // reads as "no data" when it is really a truncated measurement.
 const MAX_ANSWER_TOKENS = Number(process.env.AUDIT_MAX_TOKENS ?? 4096);
+
+// --search: anthropic / openai / gemini も各社の Web 検索つきで聞く（perplexity は常に検索つき）。
+// 既定は従来どおり検索なし＝週次の定点バッテリーの条件を変えない。
+// 公開直後のページが引用されるかを測る用途（Agent Wiki の準実験）では、検索なしのモデルは
+// 学習データからしか答えないため構造的に 0 になる → その測定は必ず --search で行う。
+// --tag=<label>: 出力ファイル名に付ける（<battery>-<label>-results.json）。同じバッテリーの前回結果を上書きしない。
+const SEARCH = process.argv.includes("--search");
+const TAG = (process.argv.find((a) => a.startsWith("--tag=")) || "").slice("--tag=".length).replace(/[^A-Za-z0-9._-]/g, "") || null;
+const SEARCH_MAX_USES = Number(process.env.AUDIT_SEARCH_MAX_USES ?? 3);
 
 // ─── Engine adapters ───────────────────────────────────────────────
 
@@ -77,7 +88,9 @@ const ENGINES = {
         model,
         max_tokens: MAX_ANSWER_TOKENS,
         messages: [{ role: "user", content: question }],
+        ...(SEARCH ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: SEARCH_MAX_USES }] } : {}),
       });
+      if (SEARCH) return parseAnthropicSearch(res);
       const text = res.content
         .filter((b) => b.type === "text")
         .map((b) => b.text)
@@ -89,6 +102,16 @@ const ENGINES = {
     keyEnv: "OPENAI_API_KEY",
     model: () => process.env.OPENAI_AUDIT_MODEL ?? "gpt-5",
     async ask(question, model) {
+      if (SEARCH) {
+        const r = await fetch("https://api.openai.com/v1/responses", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model, input: question, max_output_tokens: MAX_ANSWER_TOKENS, tools: [{ type: "web_search" }], include: ["web_search_call.action.sources"] }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error?.message ?? `HTTP ${r.status}`);
+        return parseOpenAISearch(d);
+      }
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -118,11 +141,13 @@ const ENGINES = {
           body: JSON.stringify({
             contents: [{ parts: [{ text: question }] }],
             generationConfig: { maxOutputTokens: MAX_ANSWER_TOKENS },
+            ...(SEARCH ? { tools: [{ google_search: {} }] } : {}),
           }),
         }
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message ?? `HTTP ${res.status}`);
+      if (SEARCH) return parseGeminiSearch(data);
       const cand = data.candidates?.[0];
       return {
         text: cand?.content?.parts?.map((p) => p.text).join("\n") ?? "",
@@ -161,9 +186,9 @@ const ENGINES = {
 // ─── CLI ───────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
-const batteryPath = args.find((a) => !a.startsWith("--"));
+const batteryPath = args.find((a, i) => !a.startsWith("--") && !["--engines", "--limit"].includes(args[i - 1]));
 if (!batteryPath) {
-  console.error("Usage: node scripts/ai-answer-audit.mjs <battery.json> [--engines a,b] [--limit N]");
+  console.error("Usage: node scripts/ai-answer-audit.mjs <battery.json> [--engines a,b] [--limit N] [--search] [--tag=label]");
   process.exit(1);
 }
 const engineArg = args.find((a) => a.startsWith("--engines"));
@@ -198,6 +223,7 @@ console.log(`Citations: yes（引用元を保存する版）`);
 console.log(`Target:   ${battery.target}`);
 console.log(`Battery:  ${questions.length} questions`);
 console.log(`Engines:  ${active.join(", ") || "(none)"}`);
+console.log(`Search:   ${SEARCH ? "ON（全エンジン Web 検索つき）" : "off（perplexity のみ検索つき）"}${TAG ? ` ／ tag=${TAG}` : ""}`);
 if (skipped.length) console.log(`Skipped:  ${skipped.join(", ")}`);
 if (active.length === 0) {
   console.error("No engine keys available — nothing to do.");
@@ -281,10 +307,12 @@ const topDomains = Object.entries(domainCounts).sort((a, b) => b[1] - a[1]);
 
 // ─── Write outputs ─────────────────────────────────────────────────
 
-const base = batteryPath.replace(/\.json$/i, "");
+const base = batteryPath.replace(/\.json$/i, "") + (TAG ? `-${TAG}` : "");
 const out = {
   target: battery.target,
   run_at: new Date().toISOString(),
+  search_mode: SEARCH ? "web_search_all_engines" : "perplexity_only",
+  battery_sha256: createHash("sha256").update(readFileSync(batteryPath)).digest("hex"),
   engines: Object.fromEntries(active.map((n) => [n, ENGINES[n].model()])),
   skipped_engines: skipped,
   brand_summary: brandSummary,
