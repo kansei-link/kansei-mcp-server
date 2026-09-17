@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.2.2 (2026-09-17)
+
+### Fix — API endpoint moved to the canonical service
+- **`entitlements`**: the default API base now points to the canonical service
+  (`kansei-link-mcp-production.up.railway.app`). v1.2.1 and earlier resolve
+  `/api/access` against the old host (`-b054`); those clients keep working only
+  while the compatibility route on the old host stays up. Set
+  `KANSEI_ENDPOINT_BASE` to override.
+- `kansei-link-report-hook` / `kansei-link-wrapped` default endpoints likewise
+  target the canonical service.
+
+### Distribution hygiene
+- Ships with the P0 #39 gates: `voices-seed.json` / `service-stats-seed.json` are
+  empty (`[]`); synthetic voice rows are quarantined on startup; public metrics
+  are served only through the `publishable_*` views.
+- First clean-worktree release through the new release gate
+  (`scripts/release-gate.mjs`: clean tree + `v1.2.2` tag = HEAD + pack-gate + route-gate).
+
 ## v1.2.0 (unreleased)
 
 ### Wrapped — monthly agent fuel-efficiency report
