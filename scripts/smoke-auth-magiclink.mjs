@@ -140,17 +140,27 @@ async function main() {
   const leaked = log2.includes("subscriber@example.com") || /login\.html\?code=/.test(log2) || /[a-f0-9]{48}/.test(log2);
   check("8. キー未設定: 200+AUDITログ(reason=no_key)・メール/リンク/codeはログ非出力", r2.status === 200 && audited && !leaked && codeIssued,
     leaked ? "SECRET LEAKED IN LOG" : "clean");
-  server2.kill();
-  rmSync(workDir2, { recursive: true, force: true });
+  await stopAndClean(server2, workDir2);
 
-  server.kill();
   mock.close();
-  await new Promise((r2) => setTimeout(r2, 500));
-  rmSync(workDir, { recursive: true, force: true });
+  await stopAndClean(server, workDir);
 
   const all = results.every(Boolean);
   console.log(all ? "\n✅ smoke-auth-magiclink: ALL PASS" : "\n❌ smoke-auth-magiclink: FAILURES");
   process.exit(all ? 0 : 1);
+}
+
+// Windows では kill() の直後もサーバーが DB を握っており rmSync が EBUSY になる。
+// 終了を待ち、それでもロックが残る場合はリトライしてから消す（テスト本体の合否には影響させない）。
+async function stopAndClean(child, dir) {
+  const exited = new Promise((r) => { if (child.exitCode !== null || child.signalCode) return r(); child.once("exit", r); setTimeout(r, 5000); });
+  child.kill();
+  await exited;
+  for (let i = 0; i < 40; i++) {
+    try { rmSync(dir, { recursive: true, force: true }); return; }
+    catch (e) { if (e.code !== "EBUSY" && e.code !== "EPERM" && e.code !== "ENOTEMPTY") throw e; await new Promise((r) => setTimeout(r, 250)); }
+  }
+  console.warn(`  (warn) temp dir still locked, left behind: ${dir}`);
 }
 
 main().catch((e) => { console.error("SMOKE ERROR:", e); process.exit(1); });
