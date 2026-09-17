@@ -48,7 +48,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
-import { parseAnthropicSearch, parseOpenAISearch, parseGeminiSearch } from "./lib/audit-search-parsers.mjs";
+import { parseAnthropicSearch, parseOpenAISearch, parseGeminiSearch, perplexitySearchMeta } from "./lib/audit-search-parsers.mjs";
 
 // Reasoning models (gpt-5.x, gemini flash thinking) spend this budget on hidden
 // reasoning before emitting text — at 1024 they return an empty answer, which
@@ -178,6 +178,7 @@ const ENGINES = {
         text: data.choices?.[0]?.message?.content ?? "",
         // search_results is the current field; citations is the legacy one.
         citations: normCitations(data.search_results ?? data.citations),
+        ...perplexitySearchMeta(data),
       };
     },
   },
@@ -240,10 +241,12 @@ for (const q of questions) {
       const eng = ENGINES[name];
       const model = eng.model();
       try {
-        const { text, citations } = await eng.ask(q.question, model);
-        answers[name] = { model, text, citations };
+        const { text, citations, search_meta, usage } = await eng.ask(q.question, model);
+        answers[name] = { model, text, citations, ...(search_meta ? { search_meta } : {}), ...(usage ? { usage } : {}) };
         const src = citations.length ? ` — ${citations.length} sources` : "";
-        console.log(`  ✓ ${q.id} × ${name}${src}`);
+        // 検索の実行は出典の有無ではなく応答のメタデータで見る（検索せずに答えたセルを区別する）
+        const srch = search_meta ? ` [search: ${search_meta.searched ? "yes" : "NO"} / ${search_meta.evidence}]` : "";
+        console.log(`  ✓ ${q.id} × ${name}${src}${srch}`);
       } catch (err) {
         answers[name] = { model, error: String(err.message ?? err) };
         console.log(`  ✗ ${q.id} × ${name}: ${err.message}`);
@@ -313,6 +316,11 @@ const out = {
   run_at: new Date().toISOString(),
   search_mode: SEARCH ? "web_search_all_engines" : "perplexity_only",
   battery_sha256: createHash("sha256").update(readFileSync(batteryPath)).digest("hex"),
+  // エンジンごとの「実際に検索が走ったセル数／回答できたセル数」（メタデータ由来）
+  search_executed: Object.fromEntries(active.map((n) => {
+    const ok = results.map((r) => r.answers[n]).filter((a) => a && !a.error);
+    return [n, { answered: ok.length, searched: ok.filter((a) => a.search_meta?.searched).length, no_meta: ok.filter((a) => !a.search_meta).length }];
+  })),
   engines: Object.fromEntries(active.map((n) => [n, ENGINES[n].model()])),
   skipped_engines: skipped,
   brand_summary: brandSummary,
