@@ -12,16 +12,16 @@
 // user explicitly runs `kansei-link-wrapped --share`.
 //
 // Install (adds Stop + SessionEnd entries to ~/.claude/settings.json):
-//   npx -y @kansei-link/mcp-server kansei-link-install-hooks
+//   npx -y -p @kansei-link/mcp-server kansei-link-install-hooks
 //
 // Or manually in ~/.claude/settings.json:
 //   {
 //     "hooks": {
 //       "Stop": [
-//         { "hooks": [ { "type": "command", "command": "npx -y @kansei-link/mcp-server kansei-link-usage-hook" } ] }
+//         { "hooks": [ { "type": "command", "command": "npx -y -p @kansei-link/mcp-server kansei-link-usage-hook" } ] }
 //       ],
 //       "SessionEnd": [
-//         { "hooks": [ { "type": "command", "command": "npx -y @kansei-link/mcp-server kansei-link-usage-hook" } ] }
+//         { "hooks": [ { "type": "command", "command": "npx -y -p @kansei-link/mcp-server kansei-link-usage-hook" } ] }
 //       ]
 //     }
 //   }

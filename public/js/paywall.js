@@ -19,7 +19,7 @@
 (function () {
   "use strict";
 
-  var API_BASE = window.KANSEI_API_BASE || "https://kansei-link-mcp-production-b054.up.railway.app";
+  var API_BASE = window.KANSEI_API_BASE || "https://kansei-link-mcp-production.up.railway.app";
   var STORAGE_KEY = "kl_email";
   var TOKEN_KEY = "kl_token";
 

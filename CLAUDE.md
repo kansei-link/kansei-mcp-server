@@ -23,12 +23,12 @@ report → share what happened (helps future agents)
 
 Install hooks to measure token consumption per session:
 ```bash
-npx -y @kansei-link/mcp-server kansei-link-install-hooks
+npx -y -p @kansei-link/mcp-server kansei-link-install-hooks
 ```
 
 View monthly report:
 ```bash
-npx -y @kansei-link/mcp-server kansei-link-wrapped
+npx -y -p @kansei-link/mcp-server kansei-link-wrapped
 ```
 
 ## Data Policy

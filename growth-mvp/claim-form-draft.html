@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プロフィールのClaim申請（ドラフト・未公開） | KanseiLink</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root { --teal: #00bfa5; --bg: #f8fafb; --text: #1a2332; --gray: #6b7280; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 40px 36px; max-width: 560px; width: 100%; }
+    h1 { font-size: 21px; margin-bottom: 8px; }
+    p, li { color: var(--gray); font-size: 14px; line-height: 1.7; }
+    label { display: block; font-size: 13.5px; font-weight: 600; margin: 16px 0 6px; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14.5px; }
+    textarea { min-height: 90px; }
+    .btn { margin-top: 20px; padding: 11px 24px; background: var(--teal); color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 14.5px; cursor: pointer; }
+    .note { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 12px 14px; margin-top: 18px; font-size: 13px; color: #134e4a; line-height: 1.7; }
+    ul { padding-left: 18px; margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>この企業のご担当者ですか？</h1>
+    <p>公式ドメインの確認により、プロフィールに公式窓口を紐付け、事実の訂正申請や公式MCPの申告ができるようになります。</p>
+
+    <form id="claim-form">
+      <label>対象サービス</label>
+      <input type="text" id="service" placeholder="例: freee会計" required>
+      <label>申請の種類</label>
+      <select id="claim-type">
+        <option value="ownership">公式窓口の紐付け（Claim）</option>
+        <option value="fact_correction">記載事実の訂正申請</option>
+        <option value="official_mcp">公式MCP/APIの申告</option>
+      </select>
+      <label>会社のメールアドレス（公式ドメイン）</label>
+      <input type="email" id="email" placeholder="you@your-company.co.jp" required>
+      <label>訂正内容（訂正申請の場合のみ）</label>
+      <textarea id="correction" placeholder="訂正したい記載箇所と正しい内容・根拠となる公式情報のURL"></textarea>
+      <button class="btn" type="submit">申請する</button>
+    </form>
+
+    <div class="note">
+      <strong>審査について</strong>
+      <ul>
+        <li>フリーメール・共有ホスティングのドメインでは申請できません。会社ドメインのDNSにTXTレコードを設置する検証方法もご案内します（有効期限7日）。</li>
+        <li>ドメイン確認の通過後、<strong>運営による確認を経て</strong>「Claimed」表示が有効になります（自動では表示されません）。</li>
+        <li>訂正申請の内容は、当方での検証が完了するまで公開ページには反映されません（一次応答は5営業日以内）。</li>
+        <li>申請によって格付け・順位が変わることはありません。</li>
+        <li>ご入力いただいた連絡先は<a href="https://kansei-link.com/privacy.html">プライバシーポリシー</a>に従い管理されます。</li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    // ドラフト: API_BASEはC1後の公開時に配線（現在は未稼働）
+    document.getElementById('claim-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      alert('このフォームはドラフトです（未公開・未配線）。');
+    });
+  </script>
+</body>
+</html>

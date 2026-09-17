@@ -1,45 +1,38 @@
 #!/usr/bin/env node
 /**
- * Synthesize an 'agent voice' row per service from the outcomes table.
+ * Synthesize 'agent voice' rows per service from the outcomes table — FIXTURE ONLY.
  *
- * Logic:
- *   For each service with ≥ 3 outcomes in last 90 days, compute:
- *     - success_rate        : wins / total
- *     - median_latency_ms   : 50p
- *     - top_errors          : most frequent error_type, up to 3
- *     - common_workarounds  : most frequent workaround strings, up to 3
- *     - sample_size         : total outcomes window
- *     - confidence          : 'low' (<10), 'medium' (10-30), 'high' (30+)
+ * ⚠️ P0 #39 (2026-08-16): このスクリプトは配布データ汚染の元凶だったため恒久的に
+ *    デフォルト拒否です。src/data/ への出力・DB (agent_voice_responses) への
+ *    INSERT/UPDATE は削除済みで、復活は SEC レビュー付きコミットでのみ許可されます。
  *
- *   Write one row to agent_voice_responses with:
- *     agent_type     = 'aggregated'
- *     agent_id       = 'kansei-link-synth'
- *     question_id    = 'auto_voice_summary'
- *     response_text  = human-readable narrative summary
- *     response_choice= grade ('works_well' | 'mostly_works' | 'needs_attention')
- *     confidence     = derived above
+ *    出力は --fixture-out で明示されたパス（fixtures/ 配下 or repo 外）への
+ *    JSON 書き出しのみ。DB は read-only で開きます。
  *
- *   Dedupe: one synthesized row per service. If an existing one exists
- *   (same service + agent_type='aggregated' + question_id='auto_voice_summary'),
- *   UPDATE it rather than inserting.
+ *   node scripts/aggregate-voices.mjs --fixture-out fixtures/synthetic/<name>.json
  *
- * Safe to run as often as you like. Run after the crawler so new outcomes
- * immediately roll into aggregated voice.
- *
- *   node scripts/aggregate-voices.mjs
+ * Logic (unchanged): For each service with ≥ 3 outcomes in last 90 days, compute
+ * success_rate / median latency / top errors / top workarounds → one synthesized
+ * row shaped like agent_voice_responses (agent_id 'kansei-link-synth').
  */
 import Database from "better-sqlite3";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { requireFixtureOut, assertSafeOutPath } from "./lib-synth-guard.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, "..", "kansei-link.db");
-const db = new Database(dbPath);
+const ROOT = path.join(__dirname, "..");
+
+const fixtureOut = requireFixtureOut(process.argv.slice(2), "aggregate-voices.mjs");
+const outAbs = assertSafeOutPath(fixtureOut, ROOT);
+
+const dbPath = path.join(ROOT, "kansei-link.db");
+const db = new Database(dbPath, { readonly: true });
 
 const WINDOW_DAYS = 90;
 const MIN_OUTCOMES = 3;
 
-// Load services that have at least MIN_OUTCOMES outcomes in the window.
 const candidates = db
   .prepare(
     `SELECT o.service_id, s.name, COUNT(*) as total
@@ -52,7 +45,7 @@ const candidates = db
   )
   .all({ days: WINDOW_DAYS, min: MIN_OUTCOMES });
 
-console.log(`[agg-voices] ${candidates.length} services have ≥ ${MIN_OUTCOMES} outcomes in ${WINDOW_DAYS}d`);
+console.log(`[agg-voices] ${candidates.length} services have ≥ ${MIN_OUTCOMES} outcomes in ${WINDOW_DAYS}d (fixture mode, DB read-only)`);
 
 const selectOutcomes = db.prepare(
   `SELECT success, latency_ms, error_type, workaround
@@ -60,30 +53,6 @@ const selectOutcomes = db.prepare(
    WHERE service_id = @svc
      AND created_at >= datetime('now', '-' || @days || ' days')
    ORDER BY created_at DESC`
-);
-
-const selectExisting = db.prepare(
-  `SELECT id FROM agent_voice_responses
-   WHERE service_id = @svc
-     AND agent_type = 'aggregated'
-     AND question_id = 'auto_voice_summary'
-   LIMIT 1`
-);
-
-const insertVoice = db.prepare(
-  `INSERT INTO agent_voice_responses
-    (service_id, agent_type, agent_id, question_id, response_choice, response_text, confidence, created_at)
-   VALUES (@svc, 'aggregated', 'kansei-link-synth', 'auto_voice_summary',
-           @grade, @text, @confidence, datetime('now'))`
-);
-
-const updateVoice = db.prepare(
-  `UPDATE agent_voice_responses
-   SET response_choice = @grade,
-       response_text = @text,
-       confidence = @confidence,
-       created_at = datetime('now')
-   WHERE id = @id`
 );
 
 function median(nums) {
@@ -143,64 +112,31 @@ function renderText(name, stats) {
   return parts.join(". ") + ".";
 }
 
-let inserted = 0;
-let updated = 0;
-
-const tx = db.transaction(() => {
-  for (const cand of candidates) {
-    const rows = selectOutcomes.all({ svc: cand.service_id, days: WINDOW_DAYS });
-    const successCount = rows.filter((r) => r.success === 1).length;
-    const successRate = rows.length > 0 ? successCount / rows.length : 0;
-    const latencies = rows.map((r) => r.latency_ms).filter((l) => l > 0);
-    const topErrors = topKFreq(rows.filter((r) => r.success === 0).map((r) => r.error_type));
-    const topWorkarounds = topKFreq(rows.map((r) => r.workaround));
-
-    const stats = {
-      sample: rows.length,
-      successRate,
-      medianLatency: median(latencies),
-      topErrors,
-      topWorkarounds,
-    };
-
-    const gradeLabel = grade(successRate);
-    const text = renderText(cand.name, stats);
-    const confidence = confidenceOf(rows.length);
-
-    const existing = selectExisting.get({ svc: cand.service_id });
-    if (existing) {
-      updateVoice.run({ id: existing.id, grade: gradeLabel, text, confidence });
-      updated++;
-    } else {
-      insertVoice.run({ svc: cand.service_id, grade: gradeLabel, text, confidence });
-      inserted++;
-    }
-  }
+const rows = candidates.map((cand) => {
+  const outcomes = selectOutcomes.all({ svc: cand.service_id, days: WINDOW_DAYS });
+  const successCount = outcomes.filter((r) => r.success === 1).length;
+  const successRate = outcomes.length > 0 ? successCount / outcomes.length : 0;
+  const latencies = outcomes.map((r) => r.latency_ms).filter((l) => l > 0);
+  const stats = {
+    sample: outcomes.length,
+    successRate,
+    medianLatency: median(latencies),
+    topErrors: topKFreq(outcomes.filter((r) => r.success === 0).map((r) => r.error_type)),
+    topWorkarounds: topKFreq(outcomes.map((r) => r.workaround)),
+  };
+  return {
+    service_id: cand.service_id,
+    agent_type: "aggregated",
+    agent_id: "kansei-link-synth",
+    question_id: "auto_voice_summary",
+    response_choice: grade(successRate),
+    response_text: renderText(cand.name, stats),
+    confidence: confidenceOf(outcomes.length),
+  };
 });
-tx();
-
-console.log(`[agg-voices] inserted: ${inserted}, updated: ${updated}`);
-console.log();
-
-// Show 3 examples for sanity check
-const samples = db
-  .prepare(
-    `SELECT v.service_id, s.name, v.response_choice, v.confidence, substr(v.response_text, 1, 180) as text
-     FROM agent_voice_responses v
-     JOIN services s ON s.id = v.service_id
-     WHERE v.agent_type = 'aggregated' AND v.question_id = 'auto_voice_summary'
-     ORDER BY v.created_at DESC
-     LIMIT 3`
-  )
-  .all();
-
-if (samples.length > 0) {
-  console.log("=== Sample aggregated voices ===");
-  for (const s of samples) {
-    console.log(`[${s.response_choice}][${s.confidence}] ${s.name}`);
-    console.log(`  ${s.text}`);
-    console.log();
-  }
-}
 
 db.close();
+
+fs.mkdirSync(path.dirname(outAbs), { recursive: true });
+fs.writeFileSync(outAbs, JSON.stringify(rows, null, 1) + "\n");
+console.log(`[agg-voices] wrote ${rows.length} synthesized rows -> ${path.relative(process.cwd(), outAbs)} (fixture only — NOT for src/data or distribution)`);

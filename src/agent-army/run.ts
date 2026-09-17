@@ -240,56 +240,12 @@ function recordResult(db: Database.Database, result: TestResult): void {
     cost ?? null
   );
 
-  // Update service_stats
-  db.prepare(
-    `INSERT INTO service_stats (service_id, total_calls, success_rate, avg_latency_ms, unique_agents)
-     VALUES (?, 1, ?, ?, 1)
-     ON CONFLICT(service_id) DO UPDATE SET
-       total_calls = total_calls + 1,
-       success_rate = (success_rate * total_calls + ?) / (total_calls + 1),
-       avg_latency_ms = (avg_latency_ms * total_calls + ?) / (total_calls + 1),
-       last_updated = datetime('now')`
-  ).run(
-    result.service_id,
-    result.success ? 1.0 : 0.0,
-    result.latency_ms,
-    result.success ? 1.0 : 0.0,
-    result.latency_ms
-  );
-
-  // Update model_service_stats
-  db.prepare(
-    `INSERT INTO model_service_stats
-       (service_id, model_name, task_type, total_calls, success_count,
-        success_rate, avg_latency_ms, avg_cost_usd, avg_input_tokens, avg_output_tokens)
-     VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(service_id, model_name, task_type) DO UPDATE SET
-       total_calls = total_calls + 1,
-       success_count = success_count + ?,
-       success_rate = CAST(success_count + ? AS REAL) / (total_calls + 1),
-       avg_latency_ms = (avg_latency_ms * total_calls + ?) / (total_calls + 1),
-       avg_cost_usd = (avg_cost_usd * total_calls + ?) / (total_calls + 1),
-       avg_input_tokens = (avg_input_tokens * total_calls + ?) / (total_calls + 1),
-       avg_output_tokens = (avg_output_tokens * total_calls + ?) / (total_calls + 1),
-       last_updated = datetime('now')`
-  ).run(
-    result.service_id,
-    result.model,
-    result.task_type,
-    result.success ? 1 : 0,
-    result.success ? 1.0 : 0.0,
-    result.latency_ms,
-    cost ?? 0,
-    result.input_tokens ?? 0,
-    result.output_tokens ?? 0,
-    // ON CONFLICT params:
-    result.success ? 1 : 0,
-    result.success ? 1 : 0,
-    result.latency_ms,
-    cost ?? 0,
-    result.input_tokens ?? 0,
-    result.output_tokens ?? 0
-  );
+  // P0 #39 (2026-08-16): agent-army outcomes are classified provenance=synthetic
+  // by the schema migration (agent_id_hash allowlist), so this fleet must never
+  // write service_stats or model_service_stats directly — the old incremental
+  // blends here were synthetic-contamination paths that bypassed provenance
+  // entirely. Outcomes above are kept (and stay excluded from stats by the
+  // provenance filters); public reads go through publishable_* views only.
 }
 
 // ---------------------------------------------------------------------------

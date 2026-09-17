@@ -348,6 +348,19 @@ export function initializeDb(db: Database.Database): void {
     db.exec("ALTER TABLE recipes ADD COLUMN gotchas TEXT DEFAULT '[]'");
   }
 
+  // Hygiene quarantine (P0 #39, 2026-08-16): synthesized "voices" rows
+  // (agent_id 'kansei-link-synth' / agent_type 'aggregated') paired real service
+  // names with synthetic success-rate numbers. The generators are default-deny
+  // now (scripts/aggregate-voices.mjs) and the seed ships empty, but rows
+  // injected by past deploys would otherwise survive in the live DB and keep
+  // being served via /api/dashboard/voices and lookup voices. Deleting on every
+  // boot is idempotent and doubles as a permanent quarantine: synthetic voice
+  // rows can never survive a restart. (service_stats residue is a separate,
+  // pending decision — values may be mixed with real telemetry increments.)
+  db.exec(
+    "DELETE FROM agent_voice_responses WHERE agent_id = 'kansei-link-synth' OR agent_type = 'aggregated'"
+  );
+
   // Event Contract v1 (S2a): pseudonymous telemetry events from opted-in
   // installations. provenance is always user_reported; never joins Verified.
   db.exec(`
@@ -546,6 +559,116 @@ export function initializeDb(db: Database.Database): void {
        GROUP BY service_id, model_name, task_type;
   `);
 
+  // ── service_stats rebuild v1 (P0 #39 residue remediation, Codex 8/16 design) ──
+  // Old service_stats values are a blend whose synthetic share cannot be
+  // identified by value or threshold. Policy: NO guess-based deletion.
+  //   1. quarantine the current table once (audit evidence, never served)
+  //   2. rebuild from the SAME provenance conditions as publishable_service_stats
+  //      (synthetic / legacy_unknown / unverified user_reported are excluded by
+  //      the publishable_outcomes view definition itself)
+  //   3. services with no trustworthy outcomes get NO row = "no data", not "0%"
+  //   4. versioned via schema_migrations; re-running is a no-op (idempotent)
+  //   5. before/after row counts (PII-free) recorded in migration_audit
+  // The quarantine table is referenced ONLY here — never by API/search/ARI/
+  // tips/insights/public views (enforced by smoke-stats-rebuild static scan).
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      migration_id TEXT PRIMARY KEY,
+      applied_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS migration_audit (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      migration_id TEXT NOT NULL,
+      metric TEXT NOT NULL,
+      value INTEGER NOT NULL,
+      recorded_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  const statsRebuilt = db
+    .prepare("SELECT 1 AS x FROM schema_migrations WHERE migration_id = 'service_stats_rebuild_v1'")
+    .get();
+  if (!statsRebuilt) {
+    const rebuildTx = db.transaction(() => {
+      const count = (sql: string) => (db.prepare(sql).get() as { c: number }).c;
+      const beforeRows = count("SELECT COUNT(*) c FROM service_stats");
+      const beforeNonzero = count("SELECT COUNT(*) c FROM service_stats WHERE total_calls > 0");
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS service_stats_quarantine (
+          service_id TEXT PRIMARY KEY,
+          total_calls INTEGER,
+          success_rate REAL,
+          avg_latency_ms REAL,
+          unique_agents INTEGER,
+          last_updated TEXT,
+          quarantined_at TEXT DEFAULT (datetime('now'))
+        );
+        INSERT OR IGNORE INTO service_stats_quarantine
+          (service_id, total_calls, success_rate, avg_latency_ms, unique_agents, last_updated)
+          SELECT service_id, total_calls, success_rate, avg_latency_ms, unique_agents, last_updated
+            FROM service_stats;
+        DELETE FROM service_stats;
+        INSERT INTO service_stats
+          (service_id, total_calls, success_rate, avg_latency_ms, unique_agents, last_updated)
+          SELECT r.service_id, r.total_calls, r.success_rate,
+                 COALESCE(r.avg_latency_ms, 0), r.unique_agents, r.last_updated
+            FROM publishable_service_rollup r
+           WHERE r.service_id IN (SELECT id FROM services);
+      `);
+      const afterRows = count("SELECT COUNT(*) c FROM service_stats");
+      const afterNonzero = count("SELECT COUNT(*) c FROM service_stats WHERE total_calls > 0");
+      const quarantined = count("SELECT COUNT(*) c FROM service_stats_quarantine");
+      const audit = db.prepare(
+        "INSERT INTO migration_audit (migration_id, metric, value) VALUES ('service_stats_rebuild_v1', ?, ?)"
+      );
+      audit.run("before_rows", beforeRows);
+      audit.run("before_nonzero_rows", beforeNonzero);
+      audit.run("quarantined_rows", quarantined);
+      audit.run("after_rows", afterRows);
+      audit.run("after_nonzero_rows", afterNonzero);
+      db.prepare("INSERT INTO schema_migrations (migration_id) VALUES ('service_stats_rebuild_v1')").run();
+    });
+    rebuildTx();
+  }
+
+  // ── service_stats placeholder cleanup v1 (P0 #39 final condition, Codex 8/17) ──
+  // seed.ts used to create an empty service_stats row per service
+  // (INSERT OR IGNORE ... DEFAULT values), leaving 11k+ zero rows that
+  // contradicted the canonical design "no trustworthy outcome => NO row".
+  // The seeder no longer creates them; this one-time migration deletes ONLY
+  // rows that carry no measured value at all. A verified "measured 0%" row has
+  // total_calls > 0 and is never touched. Runs under a NEW migration id — the
+  // research DB already carries service_stats_rebuild_v1 and that migration
+  // must not be rewritten. Quarantine table is not touched.
+  const placeholderCleaned = db
+    .prepare("SELECT 1 AS x FROM schema_migrations WHERE migration_id = 'service_stats_placeholder_cleanup_v1'")
+    .get();
+  if (!placeholderCleaned) {
+    const cleanupTx = db.transaction(() => {
+      const count = (sql: string) => (db.prepare(sql).get() as { c: number }).c;
+      const beforeRows = count("SELECT COUNT(*) c FROM service_stats");
+      const deleted = db
+        .prepare(
+          `DELETE FROM service_stats
+            WHERE total_calls = 0
+              AND COALESCE(success_rate, 0) = 0
+              AND COALESCE(avg_latency_ms, 0) = 0
+              AND COALESCE(unique_agents, 0) = 0`
+        )
+        .run().changes;
+      const afterRows = count("SELECT COUNT(*) c FROM service_stats");
+      const audit = db.prepare(
+        "INSERT INTO migration_audit (migration_id, metric, value) VALUES ('service_stats_placeholder_cleanup_v1', ?, ?)"
+      );
+      audit.run("before_rows", beforeRows);
+      audit.run("deleted_placeholder_rows", deleted);
+      audit.run("after_rows", afterRows);
+      db.prepare(
+        "INSERT INTO schema_migrations (migration_id) VALUES ('service_stats_placeholder_cleanup_v1')"
+      ).run();
+    });
+    cleanupTx();
+  }
+
   // Migration: add MCP tool inventory columns to services (for analyze_mcp_config)
   // mcp_tool_count: how many tools this MCP server exposes
   // avg_tool_def_tokens: estimated tokens per tool definition (default 500)
@@ -573,6 +696,14 @@ export function initializeDb(db: Database.Database): void {
 
   // Model-level performance stats per service (for audit_cost routing)
   db.exec(`
+    -- ⚠️ DEPRECATED CACHE — NOT canonical (Codex ruling 2026-08-17, P0 #39).
+    -- Raw model_service_stats still contains pre-provenance synthetic blends.
+    -- All reads MUST go through publishable_model_service_stats (derived from
+    -- publishable_outcomes, bypassing this table entirely); a static CI test
+    -- (smoke-stats-rebuild 7c) fails on any raw FROM/JOIN of this table.
+    -- Never use raw values for Revenue / ARI / Profile / ranking decisions.
+    -- Remaining direct writes (report-outcome incremental) are slated for
+    -- removal; do not add new ones.
     CREATE TABLE IF NOT EXISTS model_service_stats (
       service_id TEXT NOT NULL REFERENCES services(id),
       model_name TEXT NOT NULL,

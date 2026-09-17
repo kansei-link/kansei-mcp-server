@@ -137,42 +137,14 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     /* file optional */
   }
 
-  // Synthesized agent voices from aggregate-voices.mjs. Empty on older deploys.
-  interface VoiceSeed {
-    service_id: string;
-    agent_type: string;
-    agent_id: string;
-    question_id: string;
-    response_choice: string;
-    response_text: string;
-    confidence: string;
-  }
-  let autoVoices: VoiceSeed[] = [];
-  try {
-    autoVoices = loadJson<VoiceSeed[]>("voices-seed.json");
-  } catch {
-    /* file optional */
-  }
-
-  // Aggregated usage stats from the same outcomes pool that voices-seed is
-  // synthesized from (scripts/export-stats-seed.mjs). Without this, fresh
-  // deploys show "No usage data yet" in insights while voices for the same
-  // service quote a success rate — a visible contradiction. Backfill only
-  // fills rows still at total_calls = 0 so live-accumulated stats always win.
-  interface StatsSeed {
-    service_id: string;
-    total_calls: number;
-    success_rate: number;
-    avg_latency_ms: number;
-    unique_agents: number;
-    last_updated: string | null;
-  }
-  let autoStats: StatsSeed[] = [];
-  try {
-    autoStats = loadJson<StatsSeed[]>("service-stats-seed.json");
-  } catch {
-    /* file optional */
-  }
+  // P0 #39 (2026-08-16): voices-seed / service-stats-seed loaders REMOVED.
+  // Both files were synthetic (outcomes-pool synthesis) and are now empty [] in
+  // the repo, but the loader+backfill mechanism itself was a dormant revival
+  // path: regenerating either file would have re-injected synthetic values on
+  // the next deploy without tripping any gate (Checker audit P1-2). Voices are
+  // quarantined at boot (schema.ts) and stats are rebuilt from publishable
+  // provenance only (service_stats_rebuild_v1); neither is seeded from JSON
+  // anymore. Reintroduction requires an SEC-reviewed commit.
 
   const changelogEntries: ChangelogSeed[] = [
     // ---- auto-detected (from refresh.ts runs) ----
@@ -310,9 +282,11 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   // then writes back on conflict. Fresh rows simply receive canonical CSV.
   const selectExistingTags = db.prepare(`SELECT tags FROM services WHERE id = ?`);
 
-  const insertStats = db.prepare(`
-    INSERT OR IGNORE INTO service_stats (service_id) VALUES (@service_id)
-  `);
+  // P0 #39最終条件 (Codex 2026-08-17): 全サービスへの空service_stats行生成は廃止。
+  // 「信頼できるoutcomeがないサービス=行なし=データなし」が正本設計であり、
+  // placeholderのゼロ行はDB状態を設計と乖離させる（readerはLEFT JOIN/欠損ガードで
+  // 元から行なしを扱える）。既存placeholderはservice_stats_placeholder_cleanup_v1
+  // migration（schema.ts）が一回だけ安全に削除する。
 
   const insertRecipe = db.prepare(`
     INSERT INTO recipes (id, goal, description, steps, required_services, gotchas)
@@ -330,31 +304,8 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     VALUES (@service_id, @change_date, @change_type, @summary, @details)
   `);
 
-  // Upsert synthesized agent voice — 1 row per service for aggregated type.
-  // Using delete-then-insert pattern since there's no UNIQUE constraint on
-  // (service_id, agent_type, question_id); and the content is entirely
-  // derived so overwriting is correct.
-  const deleteAggregatedVoice = db.prepare(`
-    DELETE FROM agent_voice_responses
-    WHERE service_id = @service_id
-      AND agent_type = 'aggregated'
-      AND question_id = @question_id
-  `);
-  const insertAggregatedVoice = db.prepare(`
-    INSERT INTO agent_voice_responses
-      (service_id, agent_type, agent_id, question_id, response_choice, response_text, confidence)
-    VALUES (@service_id, @agent_type, @agent_id, @question_id, @response_choice, @response_text, @confidence)
-  `);
-
-  const backfillStats = db.prepare(`
-    UPDATE service_stats
-    SET total_calls = @total_calls,
-        success_rate = @success_rate,
-        avg_latency_ms = @avg_latency_ms,
-        unique_agents = @unique_agents,
-        last_updated = @last_updated
-    WHERE service_id = @service_id AND total_calls = 0
-  `);
+  // (aggregated-voice upsert and stats backfill statements removed — P0 #39,
+  //  see the loader-removal note above)
 
   const insertApiGuide = db.prepare(`
     INSERT OR IGNORE INTO service_api_guides (service_id, base_url, api_version, auth_overview, auth_token_url, auth_scopes, auth_setup_hint, sandbox_url, key_endpoints, request_content_type, pagination_style, rate_limit, error_format, quickstart_example, agent_tips, docs_url)
@@ -378,7 +329,6 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         axr_facade: service.axr_facade ?? 0,
         archived: service.archived ?? 0,
       });
-      insertStats.run({ service_id: service.id });
     }
 
     for (const recipe of recipes) {
@@ -408,18 +358,6 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         summary: entry.summary,
         details: entry.details ?? null,
       });
-    }
-
-    for (const voice of autoVoices) {
-      deleteAggregatedVoice.run({
-        service_id: voice.service_id,
-        question_id: voice.question_id,
-      });
-      insertAggregatedVoice.run(voice);
-    }
-
-    for (const stat of autoStats) {
-      backfillStats.run(stat);
     }
 
     for (const guide of apiGuides) {

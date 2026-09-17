@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CursorにKanseiLink MCPを1分でインストール | KanseiLink</title>
+<meta name="description" content="CursorにKanseiLink MCPサーバー（@kansei-link/mcp-server）を1分で追加する手順。.cursor/mcp.jsonの設定、接続確認、よくある設定ミスの自己診断、削除手順まで。">
+<style>
+  :root { --teal: #00bfa5; --ink: #1a2b32; --muted: #5f7480; --line: #e3ebee; --bg: #f7fafb; --card: #ffffff; --code-bg: #0f2027; --code-fg: #d7e7ec; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Inter", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; color: var(--ink); background: var(--bg); line-height: 1.75; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
+  header.site { border-bottom: 3px solid var(--teal); padding: 14px 0; margin-bottom: 32px; }
+  header.site .brand { font-weight: 700; letter-spacing: .02em; }
+  header.site .brand span { color: var(--teal); }
+  h1 { font-size: 1.55rem; line-height: 1.4; margin-bottom: 6px; }
+  .lede { color: var(--muted); font-size: .95rem; margin-bottom: 28px; }
+  .time-chip { display: inline-block; background: #e6f7f4; color: #00806f; border: 1px solid #bfe9e2; border-radius: 999px; padding: 1px 12px; font-size: .8rem; margin-bottom: 10px; font-weight: 700; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 20px; }
+  h2 { font-size: 1.05rem; border-left: 4px solid var(--teal); padding-left: 10px; margin-bottom: 12px; }
+  pre { background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.6; margin: 10px 0; user-select: all; }
+  code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+  p, li { font-size: .92rem; }
+  ol.diag { padding-left: 1.4em; }
+  ol.diag li { margin-bottom: 12px; }
+  ol.diag li strong { display: block; }
+  .hint { font-size: .82rem; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; margin: 8px 0; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); font-size: .78rem; color: var(--muted); }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e6edf0; --muted: #9db2bc; --line: #2a3b43; --bg: #101b20; --card: #16242b; }
+    .time-chip { background: #123833; color: #6fd9c9; border-color: #1d4f48; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site"><div class="brand">Kansei<span>Link</span> — MCP Install Guide</div></header>
+
+  <span class="time-chip">所要時間: 約1分</span>
+  <h1>Cursor に KanseiLink を追加する</h1>
+  <p class="lede"><code>mcp.json</code> に1ブロック置くだけです。前提: Node.js 18以上。</p>
+
+  <section>
+    <h2>1. mcp.json を作成（コピーして貼り付け）</h2>
+    <table>
+      <tr><th>プロジェクト単位</th><td>リポジトリ直下の <code>.cursor/mcp.json</code></td></tr>
+      <tr><th>全プロジェクト共通</th><td><code>~/.cursor/mcp.json</code></td></tr>
+    </table>
+    <pre><code>{
+  "mcpServers": {
+    "kansei-link": {
+      "command": "npx",
+      "args": ["-y", "@kansei-link/mcp-server"]
+    }
+  }
+}</code></pre>
+  </section>
+
+  <section>
+    <h2>2. 接続確認</h2>
+    <p>Cursor Settings → MCP を開き、<code>kansei-link</code> が有効（ツール一覧に <code>search_services</code> / <code>lookup</code> / <code>report</code> が表示）になっていれば完了です。</p>
+    <p class="hint">パッケージ本体がローカルで起動できるかは、次の1コマンドで確認できます（<code>transmission: OFF (Local Mode)</code> と表示されれば正常）。</p>
+    <pre><code>npx -y -p @kansei-link/mcp-server kansei-link-privacy --status</code></pre>
+  </section>
+
+  <section>
+    <h2>3. うまくいかないときの自己診断（代表的な設定ミス3種）</h2>
+    <ol class="diag">
+      <li><strong>ファイルの置き場所違い</strong>
+        プロジェクト設定は「リポジトリ直下の <code>.cursor/mcp.json</code>」です。<code>.cursor</code> ディレクトリの外や、別階層に置くと読み込まれません。</li>
+      <li><strong>JSONの構文エラー</strong>
+        カンマの過不足・引用符の欠落があると読み込みに失敗します。設定画面にサーバーが出てこない場合は、まずJSONの妥当性を確認してください。</li>
+      <li><strong>MCP機能が無効のまま</strong>
+        Cursor Settings → MCP でMCP自体が無効になっていると、mcp.jsonが正しくても起動しません。設定でサーバーのトグルがONかを確認してください。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>4. 削除手順</h2>
+    <p><code>mcp.json</code> から <code>"kansei-link"</code> のエントリを削除してください（ファイルごと削除しても構いません）。</p>
+  </section>
+
+  <section>
+    <p>Live Updates（利用データの送信を伴う更新通知）は<strong>任意・デフォルトOFF</strong>です。有効化する場合のみ、同意文（<a href="https://github.com/kansei-link/kansei-mcp-server#readme">README「Live Updates」節</a>）をご確認ください。</p>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 KanseiLink — 本ページの手順は @kansei-link/mcp-server v1.2 時点の内容です。</p>
+  </footer>
+</div>
+</body>
+</html>
