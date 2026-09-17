@@ -45,6 +45,7 @@ export function parseAnthropicSearch(res) {
     citations: dedupe(cites),
     search_meta: { searched: queries > 0 && toolErrors < Math.max(toolUses, 1), queries, evidence: `usage.server_tool_use.web_search_requests=${billed ?? "n/a"}; server_tool_use blocks=${toolUses}; result errors=${toolErrors}` },
     usage: res?.usage ?? null,
+    model_returned: res?.model ?? null,
   };
 }
 
@@ -72,6 +73,7 @@ export function parseOpenAISearch(data) {
     citations: dedupe(cites),
     search_meta: { searched: completed > 0, queries: calls, evidence: `web_search_call items=${calls}; completed=${completed}` },
     usage: data?.usage ?? null,
+    model_returned: data?.model ?? null,
   };
 }
 
@@ -80,14 +82,23 @@ export function parseGeminiSearch(data) {
   const cand = data?.candidates?.[0];
   const text = (cand?.content?.parts ?? []).map((p) => p.text ?? "").join("\n");
   const gm = cand?.groundingMetadata;
-  const cites = (gm?.groundingChunks ?? []).map((ch) => ({ url: ch.web?.uri, title: ch.web?.title, kind: "retrieved" }));
+  // groundingSupports が本文の箇所に紐づけた chunk は「引用」、それ以外の chunk は「取得」
+  const citedIdx = new Set((gm?.groundingSupports ?? []).flatMap((sp) => sp.groundingChunkIndices ?? []));
+  const cites = (gm?.groundingChunks ?? []).map((ch, i) => ({ url: ch.web?.uri, title: ch.web?.title, kind: citedIdx.has(i) ? "cited" : "retrieved" }));
   const q = gm?.webSearchQueries ?? [];
   return {
     text,
     citations: dedupe(cites),
     search_meta: { searched: q.length > 0, queries: q.length, evidence: `groundingMetadata.webSearchQueries=${q.length}; groundingChunks=${(gm?.groundingChunks ?? []).length}` },
     usage: data?.usageMetadata ?? null,
+    model_returned: data?.modelVersion ?? null,
   };
+}
+
+// Perplexity: 本文の [n] は search_results の n 番目（1 始まり）を指す。指された出典は「引用」、残りは「取得」
+export function perplexityCitationKinds(text, list) {
+  const idx = new Set([...(text ?? "").matchAll(/\[(\d{1,2})\]/g)].map((m) => Number(m[1]) - 1));
+  return (list ?? []).map((c, i) => ({ ...c, kind: idx.has(i) ? "cited" : "retrieved" }));
 }
 
 // Perplexity chat/completions（常に検索つき）。出典の正規化は呼び出し側の normCitations を使うので、ここはメタデータだけ。
@@ -95,7 +106,8 @@ export function perplexitySearchMeta(data) {
   const n = data?.usage?.num_search_queries ?? null;
   const results = (data?.search_results ?? data?.citations ?? []).length;
   return {
-    search_meta: { searched: (n ?? 0) > 0 || results > 0, queries: n, evidence: `usage.num_search_queries=${n ?? "n/a"}; search_results=${results}; usage.search_context_size=${data?.usage?.search_context_size ?? "n/a"}` },
+    search_meta: { searched: (n ?? 0) > 0 || (data?.usage?.cost?.request_cost ?? 0) > 0 || results > 0, queries: n, evidence: `usage.num_search_queries=${n ?? "n/a"}; usage.cost.request_cost=${data?.usage?.cost?.request_cost ?? "n/a"}; search_results=${results}; usage.search_context_size=${data?.usage?.search_context_size ?? "n/a"}` },
     usage: data?.usage ?? null,
+    model_returned: data?.model ?? null,
   };
 }

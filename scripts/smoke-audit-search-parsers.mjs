@@ -8,7 +8,7 @@
  *   - Gemini: groundingChunks。url はリダイレクト用で、実ドメインは title に入る
  *   - 検索がエラー／結果なしでも落ちない
  */
-import { parseAnthropicSearch, parseOpenAISearch, parseGeminiSearch, perplexitySearchMeta } from "./lib/audit-search-parsers.mjs";
+import { parseAnthropicSearch, parseOpenAISearch, parseGeminiSearch, perplexitySearchMeta, perplexityCitationKinds } from "./lib/audit-search-parsers.mjs";
 
 const results = [];
 const check = (label, ok, note = "") => { results.push(ok); console.log(`  [${ok ? "PASS" : "FAIL"}] ${label}${note ? ` (${note})` : ""}`); };
@@ -51,6 +51,10 @@ check("meta anthropic: 検索がエラーだけなら searched=false", parseAnth
 check("meta openai: completed の web_search_call で searched", o.search_meta.searched === true && parseOpenAISearch({ output: [{ type: "message", content: [{ type: "output_text", text: "x", annotations: [] }] }] }).search_meta.searched === false);
 check("meta gemini: webSearchQueries で判定（chunks が 0 でも検索は検索）", parseGeminiSearch({ candidates: [{ content: { parts: [{ text: "x" }] }, groundingMetadata: { webSearchQueries: ["q1", "q2"] } }] }).search_meta.searched === true && g.search_meta.searched === false);
 check("meta perplexity: num_search_queries を読む", perplexitySearchMeta({ usage: { num_search_queries: 1 }, search_results: [] }).search_meta.searched === true && perplexitySearchMeta({ usage: {} }).search_meta.searched === false);
+const g2 = parseGeminiSearch({ candidates: [{ content: { parts: [{ text: "x" }] }, groundingMetadata: { webSearchQueries: ["q"], groundingChunks: [{ web: { uri: "https://r/1", title: "a.com" } }, { web: { uri: "https://r/2", title: "kansei-link.com" } }], groundingSupports: [{ segment: {}, groundingChunkIndices: [1] }] } }] });
+check("gemini: groundingSupports が指す chunk だけ cited、残りは retrieved", g2.citations[0].kind === "retrieved" && g2.citations[1].kind === "cited");
+const pk = perplexityCitationKinds("認証は OAuth です[2]。", [{ url: "https://a" }, { url: "https://b" }, { url: "https://c" }]);
+check("perplexity: 本文の [n] が指す出典だけ cited", pk.map((c) => c.kind).join(",") === "retrieved,cited,retrieved");
 
 const all = results.every(Boolean);
 console.log(all ? "\n✅ smoke-audit-search-parsers: ALL PASS" : "\n❌ smoke-audit-search-parsers: FAILURES");

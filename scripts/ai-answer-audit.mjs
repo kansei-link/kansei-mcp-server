@@ -48,7 +48,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
-import { parseAnthropicSearch, parseOpenAISearch, parseGeminiSearch, perplexitySearchMeta } from "./lib/audit-search-parsers.mjs";
+import { Budget, costOf, priceFor } from "./lib/audit-budget.mjs";
+import { parseAnthropicSearch, parseOpenAISearch, parseGeminiSearch, perplexitySearchMeta, perplexityCitationKinds } from "./lib/audit-search-parsers.mjs";
 
 // Reasoning models (gpt-5.x, gemini flash thinking) spend this budget on hidden
 // reasoning before emitting text — at 1024 they return an empty answer, which
@@ -62,6 +63,9 @@ const MAX_ANSWER_TOKENS = Number(process.env.AUDIT_MAX_TOKENS ?? 4096);
 // --tag=<label>: 出力ファイル名に付ける（<battery>-<label>-results.json）。同じバッテリーの前回結果を上書きしない。
 const SEARCH = process.argv.includes("--search");
 const TAG = (process.argv.find((a) => a.startsWith("--tag=")) || "").slice("--tag=".length).replace(/[^A-Za-z0-9._-]/g, "") || null;
+// --budget-usd=<N>: 実費（応答の usage × 確認済み単価）を積み上げ、次の 1 問を投げる前に
+// 「実費 ＋ 同時に走る呼び出し分の見込み」が上限を超えるなら投げずに止める。単価表に無いモデルがあれば実行前に止める。
+const BUDGET_USD = Number((process.argv.find((a) => a.startsWith("--budget-usd=")) || "").slice("--budget-usd=".length)) || null;
 const SEARCH_MAX_USES = Number(process.env.AUDIT_SEARCH_MAX_USES ?? 3);
 
 // ─── Engine adapters ───────────────────────────────────────────────
@@ -177,7 +181,7 @@ const ENGINES = {
       return {
         text: data.choices?.[0]?.message?.content ?? "",
         // search_results is the current field; citations is the legacy one.
-        citations: normCitations(data.search_results ?? data.citations),
+        citations: perplexityCitationKinds(data.choices?.[0]?.message?.content, normCitations(data.search_results ?? data.citations)),
         ...perplexitySearchMeta(data),
       };
     },
@@ -231,18 +235,40 @@ if (active.length === 0) {
   process.exit(1);
 }
 
+// ─── Budget ────────────────────────────────────────────────────────
+const budget = BUDGET_USD ? new Budget(BUDGET_USD) : null;
+if (budget) {
+  const unknown = active.filter((n) => !priceFor(n, ENGINES[n].model()) && n !== "gemini"); // gemini は別名なので応答の modelVersion で引く
+  if (unknown.length) {
+    console.error(`--budget-usd: 単価表（scripts/lib/audit-budget.mjs）に無いモデル: ${unknown.map((n) => `${n}=${ENGINES[n].model()}`).join(", ")} — 実行しない`);
+    process.exit(2);
+  }
+  console.log(`Budget:   ${BUDGET_USD} USD（次の 1 問の見込みを足して超えるなら停止）`);
+}
+let budgetStop = null;
+
 // ─── Run ───────────────────────────────────────────────────────────
 
 const results = [];
 for (const q of questions) {
+  if (budget) {
+    const gate = budget.canStart(active);
+    if (!gate.ok) {
+      budgetStop = { before_question: q.id, asked: results.length, remaining: questions.length - results.length, spent_usd: Number(gate.spent.toFixed(4)), next_reserve_usd: Number(gate.need.toFixed(4)) };
+      console.log(`  ■ 予算停止: 実費 ${gate.spent.toFixed(2)} ＋ 次の見込み ${gate.need.toFixed(2)} > 上限 ${gate.limit} USD。${q.id} 以降 ${budgetStop.remaining} 問は未実行`);
+      break;
+    }
+  }
   const answers = {};
   await Promise.all(
     active.map(async (name) => {
       const eng = ENGINES[name];
       const model = eng.model();
       try {
-        const { text, citations, search_meta, usage } = await eng.ask(q.question, model);
-        answers[name] = { model, text, citations, ...(search_meta ? { search_meta } : {}), ...(usage ? { usage } : {}) };
+        const { text, citations, search_meta, usage, model_returned } = await eng.ask(q.question, model);
+        const cost = budget || usage ? costOf(name, model_returned ?? model, usage, search_meta?.queries ?? 0) : null;
+        const charged = budget ? budget.record(name, cost) : cost;
+        answers[name] = { model, ...(model_returned ? { model_returned } : {}), text, citations, ...(search_meta ? { search_meta } : {}), ...(usage ? { usage } : {}), ...(charged != null ? { cost_usd: Number(charged.toFixed(5)) } : {}) };
         const src = citations.length ? ` — ${citations.length} sources` : "";
         // 検索の実行は出典の有無ではなく応答のメタデータで見る（検索せずに答えたセルを区別する）
         const srch = search_meta ? ` [search: ${search_meta.searched ? "yes" : "NO"} / ${search_meta.evidence}]` : "";
@@ -314,6 +340,8 @@ const base = batteryPath.replace(/\.json$/i, "") + (TAG ? `-${TAG}` : "");
 const out = {
   target: battery.target,
   run_at: new Date().toISOString(),
+  complete: !budgetStop,
+  budget: budget ? { ...budget.summary(), stopped: budgetStop } : null,
   search_mode: SEARCH ? "web_search_all_engines" : "perplexity_only",
   battery_sha256: createHash("sha256").update(readFileSync(batteryPath)).digest("hex"),
   // エンジンごとの「実際に検索が走ったセル数／回答できたセル数」（メタデータ由来）
