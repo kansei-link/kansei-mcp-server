@@ -43,6 +43,16 @@ const BIN = {
   codex: { cmd: process.execPath, pre: [join(NPM, "@openai", "codex", "bin", "codex.js")] },
   claude: { cmd: join(NPM, "@anthropic-ai", "claude-code", "bin", "claude.exe"), pre: [] },
 };
+// テスト用: PROBE_STUB_CLI=<stub.mjs> で両 CLI を偽物に差し替え、PROBE_HOST_HOME でホスト側ホームを差し替える
+// （再開とスキル退避の復旧を、利用枠も本物のスキルフォルダも使わずに検査するため。本番では設定しない）
+if (process.env.PROBE_STUB_CLI) for (const a of Object.keys(BIN)) BIN[a] = { cmd: process.execPath, pre: [process.env.PROBE_STUB_CLI, a] };
+const HOST_HOME = process.env.PROBE_HOST_HOME || homedir();
+const HOST_SKILLS = join(HOST_HOME, ".agents", "skills");
+const PARKED = join(HOST_HOME, ".agents", "skills.parked-by-probe");
+const restoreSkills = () => { if (existsSync(PARKED) && !existsSync(HOST_SKILLS)) { renameSync(PARKED, HOST_SKILLS); console.log(`  ホスト側スキルを戻した: ${HOST_SKILLS}`); return true; } return false; };
+// 前回が異常終了（強制終了・電源断）して退避されたままなら、どのモードで起動しても最初に戻す
+const restoredAtStart = restoreSkills();
+if (flag("restore-host-skills")) { console.log(restoredAtStart ? "復旧した" : `戻すものは無い（${existsSync(HOST_SKILLS) ? "スキルは元の場所にある" : "スキルフォルダ自体が無い"}）`); process.exit(0); }
 const cliArgs = {
   // ⚠️ HOME / USERPROFILE を向け替えても、Codex は OS のユーザーフォルダ（C:/Users/<user>/.agents/skills）からスキルを拾う（canary で検出）。
   //    開発中フラグ skip_host_skill_discovery を有効にしても変わらなかった（2026-09-17・0.153.4）。測定中はそのフォルダ自体を退避する必要がある
@@ -129,16 +139,12 @@ const outDir = resolve(opt("out-dir") ?? (batteryPath ? dirname(batteryPath) : E
 mkdirSync(join(outDir, "raw"), { recursive: true });
 
 const versions = {};
-for (const a of agents) versions[a] = await new Promise((r) => { const c = spawn(BIN[a].cmd, [...BIN[a].pre, "--version"], { env: childEnv() }); let o = ""; c.stdout.on("data", (d) => (o += d)); c.on("close", () => r(o.trim())); c.on("error", () => r("unknown")); });
+for (const a of agents) versions[a] = await new Promise((r) => { const c = spawn(BIN[a].cmd, [...BIN[a].pre, "--version"], { env: childEnv(), stdio: ["ignore", "pipe", "ignore"] }); let o = ""; c.stdout.on("data", (d) => (o += d)); c.on("close", () => r(o.trim())); c.on("error", () => r("unknown")); });
 console.log(`Condition: B（サブスク認証エージェント・1 問 1 セッション）\nEnv:       ${ENV_DIR}\nAgents:    ${agents.map((a) => `${a}=${MODELS[a]} (${versions[a]})`).join(" ／ ")}\nQuestions: ${questions.length} → ${outDir}`);
 
 // ─── ホスト側スキルの退避（--park-host-skills）──────────────────────────────
 // Codex は環境変数に関係なく OS のユーザーフォルダの .agents/skills を読む。そこに自社のスキルがあると測定にならないので、
 // 実行中だけフォルダ名を変えて見えなくし、終了時（正常・失敗・中断とも）に必ず戻す。指定が無ければ触らない。
-const HOST_SKILLS = join(homedir(), ".agents", "skills");
-const PARKED = join(homedir(), ".agents", "skills.parked-by-probe");
-const restoreSkills = () => { if (existsSync(PARKED) && !existsSync(HOST_SKILLS)) { renameSync(PARKED, HOST_SKILLS); console.log(`  ホスト側スキルを戻した: ${HOST_SKILLS}`); } };
-restoreSkills(); // 前回が異常終了していたら、まず戻す
 if (agents.includes("codex")) {
   const visible = existsSync(HOST_SKILLS) ? readdirSync(HOST_SKILLS) : [];
   if (visible.length && !flag("park-host-skills")) { console.error(`Codex からホスト側スキルが見える（${visible.join(", ")}）。--park-host-skills を付けて実行中だけ退避するか、--agents=claude で実行すること`); process.exit(2); }
@@ -148,33 +154,64 @@ process.on("exit", restoreSkills);
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { restoreSkills(); process.exit(130); });
 process.on("uncaughtException", (e) => { restoreSkills(); console.error(e); process.exit(1); });
 
-const results = []; const consecutiveErr = Object.fromEntries(agents.map((a) => [a, 0])); let stopped = null;
+// ─── 実行（セルごとに保存・--resume で未実行分から再開）────────────────────────
+// 途中停止（利用枠切れ等）しても、完了済みの有効回答は残す。再開は同じ条件のときだけ許し、
+// 有効なセルと「混入で無効」と判定済みのセルは引き直さない（都合のよい回答が出るまで引き直す、をしない）。
+// 引き直すのは、未実行のセルと、基盤側の失敗（利用枠・認証・タイムアウト・異常終了）のセルだけ。
+const file = join(outDir, "results.json");
+const conditionOf = () => ({ engines: Object.fromEntries(agents.map((a) => [a, MODELS[a]])), command_lines: Object.fromEntries(agents.map((a) => [a, cliArgs[a](MODELS[a]).join(" ")])), battery_sha256: batteryPath ? createHash("sha256").update(readFileSync(batteryPath)).digest("hex") : null, system_prompt_claude: SYSTEM_PROMPT });
+const condition = conditionOf();
+let prior = null;
+if (existsSync(file)) {
+  if (!flag("resume")) { console.error(`既に結果がある: ${file}
+  続きから実行するなら --resume、別の回なら --tag を変える`); process.exit(2); }
+  prior = JSON.parse(readFileSync(file, "utf8"));
+  const same = JSON.stringify({ engines: prior.engines, command_lines: prior.command_lines, battery_sha256: prior.battery_sha256, system_prompt_claude: prior.system_prompt_claude }) === JSON.stringify(condition);
+  if (!same) { console.error("--resume: 条件（モデル・コマンド行・質問ファイル・システムプロンプト）が前回と違う — 再開しない"); process.exit(2); }
+}
+const priorById = new Map((prior?.results ?? []).map((r) => [r.id, r]));
+const keep = (ans) => ans && (!ans.error || ans.invalid_kind === "contamination");
+const runs = [...(prior?.runs ?? []), { started_at: new Date().toISOString(), cli_versions: versions, resumed: !!prior }];
+const results = []; const consecutiveErr = Object.fromEntries(agents.map((a) => [a, 0])); let stopped = null; let ranCells = 0;
+const save = () => {
+  const merged = questions.map((q) => results.find((r) => r.id === q.id) ?? priorById.get(q.id)).filter(Boolean);
+  const cells = merged.flatMap((r) => agents.map((a) => r.answers?.[a]));
+  const out = {
+    target: battery.target, condition: "B_subscription_agent_cli", run_at: runs[0].started_at, updated_at: new Date().toISOString(),
+    complete: merged.length === questions.length && cells.every(keep), stopped, runs,
+    search_mode: "agent_cli_web_tools", ...condition, cli_versions: versions, script: fileURLToPath(import.meta.url),
+    results: merged,
+  };
+  writeFileSync(file, JSON.stringify(out, null, 1));
+  return out;
+};
 for (const q of questions) {
-  const answers = {};
+  const before = priorById.get(q.id);
+  const answers = { ...(before?.answers ?? {}) };
   for (const a of agents) { // 直列。利用枠に優しく、記録の時刻も追いやすい
-    const r = await runCli(a, MODELS[a], q.question);
-    writeFileSync(join(outDir, "raw", `${q.id}.${a}.jsonl`), r.out); if (r.err.trim()) writeFileSync(join(outDir, "raw", `${q.id}.${a}.stderr.txt`), r.err);
+    if (keep(answers[a])) continue;
+    const r = await runCli(a, MODELS[a], q.question); ranCells++;
+    const rawName = join(outDir, "raw", `${q.id}.${a}`);
+    const suffix = existsSync(`${rawName}.jsonl`) ? `.retry-${Date.now()}` : ""; // 失敗した回の生記録も消さない
+    writeFileSync(`${rawName}${suffix}.jsonl`, r.out); if (r.err.trim()) writeFileSync(`${rawName}${suffix}.stderr.txt`, r.err);
     const p = parse[a](r.out);
     // 隔離の破れは標準エラーにも出る（例: スキルのファイルを読もうとして拒否された）
     if (/skills[\\/]|SKILL\.md|memories[\\/]/i.test(r.err)) p.contamination.push("stderr にスキル・記憶へのアクセス痕跡");
-    const error = p.error ?? (r.code !== 0 ? `exit ${r.code}` : null) ?? (p.contamination.length ? `無効（混入）: ${p.contamination.join(" / ")}` : null);
-    answers[a] = { model: MODELS[a], cli_version: versions[a], ...(p.model_returned ? { model_returned: p.model_returned } : {}), ...(error ? { error } : {}), text: error ? "" : p.text, citations: error ? [] : p.citations, search_meta: p.search_meta, usage: p.usage, session_id: p.session_id, isolation: p.isolation, contamination: p.contamination, wall_ms: r.ms };
-    consecutiveErr[a] = error ? consecutiveErr[a] + 1 : 0;
+    const infra = p.error ?? (r.code !== 0 ? `exit ${r.code}` : null);
+    const error = infra ?? (p.contamination.length ? `無効（混入）: ${p.contamination.join(" / ")}` : null);
+    answers[a] = { model: MODELS[a], cli_version: versions[a], asked_at: new Date().toISOString(), ...(p.model_returned ? { model_returned: p.model_returned } : {}), ...(error ? { error, invalid_kind: infra ? "infra" : "contamination" } : {}), text: error ? "" : p.text, citations: error ? [] : p.citations, search_meta: p.search_meta, usage: p.usage, session_id: p.session_id, isolation: p.isolation, contamination: p.contamination, wall_ms: r.ms };
+    consecutiveErr[a] = infra ? consecutiveErr[a] + 1 : 0;
     console.log(`  ${error ? "✗" : "✓"} ${q.id} × ${a} — ${Math.round(r.ms / 1000)}s ${error ? error.slice(0, 160) : `引用URL ${p.citations.filter((c) => c.kind === "cited").length}・取得 ${p.citations.filter((c) => c.kind === "retrieved").length} [search: ${p.search_meta.searched ? "yes" : "NO"} / ${p.search_meta.evidence}]`}`);
-    if (consecutiveErr[a] >= 3) { stopped = { agent: a, after_question: q.id, reason: "3 セル連続で失敗（利用枠切れ・認証切れの疑い）" }; break; }
+    results.push({ ...q, answers: { ...answers } }); save(); results.pop();
+    if (consecutiveErr[a] >= 3) { stopped = { agent: a, after_question: q.id, at: new Date().toISOString(), reason: "3 セル連続で基盤側の失敗（利用枠切れ・認証切れの疑い）。--resume で未実行分から再開できる" }; break; }
   }
   results.push({ ...q, answers });
   if (stopped) { console.log(`  ■ 停止: ${stopped.agent} — ${stopped.reason}`); break; }
 }
-
-const out = {
-  target: battery.target, condition: "B_subscription_agent_cli", run_at: new Date().toISOString(), complete: !stopped && results.length === questions.length, stopped,
-  search_mode: "agent_cli_web_tools", battery_sha256: batteryPath ? createHash("sha256").update(readFileSync(batteryPath)).digest("hex") : null,
-  engines: Object.fromEntries(agents.map((a) => [a, MODELS[a]])), cli_versions: versions, system_prompt_claude: SYSTEM_PROMPT,
-  command_lines: Object.fromEntries(agents.map((a) => [a, cliArgs[a](MODELS[a]).join(" ")])), script: fileURLToPath(import.meta.url),
-  results,
-};
-const file = join(outDir, "results.json"); writeFileSync(file, JSON.stringify(out, null, 1));
-const tally = (a) => { const xs = results.map((r) => r.answers[a]).filter(Boolean); return `${a}: 有効 ${xs.filter((x) => !x.error).length}/${xs.length}・検索実行 ${xs.filter((x) => !x.error && x.search_meta?.searched).length}・混入で無効 ${xs.filter((x) => x.contamination?.length).length}`; };
+runs[runs.length - 1].ended_at = new Date().toISOString(); runs[runs.length - 1].cells_run = ranCells;
+const final = save();
+console.log(`
+今回実行 ${ranCells} セル ／ complete=${final.complete}`);
+const tally = (a) => { const xs = final.results.map((r) => r.answers[a]).filter(Boolean); return `${a}: 有効 ${xs.filter((x) => !x.error).length}/${xs.length}・検索実行 ${xs.filter((x) => !x.error && x.search_meta?.searched).length}・混入で無効 ${xs.filter((x) => x.contamination?.length).length}`; };
 console.log(`\n${agents.map(tally).join(" ／ ")}\nWrote ${file}`);
 if (flag("canary")) for (const a of agents) console.log(`\n── ${a} の申告 ──\n${results[0]?.answers[a]?.text || results[0]?.answers[a]?.error}`);
