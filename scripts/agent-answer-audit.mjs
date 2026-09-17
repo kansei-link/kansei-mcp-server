@@ -1,0 +1,151 @@
+#!/usr/bin/env node
+/**
+ * agent-answer-audit — 条件 B: サブスク認証のエージェント CLI（Codex・Claude Code）に、検索・閲覧だけを許して質問する
+ *
+ * ai-answer-audit（条件 A・API 直呼び）とは別条件。API キーは使わない（環境変数から外して起動する）。
+ * 守ること:
+ *   - 1 質問 = 1 つの新しいセッション。セルごとに空の作業ディレクトリを作る。会話の持ち越しなし
+ *   - 測定専用環境（--env-dir）だけを見せる: HOME / USERPROFILE / CODEX_HOME / CLAUDE_CONFIG_DIR をそこへ向ける。
+ *     この PC の普段の環境には KanseiLINK を知っているスキル・記憶・MCP があり、それが見えると測定にならない
+ *   - モデルは必ず明示指定（--codex-model / --claude-model）。指定が無ければ実行しない
+ *   - 生の記録（JSONL）をセルごとに保存し、隔離の破れ・事前知識の混入を機械検査して、該当セルは無効にする
+ *
+ *   node scripts/agent-answer-audit.mjs <battery.json> --env-dir=C:/Users/HP/agentwiki-probe-env \
+ *        --codex-model=<id> --claude-model=<id> [--agents=codex,claude] [--ids=a,b] [--limit=N] --tag=<label> [--out-dir=<dir>]
+ *   node scripts/agent-answer-audit.mjs --preflight --env-dir=...      環境の中身を検査（ファイルだけ・CLI は呼ばない）
+ *   node scripts/agent-answer-audit.mjs --canary --env-dir=... --codex-model=.. --claude-model=..   各 CLI に「見えている指示・スキル・記憶・MCP」を申告させる
+ */
+import { spawn } from "node:child_process";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, mkdtempSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { join, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseCodexJsonl, parseClaudeJsonl, PRIOR_KNOWLEDGE } from "./lib/agent-record-parsers.mjs";
+
+const args = process.argv.slice(2);
+const opt = (k) => { const a = args.find((x) => x.startsWith(`--${k}=`)); return a ? a.slice(k.length + 3) : null; };
+const flag = (k) => args.includes(`--${k}`);
+const ENV_DIR = opt("env-dir") ? resolve(opt("env-dir")) : null;
+if (!ENV_DIR || !existsSync(ENV_DIR)) { console.error("--env-dir=<測定専用環境> が必要（founder-ops の別紙 v2b 参照）"); process.exit(2); }
+const P = { home: join(ENV_DIR, "home"), codex: join(ENV_DIR, "codex-home"), claude: join(ENV_DIR, "claude-home"), work: join(ENV_DIR, "work"), fixed: join(ENV_DIR, "fixed") };
+const SYSTEM_PROMPT = "あなたは利用者の質問に日本語で答えるアシスタントです。必要ならWeb検索・ページ閲覧を使い、回答の根拠にしたページはURLを本文に明記してください。";
+const TIMEOUT_MS = Number(opt("timeout-sec") ?? 600) * 1000;
+
+// 子プロセスに渡す環境: API キー類を外し、ホームを測定専用環境へ向ける
+function childEnv() {
+  const env = { ...process.env };
+  for (const k of Object.keys(env)) if (/API_KEY|AUTH_TOKEN|^CLAUDE_CODE_|^CLAUDECODE$|^CODEX_(?!HOME)/i.test(k)) delete env[k];
+  return { ...env, HOME: P.home, USERPROFILE: P.home, CODEX_HOME: P.codex, CLAUDE_CONFIG_DIR: P.claude };
+}
+const NPM = join(process.env.APPDATA ?? "", "npm", "node_modules");
+const BIN = {
+  codex: { cmd: process.execPath, pre: [join(NPM, "@openai", "codex", "bin", "codex.js")] },
+  claude: { cmd: join(NPM, "@anthropic-ai", "claude-code", "bin", "claude.exe"), pre: [] },
+};
+const cliArgs = {
+  codex: (model) => ["--search", "exec", "--json", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "-s", "read-only", "-m", model, "-"],
+  claude: (model) => ["-p", "--output-format", "stream-json", "--verbose", "--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch", "--strict-mcp-config", "--mcp-config", join(P.fixed, "empty-mcp.json"), "--setting-sources", "", "--disable-slash-commands", "--no-session-persistence", "--model", model, "--system-prompt", SYSTEM_PROMPT],
+};
+
+function runCli(agent, model, question) {
+  return new Promise((done) => {
+    const cwd = mkdtempSync(join(P.work, `${agent}-`)); // セルごとに空の作業ディレクトリ
+    const child = spawn(BIN[agent].cmd, [...BIN[agent].pre, ...cliArgs[agent](model)], { cwd, env: childEnv(), windowsHide: true });
+    let out = ""; let err = "";
+    const started = Date.now();
+    const timer = setTimeout(() => child.kill(), TIMEOUT_MS);
+    child.stdout.on("data", (d) => (out += d)); child.stderr.on("data", (d) => (err += d));
+    child.on("error", (e) => { clearTimeout(timer); done({ out, err: String(e), code: -1, ms: Date.now() - started }); });
+    child.on("close", (code) => { clearTimeout(timer); done({ out, err, code, ms: Date.now() - started }); });
+    child.stdin.end(question);
+  });
+}
+
+// ─── preflight: 測定専用環境の中身（ファイルだけを見る）────────────────────────
+function preflight() {
+  const problems = []; const notes = [];
+  const walk = (dir, depth = 0) => (depth > 4 || !existsSync(dir) ? [] : readdirSync(dir).flatMap((f) => { const p = join(dir, f); return statSync(p).isDirectory() ? [p + "/", ...walk(p, depth + 1)] : [p]; }));
+  for (const [name, dir] of Object.entries({ home: P.home, "codex-home": P.codex, "claude-home": P.claude })) {
+    const files = walk(dir).map((p) => p.slice(dir.length + 1).replace(/\\/g, "/"));
+    notes.push(`${name}: ${files.length ? files.join(", ") : "（空）"}`);
+    for (const f of files) {
+      if (/(^|\/)(skills|memories|plugins|agents|commands|rules|prompts)\//i.test(f) && !f.endsWith("/")) problems.push(`${name}/${f}: スキル・記憶・プラグイン類のファイルがある`);
+      if (/(^|\/)(AGENTS(\.override)?\.md|CLAUDE\.md|config\.toml|settings(\.local)?\.json|hooks\.json)$/i.test(f)) {
+        const body = readFileSync(join(dir, f), "utf8");
+        if (/AGENTS|CLAUDE\.md$/i.test(f) || /mcp_servers|mcpServers|hooks|instructions/i.test(body) || PRIOR_KNOWLEDGE.test(body)) problems.push(`${name}/${f}: 指示・MCP・フックの設定がある`);
+      }
+    }
+  }
+  for (let d = ENV_DIR; ; d = dirname(d)) { for (const f of ["AGENTS.md", "AGENTS.override.md", "CLAUDE.md", ".claude/CLAUDE.md"]) if (existsSync(join(d, f))) problems.push(`上位ディレクトリに指示ファイル: ${join(d, f)}`); if (dirname(d) === d) break; }
+  if (PRIOR_KNOWLEDGE.test(ENV_DIR.replace(/agentwiki-probe-env/i, ""))) problems.push("環境のパスに自社関連語がある（作業ディレクトリ名としてエージェントに見える）");
+  notes.push(`ログイン: codex ${existsSync(join(P.codex, "auth.json")) ? "あり" : "なし"} ／ claude ${existsSync(join(P.claude, ".credentials.json")) ? "あり" : "なし"}`);
+  return { problems, notes };
+}
+
+mkdirSync(P.work, { recursive: true }); mkdirSync(P.fixed, { recursive: true });
+writeFileSync(join(P.fixed, "empty-mcp.json"), JSON.stringify({ mcpServers: {} }));
+
+if (flag("preflight")) {
+  const { problems, notes } = preflight();
+  notes.forEach((n) => console.log("  " + n));
+  console.log(problems.length ? `❌ preflight: ${problems.length} 件\n  - ${problems.join("\n  - ")}` : "✅ preflight: 指示・スキル・記憶・MCP のファイルなし");
+  process.exit(problems.length ? 1 : 0);
+}
+
+const MODELS = { codex: opt("codex-model"), claude: opt("claude-model") };
+const agents = (opt("agents") ?? "codex,claude").split(",").filter(Boolean);
+for (const a of agents) if (!MODELS[a]) { console.error(`--${a}-model が無い。モデルは必ず明示指定する`); process.exit(2); }
+const pf = preflight();
+if (pf.problems.length) { console.error(`preflight で問題あり — 実行しない\n  - ${pf.problems.join("\n  - ")}`); process.exit(2); }
+
+const parse = { codex: parseCodexJsonl, claude: parseClaudeJsonl };
+const TAG = (opt("tag") ?? "").replace(/[^A-Za-z0-9._-]/g, "");
+if (!TAG) { console.error("--tag=<label> が必要（結果を上書きしない）"); process.exit(2); }
+
+let battery; let batteryPath = null;
+if (flag("canary")) {
+  battery = { target: "canary（隔離の申告）", questions: [{ id: "canary", question: "Web検索は使わずに答えてください。いまのあなたに見えているものを、あれば名前つきで全部挙げてください: (1) カスタム指示・プロジェクト指示ファイル (2) スキル (3) 記憶・メモリ (4) MCPサーバーや外部ツール (5) 作業ディレクトリにあるファイル。無ければ「なし」と書いてください。" }] };
+} else {
+  batteryPath = args.find((a) => !a.startsWith("--"));
+  battery = JSON.parse(readFileSync(batteryPath, "utf8"));
+}
+const ids = opt("ids")?.split(",");
+let questions = ids ? battery.questions.filter((q) => ids.includes(q.id)) : battery.questions;
+if (opt("limit")) questions = questions.slice(0, Number(opt("limit")));
+const outDir = resolve(opt("out-dir") ?? (batteryPath ? dirname(batteryPath) : ENV_DIR), `agent-runs-${TAG}`);
+mkdirSync(join(outDir, "raw"), { recursive: true });
+
+const versions = {};
+for (const a of agents) versions[a] = await new Promise((r) => { const c = spawn(BIN[a].cmd, [...BIN[a].pre, "--version"], { env: childEnv() }); let o = ""; c.stdout.on("data", (d) => (o += d)); c.on("close", () => r(o.trim())); c.on("error", () => r("unknown")); });
+console.log(`Condition: B（サブスク認証エージェント・1 問 1 セッション）\nEnv:       ${ENV_DIR}\nAgents:    ${agents.map((a) => `${a}=${MODELS[a]} (${versions[a]})`).join(" ／ ")}\nQuestions: ${questions.length} → ${outDir}`);
+
+const results = []; const consecutiveErr = Object.fromEntries(agents.map((a) => [a, 0])); let stopped = null;
+for (const q of questions) {
+  const answers = {};
+  for (const a of agents) { // 直列。利用枠に優しく、記録の時刻も追いやすい
+    const r = await runCli(a, MODELS[a], q.question);
+    writeFileSync(join(outDir, "raw", `${q.id}.${a}.jsonl`), r.out); if (r.err.trim()) writeFileSync(join(outDir, "raw", `${q.id}.${a}.stderr.txt`), r.err);
+    const p = parse[a](r.out);
+    // 隔離の破れは標準エラーにも出る（例: スキルのファイルを読もうとして拒否された）
+    if (/skills[\\/]|SKILL\.md|memories[\\/]/i.test(r.err)) p.contamination.push("stderr にスキル・記憶へのアクセス痕跡");
+    const error = p.error ?? (r.code !== 0 ? `exit ${r.code}` : null) ?? (p.contamination.length ? `無効（混入）: ${p.contamination.join(" / ")}` : null);
+    answers[a] = { model: MODELS[a], cli_version: versions[a], ...(p.model_returned ? { model_returned: p.model_returned } : {}), ...(error ? { error } : {}), text: error ? "" : p.text, citations: error ? [] : p.citations, search_meta: p.search_meta, usage: p.usage, session_id: p.session_id, isolation: p.isolation, contamination: p.contamination, wall_ms: r.ms };
+    consecutiveErr[a] = error ? consecutiveErr[a] + 1 : 0;
+    console.log(`  ${error ? "✗" : "✓"} ${q.id} × ${a} — ${Math.round(r.ms / 1000)}s ${error ? error.slice(0, 160) : `引用URL ${p.citations.filter((c) => c.kind === "cited").length}・取得 ${p.citations.filter((c) => c.kind === "retrieved").length} [search: ${p.search_meta.searched ? "yes" : "NO"} / ${p.search_meta.evidence}]`}`);
+    if (consecutiveErr[a] >= 3) { stopped = { agent: a, after_question: q.id, reason: "3 セル連続で失敗（利用枠切れ・認証切れの疑い）" }; break; }
+  }
+  results.push({ ...q, answers });
+  if (stopped) { console.log(`  ■ 停止: ${stopped.agent} — ${stopped.reason}`); break; }
+}
+
+const out = {
+  target: battery.target, condition: "B_subscription_agent_cli", run_at: new Date().toISOString(), complete: !stopped && results.length === questions.length, stopped,
+  search_mode: "agent_cli_web_tools", battery_sha256: batteryPath ? createHash("sha256").update(readFileSync(batteryPath)).digest("hex") : null,
+  engines: Object.fromEntries(agents.map((a) => [a, MODELS[a]])), cli_versions: versions, system_prompt_claude: SYSTEM_PROMPT,
+  command_lines: Object.fromEntries(agents.map((a) => [a, cliArgs[a](MODELS[a]).join(" ")])), script: fileURLToPath(import.meta.url),
+  results,
+};
+const file = join(outDir, "results.json"); writeFileSync(file, JSON.stringify(out, null, 1));
+const tally = (a) => { const xs = results.map((r) => r.answers[a]).filter(Boolean); return `${a}: 有効 ${xs.filter((x) => !x.error).length}/${xs.length}・検索実行 ${xs.filter((x) => !x.error && x.search_meta?.searched).length}・混入で無効 ${xs.filter((x) => x.contamination?.length).length}`; };
+console.log(`\n${agents.map(tally).join(" ／ ")}\nWrote ${file}`);
+if (flag("canary")) for (const a of agents) console.log(`\n── ${a} の申告 ──\n${results[0]?.answers[a]?.text || results[0]?.answers[a]?.error}`);
