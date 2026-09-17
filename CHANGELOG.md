@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.2.3 (unreleased)
+
+### Fix — stdio stdout carries JSON-RPC only
+- Startup logs (`[seed] …`, `Seeded … services`, `Seeded … infrastructure tips.`,
+  `[axr] provenance gating …`) were written to **stdout** when the server ran over
+  stdio. MCP clients parse every stdout line as JSON-RPC, so the official MCP SDK
+  client reported a parse error for each line (the connection itself still completed).
+  These logs now go to **stderr** in stdio mode; the HTTP server's logs are unchanged.
+- New regression smoke `scripts/smoke-stdio-clean-stdout.mjs`: official SDK client
+  (first start and restart: connect/initialize, tools/list, zero `onerror`) plus a raw
+  stdout check that every line is a JSON-RPC 2.0 message.
+
 ## v1.2.2 (2026-09-17)
 
 ### Fix — API endpoint moved to the canonical service
