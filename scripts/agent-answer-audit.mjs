@@ -10,13 +10,14 @@
  *   - モデルは必ず明示指定（--codex-model / --claude-model）。指定が無ければ実行しない
  *   - 生の記録（JSONL）をセルごとに保存し、隔離の破れ・事前知識の混入を機械検査して、該当セルは無効にする
  *
- *   node scripts/agent-answer-audit.mjs <battery.json> --env-dir=C:/Users/HP/agentwiki-probe-env \
+ *   node scripts/agent-answer-audit.mjs <battery.json> --env-dir=C:/Users/HP/probe-env-b \
  *        --codex-model=<id> --claude-model=<id> [--agents=codex,claude] [--ids=a,b] [--limit=N] --tag=<label> [--out-dir=<dir>]
  *   node scripts/agent-answer-audit.mjs --preflight --env-dir=...      環境の中身を検査（ファイルだけ・CLI は呼ばない）
  *   node scripts/agent-answer-audit.mjs --canary --env-dir=... --codex-model=.. --claude-model=..   各 CLI に「見えている指示・スキル・記憶・MCP」を申告させる
  */
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, mkdtempSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, mkdtempSync, renameSync } from "node:fs";
+import { homedir } from "node:os";
 import { createHash } from "node:crypto";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,7 +44,10 @@ const BIN = {
   claude: { cmd: join(NPM, "@anthropic-ai", "claude-code", "bin", "claude.exe"), pre: [] },
 };
 const cliArgs = {
-  codex: (model) => ["--search", "exec", "--json", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "-s", "read-only", "-m", model, "-"],
+  // ⚠️ HOME / USERPROFILE を向け替えても、Codex は OS のユーザーフォルダ（C:/Users/<user>/.agents/skills）からスキルを拾う（canary で検出）。
+  //    開発中フラグ skip_host_skill_discovery を有効にしても変わらなかった（2026-09-17・0.153.4）。測定中はそのフォルダ自体を退避する必要がある
+  // apps / plugins / memories: ChatGPT アカウントのコネクタ（Gmail・Drive 等）やプラグイン・記憶を見せない
+  codex: (model) => ["--search", "--disable", "apps", "--disable", "plugins", "--disable", "memories", "exec", "--json", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "-s", "read-only", "-m", model, "-"],
   claude: (model) => ["-p", "--output-format", "stream-json", "--verbose", "--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch", "--strict-mcp-config", "--mcp-config", join(P.fixed, "empty-mcp.json"), "--setting-sources", "", "--disable-slash-commands", "--no-session-persistence", "--model", model, "--system-prompt", SYSTEM_PROMPT],
 };
 
@@ -63,21 +67,29 @@ function runCli(agent, model, question) {
 
 // ─── preflight: 測定専用環境の中身（ファイルだけを見る）────────────────────────
 function preflight() {
-  const problems = []; const notes = [];
-  const walk = (dir, depth = 0) => (depth > 4 || !existsSync(dir) ? [] : readdirSync(dir).flatMap((f) => { const p = join(dir, f); return statSync(p).isDirectory() ? [p + "/", ...walk(p, depth + 1)] : [p]; }));
+  const problems = []; const notes = []; let vendorCount = 0;
+  const ls = (d) => { try { return readdirSync(d); } catch { return []; } }; // Windows が作る保護フォルダ（INetCache 等）は読めないので飛ばす
+  const walk = (dir, depth = 0) => (depth > 8 || !existsSync(dir) ? [] : ls(dir).flatMap((f) => { const p = join(dir, f); let isDir = false; try { isDir = statSync(p).isDirectory(); } catch { /* 読めない */ } return isDir ? [p + "/", ...walk(p, depth + 1)] : [p]; }));
   for (const [name, dir] of Object.entries({ home: P.home, "codex-home": P.codex, "claude-home": P.claude })) {
     const files = walk(dir).map((p) => p.slice(dir.length + 1).replace(/\\/g, "/"));
-    notes.push(`${name}: ${files.length ? files.join(", ") : "（空）"}`);
+    notes.push(`${name}: ${files.filter((f) => !f.endsWith("/")).length} ファイル（最上位: ${[...new Set(files.map((f) => f.split("/")[0]))].join(", ") || "空"}）`);
     for (const f of files) {
-      if (/(^|\/)(skills|memories|plugins|agents|commands|rules|prompts)\//i.test(f) && !f.endsWith("/")) problems.push(`${name}/${f}: スキル・記憶・プラグイン類のファイルがある`);
-      if (/(^|\/)(AGENTS(\.override)?\.md|CLAUDE\.md|config\.toml|settings(\.local)?\.json|hooks\.json)$/i.test(f)) {
+      // CLI 自身が初回起動で展開する同梱物（Codex の system skills・公式プラグインの目録）は誰の環境にもあるので許す。
+      // ただし中身に自社関連語があれば問題にする。それ以外のスキル・記憶・プラグイン類は 1 つでも問題
+      const vendor = /^(skills\/\.system\/|plugins\/cache\/openai-[^/]+\/|plugins\/known_marketplaces\.json$|plugins\/marketplaces\/claude-plugins-official\/|\.tmp\/)/.test(f);
+      if (/(^|\/)(skills|memories|plugins|agents|commands|rules|prompts)\//i.test(f) && !f.endsWith("/")) {
+        if (!vendor) problems.push(`${name}/${f}: スキル・記憶・プラグイン類のファイルがある`);
+        else { vendorCount++; if (/\.(md|json|ya?ml|toml|txt)$/i.test(f) && PRIOR_KNOWLEDGE.test(readFileSync(join(dir, f), "utf8"))) problems.push(`${name}/${f}: CLI 同梱物の中に自社関連語`); }
+      }
+      if (!vendor && /(^|\/)(AGENTS(\.override)?\.md|CLAUDE\.md|config\.toml|settings(\.local)?\.json|hooks\.json)$/i.test(f)) { // 同梱の目録内の hooks.json は未インストールの見本（有効なプラグインが 0 であることは毎回 init イベントで検査）
         const body = readFileSync(join(dir, f), "utf8");
         if (/AGENTS|CLAUDE\.md$/i.test(f) || /mcp_servers|mcpServers|hooks|instructions/i.test(body) || PRIOR_KNOWLEDGE.test(body)) problems.push(`${name}/${f}: 指示・MCP・フックの設定がある`);
       }
     }
   }
   for (let d = ENV_DIR; ; d = dirname(d)) { for (const f of ["AGENTS.md", "AGENTS.override.md", "CLAUDE.md", ".claude/CLAUDE.md"]) if (existsSync(join(d, f))) problems.push(`上位ディレクトリに指示ファイル: ${join(d, f)}`); if (dirname(d) === d) break; }
-  if (PRIOR_KNOWLEDGE.test(ENV_DIR.replace(/agentwiki-probe-env/i, ""))) problems.push("環境のパスに自社関連語がある（作業ディレクトリ名としてエージェントに見える）");
+  if (PRIOR_KNOWLEDGE.test(ENV_DIR)) problems.push("環境のパスに自社関連語がある（作業ディレクトリ名としてエージェントに見える）");
+  notes.push(`CLI 同梱のスキル・プラグイン目録: ${vendorCount} ファイル（自社関連語の有無を検査済み）`);
   notes.push(`ログイン: codex ${existsSync(join(P.codex, "auth.json")) ? "あり" : "なし"} ／ claude ${existsSync(join(P.claude, ".credentials.json")) ? "あり" : "なし"}`);
   return { problems, notes };
 }
@@ -118,6 +130,22 @@ mkdirSync(join(outDir, "raw"), { recursive: true });
 const versions = {};
 for (const a of agents) versions[a] = await new Promise((r) => { const c = spawn(BIN[a].cmd, [...BIN[a].pre, "--version"], { env: childEnv() }); let o = ""; c.stdout.on("data", (d) => (o += d)); c.on("close", () => r(o.trim())); c.on("error", () => r("unknown")); });
 console.log(`Condition: B（サブスク認証エージェント・1 問 1 セッション）\nEnv:       ${ENV_DIR}\nAgents:    ${agents.map((a) => `${a}=${MODELS[a]} (${versions[a]})`).join(" ／ ")}\nQuestions: ${questions.length} → ${outDir}`);
+
+// ─── ホスト側スキルの退避（--park-host-skills）──────────────────────────────
+// Codex は環境変数に関係なく OS のユーザーフォルダの .agents/skills を読む。そこに自社のスキルがあると測定にならないので、
+// 実行中だけフォルダ名を変えて見えなくし、終了時（正常・失敗・中断とも）に必ず戻す。指定が無ければ触らない。
+const HOST_SKILLS = join(homedir(), ".agents", "skills");
+const PARKED = join(homedir(), ".agents", "skills.parked-by-probe");
+const restoreSkills = () => { if (existsSync(PARKED) && !existsSync(HOST_SKILLS)) { renameSync(PARKED, HOST_SKILLS); console.log(`  ホスト側スキルを戻した: ${HOST_SKILLS}`); } };
+restoreSkills(); // 前回が異常終了していたら、まず戻す
+if (agents.includes("codex")) {
+  const visible = existsSync(HOST_SKILLS) ? readdirSync(HOST_SKILLS) : [];
+  if (visible.length && !flag("park-host-skills")) { console.error(`Codex からホスト側スキルが見える（${visible.join(", ")}）。--park-host-skills を付けて実行中だけ退避するか、--agents=claude で実行すること`); process.exit(2); }
+  if (visible.length) { renameSync(HOST_SKILLS, PARKED); console.log(`  ホスト側スキルを退避: ${visible.join(", ")} → skills.parked-by-probe（終了時に戻す）`); }
+}
+process.on("exit", restoreSkills);
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { restoreSkills(); process.exit(130); });
+process.on("uncaughtException", (e) => { restoreSkills(); console.error(e); process.exit(1); });
 
 const results = []; const consecutiveErr = Object.fromEntries(agents.map((a) => [a, 0])); let stopped = null;
 for (const q of questions) {
