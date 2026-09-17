@@ -47,7 +47,8 @@ const cliArgs = {
   // ⚠️ HOME / USERPROFILE を向け替えても、Codex は OS のユーザーフォルダ（C:/Users/<user>/.agents/skills）からスキルを拾う（canary で検出）。
   //    開発中フラグ skip_host_skill_discovery を有効にしても変わらなかった（2026-09-17・0.153.4）。測定中はそのフォルダ自体を退避する必要がある
   // apps / plugins / memories: ChatGPT アカウントのコネクタ（Gmail・Drive 等）やプラグイン・記憶を見せない
-  codex: (model) => ["--search", "--disable", "apps", "--disable", "plugins", "--disable", "memories", "exec", "--json", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "-s", "read-only", "-m", model, "-"],
+  // web_search は "live" を明示して固定する（値は disabled / cached / indexed / live。--search も live の意味だが、既定値の変更に左右されないよう両方書く）
+  codex: (model) => ["--search", "-c", 'web_search="live"', "--disable", "apps", "--disable", "plugins", "--disable", "memories", "exec", "--json", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "-s", "read-only", "-m", model, "-"],
   claude: (model) => ["-p", "--output-format", "stream-json", "--verbose", "--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch", "--strict-mcp-config", "--mcp-config", join(P.fixed, "empty-mcp.json"), "--setting-sources", "", "--disable-slash-commands", "--no-session-persistence", "--model", model, "--system-prompt", SYSTEM_PROMPT],
 };
 
