@@ -48,6 +48,8 @@ try {
   const index = readFileSync(join(OUT, "index.html"), "utf8");
   check("1b. sitemap は index＋指定件数だけ", (sitemap.match(/<loc>/g) || []).length === ONLY.length + 1);
   check("1c. 対照群の id が index・sitemap・ページのどこにも無い", FORBID.every((id) => !sitemap.includes(`services/${id}.html`) && !index.includes(`services/${id}.html`) && !existsSync(join(OUT, "services", `${id}.html`))));
+  const pageHtml = ONLY.map((id) => readFileSync(join(OUT, "services", `${id}.html`), "utf8"));
+  check("1d. ページの JSON-LD に未接続の報告先（potentialAction・/api/report）が無い", pageHtml.every((h) => !/potentialAction|report_outcome|\/api\/report/.test(h)));
   const snapshot = JSON.stringify(readdirSync(join(OUT, "services")).sort());
 
   // 2. 対照群が対象に入る → 停止

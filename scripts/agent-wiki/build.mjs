@@ -49,12 +49,8 @@ function jsonLdService(rec, SITE) {
       creator: { "@type": "Organization", name: "KanseiLINK" },
       isBasedOn: rec.confirmed.map((f) => f.evidence?.file).filter(Boolean),
     },
-    // report経路（書く側）を機械可読に提示（potentialAction）。実呼び出しは本番で配線。
-    potentialAction: {
-      "@type": "Action", name: "report_outcome",
-      description: "AIエージェントは統合の成否・詰まりをここに報告できる（検証は信頼のはしごに従う・等級は実測のみ）",
-      target: `${SITE}/api/report?service=${rec.service_id}`,
-    },
+    // report経路（potentialAction）は出さない。静的Pagesに受け口が無く、案内するとエージェントの報告が失敗するため
+    // （2026-09-17 Codex 審査 #3）。受け口を本番で配線してから、その実URLで足す。
   };
   // 等級（独立第三者評価・read-only）— データにある場合のみ。自己主張の格付けにしない。
   if (rec.grade) {
