@@ -11,6 +11,8 @@
  * ここで足すのは、組み合わせの順番・記録の集計（達成・時間・token・検索回数・Wiki の使われ方）だけ。
  * 例外は 1 つ: Wiki あり群では、プロンプトで渡した URL を開く／その名前で検索するのは正当なので、
  * 「最初の呼び出しに自社関連語」の混入判定だけを免除し、免除した事実を記録に残す。他の混入判定（許可外ツール・スキル・MCP 等）は両群とも同じ。
+ * 群の差は Wiki の URL の 1 行だけ（公式情報を優先する等の指示は tasks.json の common_instruction として両群に付ける）。
+ * Wiki なし群が検索を経て Agent Wiki を自然に見つけて使った場合は無効にせず `crossover` として別に記録し、集計の主な数字から外す。
  *
  *   node scripts/agent-wiki-demo.mjs <tasks.json> --env-dir=C:/Users/HP/probe-env-b --agent=claude --model=claude-opus-5 \
  *        --reps=3 --tag=<label> --out-dir=<founder-ops/research/AgentWiki-Demo_…> [--tasks=square,colorme] [--park-host-skills] [--resume] [--dry-run]
@@ -50,7 +52,9 @@ const tasks = TASKS.tasks.filter((t) => !only || only.includes(t.id));
 if (only && tasks.length !== only.length) die(`--tasks に無い id: ${only.filter((i) => !tasks.some((t) => t.id === i)).join(",")}`);
 
 // ── プロンプト: 2 群の差は「参考資料の 1 段落」だけ ────────────────────────
-const promptOf = (t, arm) => arm === "with_wiki" ? `${t.prompt}\n\n${TASKS.wiki_hint.replace("{url}", t.wiki_url)}` : t.prompt;
+// 共通の指示（公式情報を優先する等）は両群に同じく付ける。Wiki あり群はその後に URL の 1 行だけを足す
+if (!TASKS.common_instruction || !TASKS.wiki_hint?.includes("{url}")) die("tasks.json に common_instruction と wiki_hint（{url} を含む）が必要");
+const promptOf = (t, arm) => `${t.prompt}\n\n${TASKS.common_instruction}${arm === "with_wiki" ? `\n\n${TASKS.wiki_hint.replace("{url}", t.wiki_url)}` : ""}`;
 
 // ── 実行順: 繰り返しごとに、タスクの中で Wiki あり／なしの先後を入れ替える（ABBA）。決め打ちで再現できる ──
 const schedule = [];
@@ -138,11 +142,18 @@ function buildSession(s, t, sessDir, auditExit) {
   const tools = toolCounts(AGENT, raw);
   const wikiOpened = tools.opened_urls.filter(isWiki);
   const cited = urlsIn(text);
+  // crossover: Wiki なし群が、検索の途中で Agent Wiki を自然に見つけて使った（開いた・回答に書いた）。無効にせず別に記録する。
+  // 事前知識による混入（最初の呼び出しから自社名・Wiki の URL）は上の判定で無効のまま＝ここに来るのは検索を経た発見だけ
+  const seenInResults = [...new Set(p.citations.filter((c) => c.kind === "retrieved" && isWiki(c.url) && !wikiOpened.includes(c.url)).map((c) => c.url))];
+  const crossover = s.arm === "without_wiki" && status === "ok" && (wikiOpened.length || cited.some(isWiki))
+    ? { opened: wikiOpened, cited: cited.filter(isWiki), seen_in_search_results: seenInResults, search_queries: tools.search_queries }
+    : null;
   return {
     session_id: s.session_id, task_id: t.id, service_id: t.service_id, arm: s.arm, rep: s.rep,
     agent: AGENT, model: MODEL, model_returned: p.model_returned ?? null, cli_version: a?.cli_version ?? null,
     asked_at: a?.asked_at ?? null, prompt_sha256: createHash("sha256").update(promptOf(t, s.arm)).digest("hex"), wiki_url_given: s.arm === "with_wiki" ? t.wiki_url : null,
     status, error: infra ?? (contamination.length ? contamination.join(" / ") : null), contamination_waived: waived, auditor_exit: auditExit,
+    crossover, // Wiki なし群で Agent Wiki を自然発見して使ったときだけ中身がある（集計では Wiki なしの主な数字から外し、件数を別に出す）
     outcome: {
       auto_checks: checks, auto_pass: status === "ok" && checks.every((c) => c.pass),
       judge: { success: null, notes: "", missing_info: [], wiki_errors: [], judged_by: null, judged_at: null }, // 人が一次資料で確かめて埋める
@@ -166,8 +177,8 @@ function summarize(sessions) {
   const rows = [];
   for (const t of tasks) for (const arm of ["without_wiki", "with_wiki"]) {
     const xs = sessions.filter((x) => x.task_id === t.id && x.arm === arm);
-    const ok = xs.filter((x) => x.status === "ok");
-    rows.push({ task_id: t.id, arm, sessions: xs.length, valid: ok.length, invalid: xs.filter((x) => x.status === "invalid_contamination").length, infra: xs.filter((x) => x.status === "infra_error").length,
+    const ok = xs.filter((x) => x.status === "ok" && !x.crossover); // crossover は主な数字から外す（件数だけ別に出す）
+    rows.push({ task_id: t.id, arm, sessions: xs.length, valid: ok.length, crossover: xs.filter((x) => x.crossover).length, invalid: xs.filter((x) => x.status === "invalid_contamination").length, infra: xs.filter((x) => x.status === "infra_error").length,
       auto_pass: ok.filter((x) => x.outcome.auto_pass).length, judged_success: ok.filter((x) => x.outcome.judge.success === true).length, judged: ok.filter((x) => x.outcome.judge.success != null).length,
       median_wall_s: median(ok.map((x) => x.cost.wall_ms)) == null ? null : Math.round(median(ok.map((x) => x.cost.wall_ms)) / 1000),
       median_input_tokens: median(ok.map((x) => x.cost.input_tokens)), median_output_tokens: median(ok.map((x) => x.cost.output_tokens)),
@@ -180,7 +191,7 @@ function summarize(sessions) {
 // ── 実行 ─────────────────────────────────────────────────────
 mkdirSync(join(RUN_DIR, "_sessions"), { recursive: true });
 const resultsFile = join(RUN_DIR, "demo-results.json");
-const condition = { agent: AGENT, model: MODEL, reps: REPS, tasks: tasks.map((t) => t.id), tasks_sha256: createHash("sha256").update(tasksRaw).digest("hex"), wiki_hint: TASKS.wiki_hint, auditor: basename(AUDIT), auditor_sha256: createHash("sha256").update(readFileSync(AUDIT)).digest("hex"), env_dir: resolve(ENV_DIR) };
+const condition = { agent: AGENT, model: MODEL, reps: REPS, tasks: tasks.map((t) => t.id), tasks_sha256: createHash("sha256").update(tasksRaw).digest("hex"), common_instruction: TASKS.common_instruction, wiki_hint: TASKS.wiki_hint, auditor: basename(AUDIT), auditor_sha256: createHash("sha256").update(readFileSync(AUDIT)).digest("hex"), env_dir: resolve(ENV_DIR) };
 let prior = null;
 if (existsSync(resultsFile)) {
   if (!flag("resume")) die(`既に結果がある: ${resultsFile}（続きなら --resume、別の回なら --tag を変える）`);
@@ -196,7 +207,9 @@ const save = (stopped = null) => {
     separation: "デモ（Wiki の URL を渡す／渡さない）。定点測定（準実験・score-probe.cjs）の結果ではない。被引用率の集計に使わない",
     condition, schedule, runs, stopped, updated_at: new Date().toISOString(),
     complete: schedule.every((s) => ["ok", "invalid_contamination"].includes(sessions.get(s.session_id)?.status)),
-    summary: summarize(list), sessions: list,
+    summary: summarize(list),
+    crossovers: list.filter((x) => x.crossover).map((x) => ({ session_id: x.session_id, task_id: x.task_id, ...x.crossover })), // Wiki なし群の自然発見（別記録）
+    sessions: list,
   };
   writeFileSync(resultsFile, JSON.stringify(out, null, 1));
   return out;
@@ -216,7 +229,7 @@ for (const s of schedule) {
   const rec = buildSession(s, t, sessDir, r.status);
   if (!rec) { stopped = { at: new Date().toISOString(), session_id: s.session_id, reason: `実行器が開始前に停止（exit ${r.status}）: ${(r.stderr ?? "").trim().split("\n").slice(-3).join(" / ")}` }; break; }
   sessions.set(s.session_id, rec);
-  console.log(`  ${rec.status === "ok" ? "✓" : "✗"} ${s.session_id} — ${rec.status}${rec.status === "ok" ? ` auto_pass=${rec.outcome.auto_pass} ${Math.round((rec.cost.wall_ms ?? 0) / 1000)}s 検索 ${rec.tool_use.web_searches}・開いた ${rec.tool_use.pages_opened}・Wiki ${rec.wiki.opened.length}` : ` ${String(rec.error).slice(0, 140)}`}`);
+  console.log(`  ${rec.status === "ok" ? "✓" : "✗"} ${s.session_id} — ${rec.status}${rec.status === "ok" ? ` auto_pass=${rec.outcome.auto_pass} ${Math.round((rec.cost.wall_ms ?? 0) / 1000)}s 検索 ${rec.tool_use.web_searches}・開いた ${rec.tool_use.pages_opened}・Wiki ${rec.wiki.opened.length}${rec.crossover ? "（crossover: Wiki なしで自然発見）" : ""}` : ` ${String(rec.error).slice(0, 140)}`}`);
   save();
   infraStreak = rec.status === "infra_error" ? infraStreak + 1 : 0;
   if (infraStreak >= 3) { stopped = { at: new Date().toISOString(), session_id: s.session_id, reason: "3 セッション連続で基盤側の失敗（利用枠・認証の疑い）。--resume で再開できる" }; break; }
@@ -225,5 +238,5 @@ runs[runs.length - 1].ended_at = new Date().toISOString();
 const final = save(stopped);
 if (stopped) console.log(`  ■ 停止: ${stopped.reason}`);
 console.log(`\ncomplete=${final.complete} ／ ${final.sessions.length}/${schedule.length} セッション記録 → ${resultsFile}`);
-for (const row of final.summary) console.log(`  ${row.task_id.padEnd(13)} ${row.arm.padEnd(12)} 有効 ${row.valid}/${row.sessions}・自動判定 ${row.auto_pass}・時間中央 ${row.median_wall_s ?? "-"}s・入力token中央 ${row.median_input_tokens ?? "-"}・検索中央 ${row.median_searches ?? "-"}・Wiki を開いた ${row.wiki_opened}`);
+for (const row of final.summary) console.log(`  ${row.task_id.padEnd(13)} ${row.arm.padEnd(12)} 有効 ${row.valid}/${row.sessions}${row.crossover ? `（crossover ${row.crossover} は別）` : ""}・自動判定 ${row.auto_pass}・時間中央 ${row.median_wall_s ?? "-"}s・入力token中央 ${row.median_input_tokens ?? "-"}・検索中央 ${row.median_searches ?? "-"}・Wiki を開いた ${row.wiki_opened}`);
 process.exit(stopped && !final.sessions.length ? 2 : 0);

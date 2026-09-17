@@ -33,19 +33,23 @@ let q = ""; for await (const c of process.stdin) q += c;
 const ctl = JSON.parse(readFileSync(${JSON.stringify(ctl)}, "utf8"));
 const wiki = (q.match(/https:\\/\\/kansei-link\\.com\\/agent-wiki\\/services\\/[a-z0-9-]+\\.html/) || [])[0];
 if (ctl.fail) { console.log(JSON.stringify(agent === "codex" ? { type: "error", message: "usage limit" } : { type: "result", is_error: true, result: "usage limit", usage: {} })); process.exit(1); }
-const answer = "認証は OAuth 2.0。公式MCP: https://mcp.squareup.com/sse 。ドキュメント https://developer.squareup.com/docs\\n\`\`\`json\\n{\\"mcpServers\\":{\\"square\\":{\\"url\\":\\"https://mcp.squareup.com/sse\\"}}}\\n\`\`\`" + (wiki ? " 参考 " + wiki : "");
+const found = "https://kansei-link.com/agent-wiki/services/square.html"; // Wiki なし群が検索で見つける（crossover）／最初から開く（事前知識）
+const answer = "認証は OAuth 2.0。公式MCP: https://mcp.squareup.com/sse 。ドキュメント https://developer.squareup.com/docs\\n\`\`\`json\\n{\\"mcpServers\\":{\\"square\\":{\\"url\\":\\"https://mcp.squareup.com/sse\\"}}}\\n\`\`\`" + (wiki ? " 参考 " + wiki : !wiki && ctl.crossover ? " 参考 " + found : "");
 const firstQuery = ctl.contaminate ? "kansei-link square mcp" : "Square MCP server";
 if (agent === "codex") {
   const L = [{ type: "thread.started", thread_id: "t" }];
   if (wiki) L.push({ type: "item.completed", item: { type: "web_search", action: { type: "open_page", url: wiki } } });
   L.push({ type: "item.completed", item: { type: "web_search", action: { type: "search", query: firstQuery, queries: [firstQuery] } } });
+  if (!wiki && ctl.crossover) L.push({ type: "item.completed", item: { type: "web_search", action: { type: "open_page", url: found } } });
   L.push({ type: "item.completed", item: { type: "web_search", action: { type: "open_page", url: "https://developer.squareup.com/docs/mcp" } } });
   L.push({ type: "item.completed", item: { type: "agent_message", text: answer } }, { type: "turn.completed", usage: { input_tokens: 1000, cached_input_tokens: 400, output_tokens: 50 } });
   console.log(L.map((x) => JSON.stringify(x)).join("\\n"));
 } else {
   const uses = [];
   if (wiki) uses.push({ type: "tool_use", name: "WebFetch", input: { url: wiki, prompt: "read" } });
+  if (!wiki && ctl.directWiki) uses.push({ type: "tool_use", name: "WebFetch", input: { url: found, prompt: "read" } });
   uses.push({ type: "tool_use", name: "WebSearch", input: { query: firstQuery } });
+  if (!wiki && ctl.crossover) uses.push({ type: "tool_use", name: "WebFetch", input: { url: found, prompt: "read" } });
   uses.push({ type: "tool_use", name: "WebFetch", input: { url: "https://developer.squareup.com/docs/mcp", prompt: "read" } });
   if (ctl.badTool) uses.push({ type: "tool_use", name: "Bash", input: { command: "ls" } });
   const L = [{ type: "system", subtype: "init", session_id: "s", tools: ["WebSearch", "WebFetch"], mcp_servers: [], plugins: [], skills: [], apiKeySource: "none", model: "claude-opus-5" },
@@ -57,7 +61,7 @@ if (agent === "codex") {
 const tasksFile = join(T, "tasks.json");
 const realTasks = join(ROOT, "..", "founder-ops", "research", "AgentWiki-Demo_2026-09-17", "tasks.json");
 const tasks = existsSync(realTasks) ? JSON.parse(readFileSync(realTasks, "utf8")) : null;
-writeFileSync(tasksFile, JSON.stringify(tasks ?? { record_type: "agent_wiki_demo_tasks", wiki_hint: "参考資料: {url}", tasks: [{ id: "square", service_id: "square", wiki_url: "https://kansei-link.com/agent-wiki/services/square.html", prompt: "Square の接続準備", wiki_confirmed: [{ field: "公開MCP", value: "https://mcp.squareup.com/sse" }], checks: [{ id: "auth", label: "OAuth", type: "regex", pattern: "OAuth" }, { id: "mcp_url", label: "mcp", type: "url", host: "mcp.squareup.com", path_prefix: "/sse" }, { id: "config", label: "config", type: "config_block", contains: "mcp.squareup.com" }] }] }));
+writeFileSync(tasksFile, JSON.stringify(tasks ?? { record_type: "agent_wiki_demo_tasks", common_instruction: "公式情報を優先する", wiki_hint: "参考資料: {url}", tasks: [{ id: "square", service_id: "square", wiki_url: "https://kansei-link.com/agent-wiki/services/square.html", prompt: "Square の接続準備", wiki_confirmed: [{ field: "公開MCP", value: "https://mcp.squareup.com/sse" }], checks: [{ id: "auth", label: "OAuth", type: "regex", pattern: "OAuth" }, { id: "mcp_url", label: "mcp", type: "url", host: "mcp.squareup.com", path_prefix: "/sse" }, { id: "config", label: "config", type: "config_block", contains: "mcp.squareup.com" }] }] }));
 const demoOut = join(T, "AgentWiki-Demo");
 const childEnv = { ...process.env, PROBE_STUB_CLI: stub, PROBE_HOST_HOME: host };
 const run = (extra) => spawnSync(process.execPath, [join(ROOT, "scripts", "agent-wiki-demo.mjs"), tasksFile, `--env-dir=${env}`, ...extra], { encoding: "utf8", env: childEnv });
@@ -82,6 +86,26 @@ check("2c. Wiki あり: Wiki を開いた記録（渡したページ）・回答
 check("2d. 自動判定・時間・token・検索回数・開いたページ数", w.outcome.auto_pass === true && w.outcome.auto_checks.every((c) => c.pass) && w.cost.wall_ms > 0 && w.cost.input_tokens === 1000 && w.cost.output_tokens === 60 && w.tool_use.web_searches === 1 && w.tool_use.pages_opened === 2 && w.outcome.judge.success === null, JSON.stringify([w.cost, w.tool_use.web_searches, w.tool_use.pages_opened]));
 check("2e. Wiki なし: 有効・Wiki は開いていない・プロンプトに URL なし", wo.status === "ok" && wo.wiki.opened.length === 0 && wo.wiki_url_given === null && wo.contamination_waived.length === 0 && w.prompt_sha256 !== wo.prompt_sha256);
 check("2f. 集計: 群ごとの有効数・自動判定・Wiki を開いた数", D.summary.find((x) => x.arm === "with_wiki" && x.task_id === "square").wiki_opened === 1 && D.summary.find((x) => x.arm === "without_wiki" && x.task_id === "square").wiki_not_used === 1);
+const qOf = (tag, sid) => JSON.parse(readFileSync(join(demoOut, `demo-runs-${tag}`, "_sessions", sid, "battery.json"), "utf8")).questions[0].question;
+const qWith = qOf("c1", "r1-square-with_wiki"); const qWithout = qOf("c1", "r1-square-without_wiki");
+const T0 = tasks ?? JSON.parse(readFileSync(tasksFile, "utf8"));
+check("2g. 群の差は Wiki の URL の 1 行だけ（公式を優先する指示は両群に共通）", qWith === `${qWithout}\n\n参考資料: https://kansei-link.com/agent-wiki/services/square.html` && qWithout.includes(T0.common_instruction) && !/kansei|agent-wiki/i.test(qWithout), JSON.stringify(qWith.slice(qWithout.length)));
+
+// 2h. Wiki なし群が検索を経て Agent Wiki を自然発見 → 無効にせず crossover として別記録・主な数字から外す
+setCtl({ crossover: true });
+r = run(["--agent=claude", "--model=claude-opus-5", "--reps=1", "--tasks=square", "--tag=cx", `--out-dir=${demoOut}`]);
+D = load("cx");
+const cx = D.sessions.find((s) => s.arm === "without_wiki"); const rowX = D.summary.find((x) => x.arm === "without_wiki");
+check("2h. crossover: Wiki なしで自然発見しても有効・crossover に開いた／引用した URL・検索語", cx.status === "ok" && cx.crossover && cx.crossover.opened.length === 1 && cx.crossover.cited.length === 1 && cx.crossover.search_queries[0] === "Square MCP server" && D.sessions.find((s) => s.arm === "with_wiki").crossover === null, JSON.stringify(cx.crossover));
+check("2i. crossover は集計の主な数字（valid）から外し、件数と一覧を別に出す", rowX.valid === 0 && rowX.crossover === 1 && D.crossovers.length === 1 && D.crossovers[0].session_id === cx.session_id, JSON.stringify(rowX));
+setCtl({ directWiki: true });
+r = run(["--agent=claude", "--model=claude-opus-5", "--reps=1", "--tasks=square", "--tag=cd", `--out-dir=${demoOut}`]);
+D = load("cd");
+check("2j. Wiki なしで最初の呼び出しから Wiki を開く（事前知識）は crossover ではなく無効", D.sessions.find((s) => s.arm === "without_wiki").status === "invalid_contamination" && D.crossovers.length === 0);
+setCtl({ crossover: true });
+r = run(["--agent=codex", "--model=gpt-x", "--reps=1", "--tasks=square", "--tag=cxc", `--out-dir=${demoOut}`, "--park-host-skills"]);
+D = load("cxc");
+check("2k. Codex でも crossover を記録", D.sessions.find((s) => s.arm === "without_wiki").crossover?.opened.length === 1 && D.crossovers.length === 1, JSON.stringify(D.sessions.map((s) => [s.arm, s.status, s.error])));
 
 // 3. Wiki なしで最初の検索に自社関連語 → 無効（免除しない）。Wiki ありは免除
 setCtl({ contaminate: true });
