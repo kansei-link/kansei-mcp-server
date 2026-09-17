@@ -119,6 +119,26 @@ try {
   }
 } catch { /* no services dir */ }
 
+// agent-wiki（index と services/*.html）。公開されていなければ何もしない。
+// loc は各ページの canonical をそのまま使う（生成器が決めた URL 形式と必ず一致させる）。
+// 逆に、ページが消えた（限定生成で外れた）agent-wiki の URL は、上の「ファイル無しは落とす」処理で外れる。
+try {
+  const wikiRoot = join(pub, 'agent-wiki');
+  const wikiFiles = [];
+  if (existsSync(join(wikiRoot, 'index.html'))) wikiFiles.push(join(wikiRoot, 'index.html'));
+  try { for (const f of readdirSync(join(wikiRoot, 'services'))) if (f.endsWith('.html')) wikiFiles.push(join(wikiRoot, 'services', f)); } catch { /* no services */ }
+  for (const file of wikiFiles) {
+    const html = readFileSync(file, 'utf8');
+    if (/name=["']robots["']\s+content=["']noindex/i.test(html)) continue;
+    const loc = (html.match(/<link rel="canonical" href="([^"]+)"/) || [])[1];
+    if (!loc || !loc.startsWith('https://kansei-link.com/agent-wiki/')) continue;
+    if (keptLocs.has(loc)) continue;
+    kept.push(`<url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n  </url>`);
+    keptLocs.add(loc);
+    added.push(loc);
+  }
+} catch { /* no agent-wiki */ }
+
 const header = xml.slice(0, xml.indexOf('<url>'));
 const footer = xml.slice(xml.lastIndexOf('</url>') + '</url>'.length);
 writeFileSync(sitemapPath, header + kept.join('\n  ') + footer);

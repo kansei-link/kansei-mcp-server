@@ -24,8 +24,9 @@
  *   node scripts/build-agent-wiki.mjs --publish  # public/ へ＝公開（C1後）
  *   node scripts/build-agent-wiki.mjs --all      # 選定せず全件
  */
-import { readFileSync, existsSync, rmSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, existsSync, rmSync, readdirSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { buildAgentWiki } from './agent-wiki/build.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -35,6 +36,15 @@ const SEED = resolve(root, 'src/data/services-seed.json');
 const SITE = 'https://kansei-link.com/agent-wiki';
 const PUBLISH = process.argv.includes('--publish');
 const ALL = process.argv.includes('--all');
+// 準実験（PROBE 事前登録）用: 段階投入と対照群の保全
+//   --only=<id,id,...>        出力をこの id だけに限定（検証済み集合に無い id があれば停止）
+//   --forbid=<id,id,...>      対照群。1 件でも出力対象・出力物に現れたら停止（wait-list control を公開しない）
+//   --ledger-sha256=<hex>     判定台帳 verdicts.json の版を固定。一致しなければ停止（台帳は git 管理外）
+const listArg = (name) => { const a = process.argv.find((x) => x.startsWith(`--${name}=`)); return a ? a.slice(name.length + 3).split(',').map((x) => x.trim()).filter(Boolean) : null; };
+const ONLY = listArg('only');
+const FORBID = listArg('forbid') ?? [];
+const LEDGER_SHA = (process.argv.find((x) => x.startsWith('--ledger-sha256=')) || '').slice('--ledger-sha256='.length) || null;
+if (ALL && ONLY) { console.error('[agent-wiki] --all と --only は併用できない'); process.exit(2); }
 const OUT = PUBLISH ? resolve(root, 'public/agent-wiki') : resolve(root, 'build/agent-wiki');
 
 // ── 出所の台帳（人の判定・事業者申告の検証結果）─────────────
@@ -42,6 +52,12 @@ const OUT = PUBLISH ? resolve(root, 'public/agent-wiki') : resolve(root, 'build/
 // 何も出ないので、気づかず未検証データを公開してしまうことがない
 let verdicts = {};
 const LEDGER = resolve(root, 'data/runtime-freshness/verdicts.json');
+let ledgerSha = null;
+if (existsSync(LEDGER)) ledgerSha = createHash('sha256').update(readFileSync(LEDGER)).digest('hex');
+if (LEDGER_SHA) {
+  if (!ledgerSha) { console.error(`[agent-wiki] 判定台帳が無い: ${LEDGER}（git 管理外。固定版をここへ置くこと）`); process.exit(2); }
+  if (ledgerSha !== LEDGER_SHA) { console.error(`[agent-wiki] 判定台帳の版が違う: 期待 ${LEDGER_SHA.slice(0, 16)}… / 実際 ${ledgerSha.slice(0, 16)}…`); process.exit(2); }
+}
 if (existsSync(LEDGER)) {
   const led = JSON.parse(readFileSync(LEDGER, 'utf8')).verdicts ?? {};
   for (const [id, v] of Object.entries(led)) {
@@ -82,6 +98,22 @@ if (ALL) {
   targets = ids.map(id => byId.get(id));
 }
 
+if (ONLY) {
+  const verifiedIds = new Set(targets.map((r) => r.id));
+  const notVerified = ONLY.filter((id) => !verifiedIds.has(id));
+  if (notVerified.length) {
+    console.error(`[agent-wiki] --only に検証済み集合に無い id がある: ${notVerified.join(', ')}（台帳の版・id の正規化を確認）`);
+    process.exit(2);
+  }
+  const onlySet = new Set(ONLY);
+  targets = targets.filter((r) => onlySet.has(r.id));
+}
+const forbiddenInTargets = targets.filter((r) => FORBID.includes(r.id)).map((r) => r.id);
+if (forbiddenInTargets.length) {
+  console.error(`[agent-wiki] 対照群（--forbid）が出力対象に入っている: ${forbiddenInTargets.join(', ')} — 停止`);
+  process.exit(2);
+}
+
 const GRADE_WORTHY = new Set(['verdict', 'publisher_verified', 'curated']);
 const hostOf = (u) => { try { return new URL(u).hostname; } catch { return null; } };
 const UNSET = (v) => !v || v === 'unknown' || v === 'none' || v === 'no_public_api';
@@ -115,9 +147,27 @@ const records = targets.map(toRecord);
 if (existsSync(OUT)) rmSync(OUT, { recursive: true, force: true }); // 消えたサービスのページを残さない
 const n = buildAgentWiki(records, OUT, { site: SITE, prototype: false });
 
+// 出力物の最終検査: 出力ディレクトリのページ集合＝対象集合／対照群の id が HTML・sitemap のどこにも無い
+const outPages = readdirSync(join(OUT, 'services')).filter((f) => f.endsWith('.html')).map((f) => f.replace(/\.html$/, '')).sort();
+const expectPages = targets.map((r) => r.id).sort();
+if (JSON.stringify(outPages) !== JSON.stringify(expectPages)) {
+  console.error(`[agent-wiki] 出力ページ集合が対象と一致しない: 出力 ${outPages.length} / 対象 ${expectPages.length}`);
+  process.exit(2);
+}
+if (FORBID.length) {
+  const files = [join(OUT, 'index.html'), join(OUT, 'sitemap.xml'), ...outPages.map((id) => join(OUT, 'services', `${id}.html`))];
+  const leaks = [];
+  for (const f of files) {
+    const txt = readFileSync(f, 'utf8');
+    for (const id of FORBID) if (txt.includes(`services/${id}.html`) || existsSync(join(OUT, 'services', `${id}.html`))) leaks.push(`${id} in ${f.slice(OUT.length + 1)}`);
+  }
+  if (leaks.length) { console.error(`[agent-wiki] 対照群が出力物に残っている: ${[...new Set(leaks)].join(' | ')} — 停止`); process.exit(2); }
+}
+
 const withGrade = records.filter(r => r.grade).length;
 const withConfirmed = records.filter(r => r.confirmed.length).length;
 console.log(`[agent-wiki] ${n}サービス → ${OUT}`);
+console.log(`[agent-wiki]   判定台帳 sha256: ${ledgerSha ? ledgerSha.slice(0, 16) + '…' : '（台帳なし）'}${LEDGER_SHA ? '（版固定 OK）' : ''}${ONLY ? ` ／ 限定生成 ${ONLY.length} 件` : ''}${FORBID.length ? ` ／ 対照群 ${FORBID.length} 件の混入なし` : ''}`);
 console.log(`[agent-wiki]   確認済みの情報あり: ${withConfirmed} ／ Award等級あり: ${withGrade}`);
 console.log(PUBLISH
   ? '[agent-wiki] ⚠️ public/ に出力した。次のpushで公開される。'
