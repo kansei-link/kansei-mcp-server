@@ -2,6 +2,13 @@
 
 ## v1.2.4 (unreleased — release candidate)
 
+### Fix — Money Forward Cloud developer-docs URL in the distributed seed
+- `services-seed.json`: moneyforward's `api_url` pointed to
+  `https://accounting.moneyforward.com/api/v3/`, which now returns 404. It now points to
+  the official developer site `https://developers.biz.moneyforward.com/` (checked
+  2026-09-18). The MCP endpoint and auth method were unchanged and re-verified against
+  the official support page.
+
 ### Fix — Square MCP endpoint in the distributed seed
 - `services-seed.json`: Square's `mcp_endpoint` was `https://mcp.squareup.com/sse`
   (recorded 2026-09-04 from the official GitHub README). Square's official developer
