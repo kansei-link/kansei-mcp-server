@@ -1,6 +1,19 @@
 # Changelog
 
-## v1.2.3 (unreleased)
+## v1.2.4 (unreleased — release candidate)
+
+### Fix — Square MCP endpoint in the distributed seed
+- `services-seed.json`: Square's `mcp_endpoint` was `https://mcp.squareup.com/sse`
+  (recorded 2026-09-04 from the official GitHub README). Square's official developer
+  documentation (developer.squareup.com/docs/mcp, checked 2026-09-18) lists
+  `https://mcp.squareup.com/mcp` (OAuth). The distributed value now follows the
+  documentation. Note: the README still shows `/sse`; the two official sources
+  disagree, so `/sse` is treated as an inconsistency, not a confirmed error.
+- Existing deployments pick up the new value on restart (services seed is an UPSERT
+  that updates `mcp_endpoint`). The public Agent Wiki page for Square was corrected
+  the same way on 2026-09-18 and shows the check date and source.
+
+## v1.2.3 (2026-09-17)
 
 ### Fix — stdio stdout carries JSON-RPC only
 - Startup logs (`[seed] …`, `Seeded … services`, `Seeded … infrastructure tips.`,
