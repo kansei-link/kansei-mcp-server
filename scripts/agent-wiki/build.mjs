@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.AGENT_WIKI_OUT || path.join(HERE, "out");
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const hostOf = (u) => { try { return new URL(u).host; } catch { return String(u ?? ""); } };
 // 試作の既定値。本番は buildAgentWiki(..., { site }) で差し替える
 const SITE = "https://agent-wiki.example";
 
@@ -94,7 +95,7 @@ ${prototype ? `<!-- PROTOTYPE — not for publication -->
 <p><a href="../index.html">← Agent Wiki（SaaS横断DB）</a></p>
 <h1>${esc(rec.display_name)} — AI統合ガイド</h1>
 ${rec.grade ? `<p><strong>独立評価</strong>: ${esc(rec.grade.value)}（${esc(rec.grade.scale)}・<em>independently rated by KanseiLINK</em>・read-only）</p>` : `<p><small>独立評価: 未評価${prototype ? "（試作）" : ""}。等級は実測のみで算出＝この面の拡充では動かない。</small></p>`}
-<h2>確認済みの実践情報（独立観測）</h2><table><tr><th>項目</th><th>内容</th><th>出所</th></tr>${rec.confirmed.map((f) => row(f, `独立観測${f.evidence?.file ? "・" + esc(f.evidence.file) : ""}`)).join("") || "<tr><td colspan=3>—</td></tr>"}</table>
+<h2>確認済みの実践情報（独立観測）</h2><table><tr><th>項目</th><th>内容</th><th>出所</th></tr>${rec.confirmed.map((f) => row(f, `独立観測${f.evidence?.file ? "・" + esc(f.evidence.file) : ""}${f.evidence?.checked_at ? "・確認 " + esc(f.evidence.checked_at) : ""}${f.evidence?.url ? `・出典 <a href="${esc(f.evidence.url)}" rel="nofollow noopener">${esc(hostOf(f.evidence.url))}</a>` : ""}`)).join("") || "<tr><td colspan=3>—</td></tr>"}</table>${rec.notes?.length ? `<p><small><strong>注記</strong>: ${rec.notes.map((n) => esc(n)).join("<br>")}</small></p>` : ""}
 ${rec.vendor.length ? `<h2>事業者提出情報（運営審査済み・独立観測ではない／等級非連動）</h2><table><tr><th>項目</th><th>内容</th><th>出所</th></tr>${rec.vendor.map((f) => row(f, "事業者提出")).join("")}</table>` : ""}
 ${rec.unverified?.length ? `<h2>参考（未検証・発見性シグナル／検証で昇格・等級非連動）</h2><table><tr><th>項目</th><th>内容</th><th>出所</th></tr>${rec.unverified.map((f) => row(f, "未検証(registry_inferred)")).join("")}</table><p><small>公式ドメイン照合またはverdictで検証されるまで、参考情報として表示し等級・順位には寄与しません。事業者は自己申告（出所URL付き）で検証・昇格できます。</small></p>` : ""}
 ${rec.unconfirmed.length ? `<h2>公開資料で確認できない事項</h2><ul>${rec.unconfirmed.map((u) => `<li>${esc(u.field)} <small>（${esc(u.note)}）</small></li>`).join("")}</ul><p><small>空白は機能の不存在を意味しない。</small></p>` : ""}

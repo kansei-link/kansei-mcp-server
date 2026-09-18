@@ -72,6 +72,19 @@ try {
   // 6. --all と --only の併用は拒否
   r = run(["--all", `--only=${ONLY[0]}`]);
   check("6. --all と --only の併用は停止", r.status !== 0);
+
+  // 7. 台帳の訂正値がページに出る（seed の値ではなく）。確認日・出典・注記も出る。台帳は一時的に差し替え、必ず元に戻す
+  const savedLedger = readFileSync(LEDGER);
+  try {
+    const led = JSON.parse(savedLedger.toString("utf8")); led.verdicts = led.verdicts ?? {};
+    led.verdicts[ONLY[0]] = { verdict: "seed_wrong", checked_at: "2099-01-02", evidence_url: "https://docs.example.test/mcp", correction: { mcp_endpoint: "https://mcp.example.test/corrected", mcp_status: "official" }, notes: ["SMOKE-NOTE: 公式情報どうしの不一致の注記"] };
+    writeFileSync(LEDGER, JSON.stringify(led));
+    r = run([`--only=${ONLY.join(",")}`]);
+    const page = readFileSync(join(OUT, "services", `${ONLY[0]}.html`), "utf8");
+    check("7a. 台帳の訂正値が seed の値に代わってページと JSON-LD に出る", r.status === 0 && page.includes("https://mcp.example.test/corrected（official）") && (page.match(/mcp\.example\.test\/corrected/g) || []).length >= 2);
+    check("7b. 確認日と出典（一次資料のホスト）が公開MCP の行に出る", /公開MCP<\/td><td>[^<]*<\/td><td><small>独立観測・確認 2099-01-02・出典 <a href="https:\/\/docs\.example\.test\/mcp"[^>]*>docs\.example\.test<\/a>/.test(page));
+    check("7c. 注記が表の下に出る／確認・出典は訂正していない行（カテゴリ）には付かない", page.includes("SMOKE-NOTE") && /カテゴリ<\/td><td>[^<]*<\/td><td><small>独立観測<\/small>/.test(page));
+  } finally { writeFileSync(LEDGER, savedLedger); }
 } finally {
   if (placedLedger) rmSync(LEDGER, { force: true });
 }

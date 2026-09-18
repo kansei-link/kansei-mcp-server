@@ -58,8 +58,12 @@ if (LEDGER_SHA) {
   if (!ledgerSha) { console.error(`[agent-wiki] 判定台帳が無い: ${LEDGER}（git 管理外。固定版をここへ置くこと）`); process.exit(2); }
   if (ledgerSha !== LEDGER_SHA) { console.error(`[agent-wiki] 判定台帳の版が違う: 期待 ${LEDGER_SHA.slice(0, 16)}… / 実際 ${ledgerSha.slice(0, 16)}…`); process.exit(2); }
 }
+// 台帳の判定そのもの（correction・checked_at・evidence_url・notes）。配布 seed の値より台帳の訂正値を優先して表示する
+//（seed は配布物の版として固定。訂正は台帳の版で追い、ページには確認日と出典を出す）
+let ledgerEntries = {};
 if (existsSync(LEDGER)) {
   const led = JSON.parse(readFileSync(LEDGER, 'utf8')).verdicts ?? {};
+  ledgerEntries = led;
   for (const [id, v] of Object.entries(led)) {
     if (v.verdict === 'seed_wrong' || v.verdict === 'vendor_verified') verdicts[id] = 'verdict';
     else if (v.verdict === 'distributed_correct') verdicts[id] = 'curated';
@@ -119,13 +123,21 @@ const hostOf = (u) => { try { return new URL(u).hostname; } catch { return null;
 const UNSET = (v) => !v || v === 'unknown' || v === 'none' || v === 'no_public_api';
 
 /** seedの1行 → §1レコード。出所の階梯を消費して confirmed / unverified に振り分ける。 */
-function toRecord(r) {
+function toRecord(r0) {
+  const entry = ledgerEntries[r0.id];
+  const corr = entry?.correction ?? {};
+  // 台帳の訂正値で seed を上書き（対象は接続情報の 4 項目だけ）
+  const r = { ...r0 };
+  for (const k of ['mcp_endpoint', 'mcp_status', 'api_auth_method', 'api_url']) if (corr[k] !== undefined) r[k] = corr[k];
   const verified = GRADE_WORTHY.has(verdicts[r.id]);
   const confirmed = [], unverified = [];
-  const put = (field, value) => (verified ? confirmed : unverified).push({ field, value });
-  if (r.mcp_endpoint) put('公開MCP', `${r.mcp_endpoint}（${r.mcp_status ?? '?'}）`);
-  if (!UNSET(r.api_auth_method)) put('認証方式', r.api_auth_method);
-  if (r.api_url) put('API/開発者ドキュメント', r.api_url);
+  // 台帳に判定があれば、確認日と出典（一次資料の URL）を各行に付ける
+  // 確認日・出典を付けるのは、台帳がその項目を実際に確認・訂正した行だけ（カテゴリ等には付けない）
+  const evidence = entry?.checked_at ? { checked_at: entry.checked_at, url: entry.evidence_url ?? null } : null;
+  const put = (field, value, checkedKeys = []) => (verified ? confirmed : unverified).push(evidence && checkedKeys.some((k) => corr[k] !== undefined) ? { field, value, evidence } : { field, value });
+  if (r.mcp_endpoint) put('公開MCP', `${r.mcp_endpoint}（${r.mcp_status ?? '?'}）`, ['mcp_endpoint', 'mcp_status']);
+  if (!UNSET(r.api_auth_method)) put('認証方式', r.api_auth_method, ['api_auth_method']);
+  if (r.api_url) put('API/開発者ドキュメント', r.api_url, ['api_url']);
   if (r.category) put('カテゴリ', r.category);
 
   // 等級は**公開しているAward（AI Access Level 0）だけ**。
@@ -139,7 +151,9 @@ function toRecord(r) {
     confirmed, vendor: [], unverified, unconfirmed: [],
     delegation_scope: null,
     grade: award ? { value: award, scale: 'AI Access Level 0（ARI Award 2026 Summer・凍結）' } : null,
-    last_verified: null,
+    last_verified: entry?.checked_at ?? null,
+    // 公式情報どうしの不一致など、値だけでは伝わらない注記（台帳 notes[]）
+    notes: Array.isArray(entry?.notes) ? entry.notes : [],
   };
 }
 
