@@ -59,8 +59,8 @@ if (agent === "codex") {
 }
 `);
 const tasksFile = join(T, "tasks.json");
-const realTasks = join(ROOT, "..", "founder-ops", "research", "AgentWiki-Demo_2026-09-17", "tasks.json");
-const tasks = existsSync(realTasks) ? JSON.parse(readFileSync(realTasks, "utf8")) : null;
+// 実際の tasks.json は読まない: 基準値が公開ページの訂正で変わる（2026-09-18 に square が /sse → /mcp）と、偽の CLI の固定回答とずれてテストが落ちる。テストは固定データだけを使う
+const tasks = null;
 writeFileSync(tasksFile, JSON.stringify(tasks ?? { record_type: "agent_wiki_demo_tasks", common_instruction: "公式情報を優先する", wiki_hint: "参考資料: {url}", tasks: [{ id: "square", service_id: "square", wiki_url: "https://kansei-link.com/agent-wiki/services/square.html", prompt: "Square の接続準備", wiki_confirmed: [{ field: "公開MCP", value: "https://mcp.squareup.com/sse" }], checks: [{ id: "auth", label: "OAuth", type: "regex", pattern: "OAuth" }, { id: "mcp_url", label: "mcp", type: "url", host: "mcp.squareup.com", path_prefix: "/sse" }, { id: "config", label: "config", type: "config_block", contains: "mcp.squareup.com" }] }] }));
 const demoOut = join(T, "AgentWiki-Demo");
 const childEnv = { ...process.env, PROBE_STUB_CLI: stub, PROBE_HOST_HOME: host };
