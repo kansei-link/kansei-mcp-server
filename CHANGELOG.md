@@ -2,6 +2,17 @@
 
 ## v1.2.4 (unreleased — release candidate)
 
+### Fix — API-guide docs URL for Money Forward, and guides now upsert `docs_url`
+- `api-guides-seed.json` (served by `lookup(detail)`): moneyforward's `docs_url` pointed at
+  `developer.moneyforward.com`, a host that no longer resolves; it now points at the official
+  developer site `https://developers.biz.moneyforward.com/`. The registration hint names the
+  App Portal instead of the dead host.
+- API guides were seeded insert-once, so existing databases never received seed fixes.
+  `docs_url` is now upserted field-by-field (only when the stored value differs), and the
+  in-place text fix list patches the old host in prose columns. Both are idempotent. Other
+  guide columns are still insert-once. New regression smoke `scripts/smoke-api-guides-docs-url.mjs`
+  (fresh DB, upgrade from an old DB, idempotency, other columns untouched).
+
 ### Fix — Money Forward Cloud developer-docs URL in the distributed seed
 - `services-seed.json`: moneyforward's `api_url` pointed to
   `https://accounting.moneyforward.com/api/v3/`, which now returns 404. It now points to

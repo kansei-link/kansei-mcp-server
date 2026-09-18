@@ -307,9 +307,20 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   // (aggregated-voice upsert and stats backfill statements removed — P0 #39,
   //  see the loader-removal note above)
 
+  // Guides are insert-once (operators may edit prose in place), EXCEPT docs_url:
+  // a dead documentation link is worse than none, so the seed's docs_url is
+  // upserted field-by-field. Idempotent: the DO UPDATE only fires when the
+  // stored value differs, so a second run changes nothing (updated_at included).
+  // (2026-09-18: moneyforward pointed at developer.moneyforward.com, a host that
+  //  no longer resolves; insert-once would have left every existing DB broken.)
   const insertApiGuide = db.prepare(`
-    INSERT OR IGNORE INTO service_api_guides (service_id, base_url, api_version, auth_overview, auth_token_url, auth_scopes, auth_setup_hint, sandbox_url, key_endpoints, request_content_type, pagination_style, rate_limit, error_format, quickstart_example, agent_tips, docs_url)
+    INSERT INTO service_api_guides (service_id, base_url, api_version, auth_overview, auth_token_url, auth_scopes, auth_setup_hint, sandbox_url, key_endpoints, request_content_type, pagination_style, rate_limit, error_format, quickstart_example, agent_tips, docs_url)
     VALUES (@service_id, @base_url, @api_version, @auth_overview, @auth_token_url, @auth_scopes, @auth_setup_hint, @sandbox_url, @key_endpoints, @request_content_type, @pagination_style, @rate_limit, @error_format, @quickstart_example, @agent_tips, @docs_url)
+    ON CONFLICT(service_id) DO UPDATE SET
+      docs_url = excluded.docs_url,
+      updated_at = datetime('now')
+    WHERE excluded.docs_url IS NOT NULL
+      AND service_api_guides.docs_url IS NOT excluded.docs_url
   `);
 
   const seedAll = db.transaction(() => {
@@ -453,6 +464,9 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     ["npx @anthropic/postgres-mcp", "npx @modelcontextprotocol/server-postgres"],
     ["npx @qdrant/mcp-server", "uvx mcp-server-qdrant"],
     ["npx supabase-mcp-server", "npx @supabase/mcp-server-supabase"],
+    // 2026-09-18: developer.moneyforward.com no longer resolves; the official developer site is developers.biz.moneyforward.com
+    ["https://developer.moneyforward.com/docs/accounting", "https://developers.biz.moneyforward.com/"],
+    ["register at developer.moneyforward.com, get client_id/secret", "register the app at the App Portal (https://app-portal.moneyforward.com/; docs: https://developers.biz.moneyforward.com/), get client_id/secret"],
   ];
   const guideTextCols = [
     "auth_overview",
