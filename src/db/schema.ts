@@ -701,16 +701,20 @@ export function initializeDb(db: Database.Database): void {
   // Presenting it as freshness told agents that 8,657 records had been re-read
   // when they had not. Existing values therefore carry across as *attempts*.
   //
-  // Verification is backfilled only where service_changelog proves an upstream
+  // The check is backfilled only where service_changelog proves an upstream
   // source answered: those entries are written from fetched metadata and never
-  // from a failure path. Everything else starts unverified, which is the honest
+  // from a failure path. Everything else starts unchecked, which is the honest
   // state — we cannot retroactively invent a check that may not have happened.
+  //
+  // Named `upstream_checked_at`, not `verified`: what answers is GitHub or npm,
+  // which attests that the repo/package resolves. It is not confirmation that
+  // the description or the connection guide is still true. See utils/freshness.
   const hasVerificationTracking = db
-    .prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = 'last_verified_at'")
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = 'upstream_checked_at'")
     .get() as { cnt: number };
   if (hasVerificationTracking.cnt === 0) {
-    db.exec("ALTER TABLE services ADD COLUMN last_verified_at TEXT");
-    db.exec("ALTER TABLE services ADD COLUMN last_verified_source TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN upstream_checked_at TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN upstream_check_source TEXT");
     db.exec("ALTER TABLE services ADD COLUMN last_refresh_attempt_at TEXT");
     db.exec("ALTER TABLE services ADD COLUMN last_refresh_status TEXT");
 
@@ -722,11 +726,11 @@ export function initializeDb(db: Database.Database): void {
 
     db.exec(`
       UPDATE services
-      SET last_verified_at = (
+      SET upstream_checked_at = (
             SELECT MAX(c.change_date) FROM service_changelog c
             WHERE c.service_id = services.id
           ),
-          last_verified_source = 'changelog_backfill'
+          upstream_check_source = 'changelog_backfill'
       WHERE EXISTS (
         SELECT 1 FROM service_changelog c WHERE c.service_id = services.id
       )
@@ -734,14 +738,14 @@ export function initializeDb(db: Database.Database): void {
 
     // The legacy column stays for one release so older deploys keep reading,
     // but it must stop asserting a check that did not happen.
-    db.exec("UPDATE services SET last_refreshed_at = last_verified_at");
+    db.exec("UPDATE services SET last_refreshed_at = upstream_checked_at");
 
     const verified = db
-      .prepare("SELECT count(*) as cnt FROM services WHERE last_verified_at IS NOT NULL")
+      .prepare("SELECT count(*) as cnt FROM services WHERE upstream_checked_at IS NOT NULL")
       .get() as { cnt: number };
     const total = db.prepare("SELECT count(*) as cnt FROM services").get() as { cnt: number };
     console.log(
-      `[migration] freshness provenance: ${verified.cnt}/${total.cnt} services have a verified date; ` +
+      `[migration] freshness provenance: ${verified.cnt}/${total.cnt} services have an upstream check date; ` +
         `the rest now report confidence "unverified" instead of a refresh date nothing stood behind`
     );
   }

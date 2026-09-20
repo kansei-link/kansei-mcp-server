@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { kanseiAppLink } from "../utils/app-link.js";
-import { computeFreshness } from "../utils/freshness.js";
+import { computeFreshness, FRESHNESS_LEGEND } from "../utils/freshness.js";
 
 interface ServiceRow {
   id: string;
@@ -16,8 +16,8 @@ interface ServiceRow {
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
-  last_verified_at: string | null;
-  last_verified_source: string | null;
+  upstream_checked_at: string | null;
+  upstream_check_source: string | null;
   last_refresh_attempt_at: string | null;
   last_refresh_status: string | null;
 }
@@ -130,7 +130,7 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     )
     .all(serviceId) as ChangelogRow[];
 
-  // Freshness comes from the service's own verification and nothing else.
+  // Freshness comes from the service's own upstream check and nothing else.
   // It used to take MAX(service.last_refreshed_at, guide.updated_at) and call
   // that "the most optimistic freshness" — but a guide's updated_at is when we
   // last wrote that row, not when anyone re-read the vendor, so it inflated the
@@ -150,6 +150,7 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
       api_auth_method: service.api_auth_method,
       trust_score: service.trust_score,
       freshness,
+      freshness_legend: FRESHNESS_LEGEND.upstream_metadata,
       connection_guide: null,
       message:
         "No detailed API connection guide available yet. Use api_url and api_auth_method as starting points.",
@@ -166,6 +167,7 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     mcp_status: service.mcp_status ?? "official",
     trust_score: service.trust_score,
     freshness,
+    freshness_legend: FRESHNESS_LEGEND.upstream_metadata,
     connection_guide: {
       base_url: guide.base_url,
       api_version: guide.api_version,
@@ -187,10 +189,20 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
       quickstart_example: guide.quickstart_example,
       agent_tips: safeJsonParse<string[]>(guide.agent_tips, []),
       docs_url: guide.docs_url,
+      // When we last WROTE this row — not when anyone re-read the vendor.
+      written_at: guide.updated_at,
+      /** @deprecated ambiguous name; read `written_at`. */
       updated_at: guide.updated_at,
-      // Service-level verification, alongside this guide's own write date.
-      service_verified_at: service.last_verified_at,
-      service_verified_source: service.last_verified_source,
+      // Deliberately null, and deliberately not inherited from the service.
+      // Guide prose has no independent verification record: the April 2026 bulk
+      // generation contradicted primary sources in every sampled case, and
+      // later hand-corrections were never recorded as checks. Until guide
+      // provenance exists (design doc, Phase 0), the honest answer is "unknown",
+      // and the service-level upstream check must not be lent to it — that
+      // borrowing is exactly how ENTIA's description read as current for 74 days.
+      content_verified_at: null,
+      content_verified_note:
+        "No independent verification record for this guide's contents. Treat as unverified regardless of the service-level freshness above.",
     },
     recent_changes: recentChanges,
   };

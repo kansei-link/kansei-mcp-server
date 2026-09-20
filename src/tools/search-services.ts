@@ -7,7 +7,11 @@ import {
 } from "../utils/reliability-source.js";
 import { kanseiAppLink } from "../utils/app-link.js";
 import { emitEvent } from "../usage/telemetry.js";
-import { computeFreshness, type FreshnessMeta } from "../utils/freshness.js";
+import {
+  computeFreshness,
+  FRESHNESS_LEGEND,
+  type FreshnessMeta,
+} from "../utils/freshness.js";
 
 interface ServiceRow {
   id: string;
@@ -25,8 +29,8 @@ interface ServiceRow {
   total_calls: number | null;
   success_rate: number | null;
   axr_grade: string | null;
-  last_verified_at: string | null;
-  last_verified_source: string | null;
+  upstream_checked_at: string | null;
+  upstream_check_source: string | null;
   last_refresh_attempt_at: string | null;
   last_refresh_status: string | null;
 }
@@ -92,8 +96,11 @@ export function register(server: McpServer, db: Database.Database): void {
             basis: r.reliability_basis ?? "none",
             cmd: r.mcp_endpoint || null,
             ready: r.agent_ready,
-            fresh: r.freshness.confidence,
-            age_d: r.freshness.data_age_days,
+            // Named for what it covers. "fresh" read as though it vouched for
+            // the description sitting beside it; it vouches for the repo or
+            // package resolving, nothing more.
+            upstream: r.freshness.confidence,
+            upstream_age_d: r.freshness.data_age_days,
           }))
         : results;
 
@@ -120,6 +127,9 @@ export function register(server: McpServer, db: Database.Database): void {
                     registry: "https://registry.modelcontextprotocol.io/servers/kansei-link",
                     tip: "Add KanseiLink MCP to your agent for Japanese SaaS discovery: npx @kansei-link/mcp-server",
                     kansei_link: kl,
+                    // Once per response, not per row: what each result's
+                    // freshness.scope does and does not stand behind.
+                    freshness_legend: FRESHNESS_LEGEND.upstream_metadata,
                   },
                 }, null, isCompact ? 0 : 2),
           },

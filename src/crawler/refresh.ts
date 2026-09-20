@@ -152,11 +152,13 @@ export async function refreshExistingServices(
 
   if (eligible.length === 0) return summary;
 
-  // Verification columns move ONLY when a source answered. Until 2026-09-20 the
+  // The check columns move ONLY when a source answered. Until 2026-09-20 the
   // timestamp was stamped here unconditionally — this UPDATE runs even when the
   // GitHub fetch returned nothing — so 8,657 rows advertised a refresh date that
   // no successful read stood behind. `last_refresh_attempt_at` records the visit;
-  // `last_verified_at` records evidence. Only the latter feeds freshness.
+  // `upstream_checked_at` records that one answered. Only the latter feeds
+  // freshness, and only as scope "upstream_metadata" — GitHub answering does
+  // not attest the description text, and says nothing about the guide.
   const updateUpstream = db.prepare(
     `UPDATE services
      SET description = COALESCE(@description, description),
@@ -166,10 +168,10 @@ export async function refreshExistingServices(
          npm_version = COALESCE(@npm_version, npm_version),
          last_refresh_attempt_at = datetime('now'),
          last_refresh_status = @status,
-         last_verified_at = CASE WHEN @verified_source IS NOT NULL
-                                 THEN datetime('now') ELSE last_verified_at END,
-         last_verified_source = COALESCE(@verified_source, last_verified_source),
-         last_refreshed_at = CASE WHEN @verified_source IS NOT NULL
+         upstream_checked_at = CASE WHEN @checked_source IS NOT NULL
+                                 THEN datetime('now') ELSE upstream_checked_at END,
+         upstream_check_source = COALESCE(@checked_source, upstream_check_source),
+         last_refreshed_at = CASE WHEN @checked_source IS NOT NULL
                                   THEN datetime('now') ELSE last_refreshed_at END
      WHERE id = @id`
   );
@@ -211,8 +213,8 @@ export async function refreshExistingServices(
       if (!item) break;
       try {
         // Which upstream actually answered this pass. null = nothing did, and
-        // the row's freshness must stay where it was.
-        let verifiedSource: VerificationSource | null = null;
+        // the row's check date must stay where it was.
+        let checkedSource: VerificationSource | null = null;
         let newDescription: string | null | undefined = undefined;
         let newArchived: number | undefined;
         let newStars: number | undefined;
@@ -295,7 +297,7 @@ export async function refreshExistingServices(
               newPushed = meta.pushed_at;
             }
 
-            verifiedSource = "github";
+            checkedSource = "github";
             summary.refreshed++;
           } else {
             summary.errors++;
@@ -306,7 +308,7 @@ export async function refreshExistingServices(
         if (item.npmPkg && checkNpm) {
           const latest = await fetchNpmLatest(item.npmPkg);
           // A reachable package is evidence even when the version has not moved.
-          if (latest) verifiedSource = verifiedSource ?? "npm";
+          if (latest) checkedSource = checkedSource ?? "npm";
           if (latest && latest !== item.svc.npm_version) {
             if (item.svc.npm_version) {
               recordChange(
@@ -326,11 +328,11 @@ export async function refreshExistingServices(
           github_stars: newStars ?? null,
           github_pushed_at: newPushed ?? null,
           npm_version: newNpmVersion ?? null,
-          status: verifiedSource ? "ok" : "unreachable",
-          verified_source: verifiedSource,
+          status: checkedSource ? "ok" : "unreachable",
+          checked_source: checkedSource,
           id: item.svc.id,
         });
-        if (verifiedSource) summary.verified++;
+        if (checkedSource) summary.verified++;
         else summary.unverified++;
       } catch (err) {
         summary.errors++;
