@@ -23,6 +23,7 @@ import { classifyCandidates } from "./pipeline/classify.js";
 import { scoreAll } from "./pipeline/score.js";
 import { ingestCandidates } from "./pipeline/ingest.js";
 import { refreshExistingServices } from "./refresh.js";
+import { markStalled } from "./check-stalled-runs.js";
 import { snapshotAllServices } from "./snapshot.js";
 import { recomputeAxrGrades } from "./recompute-axr.js";
 import { ingestVendorSubmissions } from "./sources/vendor-submissions-step.js";
@@ -83,6 +84,19 @@ export async function runCrawler(
   const probeDay = options.probe ?? new Date().getDay() === 0;
 
   console.log(`[crawler] start | dryRun=${dryRun} sinceDays=${sinceDays} max=${maxResults} probe=${probeDay}`);
+  // A row still marked 'running' means a previous process died without closing
+  // it — neither the success path nor the catch block ran. Run 39 sat that way
+  // from 2026-07-26 for eight weeks, during which "last run" looked like it was
+  // still in progress and nobody noticed the crawler was dead. Close orphans
+  // first so the question "is the crawler alive?" has one honest answer.
+  const orphanRuns = db
+    .prepare("SELECT id FROM crawl_runs WHERE status = 'running' AND finished_at IS NULL")
+    .all() as Array<{ id: number }>;
+  if (orphanRuns.length > 0) {
+    const closed = markStalled(db, orphanRuns.map((r) => r.id));
+    console.log(`[crawler] closed ${closed} orphaned run(s) left 'running' by a dead process`);
+  }
+
   const runInsert = db.prepare(`
     INSERT INTO crawl_runs (status, sources_crawled)
     VALUES ('running', ?)
