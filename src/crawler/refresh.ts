@@ -16,6 +16,7 @@
  *   - other              → misc upstream shifts
  */
 import type Database from "better-sqlite3";
+import type { VerificationSource } from "../utils/freshness.js";
 
 const GITHUB_URL_RE = /^https?:\/\/(?:www\.)?github\.com\/([^/]+\/[^/#?]+)/i;
 const NPM_PACKAGE_RE = /npx\s+(?:-y\s+)?((?:@[a-z0-9-]+\/)?[a-z0-9._-]+)/i;
@@ -79,6 +80,10 @@ async function fetchNpmLatest(pkg: string): Promise<string | null> {
 export interface RefreshSummary {
   eligible: number;
   refreshed: number;
+  /** Rows where a source actually answered — the only ones whose freshness moves. */
+  verified: number;
+  /** Rows we visited but nothing answered for. Their freshness must NOT move. */
+  unverified: number;
   errors: number;
   archived_detected: number;
   changelog_entries: number;
@@ -137,6 +142,8 @@ export async function refreshExistingServices(
   const summary: RefreshSummary = {
     eligible: eligible.length,
     refreshed: 0,
+    verified: 0,
+    unverified: 0,
     errors: 0,
     archived_detected: 0,
     changelog_entries: 0,
@@ -145,15 +152,26 @@ export async function refreshExistingServices(
 
   if (eligible.length === 0) return summary;
 
+  // Verification columns move ONLY when a source answered. Until 2026-09-20 the
+  // timestamp was stamped here unconditionally — this UPDATE runs even when the
+  // GitHub fetch returned nothing — so 8,657 rows advertised a refresh date that
+  // no successful read stood behind. `last_refresh_attempt_at` records the visit;
+  // `last_verified_at` records evidence. Only the latter feeds freshness.
   const updateUpstream = db.prepare(
     `UPDATE services
-     SET description = COALESCE(?, description),
-         archived = COALESCE(?, archived),
-         github_stars = COALESCE(?, github_stars),
-         github_pushed_at = COALESCE(?, github_pushed_at),
-         npm_version = COALESCE(?, npm_version),
-         last_refreshed_at = datetime('now')
-     WHERE id = ?`
+     SET description = COALESCE(@description, description),
+         archived = COALESCE(@archived, archived),
+         github_stars = COALESCE(@github_stars, github_stars),
+         github_pushed_at = COALESCE(@github_pushed_at, github_pushed_at),
+         npm_version = COALESCE(@npm_version, npm_version),
+         last_refresh_attempt_at = datetime('now'),
+         last_refresh_status = @status,
+         last_verified_at = CASE WHEN @verified_source IS NOT NULL
+                                 THEN datetime('now') ELSE last_verified_at END,
+         last_verified_source = COALESCE(@verified_source, last_verified_source),
+         last_refreshed_at = CASE WHEN @verified_source IS NOT NULL
+                                  THEN datetime('now') ELSE last_refreshed_at END
+     WHERE id = @id`
   );
 
   // INSERT OR IGNORE on (service_id, change_date, change_type, summary) would be
@@ -192,6 +210,9 @@ export async function refreshExistingServices(
       const item = queue.shift();
       if (!item) break;
       try {
+        // Which upstream actually answered this pass. null = nothing did, and
+        // the row's freshness must stay where it was.
+        let verifiedSource: VerificationSource | null = null;
         let newDescription: string | null | undefined = undefined;
         let newArchived: number | undefined;
         let newStars: number | undefined;
@@ -274,6 +295,7 @@ export async function refreshExistingServices(
               newPushed = meta.pushed_at;
             }
 
+            verifiedSource = "github";
             summary.refreshed++;
           } else {
             summary.errors++;
@@ -283,6 +305,8 @@ export async function refreshExistingServices(
         // ── npm side ──
         if (item.npmPkg && checkNpm) {
           const latest = await fetchNpmLatest(item.npmPkg);
+          // A reachable package is evidence even when the version has not moved.
+          if (latest) verifiedSource = verifiedSource ?? "npm";
           if (latest && latest !== item.svc.npm_version) {
             if (item.svc.npm_version) {
               recordChange(
@@ -296,14 +320,18 @@ export async function refreshExistingServices(
           }
         }
 
-        updateUpstream.run(
-          newDescription ?? null,
-          newArchived ?? null,
-          newStars ?? null,
-          newPushed ?? null,
-          newNpmVersion ?? null,
-          item.svc.id
-        );
+        updateUpstream.run({
+          description: newDescription ?? null,
+          archived: newArchived ?? null,
+          github_stars: newStars ?? null,
+          github_pushed_at: newPushed ?? null,
+          npm_version: newNpmVersion ?? null,
+          status: verifiedSource ? "ok" : "unreachable",
+          verified_source: verifiedSource,
+          id: item.svc.id,
+        });
+        if (verifiedSource) summary.verified++;
+        else summary.unverified++;
       } catch (err) {
         summary.errors++;
         console.error(`[refresh] ${item.svc.id}:`, err);

@@ -694,6 +694,58 @@ export function initializeDb(db: Database.Database): void {
     db.exec("ALTER TABLE services ADD COLUMN last_refreshed_at TEXT");
   }
 
+  // Migration (2026-09-20): separate "we tried" from "a source answered".
+  //
+  // `last_refreshed_at` was stamped by refreshExistingServices() even when the
+  // upstream fetch failed, so its value proves only that the row was visited.
+  // Presenting it as freshness told agents that 8,657 records had been re-read
+  // when they had not. Existing values therefore carry across as *attempts*.
+  //
+  // Verification is backfilled only where service_changelog proves an upstream
+  // source answered: those entries are written from fetched metadata and never
+  // from a failure path. Everything else starts unverified, which is the honest
+  // state — we cannot retroactively invent a check that may not have happened.
+  const hasVerificationTracking = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = 'last_verified_at'")
+    .get() as { cnt: number };
+  if (hasVerificationTracking.cnt === 0) {
+    db.exec("ALTER TABLE services ADD COLUMN last_verified_at TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN last_verified_source TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN last_refresh_attempt_at TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN last_refresh_status TEXT");
+
+    db.exec(`
+      UPDATE services
+      SET last_refresh_attempt_at = last_refreshed_at
+      WHERE last_refreshed_at IS NOT NULL
+    `);
+
+    db.exec(`
+      UPDATE services
+      SET last_verified_at = (
+            SELECT MAX(c.change_date) FROM service_changelog c
+            WHERE c.service_id = services.id
+          ),
+          last_verified_source = 'changelog_backfill'
+      WHERE EXISTS (
+        SELECT 1 FROM service_changelog c WHERE c.service_id = services.id
+      )
+    `);
+
+    // The legacy column stays for one release so older deploys keep reading,
+    // but it must stop asserting a check that did not happen.
+    db.exec("UPDATE services SET last_refreshed_at = last_verified_at");
+
+    const verified = db
+      .prepare("SELECT count(*) as cnt FROM services WHERE last_verified_at IS NOT NULL")
+      .get() as { cnt: number };
+    const total = db.prepare("SELECT count(*) as cnt FROM services").get() as { cnt: number };
+    console.log(
+      `[migration] freshness provenance: ${verified.cnt}/${total.cnt} services have a verified date; ` +
+        `the rest now report confidence "unverified" instead of a refresh date nothing stood behind`
+    );
+  }
+
   // Model-level performance stats per service (for audit_cost routing)
   db.exec(`
     -- ⚠️ DEPRECATED CACHE — NOT canonical (Codex ruling 2026-08-17, P0 #39).

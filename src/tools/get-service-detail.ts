@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { kanseiAppLink } from "../utils/app-link.js";
+import { computeFreshness } from "../utils/freshness.js";
 
 interface ServiceRow {
   id: string;
@@ -15,49 +16,12 @@ interface ServiceRow {
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
-  last_refreshed_at: string | null;
+  last_verified_at: string | null;
+  last_verified_source: string | null;
+  last_refresh_attempt_at: string | null;
+  last_refresh_status: string | null;
 }
 
-// ---------------------------------------------------------------------------
-// Data freshness — mirrors the same logic in search-services.ts.
-// ---------------------------------------------------------------------------
-type FreshnessConfidence = "high" | "medium" | "low";
-
-interface FreshnessMeta {
-  data_age_days: number | null;
-  last_refreshed: string | null;
-  confidence: FreshnessConfidence;
-}
-
-function computeFreshness(lastRefreshedAt: string | null): FreshnessMeta {
-  if (!lastRefreshedAt) {
-    return { data_age_days: null, last_refreshed: null, confidence: "low" };
-  }
-  const refreshDate = new Date(lastRefreshedAt);
-  const now = new Date();
-  const ageDays = Math.floor(
-    (now.getTime() - refreshDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  let confidence: FreshnessConfidence;
-  if (ageDays <= 7) confidence = "high";
-  else if (ageDays <= 30) confidence = "medium";
-  else confidence = "low";
-  return {
-    data_age_days: ageDays,
-    last_refreshed: lastRefreshedAt,
-    confidence,
-  };
-}
-
-/**
- * P2-8: Return the more recent of two nullable date strings.
- * Used to reconcile service.last_refreshed_at vs guide.updated_at.
- */
-function mostRecentDate(a: string | null, b: string | null): string | null {
-  if (!a) return b;
-  if (!b) return a;
-  return new Date(a) >= new Date(b) ? a : b;
-}
 
 interface GuideRow {
   service_id: string;
@@ -166,13 +130,13 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     )
     .all(serviceId) as ChangelogRow[];
 
-  // P2-8: Use the most recent of service.last_refreshed_at and guide.updated_at
-  // These update on separate cycles — guide may be newer (endpoint verified) or
-  // service may be newer (trust score recalculated). Show the most optimistic
-  // freshness but expose both dates for transparency.
-  const guideUpdatedAt = guide?.updated_at ?? null;
-  const effectiveRefreshDate = mostRecentDate(service.last_refreshed_at, guideUpdatedAt);
-  const freshness = computeFreshness(effectiveRefreshDate);
+  // Freshness comes from the service's own verification and nothing else.
+  // It used to take MAX(service.last_refreshed_at, guide.updated_at) and call
+  // that "the most optimistic freshness" — but a guide's updated_at is when we
+  // last wrote that row, not when anyone re-read the vendor, so it inflated the
+  // confidence of records nobody had checked. The guide date is still returned
+  // below, on the guide, where it says what it actually means.
+  const freshness = computeFreshness(service);
 
   if (!guide) {
     return {
@@ -224,8 +188,9 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
       agent_tips: safeJsonParse<string[]>(guide.agent_tips, []),
       docs_url: guide.docs_url,
       updated_at: guide.updated_at,
-      // P2-8: expose service-level refresh date alongside guide update date
-      service_refreshed_at: service.last_refreshed_at,
+      // Service-level verification, alongside this guide's own write date.
+      service_verified_at: service.last_verified_at,
+      service_verified_source: service.last_verified_source,
     },
     recent_changes: recentChanges,
   };
