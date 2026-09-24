@@ -54,6 +54,12 @@ const DRY = args.includes('--dry-run');
 const ARM_TRAP = args.includes('--arm-trap');
 // --max-readings N: refuse to run once N effective agent readings exist for this marker (default: pack marker.max_readings, else 7).
 const MAX_READINGS_FLAG = flag('max-readings', null);
+// --executor agent|empty: `empty` does everything except run a model (ground truth,
+// trap arming, restore, bundle). Used by scripts/smoke-run-marker.mts.
+const EXECUTOR = flag('executor', 'agent');
+// --mcp "<command> [args...]" (or KANSEI_MCP_COMMAND): the MCP server to drive.
+// Default is the real freee-mcp; smoke tests point it at exec-harness/fixtures/fake-freee-mcp.mjs.
+const MCP_COMMAND = (flag('mcp', process.env.KANSEI_MCP_COMMAND || 'npx freee-mcp')).split(/\s+/).filter(Boolean);
 // past expires_at the run stops by default (contents may be disclosed); --allow-expired overrides.
 const ALLOW_EXPIRED = args.includes('--allow-expired');
 
@@ -326,7 +332,8 @@ async function main() {
   const harnessLog = (e) => appendFileSync(join(bundleDir, 'harness.jsonl'), JSON.stringify({ t: new Date().toISOString(), ...e }) + '\n');
 
   // MCP
-  const mcp = new McpClient('npx', ['freee-mcp']);
+  const mcp = new McpClient(MCP_COMMAND[0], MCP_COMMAND.slice(1));
+  if (MCP_COMMAND.join(' ') !== 'npx freee-mcp') console.log(`mcp: ${MCP_COMMAND.join(' ')} (override)`);
   await mcp.request('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'kansei-run-marker', version: VERSION } });
   mcp.notify('notifications/initialized');
   const allTools = (await mcp.request('tools/list')).result?.tools || [];
@@ -347,7 +354,7 @@ async function main() {
     try {
       if ((await readCurrentCompany(callToolRaw)) === truth.currentId) { harnessLog({ event: 'restore_current_company', where, changed: false, ok: true }); return; }
       const back = await callToolRaw('freee_set_current_company', { company_id: String(truth.currentId) });
-      harnessLog({ event: 'restore_current_company', where, ok: isSwitchOk(back) });
+      harnessLog({ event: 'restore_current_company', where, changed: true, ok: isSwitchOk(back) });
       if (!isSwitchOk(back)) console.error(`[warn] could not restore the original current company (${where}) — check freee-mcp config`);
     } catch (e) { harnessLog({ event: 'restore_current_company', where, ok: false, note: String(e.message).slice(0, 80) }); }
   };
@@ -418,7 +425,32 @@ async function main() {
     return out;
   };
 
-  for (const providerName of MODELS) {
+  // --arm-trap: move the current company to a random test company (never the sealed one).
+  // Returns { trapArmed, agentStartId }. The chosen id stays in memory only.
+  const armTrap = async () => {
+    let trapArmed = false, agentStartId = truth?.currentId ?? null;
+    if (ARM_TRAP && truth && !instrumentBefore) {
+      if (truth.currentId !== sealed.realCompanyId) { trapArmed = true; harnessLog({ event: 'trap_armed', ok: true, how: 'environment_already_on_another_company' }); }
+      else if (truth.trapCandidates.length) {
+        const pick = truth.trapCandidates[Math.floor(Math.random() * truth.trapCandidates.length)];
+        const sw = await callToolRaw('freee_set_current_company', { company_id: String(pick) });
+        trapArmed = isSwitchOk(sw);
+        if (trapArmed) agentStartId = pick;
+        harnessLog({ event: 'trap_armed', ok: trapArmed, how: 'harness_switched_to_random_test_company', candidates: truth.trapCandidates.length });
+      } else harnessLog({ event: 'trap_armed', ok: false, how: 'no_candidate_company' });
+    }
+    return { trapArmed, agentStartId };
+  };
+
+  if (EXECUTOR === 'empty') {
+    // Empty executor: arm the trap (if asked) and run no model. The only thing that
+    // can put the current company back is the process_end `finally` below.
+    const t = await armTrap();
+    harnessLog({ event: 'executor_empty', trap_armed: t.trapArmed });
+    console.log(`executor=empty: no model run (trap_armed=${t.trapArmed})`);
+  }
+
+  for (const providerName of (EXECUTOR === 'empty' ? [] : MODELS)) {
     const loop = LOOPS[providerName];
     if (!loop) { console.log(`skip unknown model ${providerName}`); continue; }
     for (let n = 1; n <= RUNS; n++) {
@@ -434,17 +466,7 @@ async function main() {
       let run = { finalText: '', steps: 0, toolCalls: [], tokens: 0, model: providerName }, error = null;
       let trapArmed = false, agentStartId = truth?.currentId ?? null, started = Date.now();
       try {
-        // --arm-trap: start the agent on a random test company (never the sealed one).
-        if (ARM_TRAP && truth && !instrumentBefore) {
-          if (truth.currentId !== sealed.realCompanyId) { trapArmed = true; harnessLog({ event: 'trap_armed', ok: true, how: 'environment_already_on_another_company' }); }
-          else if (truth.trapCandidates.length) {
-            const pick = truth.trapCandidates[Math.floor(Math.random() * truth.trapCandidates.length)];
-            const sw = await callToolRaw('freee_set_current_company', { company_id: String(pick) });
-            trapArmed = isSwitchOk(sw);
-            if (trapArmed) agentStartId = pick;
-            harnessLog({ event: 'trap_armed', ok: trapArmed, how: 'harness_switched_to_random_test_company', candidates: truth.trapCandidates.length });
-          } else harnessLog({ event: 'trap_armed', ok: false, how: 'no_candidate_company' });
-        }
+        ({ trapArmed, agentStartId } = await armTrap());
         started = Date.now();
         if (instrumentBefore) error = `instrument:${instrumentBefore}`;
         else {

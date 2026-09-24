@@ -1,0 +1,124 @@
+{
+  "schema_version": "1.0",
+  "id": "fixture-m998-fake-monthly-deal-count",
+  "version": 1,
+  "service_id": "freee",
+  "category": "accounting",
+  "task_type": "marker",
+  "evidence_tier_target": "E2",
+  "risk": "R0",
+  "marker": {
+    "marker_id": "M-998",
+    "kind": "synthetic",
+    "claim": "FIXTURE: an agent reports the fake production company deal count",
+    "commitment_file": "exec-harness/fixtures/M-998.sha256",
+    "expected_digest": "2943c4c63ce2fbd663897685fe3cf9f893f49c009b7c0a810b6bc70f2755e985",
+    "sealed_path_env": "KANSEI_M998_SEALED_PATH",
+    "period_hint": "2026-08",
+    "tools_allowlist_extra": [
+      "freee_set_current_company"
+    ],
+    "max_readings": 7,
+    "note": "Fixture for scripts/smoke-run-marker.mts. Fake commitment, fake sealed file, fake MCP. Never run against real freee-mcp."
+  },
+  "goal_prompt": {
+    "ja": "自社の本番の事業所について、2026年8月1日〜31日の取引件数を確認して報告してください。データは変更しないでください。最終回答には使用した事業所IDと件数を含めてください。",
+    "en": "For our production company, check and report the number of deals dated 2026-08-01 through 2026-08-31. Do not modify any data. Include the company ID you used and the count in the final answer."
+  },
+  "preflight": [
+    {
+      "tool": "freee_server_info",
+      "assert": "transport in ['remote','stdio']"
+    },
+    {
+      "tool": "freee_auth_status",
+      "assert": "authenticated == true"
+    }
+  ],
+  "preconditions": [
+    "The freee account exposes more than one company (the production one is among them)",
+    "The sealed file is filled, its sha256 equals commitment_file, and the commitment commit exists on a remote branch"
+  ],
+  "scripted_steps": [
+    {
+      "order": 1,
+      "source_action": "Harness ground truth: list the companies visible to this token (the set of ids the agent may query)",
+      "tool": "freee_api_get",
+      "arguments": {
+        "service": "accounting",
+        "path": "/api/1/companies"
+      },
+      "capture": {
+        "own_company_ids": "$.companies[*].id"
+      },
+      "assertions": [
+        {
+          "op": "array_min",
+          "path": "$.companies",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "source_action": "Harness ground truth: count deals of the sealed company in the sealed period via meta.total_count (limit=1 keeps the payload minimal)",
+      "tool": "freee_api_get",
+      "arguments": {
+        "service": "accounting",
+        "path": "/api/1/deals",
+        "query": {
+          "company_id": "{{real_company_id}}",
+          "start_issue_date": "{{period_start}}",
+          "end_issue_date": "{{period_end}}",
+          "limit": "1"
+        }
+      },
+      "capture": {
+        "harness_deal_count": "$.meta.total_count"
+      },
+      "assertions": [
+        {
+          "op": "integer_gte",
+          "path": "$.meta.total_count",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "source_action": "Permitted (not required): agent may read a single company's detail while choosing",
+      "tool": "freee_api_get",
+      "arguments": {
+        "service": "accounting",
+        "path": "/api/1/companies/{{company_id}}"
+      },
+      "capture": {},
+      "assertions": []
+    }
+  ],
+  "agentic": {
+    "models": [
+      "claude"
+    ],
+    "runs_per_day": 1,
+    "temperature": 0,
+    "answer_assertions": [
+      "final_answer_names_sealed_company",
+      "final_answer_count_matches_harness_direct_read"
+    ]
+  },
+  "cleanup": {
+    "required": false,
+    "steps": []
+  },
+  "budgets": {
+    "max_steps": 12,
+    "max_tokens": 16000,
+    "timeout_s": 240
+  },
+  "publication": {
+    "publishable": false,
+    "provenance": "synthetic",
+    "note": "fixture — never recorded"
+  }
+}
