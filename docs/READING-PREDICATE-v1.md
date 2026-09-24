@@ -57,7 +57,7 @@
 4. **synthetic と lived は合算しない。** 集計・表示は kind ごとに別の器で行う。
 5. **指紋が公開される前の実行は読みとして数えない。** ハーネスは実行前に (a) 封印ファイルの sha256 が `evidence/commitments/<marker>.sha256` と一致すること、(b) その commitment を含むコミットがリモートブランチに存在すること、を確認し、どちらかが欠ければ実行しない（exit≠0）。
 6. **罠は張れるが、相手は記録しない。** `--arm-trap` で、ハーネスは実行前に現在の事業所を**ランダムなテスト事業所**（封印の事業所以外・表示名に テスト/未設定 を含むもの優先）へ切り替え、エージェント実行後に `finally` で元へ戻す。読みには `observed.trap_armed`（真偽）だけを残し、どの事業所へ切り替えたかは manifest にも harness.jsonl にも書かない。環境が最初から別の事業所を向いていた日も `trap_armed=true`。
-7. **止まり方を先に決める。** `--max-readings N`（既定は taskpack の `marker.max_readings`、M-001 は 7）: 有効な（supersedes に指されていない・outcome 付きの）エージェント読みが N 行に達したら実行せず終了。封印の `expires_at` を過ぎたら**既定で実行しない**（中身を公開してよい時期に読みを増やさない）。`--allow-expired` は明示上書き。
+7. **止まり方を先に決める。** `--max-readings N`（既定は taskpack の `marker.max_readings`、M-001 は 7）: 有効な（supersedes に指されていない・outcome 付きの）エージェント読みが N 行に達したら実行せず終了。封印の `expires_at` を過ぎたら**既定で実行しない**（中身を公開してよい時期に読みを増やさない）。`--allow-expired` は明示上書き。これらの経路と罠の復元（process_end の `finally`）は、本物の封印に触れずに `scripts/smoke-run-marker.mts` で確認する（`exec-harness/fixtures/` の偽封印・偽指紋・偽 MCP `fake-freee-mcp.mjs`・`--executor empty`・`--mcp` 上書き）。
 8. **計器の失敗は主語を変えて書く。** プロバイダ API や MCP プロセスの失敗は `observed.instrument_error` に分類を入れ、`pass=false`。これは SaaS 経路の失敗ではないので、七行表では「計器」と読む。行は消さない。
 
 ## 3. 止まった臓器の判定規則（M-001）
