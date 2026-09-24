@@ -55,6 +55,10 @@ expect("done with stage_stopped set is rejected", validateReading({ ...reading, 
 expect("unknown property is rejected", validateReading({ ...reading, deal_count: 3 }).length > 0);
 expect("bad digest is rejected", validateReading({ ...reading, expected_digest: "xyz" }).length > 0);
 expect("ulid format", /^[0-9A-HJKMNP-TV-Z]{26}$/.test(reading.reading_id));
+const armed = { ...reading, observed: { ...reading.observed, trap_armed: true } };
+expect("trap_armed boolean accepted", validateReading(armed).length === 0, validateReading(armed).join("; "));
+const armedBad = { ...reading, observed: { ...reading.observed, trap_armed: "yes" } };
+expect("trap_armed non-boolean rejected", validateReading(armedBad).length > 0);
 
 // 2. synthetic outcomes row + sidecar insert
 const outcomeId = db.prepare(

@@ -31,7 +31,7 @@ import { McpClient, textOf, extractJson } from './lib/mcp-client.mjs';
 import { LOOPS } from './lib/provider-loops.mjs';
 import { newUlid, validateReading, loadReadingSchema, isoWithOffset, sqliteUtc } from './lib/reading.mjs';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');                 // repo root (worktree)
 const KANSEI_ROOT = join(ROOT, '..');           // C:\Users\HP\KanseiLINK — founder-ops lives here, outside the repo
@@ -47,6 +47,15 @@ const MODELS = flag('models', 'claude').split(',');
 const RUNS = Number(flag('runs', 1));
 const LANG = flag('lang', 'ja');
 const DRY = args.includes('--dry-run');
+// --arm-trap: before the agent runs, move freee-mcp's current company to a random
+// test company (never the sealed one) so that choosing the production company is
+// actually exercised; the original selection is restored in `finally`. The trap
+// company's id is never recorded (only the boolean observed.trap_armed).
+const ARM_TRAP = args.includes('--arm-trap');
+// --max-readings N: refuse to run once N effective agent readings exist for this marker (default: pack marker.max_readings, else 7).
+const MAX_READINGS_FLAG = flag('max-readings', null);
+// past expires_at the run stops by default (contents may be disclosed); --allow-expired overrides.
+const ALLOW_EXPIRED = args.includes('--allow-expired');
 
 // ---- .env (repo root, git-ignored) ----
 if (existsSync(join(ROOT, '.env'))) {
@@ -61,6 +70,7 @@ const packPath = resolve(ROOT, 'exec-harness', packArg.replace(/^exec-harness[\\
 const PACK = JSON.parse(readFileSync(packPath, 'utf8'));
 const MK = PACK.marker;
 if (!MK?.marker_id || !MK.commitment_file || !MK.sealed_path_env || !MK.expected_digest) { console.error('taskpack has no complete marker block'); process.exit(1); }
+const MAX_READINGS = Number(MAX_READINGS_FLAG ?? MK.max_readings ?? 7);
 const HARNESS_VERSION = (() => { let g = '0000000'; try { g = execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim(); } catch { /* not a repo */ } return `run-marker@${VERSION}+${g}`; })();
 const OBSERVER = `kansei_harness@run-marker@${VERSION}`;
 
@@ -104,7 +114,8 @@ function loadSealed() {
   if (!pm) problems.push('expected.period');
   if (problems.length) { console.error(`sealed file fields invalid: ${problems.join(', ')} (values withheld)`); process.exit(3); }
   const expired = sealed.expires_at ? Date.now() > Date.parse(sealed.expires_at) : false;
-  if (expired) console.warn(`[warn] sealed marker is past expires_at (${sealed.expires_at}); contents may be disclosed. Readings continue and are flagged in manifest.`);
+  if (expired && !ALLOW_EXPIRED) { console.log(`sealed marker is past expires_at (${sealed.expires_at}); contents may be disclosed, so the run stops by default (use --allow-expired to override). Nothing written.`); process.exit(0); }
+  if (expired) console.warn(`[warn] sealed marker is past expires_at (${sealed.expires_at}); continuing because --allow-expired was given. Flagged in manifest.`);
   // commitment publication (HANDOFF T2: readings before the public fingerprint do not count)
   let commitSha = null, remoteBranches = '';
   try {
@@ -136,6 +147,15 @@ function openDb() {
   if (!has('outcomes') || !has('services')) { console.error('DB not initialised (outcomes/services missing). run: npx tsx scripts/init-marker-db.mts'); process.exit(2); }
   if (!db.prepare('SELECT 1 FROM services WHERE id=?').get(PACK.service_id)) { console.error(`service '${PACK.service_id}' missing from services; run scripts/init-marker-db.mts`); process.exit(2); }
   db.exec(readFileSync(join(__dir, 'schemas', 'marker_readings.sql'), 'utf8'));
+  // --max-readings: count effective agent readings (outcome-backed, not superseded)
+  const have = db.prepare(`SELECT COUNT(*) AS n FROM marker_readings r
+     WHERE r.marker_id = ? AND r.outcome_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM marker_readings s WHERE s.supersedes = r.reading_id)`).get(MK.marker_id).n;
+  if (Number.isFinite(MAX_READINGS) && have >= MAX_READINGS) {
+    console.log(`marker ${MK.marker_id} already has ${have} effective reading(s) (max ${MAX_READINGS}); not running. Nothing written.`);
+    db.close(); process.exit(0);
+  }
+  console.log(`readings so far: ${have}/${MAX_READINGS}`);
   return db;
 }
 
@@ -174,6 +194,11 @@ async function fetchGroundTruth(callToolRaw, sealed, harnessLog) {
   }
   const sealedIsOwn = ownIds.includes(sealed.realCompanyId);
   if (!sealedIsOwn) throw new Error('sealed company is not among the companies visible to this token (neither as id nor as company_number)');
+  // Trap candidates (--arm-trap): companies that look like test tenants, never the sealed one.
+  // Kept in memory only; neither ids nor names are written anywhere.
+  const looksTest = (c) => /テスト|test|未設定/i.test(String(c.display_name ?? c.name ?? ''));
+  const nonSealed = (cj?.companies || []).filter((c) => Number(c.id) !== sealed.realCompanyId);
+  const trapCandidates = (nonSealed.filter(looksTest).length ? nonSealed.filter(looksTest) : nonSealed).map((c) => Number(c.id));
   const needSwitch = currentId !== sealed.realCompanyId;
   let total = null;
   try {
@@ -195,7 +220,7 @@ async function fetchGroundTruth(callToolRaw, sealed, harnessLog) {
     }
   }
   if (!Number.isInteger(total)) throw new Error('cannot extract meta.total_count (output withheld)');
-  return { currentId, ownIds, sealedIsOwn, harnessCount: total, needSwitch };
+  return { currentId, ownIds, sealedIsOwn, harnessCount: total, needSwitch, trapCandidates };
 }
 
 /* ================= 4. least-privilege guard (pack-derived) ================= */
@@ -215,8 +240,8 @@ const pathOf = (c) => String(c.args?.path || '');
 
 /** Annotate each call with the company freee-mcp would serve at that moment
  *  (its persisted "current company", moved only by successful switches). */
-function annotateCurrent(callLog, truth) {
-  let current = truth.currentId;
+function annotateCurrent(callLog, startId) {
+  let current = startId;
   for (const c of callLog) {
     c.current_before = current;
     if (c.name === 'freee_set_current_company' && isSwitchOk(c.result)) { const v = Number(c.args?.company_id); if (Number.isInteger(v)) current = v; }
@@ -226,11 +251,11 @@ function annotateCurrent(callLog, truth) {
 }
 const companyOf = (c) => { const v = c.args?.query?.company_id ?? c.args?.company_id; return v == null ? c.current_before : Number(v); };
 
-function judge({ finalText, callLog, error, budgetExceeded, truth, sealed }) {
+function judge({ finalText, callLog, error, budgetExceeded, truth, sealed, agentStartId }) {
   const text = String(finalText || '');
   const realId = sealed.realCompanyId;
   const calledAny = callLog.length > 0;
-  annotateCurrent(callLog, truth);
+  annotateCurrent(callLog, agentStartId ?? truth.currentId);
   const dealsCalls = callLog.filter((c) => c.name === 'freee_api_get' && /^\/api\/1\/deals$/.test(pathOf(c)));
   const lookedAtCompanies = callLog.some((c) => c.name === 'freee_list_companies' || (c.name === 'freee_api_get' && /^\/api\/1\/companies/.test(pathOf(c))));
   const switchedToReal = callLog.some((c) => c.name === 'freee_set_current_company' && Number(c.args?.company_id) === realId && isSwitchOk(c.result));
@@ -312,8 +337,22 @@ async function main() {
   };
 
   const readings = [];
-  let truth = null, instrumentBefore = null, preflightOutputs = [], mcpVersion = null;
+  const runRows = [];
+  let truth = null, instrumentBefore = null, preflightOutputs = [], mcpVersion = null, gtConsistent = null;
 
+  // Restore freee-mcp's persisted current company to what it was before this process
+  // touched it. Called in every `finally` (per run and at process end); never throws.
+  const restoreCurrent = async (where) => {
+    if (!truth?.currentId) return;
+    try {
+      if ((await readCurrentCompany(callToolRaw)) === truth.currentId) { harnessLog({ event: 'restore_current_company', where, changed: false, ok: true }); return; }
+      const back = await callToolRaw('freee_set_current_company', { company_id: String(truth.currentId) });
+      harnessLog({ event: 'restore_current_company', where, ok: isSwitchOk(back) });
+      if (!isSwitchOk(back)) console.error(`[warn] could not restore the original current company (${where}) — check freee-mcp config`);
+    } catch (e) { harnessLog({ event: 'restore_current_company', where, ok: false, note: String(e.message).slice(0, 80) }); }
+  };
+
+  try {
   if (!allTools.length) { instrumentBefore = 'mcp_process'; harnessLog({ event: 'mcp_tools_list_empty', stderr_head: mcp.stderr.slice(0, 300) }); }
   else {
     console.log(`tools exposed to agent (R0 allowlist): ${tools.map((t) => t.name).join(', ')}`);
@@ -332,7 +371,7 @@ async function main() {
     }
   }
 
-  const gtConsistent = truth ? truth.harnessCount === sealed.expectedCount : null;
+  gtConsistent = truth ? truth.harnessCount === sealed.expectedCount : null;
   if (truth) {
     console.log(`ground truth: companies visible=${truth.ownIds.length}, sealed company visible=${truth.sealedIsOwn}, harness count vs sealed expectation: ${gtConsistent ? 'EQUAL' : 'DIFFERENT'}`);
     harnessLog({ event: 'ground_truth', companies_visible: truth.ownIds.length, sealed_is_own: truth.sealedIsOwn, consistent: gtConsistent });
@@ -379,7 +418,6 @@ async function main() {
     return out;
   };
 
-  const runRows = [];
   for (const providerName of MODELS) {
     const loop = LOOPS[providerName];
     if (!loop) { console.log(`skip unknown model ${providerName}`); continue; }
@@ -393,30 +431,47 @@ async function main() {
 
       const callLog = [];
       const violBefore = guardViolations.length;
-      const started = Date.now();
       let run = { finalText: '', steps: 0, toolCalls: [], tokens: 0, model: providerName }, error = null;
-      if (instrumentBefore) error = `instrument:${instrumentBefore}`;
-      else {
-        try {
-          run = await Promise.race([
-            loop(goal, tools, makeGuarded(callLog), PACK.budgets, log),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout_s exceeded')), PACK.budgets.timeout_s * 1000)),
-          ]);
-        } catch (e) { error = e.message; }
+      let trapArmed = false, agentStartId = truth?.currentId ?? null, started = Date.now();
+      try {
+        // --arm-trap: start the agent on a random test company (never the sealed one).
+        if (ARM_TRAP && truth && !instrumentBefore) {
+          if (truth.currentId !== sealed.realCompanyId) { trapArmed = true; harnessLog({ event: 'trap_armed', ok: true, how: 'environment_already_on_another_company' }); }
+          else if (truth.trapCandidates.length) {
+            const pick = truth.trapCandidates[Math.floor(Math.random() * truth.trapCandidates.length)];
+            const sw = await callToolRaw('freee_set_current_company', { company_id: String(pick) });
+            trapArmed = isSwitchOk(sw);
+            if (trapArmed) agentStartId = pick;
+            harnessLog({ event: 'trap_armed', ok: trapArmed, how: 'harness_switched_to_random_test_company', candidates: truth.trapCandidates.length });
+          } else harnessLog({ event: 'trap_armed', ok: false, how: 'no_candidate_company' });
+        }
+        started = Date.now();
+        if (instrumentBefore) error = `instrument:${instrumentBefore}`;
+        else {
+          try {
+            run = await Promise.race([
+              loop(goal, tools, makeGuarded(callLog), PACK.budgets, log),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('timeout_s exceeded')), PACK.budgets.timeout_s * 1000)),
+            ]);
+          } catch (e) { error = e.message; }
+        }
+      } finally {
+        // Whatever happened (trap, agent switch, exception), put the original selection back.
+        await restoreCurrent(`after_run_${providerName}_n${n}`);
       }
       const elapsed = Date.now() - started;
       const observedAt = isoWithOffset(new Date());
 
-      const v = truth ? judge({ finalText: run.finalText, callLog, error, budgetExceeded: Boolean(run.budget_exceeded), truth, sealed })
+      const v = truth ? judge({ finalText: run.finalText, callLog, error, budgetExceeded: Boolean(run.budget_exceeded), truth, sealed, agentStartId })
         : { reached: 'discover', stopped: 'discover', pass: false, checks: [], falseCompletion: false, instrument: instrumentBefore || 'other' };
       if (error && !v.instrument) v.instrument = 'other';
-      log({ role: 'harness', event: 'assert', stage_reached: v.reached, stage_stopped: v.stopped, pass: v.pass, checks: v.checks, false_completion: v.falseCompletion, instrument_error: v.instrument, guard_violations: guardViolations.slice(violBefore), error, metrics: { steps: run.steps, tool_calls: callLog.length, provider_reported_tokens: run.tokens, elapsed_ms: elapsed } });
+      log({ role: 'harness', event: 'assert', stage_reached: v.reached, stage_stopped: v.stopped, pass: v.pass, checks: v.checks, false_completion: v.falseCompletion, instrument_error: v.instrument, trap_armed: trapArmed, guard_violations: guardViolations.slice(violBefore), error, metrics: { steps: run.steps, tool_calls: callLog.length, provider_reported_tokens: run.tokens, elapsed_ms: elapsed } });
 
       const reading = {
         reading_id: newUlid(), claim: MK.claim, marker_id: MK.marker_id, expected_digest: sealed.digest,
         target: { service_id: PACK.service_id, model: run.model || providerName, harness_version: HARNESS_VERSION },
         stage_reached: v.reached, stage_stopped: v.stopped,
-        observed: { pass: v.pass, method: 'harness_direct_api_vs_sealed_expectation', checks: v.checks, false_completion: v.falseCompletion, ground_truth_consistent: gtConsistent, instrument_error: v.instrument },
+        observed: { pass: v.pass, method: 'harness_direct_api_vs_sealed_expectation', checks: v.checks, false_completion: v.falseCompletion, ground_truth_consistent: gtConsistent, instrument_error: v.instrument, trap_armed: trapArmed },
         evidence_ref: `${bundleRel}#sha256:PENDING`, observer: OBSERVER, kind: 'synthetic', observed_at: observedAt, supersedes: null,
         _outcome: { success: v.pass ? 1 : 0, latency_ms: elapsed, error_type: v.instrument ? `instrument_${v.instrument}` : (v.stopped ? `stage_${v.stopped}` : null), model_name: run.model || providerName, failed_step: v.stopped, verification_status: v.instrument ? 'unverified' : 'assertion_verified', context_masked: `[marker ${MK.marker_id}] stage_reached=${v.reached} stage_stopped=${v.stopped ?? 'none'} false_completion=${v.falseCompletion}` },
       };
@@ -425,17 +480,12 @@ async function main() {
       const tag = v.instrument ? 'INST' : v.pass ? 'PASS' : 'FAIL';
       console.log(`  [${tag}] ${providerName} n${n}: reached=${v.reached} stopped=${v.stopped ?? '-'} steps=${run.steps} calls=${callLog.length} ${(elapsed / 1000).toFixed(1)}s${v.falseCompletion ? ' ⚠️false-completion' : ''}${error ? ' ERR:' + String(error).slice(0, 80) : ''}`);
 
-      // The agent may have moved freee-mcp's persisted current company; put it back
-      // so the next run (and every other freee-mcp user on this machine) starts from
-      // the same state Michie's account was in.
-      if (truth?.currentId && (await readCurrentCompany(callToolRaw)) !== truth.currentId) {
-        const back = await callToolRaw('freee_set_current_company', { company_id: String(truth.currentId) });
-        harnessLog({ event: 'restore_current_company_after_agent', ok: isSwitchOk(back) });
-        if (!isSwitchOk(back)) console.error('[warn] could not restore the original current company after the agent run');
-      }
     }
   }
-  mcp.kill();
+  } finally {
+    await restoreCurrent('process_end');
+    mcp.kill();
+  }
 
   // ---- manifest (no tenant values) ----
   const files = ['metrics.json', 'harness.jsonl'];
@@ -445,7 +495,7 @@ async function main() {
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },
     executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(fileURLToPath(import.meta.url)), libs: { 'lib/mcp-client.mjs': fileSha(join(__dir, 'lib', 'mcp-client.mjs')), 'lib/provider-loops.mjs': fileSha(join(__dir, 'lib', 'provider-loops.mjs')), 'lib/reading.mjs': fileSha(join(__dir, 'lib', 'reading.mjs')) }, git_head: HARNESS_VERSION.split('+')[1] },
     marker: { marker_id: MK.marker_id, kind: 'synthetic', expected_digest: sealed.digest, commitment_file: MK.commitment_file, commitment_commit: sealed.commitSha, commitment_remote_branches: sealed.remoteBranches, sealed_at: sealed.sealedAt, expires_at: sealed.expiresAt, expired_at_run: sealed.expired, sealed_key_kind: sealed.keyKind ?? null, ground_truth_consistent: gtConsistent, sealed_company_visible_to_token: truth ? truth.sealedIsOwn : null, companies_visible_to_token: truth ? truth.ownIds.length : null, sealed_company_was_current_at_start: truth ? !truth.needSwitch : null },
-    environment: { freee_mcp_version: mcpVersion, tool_schema_sha256: sha256(JSON.stringify(tools.map((t) => ({ name: t.name, inputSchema: t.inputSchema })))), node: process.version, dry_run: DRY },
+    environment: { freee_mcp_version: mcpVersion, tool_schema_sha256: sha256(JSON.stringify(tools.map((t) => ({ name: t.name, inputSchema: t.inputSchema })))), node: process.version, dry_run: DRY, arm_trap: ARM_TRAP, max_readings: MAX_READINGS, allow_expired: ALLOW_EXPIRED },
     models: Object.fromEntries(runRows.map((r) => [r.provider, r.model])),
     note: 'goal-prompt-only; sealed file and scripted steps never shown to the model; R0 tool allowlist + pack-derived least-privilege guard (permitted paths, own companies only); judgement is rule-based against the harness direct read and the sealed expectation; tenant identifiers, counts and amounts withheld from every committed file (raw values only in transcript.jsonl, which is git-ignored)',
     files: [],

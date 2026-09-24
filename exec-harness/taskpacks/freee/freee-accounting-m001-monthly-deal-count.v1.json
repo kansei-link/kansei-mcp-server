@@ -16,6 +16,7 @@
     "sealed_path_env": "KANSEI_M001_SEALED_PATH",
     "period_hint": "2026-08",
     "tools_allowlist_extra": [ "freee_set_current_company" ],
+    "max_readings": 7,
     "note": "The sealed file (outside git) holds the real company id and the expected deal count. Only the harness reads it. The goal prompt never reveals which company is the production one: choosing it is the 'understand' stage under test. freee-mcp (0.26.5) refuses freee_api_get calls whose company_id differs from its persisted current company and tells the caller to use freee_set_current_company, so that tool is exposed (guarded to companies visible to this token). It changes only freee-mcp's local config.json, never freee data; the harness restores the original selection after every run."
   },
   "goal_prompt": {

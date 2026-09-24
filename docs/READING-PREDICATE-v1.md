@@ -39,7 +39,7 @@
 | 5 | target | object | service_id / model / harness_version | outcomes.service_id, outcomes.model_name |
 | 6 | stage_reached | enum | 到達した最遠の臓器: discover / understand / connect / execute / done | outcomes.failed_step の原型 |
 | 7 | stage_stopped | enum or null | 止まった臓器。done なら null | outcomes.failed_step |
-| 8 | observed | object | pass/fail と**照合方法**・固定ラベルの checks・false_completion・ground_truth_consistent・instrument_error。**値そのもの（事業所 ID・件数）は書かない** | outcomes.success |
+| 8 | observed | object | pass/fail と**照合方法**・固定ラベルの checks・false_completion・ground_truth_consistent・instrument_error・trap_armed。**値そのもの（事業所 ID・件数）は書かない** | outcomes.success |
 | 9 | evidence_ref | string | Evidence Bundle のパス `#sha256:` manifest.json の指紋 | ― |
 | 10 | observer | string | `kansei_harness@<version>` または `human:<role>` | outcomes.agent_id_hash |
 | 11 | kind | enum | synthetic / lived。**M-001 は synthetic 固定** | outcomes.provenance（synthetic→`'synthetic'`、lived→`'user_reported'`） |
@@ -56,7 +56,9 @@
 3. **値を書かない。** 事業所 ID・件数・金額・取引先名は reading にも metrics.json にも manifest.json にも README にも書かない。生の値は Evidence Bundle の `transcript.jsonl`（`.gitignore` の `evidence/**/transcript.jsonl` で git 外）と、封印ファイル（git 外）にだけある。checks のラベルは固定文字列で、値を埋め込まない。
 4. **synthetic と lived は合算しない。** 集計・表示は kind ごとに別の器で行う。
 5. **指紋が公開される前の実行は読みとして数えない。** ハーネスは実行前に (a) 封印ファイルの sha256 が `evidence/commitments/<marker>.sha256` と一致すること、(b) その commitment を含むコミットがリモートブランチに存在すること、を確認し、どちらかが欠ければ実行しない（exit≠0）。
-6. **計器の失敗は主語を変えて書く。** プロバイダ API や MCP プロセスの失敗は `observed.instrument_error` に分類を入れ、`pass=false`。これは SaaS 経路の失敗ではないので、七行表では「計器」と読む。行は消さない。
+6. **罠は張れるが、相手は記録しない。** `--arm-trap` で、ハーネスは実行前に現在の事業所を**ランダムなテスト事業所**（封印の事業所以外・表示名に テスト/未設定 を含むもの優先）へ切り替え、エージェント実行後に `finally` で元へ戻す。読みには `observed.trap_armed`（真偽）だけを残し、どの事業所へ切り替えたかは manifest にも harness.jsonl にも書かない。環境が最初から別の事業所を向いていた日も `trap_armed=true`。
+7. **止まり方を先に決める。** `--max-readings N`（既定は taskpack の `marker.max_readings`、M-001 は 7）: 有効な（supersedes に指されていない・outcome 付きの）エージェント読みが N 行に達したら実行せず終了。封印の `expires_at` を過ぎたら**既定で実行しない**（中身を公開してよい時期に読みを増やさない）。`--allow-expired` は明示上書き。
+8. **計器の失敗は主語を変えて書く。** プロバイダ API や MCP プロセスの失敗は `observed.instrument_error` に分類を入れ、`pass=false`。これは SaaS 経路の失敗ではないので、七行表では「計器」と読む。行は消さない。
 
 ## 3. 止まった臓器の判定規則（M-001）
 
