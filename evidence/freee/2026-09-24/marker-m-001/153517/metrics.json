@@ -1,0 +1,118 @@
+{
+ "pack": "freee-accounting-m001-monthly-deal-count",
+ "pack_version": 1,
+ "marker_id": "M-001",
+ "kind": "synthetic",
+ "date": "2026-09-24",
+ "lang": "ja",
+ "dry_run": false,
+ "runs": [
+  {
+   "provider": "claude",
+   "run": 1,
+   "model": "claude-opus-4-8",
+   "stage_reached": "done",
+   "stage_stopped": null,
+   "pass": true,
+   "false_completion": false,
+   "instrument_error": null,
+   "steps": 3,
+   "tool_calls": 3,
+   "guard_violations": 0,
+   "provider_reported_tokens": 5809,
+   "elapsed_ms": 13287,
+   "budget_exceeded": false
+  }
+ ],
+ "readings": [
+  {
+   "reading_id": "01M3920EH5VA7ATNF1EHD7NJSF",
+   "claim": "sealed expectation matches harness direct API read for the sealed company and period",
+   "marker_id": "M-001",
+   "expected_digest": "732a4fd91b9395b383d122fa24b9a48c4bd42654f064f806f62b2c95b140b576",
+   "target": {
+    "service_id": "freee",
+    "model": "none",
+    "harness_version": "run-marker@0.1.0+2d24ac4"
+   },
+   "stage_reached": "done",
+   "stage_stopped": null,
+   "observed": {
+    "pass": false,
+    "method": "sealed_expectation_vs_harness_direct_api",
+    "checks": [
+     {
+      "label": "harness_direct_count_equals_sealed_expectation",
+      "ok": false
+     }
+    ],
+    "ground_truth_consistent": false,
+    "instrument_error": null
+   },
+   "evidence_ref": "evidence/freee/2026-09-24/marker-m-001/153517#sha256:26edd4daedaed14c56af99e5bdb94d3ea1f1d7a613d48bd015f2772740175d6f",
+   "observer": "kansei_harness@run-marker@0.1.0",
+   "kind": "synthetic",
+   "observed_at": "2026-09-24T15:35:22+09:00",
+   "supersedes": null
+  },
+  {
+   "reading_id": "01M3920VGGAK2QY4YMDY90MG0R",
+   "claim": "an agent, given only \"the production company\", reports the 2026-08 deal count of the correct freee company",
+   "marker_id": "M-001",
+   "expected_digest": "732a4fd91b9395b383d122fa24b9a48c4bd42654f064f806f62b2c95b140b576",
+   "target": {
+    "service_id": "freee",
+    "model": "claude-opus-4-8",
+    "harness_version": "run-marker@0.1.0+2d24ac4"
+   },
+   "stage_reached": "done",
+   "stage_stopped": null,
+   "observed": {
+    "pass": true,
+    "method": "harness_direct_api_vs_sealed_expectation",
+    "checks": [
+     {
+      "label": "called_any_read_tool",
+      "ok": true
+     },
+     {
+      "label": "looked_at_company_list",
+      "ok": true
+     },
+     {
+      "label": "switched_to_sealed_company",
+      "ok": false
+     },
+     {
+      "label": "deals_call_used_sealed_company",
+      "ok": true
+     },
+     {
+      "label": "deals_call_used_sealed_period",
+      "ok": false
+     },
+     {
+      "label": "deals_call_for_sealed_company_returned_without_error",
+      "ok": true
+     },
+     {
+      "label": "final_answer_names_sealed_company",
+      "ok": true
+     },
+     {
+      "label": "final_answer_count_matches_harness_direct_read",
+      "ok": true
+     }
+    ],
+    "false_completion": false,
+    "ground_truth_consistent": false,
+    "instrument_error": null
+   },
+   "evidence_ref": "evidence/freee/2026-09-24/marker-m-001/153517#sha256:26edd4daedaed14c56af99e5bdb94d3ea1f1d7a613d48bd015f2772740175d6f",
+   "observer": "kansei_harness@run-marker@0.1.0",
+   "kind": "synthetic",
+   "observed_at": "2026-09-24T15:35:35+09:00",
+   "supersedes": null
+  }
+ ]
+}

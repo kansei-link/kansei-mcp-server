@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kansei-link.com/schemas/reading.v1.schema.json",
+  "title": "KanseiLINK reading predicate v1",
+  "description": "One append-only line recording what was tried, what happened, at which stage it stopped, and where the evidence is. Values under test (tenant identifiers, counts, amounts) are never stored here; only pass/fail, stage, and digests.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reading_id",
+    "claim",
+    "marker_id",
+    "expected_digest",
+    "target",
+    "stage_reached",
+    "stage_stopped",
+    "observed",
+    "evidence_ref",
+    "observer",
+    "kind",
+    "observed_at"
+  ],
+  "properties": {
+    "reading_id": {
+      "type": "string",
+      "description": "ULID (26 chars, Crockford base32). Sortable by time of creation.",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "claim": {
+      "type": "string",
+      "description": "The claim under test, in words. Fixed per marker so that rows are comparable.",
+      "minLength": 8,
+      "maxLength": 300
+    },
+    "marker_id": {
+      "type": "string",
+      "description": "Sealed marker identifier, e.g. M-001.",
+      "pattern": "^M-[0-9]{3,}$"
+    },
+    "expected_digest": {
+      "type": "string",
+      "description": "sha256 (hex) of the sealed file that holds the expected result. The file itself stays outside git.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "target": {
+      "type": "object",
+      "description": "What was measured.",
+      "additionalProperties": false,
+      "required": ["service_id", "model", "harness_version"],
+      "properties": {
+        "service_id": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "description": "Provider-reported model id, or 'none' for harness-only readings.", "minLength": 1 },
+        "harness_version": { "type": "string", "description": "run-marker.mjs version tag + short git sha, e.g. run-marker@0.1.0+2d24ac4", "minLength": 1 }
+      }
+    },
+    "stage_reached": {
+      "type": "string",
+      "description": "Furthest stage on the path discover -> understand -> connect -> execute -> done.",
+      "enum": ["discover", "understand", "connect", "execute", "done"]
+    },
+    "stage_stopped": {
+      "description": "Stage at which the attempt stopped. null when stage_reached is done.",
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "enum": ["discover", "understand", "connect", "execute"] }
+      ]
+    },
+    "observed": {
+      "type": "object",
+      "description": "Pass/fail and how it was decided. Never the observed values themselves.",
+      "additionalProperties": false,
+      "required": ["pass", "method"],
+      "properties": {
+        "pass": { "type": "boolean" },
+        "method": {
+          "type": "string",
+          "enum": [
+            "harness_direct_api_vs_sealed_expectation",
+            "sealed_expectation_vs_harness_direct_api",
+            "human_review"
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "description": "Fixed-label checks. Labels must not embed identifiers or counts.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "ok"],
+            "properties": {
+              "label": { "type": "string", "maxLength": 120 },
+              "ok": { "type": "boolean" }
+            }
+          }
+        },
+        "false_completion": {
+          "type": "boolean",
+          "description": "true when the agent's final text claims success while pass is false (silent failure as seen by the agent)."
+        },
+        "ground_truth_consistent": {
+          "description": "Whether the harness direct read agreed with the sealed expectation at the time of this reading. null if not checked.",
+          "oneOf": [{ "type": "boolean" }, { "type": "null" }]
+        },
+        "instrument_error": {
+          "description": "Set when the instrument (provider API, MCP process) failed before the subject could be observed. Class only, no message body.",
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "enum": ["provider_api", "mcp_process", "timeout", "budget", "other"] }
+          ]
+        }
+      }
+    },
+    "evidence_ref": {
+      "type": "string",
+      "description": "Evidence Bundle path relative to repo root, followed by '#sha256:' and the manifest.json digest.",
+      "pattern": "^[^#\\s]+#sha256:[0-9a-f]{64}$"
+    },
+    "observer": {
+      "type": "string",
+      "description": "kansei_harness@<version> for harness readings; human:<role> for human ones.",
+      "pattern": "^(kansei_harness@[A-Za-z0-9._+@-]+|human:[a-z_]+)$"
+    },
+    "kind": {
+      "type": "string",
+      "description": "synthetic = sealed marker run by the harness; lived = a real user's real task. Never aggregated together.",
+      "enum": ["synthetic", "lived"]
+    },
+    "observed_at": {
+      "type": "string",
+      "description": "ISO 8601 with offset.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "supersedes": {
+      "description": "reading_id of the row this one corrects. Corrections are new rows; the old row is never updated or deleted.",
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" }
+      ]
+    }
+  }
+}

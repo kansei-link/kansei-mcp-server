@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "id": "freee-accounting-m001-monthly-deal-count",
+  "version": 1,
+  "service_id": "freee",
+  "category": "accounting",
+  "task_type": "marker",
+  "evidence_tier_target": "E2",
+  "risk": "R0",
+  "marker": {
+    "marker_id": "M-001",
+    "kind": "synthetic",
+    "claim": "an agent, given only \"the production company\", reports the 2026-08 deal count of the correct freee company",
+    "commitment_file": "evidence/commitments/M-001.sha256",
+    "expected_digest": "732a4fd91b9395b383d122fa24b9a48c4bd42654f064f806f62b2c95b140b576",
+    "sealed_path_env": "KANSEI_M001_SEALED_PATH",
+    "period_hint": "2026-08",
+    "tools_allowlist_extra": [ "freee_set_current_company" ],
+    "note": "The sealed file (outside git) holds the real company id and the expected deal count. Only the harness reads it. The goal prompt never reveals which company is the production one: choosing it is the 'understand' stage under test. freee-mcp (0.26.5) refuses freee_api_get calls whose company_id differs from its persisted current company and tells the caller to use freee_set_current_company, so that tool is exposed (guarded to companies visible to this token). It changes only freee-mcp's local config.json, never freee data; the harness restores the original selection after every run."
+  },
+  "goal_prompt": {
+    "ja": "自社の本番の事業所について、2026年8月1日〜31日の取引件数を確認して報告してください。データは変更しないでください。最終回答には使用した事業所IDと件数を含めてください。",
+    "en": "For our production company, check and report the number of deals dated 2026-08-01 through 2026-08-31. Do not modify any data. Include the company ID you used and the count in the final answer."
+  },
+  "preflight": [
+    { "tool": "freee_server_info", "assert": "transport in ['remote','stdio']" },
+    { "tool": "freee_auth_status", "assert": "authenticated == true" }
+  ],
+  "preconditions": [
+    "The freee account exposes more than one company (the production one is among them)",
+    "The sealed file is filled, its sha256 equals commitment_file, and the commitment commit exists on a remote branch"
+  ],
+  "scripted_steps": [
+    {
+      "order": 1,
+      "source_action": "Harness ground truth: list the companies visible to this token (the set of ids the agent may query)",
+      "tool": "freee_api_get",
+      "arguments": { "service": "accounting", "path": "/api/1/companies" },
+      "capture": { "own_company_ids": "$.companies[*].id" },
+      "assertions": [ { "op": "array_min", "path": "$.companies", "value": 1 } ]
+    },
+    {
+      "order": 2,
+      "source_action": "Harness ground truth: count deals of the sealed company in the sealed period via meta.total_count (limit=1 keeps the payload minimal)",
+      "tool": "freee_api_get",
+      "arguments": {
+        "service": "accounting",
+        "path": "/api/1/deals",
+        "query": {
+          "company_id": "{{real_company_id}}",
+          "start_issue_date": "{{period_start}}",
+          "end_issue_date": "{{period_end}}",
+          "limit": "1"
+        }
+      },
+      "capture": { "harness_deal_count": "$.meta.total_count" },
+      "assertions": [ { "op": "integer_gte", "path": "$.meta.total_count", "value": 0 } ]
+    },
+    {
+      "order": 3,
+      "source_action": "Permitted (not required): agent may read a single company's detail while choosing",
+      "tool": "freee_api_get",
+      "arguments": { "service": "accounting", "path": "/api/1/companies/{{company_id}}" },
+      "capture": {},
+      "assertions": []
+    }
+  ],
+  "agentic": {
+    "models": [ "claude" ],
+    "runs_per_day": 1,
+    "temperature": 0,
+    "answer_assertions": [
+      "final_answer_names_sealed_company",
+      "final_answer_count_matches_harness_direct_read"
+    ]
+  },
+  "cleanup": { "required": false, "steps": [] },
+  "budgets": { "max_steps": 12, "max_tokens": 16000, "timeout_s": 240 },
+  "publication": {
+    "publishable": false,
+    "provenance": "synthetic",
+    "note": "Sealed-marker readings are synthetic. Their outcomes rows use provenance='synthetic' and never enter publishable_outcomes. See docs/READING-PREDICATE-v1.md §2."
+  }
+}
