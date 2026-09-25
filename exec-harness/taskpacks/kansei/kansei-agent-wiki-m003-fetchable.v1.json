@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "id": "kansei-agent-wiki-m003-fetchable",
+  "version": 1,
+  "service_id": "kansei-link",
+  "category": "developer-tools",
+  "task_type": "marker",
+  "evidence_tier_target": "E2",
+  "risk": "R0",
+  "marker": {
+    "marker_id": "M-003",
+    "kind": "synthetic",
+    "kind_of_truth": "http_probe",
+    "observation": "fetch_check_summary",
+    "claim": "エージェント（Claude Code / Codex）が agent-wiki のページ 3 本を取得でき、本文の指紋が封印と一致する",
+    "commitment_file": "evidence/commitments/M-003.sha256",
+    "expected_digest": "PENDING_MICHIE_SEAL",
+    "sealed_path_env": "KANSEI_M003_SEALED_PATH",
+    "fetch_check_dir": "C:/Users/HP/KanseiLINK/founder-ops/research/AgentWiki-Probe_2026-09-17/fetch-check",
+    "pages": [
+      { "summary_id": "fetch-index", "control": false },
+      { "summary_id": "fetch-square", "control": false },
+      { "summary_id": "fetch-control-insights", "control": true }
+    ],
+    "observers": [
+      { "id": "claude-code", "summary_key": "claude" },
+      { "id": "codex", "summary_key": "codex" }
+    ],
+    "report_readme": "founder-ops/research/Marker-M003_2026-09-25/README.md",
+    "max_readings": 14,
+    "note": "Ground truth: the harness fetches each sealed URL and compares the body sha256 with the sealed digest; a mismatch is a separate ground-truth row (the page changed), not an agent failure. Observation: the existing fetch-check (founder-ops .../fetch-check/run.cjs) writes <date>.json with fetched/denied/unclear/error per agent and page; this marker converts that summary into one reading per observer. Rules: any error = instrument; a wiki page denied or missing = stage_stopped discover; unclear = understand; all wiki pages fetched = done. The control page (existing insights article) is recorded as a check but does not move the stage. Codex runs are produced by Michie twice a week; days without a summary cell for an observer write no row for that observer."
+  },
+  "goal_prompt": {
+    "ja": "（課題文は fetch-check/battery.json のもの。エージェントに URL をそのまま開かせ、title を返させる。検索はさせない。）",
+    "en": "(Prompt lives in fetch-check/battery.json: open the URL as given, return the title, no search.)"
+  },
+  "preflight": [],
+  "preconditions": [
+    "Sealed file lists 3 URLs with body sha256 at sealing time (draft: exec-harness/draft-marker.mjs M-003)",
+    "fetch-check/run.cjs has produced <fetch_check_dir>/<today>.json before this marker runs"
+  ],
+  "scripted_steps": [],
+  "agentic": { "models": [], "runs_per_day": 1 },
+  "cleanup": { "required": false, "steps": [] },
+  "budgets": { "max_steps": 0, "max_tokens": 0, "timeout_s": 120 },
+  "publication": { "publishable": false, "provenance": "synthetic", "note": "Sealed-marker readings are synthetic; outcomes rows use provenance='synthetic' and never enter publishable_outcomes." }
+}

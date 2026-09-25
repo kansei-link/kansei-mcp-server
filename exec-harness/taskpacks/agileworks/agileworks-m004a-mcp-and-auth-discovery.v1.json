@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "id": "agileworks-m004a-mcp-and-auth-discovery",
+  "version": 1,
+  "service_id": "agile-works",
+  "category": "workflow",
+  "task_type": "marker",
+  "evidence_tier_target": "E2",
+  "risk": "R0",
+  "marker": {
+    "marker_id": "M-004a",
+    "kind": "synthetic",
+    "kind_of_truth": "llm_answer",
+    "claim": "エージェントは AgileWorks（エイトレッド）の公式 MCP の所在と Web API の認証方式を特定できる",
+    "commitment_file": "evidence/commitments/M-004a.sha256",
+    "expected_digest": "PENDING_MICHIE_SEAL",
+    "sealed_path_env": "KANSEI_M004A_SEALED_PATH",
+    "providers": [ "openai", "gemini", "perplexity", "claude" ],
+    "verify_repo_via_github": true,
+    "report_readme": "founder-ops/research/Marker-M004a_2026-09-25/README.md",
+    "max_readings": 28,
+    "note": "No contact with the vendor: the harness only asks public LLMs (same plain one-turn method as the 2026-07-29 audit) and checks the sealed repository's existence through the public GitHub API. Judgement is rules on the answer text: the sealed repo URL present = discover passed; 'OAuth 2.0' named = understand passed (done); no URL = stage_stopped discover (false_completion when the answer asserts the official MCP is unconfirmed/nonexistent); URL present but a wrong auth method asserted (Basic, API key) = stage_stopped understand with false_completion. Stages connect/execute belong to M-004b and are out of scope; 'done' here means the claimed prefix (discover+understand) passed."
+  },
+  "goal_prompt": {
+    "ja": "AgileWorks（株式会社エイトレッド）を AI エージェントから操作したい。公式の MCP サーバーの有無と所在、Web API の認証方式を特定し、根拠の URL を添えて報告せよ。",
+    "en": "I want to operate AgileWorks (ATLED Co., Ltd.) from an AI agent. Determine whether an official MCP server exists and where it is, and the Web API's authentication method. Report with source URLs."
+  },
+  "preflight": [],
+  "preconditions": [
+    "Sealed file holds the official MCP repository URL and the auth method (draft: exec-harness/draft-marker.mjs M-004a)",
+    "API keys for the four providers in .env (git-ignored)"
+  ],
+  "scripted_steps": [],
+  "agentic": { "models": [ "openai", "gemini", "perplexity", "claude" ], "runs_per_day": 1, "temperature": "provider default" },
+  "cleanup": { "required": false, "steps": [] },
+  "budgets": { "max_steps": 1, "max_tokens": 1200, "timeout_s": 180 },
+  "publication": { "publishable": false, "provenance": "synthetic", "note": "Sealed-marker readings are synthetic; outcomes rows use provenance='synthetic' and never enter publishable_outcomes. No ranking, no score, no vendor comparison." }
+}

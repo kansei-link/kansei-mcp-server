@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "id": "kansei-catalog-m002-dead-endpoint-display",
+  "version": 1,
+  "service_id": "kansei-link",
+  "category": "developer-tools",
+  "task_type": "marker",
+  "evidence_tier_target": "E2",
+  "risk": "R0",
+  "marker": {
+    "marker_id": "M-002",
+    "kind": "synthetic",
+    "kind_of_truth": "http_probe",
+    "observation": "catalog_display",
+    "claim": "KanseiLINK カタログが、死んでいる MCP エンドポイント 5 件を「確認済み／更新済み」と表示しない",
+    "commitment_file": "evidence/commitments/M-002.sha256",
+    "expected_digest": "PENDING_MICHIE_SEAL",
+    "sealed_path_env": "KANSEI_M002_SEALED_PATH",
+    "display_api_url": "https://kansei-link-mcp-production.up.railway.app/mcp",
+    "display_api_label": "kansei-link-catalog@production",
+    "report_readme": "founder-ops/research/Marker-M002_2026-09-25/README.md",
+    "max_readings": 7,
+    "note": "Ground truth: the harness POSTs an MCP initialize to each sealed endpoint (same method as src/crawler/health-probe.ts); gone (404/410), dns_fail and connection_refused count as dead. Observation: the public catalog's own display for each sealed service via the production MCP endpoint (tools/call lookup detail; read only). Display tokens = mcp_status plus 'updated' when freshness.confidence is high. A token in expected_display_not_in for any service = stage_stopped understand, pass=false, false_completion=true (the catalog claims a state it cannot know). The catalog is never written to by this marker."
+  },
+  "goal_prompt": {
+    "ja": "（この色素にはエージェントの課題文はない。観測はハーネスがカタログの公開表示を読むだけ。）",
+    "en": "(No agent prompt for this marker: the harness reads the catalog's public display.)"
+  },
+  "preflight": [],
+  "preconditions": [
+    "Sealed file lists 5 services whose endpoints were unreachable on 3 consecutive probe days (draft: exec-harness/draft-marker.mjs M-002)",
+    "Commitment evidence/commitments/M-002.sha256 pushed to a remote branch before the first counted run"
+  ],
+  "scripted_steps": [],
+  "agentic": { "models": [], "runs_per_day": 1 },
+  "cleanup": { "required": false, "steps": [] },
+  "budgets": { "max_steps": 0, "max_tokens": 0, "timeout_s": 120 },
+  "publication": { "publishable": false, "provenance": "synthetic", "note": "Sealed-marker readings are synthetic; outcomes rows use provenance='synthetic' and never enter publishable_outcomes." }
+}

@@ -34,8 +34,11 @@ import { testOnlyReasons } from './lib/marker-mode.mjs';
 import { effectiveAgentCount, hasReadingCapacity, validateSupersedes } from './lib/marker-store.mjs';
 import { LOOPS } from './lib/provider-loops.mjs';
 import { newUlid, validateReading, loadReadingSchema, isoWithOffset, sqliteUtc } from './lib/reading.mjs';
+import { loadSealedCommon } from './lib/marker-sealed.mjs';
+import { selectTarget } from './lib/marker-targets.mjs';
+import { runGenericMarker } from './lib/marker-generic.mjs';
 
-const VERSION = '0.3.1';
+const VERSION = '0.4.0';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');                 // repo root (worktree)
 const KANSEI_ROOT = join(ROOT, '..');           // C:\Users\HP\KanseiLINK — founder-ops lives here, outside the repo
@@ -68,6 +71,11 @@ const EXECUTOR = flag('executor', 'agent');
 const ALLOW_EXPIRED = args.includes('--allow-expired');
 const SUPERSEDES = flag('supersedes', null);
 const SUPERSEDES_GT = flag('supersedes-ground-truth', null);
+// Generic kinds (kind_of_truth != mcp_direct_read; lib/marker-generic.mjs):
+//   --observers a,b   run only these observer labels (e.g. one LLM provider, or one of claude-code/codex)
+//   --fetch-summary p  M-003: explicit fetch-check summary JSON for today (default: <fetch_check_dir>/<date>.json)
+const OBSERVERS = flag('observers', null)?.split(',').map((s) => s.trim()).filter(Boolean) || null;
+const FETCH_SUMMARY = flag('fetch-summary', null);
 
 // ---- .env (repo root, git-ignored) ----
 if (existsSync(join(ROOT, '.env'))) {
@@ -255,6 +263,22 @@ async function main() {
   const t0 = new Date();
   const goal = PACK.goal_prompt[LANG];
   console.log(`run-marker ${VERSION} — pack=${PACK.id} v${PACK.version} marker=${MK.marker_id} risk=${PACK.risk} lang=${LANG} models=${MODELS.join(',')} N=${RUNS}${DRY ? ' [DRY-RUN]' : ''}`);
+
+  // ---- generic kinds (http_probe / llm_answer): same fingerprint, DB, bundle and README discipline; target module supplies truth/observe/judge ----
+  const target = selectTarget(MK);
+  if (target) {
+    console.log(`kind_of_truth=${MK.kind_of_truth}${MK.observation ? ` observation=${MK.observation}` : ''}`);
+    const sealedCommon = loadSealedCommon({ MK, ROOT, allowExpired: ALLOW_EXPIRED, dry: DRY });
+    console.log(`sealed digest ${sealedCommon.digest.slice(0, 12)}… matches commitment; commitment commit ${sealedCommon.commitSha ? sealedCommon.commitSha.slice(0, 7) : 'none'} on ${sealedCommon.remoteBranches.join(', ') || '(no remote branch)'}`);
+    const gdb = openDb();
+    if ((SUPERSEDES || SUPERSEDES_GT) && !(OBSERVERS && OBSERVERS.length === 1)) { console.error('supersedes on a generic marker requires --observers <one label>'); process.exit(2); }
+    await runGenericMarker({
+      target, PACK, MK, packPath, ROOT, KANSEI_ROOT, libDir: join(__dir, 'lib'), VERSION, HARNESS_VERSION, OBSERVER,
+      sealedCommon, db: gdb,
+      flags: { dry: DRY, executor: EXECUTOR, maxReadings: MAX_READINGS, allowExpired: ALLOW_EXPIRED, lang: LANG, observerFilter: OBSERVERS, fetchSummary: FETCH_SUMMARY, supersedes: SUPERSEDES, supersedesGt: SUPERSEDES_GT, readme: flag('readme', null) },
+    });
+    return;
+  }
 
   const sealed = loadSealed();
   console.log(`sealed digest ${sealed.digest.slice(0, 12)}… matches commitment; commitment commit ${sealed.commitSha ? sealed.commitSha.slice(0, 7) : 'none'} on ${sealed.remoteBranches.join(', ') || '(no remote branch)'}`);
