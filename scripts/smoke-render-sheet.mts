@@ -25,7 +25,7 @@ const ins = db.prepare(`INSERT INTO marker_readings (reading_id, outcome_id, cla
   VALUES (@id, @oid, @claim, @mk, @dg, @tj, @sr, @ss, @oj, @ev, @ob, 'synthetic', @at, @sup)`);
 const dg = "a".repeat(64);
 const ev = (n: string) => `evidence/x/${n}#sha256:${n.toLowerCase().replace(/[^0-9a-f]/g, "e").padEnd(64, "f")}`;
-const row = (o: any) => ins.run({ id: o.id, oid: o.oid ?? 1, claim: o.claim ?? "テスト主張", mk: o.mk ?? "M-777", dg, tj: JSON.stringify({ service_id: "x", model: o.model ?? "m", harness_version: "h" }), sr: o.sr, ss: o.ss ?? null, oj: JSON.stringify({ pass: o.pass, method: "harness_direct_api_vs_sealed_expectation", checks: [], false_completion: o.fc ?? false, ground_truth_consistent: o.gt ?? true, instrument_error: o.inst ?? null }), ev: ev(o.id.slice(-4)), ob: o.ob ?? "kansei_harness@run-marker@0.4.0", at: o.at, sup: o.sup ?? null });
+const row = (o: any) => ins.run({ id: o.id, oid: o.oid === undefined ? 1 : o.oid, claim: o.claim ?? "テスト主張", mk: o.mk ?? "M-777", dg, tj: JSON.stringify({ service_id: "x", model: o.model ?? "m", harness_version: "h" }), sr: o.sr, ss: o.ss ?? null, oj: JSON.stringify({ pass: o.pass, method: "harness_direct_api_vs_sealed_expectation", checks: [], false_completion: o.fc ?? false, ground_truth_consistent: o.gt ?? true, instrument_error: o.inst ?? null }), ev: ev(o.id.slice(-4)), ob: o.ob ?? "kansei_harness@run-marker@0.4.0", at: o.at, sup: o.sup ?? null });
 row({ id: "01AAAAAAAAAAAAAAAAAAAAAAA1", sr: "understand", ss: "understand", pass: false, fc: true, at: "2026-09-20T09:50:00+09:00" });
 row({ id: "01AAAAAAAAAAAAAAAAAAAAAAA2", sr: "done", pass: true, at: "2026-09-21T09:50:00+09:00" });
 row({ id: "01AAAAAAAAAAAAAAAAAAAAAAA3", sr: "done", pass: true, at: "2026-09-21T10:00:00+09:00", sup: "01AAAAAAAAAAAAAAAAAAAAAAA2" }); // correction of day 2
@@ -43,7 +43,11 @@ expect("day rows: 4 agent rows", (md.match(/^\| 2026-09-2\d \| /gm) || []).lengt
 expect("false completion marked and counted", md.includes("| あり |") && md.includes("偽の完了: 1 回"));
 expect("instrument row shown as 計器", md.includes("計器:provider_api"));
 expect("stop days per stage", md.includes("| 発見 | 1 |") && md.includes("| 理解 | 1 |") && md.includes("| 接続 | 0 |"));
-expect("ground-truth section present with 不一致", md.includes("正解側の行") && md.includes("| 不一致 |"));
+expect("ground-truth section header present (not just the footer count)", md.includes("### 正解側の行（封印の期待 vs ハーネスの直接読み）"));
+expect("ground-truth section has exactly one 不一致 row and it is not in the day table", (md.split("### 正解側の行")[1] || "").split("## 三つの数字")[0].match(/^\| 2026-09-22 \| 不一致 \| /gm)?.length === 1);
+expect("ground-truth row kept outcome_id null (counted in period line)", md.includes("正解側の行 1）"));
+let hexAdjacent = false; try { renderSheet([{ ...rows[0], claim: "主張 a12345678b を含む" }], { markerId: "M-777" }); } catch { hexAdjacent = true; }
+expect("renderer refuses an 8-digit run even between hex letters", hexAdjacent);
 expect("last observation fresh (2h)", md.includes("計器の最終観測: 2026-09-23T09:50:00+09:00"));
 const stale = renderSheet(rows, { markerId: "M-777", now: new Date("2026-09-25T12:00:00+09:00") });
 expect("last observation 不明 after 24h", /計器の最終観測: 不明/.test(stale));

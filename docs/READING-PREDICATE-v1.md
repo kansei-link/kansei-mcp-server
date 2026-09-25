@@ -122,6 +122,12 @@
 | `http_probe` / `fetch_check_summary`（M-003） | 封印の各 URL を直接取得し本文 sha256 を封印と照合。不一致＝ページが変わった＝正解側の別行（エージェントの失敗ではない） | 既存 fetch-check の `<日付>.json`（fetched/denied/unclear/error）を観測者ごとに読む。当日分が無い観測者は行を立てない | `claude-code@<CLI版>` / `codex@<CLI版>`（観測したのはエージェント自身）。`target.model` は要約の agents | error → 計器。wiki ページが denied／欠落 → discover。unclear → understand。wiki ページ全部 fetched → done（対照ページは check にだけ残す） |
 | `llm_answer`（M-004a） | 封印のリポジトリが GitHub API で公開・未アーカイブか。消えれば正解側の別行（`sealed_repo_vs_github_api`） | 公開 LLM 4 社（openai/gemini/perplexity/claude）へ課題文だけを 1 問 1 答（検索ツールなし・7/29 と同じ）。モデル 1 つにつき 1 行 | `kansei_harness@…`、`target.model`＝プロバイダが返したモデル名 | 封印のリポジトリ URL（大小文字・`.git`・`#` 無視・別パスは不可）を含む → discover 通過。`OAuth 2.0`/`OAuth2` を名指し → understand 通過＝**done**（この色素の主張は発見と理解までなので、その二つが通れば done）。URL なし → discover で停止、「公式 MCP は未確認／存在しない」と断言していれば false_completion。URL ありで Basic／API キーと断言 → understand で停止＋false_completion。認証に触れない → understand で停止（false_completion なし）。プロバイダ API の失敗 → 計器 provider_api |
 
+**閉じた判定**（Codex 審査 2 の差し戻しで確定・2026-09-25）: 必要な印がすべて揃い、悪い印が一つも無いときだけ done。曖昧・矛盾・観測不能は不合格か計器エラーであって、決して done ではない。
+
+- `catalog_display`: 観測は「整った tool 結果」か「カタログ自身の明示の not found」だけ。JSON-RPC の error・tool の isError・パースできない payload・別 service の payload・その他の error 文は**計器**（discover で停止・pass=false・false_completion=false）。封印の全 service が観測できた日だけ判定に進む（check `every_service_observed`）。
+- `fetch_check_summary`: status は fetched／denied／unclear／error／missing の五つだけ。未知の status は計器。done は「wiki ページが 1 本以上あり、全部 fetched」のときだけ。要約の `date` が当日でなければ（明示 `--fetch-summary` でも）行を立てない。
+- `llm_answer` は三つの問いに分けて読む。(1) **URL の同定**: 本文から境界付きで GitHub URL 候補を抽出（`extractRepoCandidates`）→ 各候補を正規化（scheme/www/`.git`/`#`/`?`/末尾の句読点・スラッシュ）→ host と 2 段の path の完全一致。`/sub` や `-v2` は別リポジトリ。英文中の URL を落とさない（全文の空白削除はしない）。(2) **公式性の否定**: 「公式 MCP は確認できない／存在しない／未確認／非公式」「no official MCP / unofficial」があれば、URL があっても discover で停止＋false_completion。(3) **認証の主張**: 文ごとに方式トークン（OAuth 2.0／Basic／API キー）の肯否を読む（日本語は後置の否定「非対応・ではない・使えない・記載がない…」、英語は前置の「not / no / n't / without」、「X ではなく Y」「not X but Y」は X 否定・Y 肯定）。**誤方式の肯定、OAuth の否定、OAuth の肯定と否定の同居**は understand で停止＋false_completion（OAuth の語があるだけでは通らない）。OAuth の肯定のみで否定が無いときだけ理解通過＝done。認証に触れない → understand 停止（false_completion なし）。回帰: `exec-harness/fixtures/llm-answer-cases.json`（Codex の回答 11 件＋既存＋境界例、全件をスモークが期待どおりに通す）。
+
 共通の規律:
 - 回答文・本文・URL は transcript.jsonl（git 外）にだけ残す。公開 bundle の checks は固定ラベル（service は番号で指す）。
 - `--max-readings` は marker_id ごとに数える（`marker_readings` の有効な outcome 付き行）。観測者が複数の色素は taskpack の `max_readings` を観測者数×日数にする（M-003=14・M-004a=28）。

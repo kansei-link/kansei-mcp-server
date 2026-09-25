@@ -24,6 +24,8 @@ const expect = (label: string, ok: boolean, detail = "") => { console.log(`${ok 
 
 // display the fake catalog returns per service_id (mutable between cases)
 const display: Record<string, { mcp_status: string; confidence: string } | null> = { "fake-dead-one": { mcp_status: "official", confidence: "medium" }, "fake-dead-two": { mcp_status: "official", confidence: "medium" } };
+// failure mode of the fake catalog for one service id: rpc_error | tool_error | invalid_payload | other_payload_error | mismatch | null
+const failMode: Record<string, string | null> = {};
 const server = createServer((req, res) => {
   let body = ""; req.on("data", (d) => (body += d)); req.on("end", () => {
     if (req.url === "/dead-404") { res.writeHead(404); return res.end("gone"); }
@@ -31,9 +33,17 @@ const server = createServer((req, res) => {
     if (req.url === "/alive") { res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, result: { serverInfo: { name: "fake" } } })); }
     if (req.url === "/mcp") {
       const rpc = JSON.parse(body || "{}"); const id = rpc.params?.arguments?.service_id; const d = display[id];
-      const payload = d ? { _mode: "detail", service_id: id, mcp_status: d.mcp_status, freshness: { data_age_days: 1, last_refreshed: "2026-09-24", confidence: d.confidence } } : { error: "not_found" };
       res.writeHead(200, { "content-type": "text/event-stream" });
-      return res.end(`event: message\ndata: ${JSON.stringify({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(payload) }] } })}\n\n`);
+      const sse = (msg: any) => res.end(`event: message\ndata: ${JSON.stringify(msg)}\n\n`);
+      const mode = failMode[id];
+      if (mode === "rpc_error") return sse({ jsonrpc: "2.0", id: rpc.id, error: { code: -32603, message: "Internal error" } });
+      if (mode === "tool_error") return sse({ jsonrpc: "2.0", id: rpc.id, result: { isError: true, content: [{ type: "text", text: "database is locked" }] } });
+      if (mode === "invalid_payload") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: "<html>502 Bad Gateway</html>" }] } });
+      if (mode === "other_payload_error") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ error: "Rate limit exceeded. Try again later." }) }] } });
+      if (mode === "mismatch") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ service_id: "someone-else", mcp_status: "official" }) }] } });
+      // the real catalog's absence message: "Service '<id>' not found. Use search_services …"
+      const payload = d ? { _mode: "detail", service_id: id, mcp_status: d.mcp_status, freshness: { data_age_days: 1, last_refreshed: "2026-09-24", confidence: d.confidence } } : { error: `Service '${id}' not found. Use search_services to find valid service IDs.` };
+      return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(payload) }] } });
     }
     res.writeHead(500); res.end();
   });
@@ -84,6 +94,21 @@ try {
     const r = await run();
     expect("(4) service absent from catalog → pass", r.agent?.observed.pass === true, JSON.stringify(r.agent?.observed));
     display["fake-dead-one"] = { mcp_status: "official", confidence: "medium" };
+  }
+  // (4b) instrument failures must never become "not displayed": each failure mode → instrument, pass=false
+  for (const mode of ["rpc_error", "tool_error", "invalid_payload", "other_payload_error", "mismatch"]) {
+    failMode["fake-dead-two"] = mode;
+    const r = await run();
+    expect(`(4b) catalog ${mode} → instrument_error, discover stop, pass=false`, r.agent?.observed.instrument_error === "other" && r.agent?.stage_stopped === "discover" && r.agent?.observed.pass === false && r.agent?.observed.false_completion === false, JSON.stringify(r.agent?.observed));
+    expect(`(4b) catalog ${mode} → every_service_observed=false`, r.agent?.observed.checks.some((c: any) => c.label === "every_service_observed" && c.ok === false));
+    failMode["fake-dead-two"] = null;
+  }
+  // (4c) the catalog's genuine not-found is a valid observation (not a false claim)
+  {
+    display["fake-dead-two"] = null;
+    const r = await run();
+    expect("(4c) explicit not-found → observed, pass", r.agent?.observed.pass === true && r.agent?.observed.instrument_error === null, JSON.stringify(r.agent?.observed));
+    display["fake-dead-two"] = { mcp_status: "official", confidence: "medium" };
   }
   // (5) ground truth drift: sealed endpoint came back alive → gt row pass=false; agent reading still judged
   {

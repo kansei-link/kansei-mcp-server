@@ -70,15 +70,16 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     log({ role: 'harness', event: 'start', pack: PACK.id, pack_version: PACK.version, marker: MK.marker_id, observer: observer.label, kind_of_truth: MK.kind_of_truth, observation: MK.observation || null });
 
     const started = Date.now();
-    let obs = {}, error = null;
+    let obs = {}, error = null, timer = null;
     if (instrumentBefore) error = `instrument:${instrumentBefore}`;
     else {
       try {
         obs = await Promise.race([
           target.observe({ MK: MKr, PACK, observer, sealed, flags, log, stamp }),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout_s exceeded')), (PACK.budgets?.timeout_s || 240) * 1000)),
+          new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('timeout_s exceeded')), (PACK.budgets?.timeout_s || 240) * 1000); }),
         ]);
       } catch (e) { error = e.message; }
+      finally { clearTimeout(timer); } // otherwise the pending timer keeps the process alive for timeout_s after the reading is done
     }
     if (obs?.missing) { harnessLog({ event: 'observation_missing', observer: observer.label, ok: false }); console.log(`  [SKIP] ${observer.label}: no observation available today (${obs.reason || 'summary file missing'})`); continue; }
     const elapsed = Date.now() - started;

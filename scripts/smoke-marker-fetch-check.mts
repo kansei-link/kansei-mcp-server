@@ -37,11 +37,12 @@ const server = createServer((req, res) => {
 await new Promise<void>((r) => server.listen(47332, "127.0.0.1", () => r()));
 
 const tmp = mkdtempSync(join(tmpdir(), "fetch-check-"));
-function summary(cells: Record<string, Record<string, string>>, cli: Record<string, string> = { claude: "9.9.9 (Claude Code)", codex: "codex-cli 0.0.1" }) {
-  const p = join(tmp, `${Date.now()}.json`);
+const TODAY = new Date().toISOString().slice(0, 10);
+function summary(cells: Record<string, Record<string, string>>, cli: Record<string, string> = { claude: "9.9.9 (Claude Code)", codex: "codex-cli 0.0.1" }, date = TODAY) {
+  const p = join(tmp, `${Date.now()}-${Math.random().toString(36).slice(2, 6)}.json`);
   const checks: any = {};
   for (const [id, byAgent] of Object.entries(cells)) { checks[id] = {}; for (const [agent, status] of Object.entries(byAgent)) checks[id][agent] = { status, error: null, snippet: "…" }; }
-  writeFileSync(p, JSON.stringify({ date: "2026-09-25", agents: { claude: "claude-opus-5", codex: "gpt-6-astra" }, cli_versions: cli, checks }));
+  writeFileSync(p, JSON.stringify({ date, agents: { claude: "claude-opus-5", codex: "gpt-6-astra" }, cli_versions: cli, checks }));
   return p;
 }
 async function run(summaryPath: string, extra: string[] = []) {
@@ -91,6 +92,17 @@ try {
     expect("(5) gt row inconsistent", r.gt?.observed.pass === false && r.gt?.observed.checks.some((c: any) => c.label === "page_1_body_matches_sealed_digest" && c.ok === false), JSON.stringify(r.gt?.observed));
     expect("(5) agent still done (page changed is not the agent's failure)", r.claude?.stage_reached === "done" && r.claude?.observed.ground_truth_consistent === false);
     mutateIndex = false;
+  }
+  // (5b) unknown status → instrument, never done (Codex P1)
+  {
+    const r = await run(summary({ "fetch-index": { claude: "failed" }, "fetch-square": { claude: "fetched" }, "fetch-control-insights": { claude: "fetched" } }));
+    expect("(5b) unknown status 'failed' → instrument_error, discover, pass=false", r.claude?.observed.instrument_error === "other" && r.claude?.stage_stopped === "discover" && r.claude?.observed.pass === false, JSON.stringify(r.claude?.observed));
+    expect("(5b) all_statuses_known check false", r.claude?.observed.checks.some((c: any) => c.label === "all_statuses_known" && c.ok === false));
+  }
+  // (5c) a summary from another day writes no row, even when passed explicitly (Codex P2)
+  {
+    const r = await run(summary({ "fetch-index": { claude: "fetched", codex: "fetched" }, "fetch-square": { claude: "fetched", codex: "fetched" }, "fetch-control-insights": { claude: "fetched", codex: "fetched" } }, undefined, "2026-01-01"));
+    expect("(5c) stale summary → no readings, skip logged with the date", r.status === 0 && !r.claude && !r.codex && /summary date 2026-01-01 is not today/.test(r.out), r.out.slice(-300));
   }
   // (6) --observers filter and public files free of URLs
   {

@@ -23,26 +23,16 @@ const expect = (label: string, ok: boolean, detail = "") => { console.log(`${ok 
 const sealed = TARGETS.llmAnswer.parseSealed(JSON.parse(readFileSync(join(FIX, "M-994.sealed.json"), "utf-8")));
 const J = (text: string, error: string | null = null) => TARGETS.llmAnswer.judge({ obs: { text, error, citations: [] }, sealed, truth: { consistent: true } });
 
-// ── Part A: rules ────────────────────────────────────────────────────────
+// ── Part A: rules, every case in exec-harness/fixtures/llm-answer-cases.json ─
+// (Codex review-2 answers C01–C11, the original A cases under the closed policy, edge cases X*)
 {
-  const a = J("公式 MCP は https://github.com/fake-vendor/fake-official-mcp-server にあります。Web API の認証は OAuth 2.0（認可コード）です。");
-  expect("A1 url + OAuth 2.0 → done/pass", a.reached === "done" && a.pass && a.stopped === null, JSON.stringify(a));
-  const b = J("公式の MCP サーバーは確認できません。API 連携は REST で可能です。");
-  expect("A2 denial → discover stop + false completion", b.stopped === "discover" && b.falseCompletion === true, JSON.stringify(b));
-  const c = J("AgileWorks の連携には REST API を使います。認証は OAuth2 です。");
-  expect("A3 no URL, no denial → discover stop, no false completion", c.stopped === "discover" && c.falseCompletion === false, JSON.stringify(c));
-  const d = J("公式 MCP: https://github.com/fake-vendor/fake-official-mcp-server 。認証は Basic 認証（ユーザー名とパスワード）です。");
-  expect("A4 url + Basic → understand stop + false completion", d.stopped === "understand" && d.falseCompletion === true, JSON.stringify(d));
-  const e = J("https://github.com/fake-vendor/fake-official-mcp-server が公式です。認証方式はドキュメントを確認してください。");
-  expect("A5 url + no auth statement → understand stop, no false completion", e.stopped === "understand" && e.falseCompletion === false, JSON.stringify(e));
-  const f = J("See github.com/Fake-Vendor/Fake-Official-MCP-Server.git#readme — auth is OAuth2 bearer tokens; Basic auth is also selectable.");
-  expect("A6 case/suffix-insensitive url, OAuth named alongside Basic → done", f.reached === "done" && f.pass, JSON.stringify(f));
-  const g = J("https://github.com/fake-vendor/fake-official-mcp-server-v2 is the official MCP. OAuth 2.0.");
-  expect("A7 similar-but-different repo path does not count", g.stopped === "discover", JSON.stringify(g));
-  const h = J("", "HTTP 429");
-  expect("A8 provider error → instrument provider_api", h.instrument === "provider_api" && h.pass === false, JSON.stringify(h));
-  const i = J("The official MCP is not available. There is no official MCP server; use the REST API with an API key.");
-  expect("A9 English denial → discover + false completion", i.stopped === "discover" && i.falseCompletion === true, JSON.stringify(i));
+  const cases = JSON.parse(readFileSync(join(FIX, "llm-answer-cases.json"), "utf-8")).cases as Array<{ id: string; text: string; error?: string; expect: { stopped: string | null; pass: boolean; false_completion: boolean; instrument?: string } }>;
+  expect("A0 case file has the 11 reviewer answers", cases.filter((c) => /^C\d\d$/.test(c.id)).length === 11);
+  for (const c of cases) {
+    const r = J(c.text, c.error ?? null);
+    const ok = r.stopped === c.expect.stopped && r.pass === c.expect.pass && r.falseCompletion === c.expect.false_completion && (c.expect.instrument === undefined || r.instrument === c.expect.instrument) && (c.expect.stopped !== null || r.reached === "done");
+    expect(`${c.id} ${c.text.slice(0, 48).replace(/\s+/g, " ")}${c.error ? ` [error ${c.error}]` : ""}`, ok, `got stopped=${r.stopped} pass=${r.pass} fc=${r.falseCompletion} inst=${r.instrument}; want ${JSON.stringify(c.expect)}`);
+  }
 }
 
 // ── Part B: end to end with fake provider ────────────────────────────────

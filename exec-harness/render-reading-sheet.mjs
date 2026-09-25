@@ -94,7 +94,10 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
   const md = lines.join('\n') + '\n';
   const leak = md.match(FORBIDDEN_WORDS);
   if (leak) throw new Error(`sheet contains a forbidden word: ${leak[0]}`);
-  if (/(^|[^0-9a-f])[0-9]{8,}([^0-9a-f]|$)/.test(md.replace(/[0-9a-f]{12}…/g, ''))) throw new Error('sheet contains a long digit run (possible tenant value)');
+  // Only the two official fingerprint fields are exempt (the 64-hex seal digest in backticks and
+  // the 12-hex evidence prefix followed by …); any other run of 8+ digits, whatever its neighbours, is refused.
+  const stripped = md.replace(/`[0-9a-f]{64}`/g, '`<digest>`').replace(/\b[0-9a-f]{12}…/g, '<evidence>');
+  if (/[0-9]{8,}/.test(stripped)) throw new Error('sheet contains a long digit run (possible tenant value)');
   return md;
 }
 

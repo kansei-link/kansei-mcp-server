@@ -1,0 +1,36 @@
+{
+  "note": "Permanent regression cases for TARGETS.llmAnswer.judge (closed judgement). U = the M-994 fixture repo https://github.com/fake-vendor/fake-official-mcp-server. Cases C01-C11 are the Codex review-2 reviewer answers verbatim in spirit; A* are the original smoke cases (A6 re-expected under the closed policy); X* are added edge cases. Every value is invented.",
+  "sealed_fixture": "M-994.sealed.json",
+  "cases": [
+    { "id": "C01", "text": "https://github.com/fake-vendor/fake-official-mcp-server-v2 が公式です。認証は OAuth 2.0 です。", "expect": { "stopped": "discover", "pass": false, "false_completion": false } },
+    { "id": "C02", "text": "https://github.com/fake-vendor/fake-official-mcp-server/sub が公式です。認証は OAuth 2.0 です。", "expect": { "stopped": "discover", "pass": false, "false_completion": false } },
+    { "id": "C03", "text": "https://github.com/fake-vendor/fake-official-mcp-server が公式です。認証は Basic です。OAuth 2.0 は非対応です。", "expect": { "stopped": "understand", "pass": false, "false_completion": true } },
+    { "id": "C04", "text": "There is no official MCP server. Use the REST API.", "expect": { "stopped": "discover", "pass": false, "false_completion": true } },
+    { "id": "C05", "text": "https://github.com/fake-vendor/fake-official-mcp-server が公式 MCP です。", "expect": { "stopped": "understand", "pass": false, "false_completion": false } },
+    { "id": "C06", "text": "認証は OAuth 2.0 です。", "expect": { "stopped": "discover", "pass": false, "false_completion": false } },
+    { "id": "C07", "text": "https://github.com/fake-vendor/fake-official-mcp-server にあります。ただし非公式です。認証は OAuth 2.0 です。", "expect": { "stopped": "discover", "pass": false, "false_completion": true } },
+    { "id": "C08", "text": "https://github.com/fake-vendor/fake-official-mcp-server. It does not use OAuth 2.0. Basic auth is required.", "expect": { "stopped": "understand", "pass": false, "false_completion": true } },
+    { "id": "C09", "text": "<https://github.com/fake-vendor/fake-official-mcp-server>: It does not use OAuth 2.0. Basic auth is required.", "expect": { "stopped": "understand", "pass": false, "false_completion": true } },
+    { "id": "C10", "text": "https://github.com/fake-vendor/fake-official-mcp-server が公式 MCP です。認証は OAuth 2.0 です。", "expect": { "stopped": null, "pass": true, "false_completion": false } },
+    { "id": "C11", "text": "https://github.com/fake-vendor/fake-official-mcp-server uses OAuth 2.0.", "expect": { "stopped": null, "pass": true, "false_completion": false } },
+
+    { "id": "A1", "text": "公式 MCP は https://github.com/fake-vendor/fake-official-mcp-server にあります。Web API の認証は OAuth 2.0（認可コード）です。", "expect": { "stopped": null, "pass": true, "false_completion": false } },
+    { "id": "A2", "text": "公式の MCP サーバーは確認できません。API 連携は REST で可能です。", "expect": { "stopped": "discover", "pass": false, "false_completion": true } },
+    { "id": "A3", "text": "AgileWorks の連携には REST API を使います。認証は OAuth2 です。", "expect": { "stopped": "discover", "pass": false, "false_completion": false } },
+    { "id": "A4", "text": "公式 MCP: https://github.com/fake-vendor/fake-official-mcp-server 。認証は Basic 認証（ユーザー名とパスワード）です。", "expect": { "stopped": "understand", "pass": false, "false_completion": true } },
+    { "id": "A5", "text": "https://github.com/fake-vendor/fake-official-mcp-server が公式です。認証方式はドキュメントを確認してください。", "expect": { "stopped": "understand", "pass": false, "false_completion": false } },
+    { "id": "A6", "text": "See github.com/Fake-Vendor/Fake-Official-MCP-Server.git#readme — auth is OAuth2 bearer tokens; Basic auth is also selectable.", "expect": { "stopped": "understand", "pass": false, "false_completion": true }, "why": "closed policy: a wrong method affirmed alongside OAuth is not 'understood'" },
+    { "id": "A7", "text": "https://github.com/fake-vendor/fake-official-mcp-server-v2 is the official MCP. OAuth 2.0.", "expect": { "stopped": "discover", "pass": false, "false_completion": false } },
+    { "id": "A9", "text": "The official MCP is not available. There is no official MCP server; use the REST API with an API key.", "expect": { "stopped": "discover", "pass": false, "false_completion": true } },
+
+    { "id": "X1", "text": "公式 MCP は https://github.com/fake-vendor/fake-official-mcp-server です。認証は Basic ではなく OAuth 2.0 です。", "expect": { "stopped": null, "pass": true, "false_completion": false }, "why": "X ではなく Y: Basic denied, OAuth affirmed" },
+    { "id": "X2", "text": "Official MCP: https://github.com/fake-vendor/fake-official-mcp-server (not Basic auth but OAuth 2.0).", "expect": { "stopped": null, "pass": true, "false_completion": false }, "why": "not X but Y" },
+    { "id": "X3", "text": "公式 MCP は https://github.com/fake-vendor/fake-official-mcp-server です。OAuth 2.0 を使います。Basic 認証は使えません。", "expect": { "stopped": null, "pass": true, "false_completion": false }, "why": "Basic explicitly denied" },
+    { "id": "X4", "text": "公式 MCP は https://github.com/fake-vendor/fake-official-mcp-server です。認証は OAuth 2.0 です。APIキーでも認証できます。", "expect": { "stopped": "understand", "pass": false, "false_completion": true }, "why": "API key affirmed alongside OAuth" },
+    { "id": "X5", "text": "公式 MCP は https://github.com/fake-vendor/fake-official-mcp-server です。OAuth 2.0 です。OAuth 2.0 ではありません。", "expect": { "stopped": "understand", "pass": false, "false_completion": true }, "why": "contradiction is not done" },
+    { "id": "X6", "text": "リポジトリ: [fake-official-mcp-server](https://github.com/fake-vendor/fake-official-mcp-server) 認証は OAuth 2.0。", "expect": { "stopped": null, "pass": true, "false_completion": false }, "why": "markdown link boundary" },
+    { "id": "X7", "text": "公式 MCP は https://github.com/fake-vendor/fake-official-mcp-server です。Basic 認証については記載がありません。OAuth 2.0 です。", "expect": { "stopped": null, "pass": true, "false_completion": false }, "why": "'not stated' is not an affirmation" },
+    { "id": "X8", "text": "公式 MCP は https://github.com/fake-vendor/fake-official-mcp-server/ です。認証方式は OAuth 2.0 (Authorization Code) です。", "expect": { "stopped": null, "pass": true, "false_completion": false }, "why": "trailing slash" },
+    { "id": "X9", "text": "", "error": "HTTP 429", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "instrument": "provider_api" } }
+  ]
+}
