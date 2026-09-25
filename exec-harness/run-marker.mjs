@@ -30,6 +30,7 @@ import Database from 'better-sqlite3';
 import { McpClient, textOf, extractJson } from './lib/mcp-client.mjs';
 import { judge, isErrorResult, isSwitchOk } from './lib/marker-judge.mjs';
 import { writeMarkerBundle } from './lib/marker-bundle.mjs';
+import { testOnlyReasons } from './lib/marker-mode.mjs';
 import { LOOPS } from './lib/provider-loops.mjs';
 import { newUlid, validateReading, loadReadingSchema, isoWithOffset, sqliteUtc } from './lib/reading.mjs';
 
@@ -61,7 +62,7 @@ const MAX_READINGS_FLAG = flag('max-readings', null);
 const EXECUTOR = flag('executor', 'agent');
 // --mcp "<command> [args...]" (or KANSEI_MCP_COMMAND): the MCP server to drive.
 // Default is the real freee-mcp; smoke tests point it at exec-harness/fixtures/fake-freee-mcp.mjs.
-const MCP_COMMAND = (flag('mcp', process.env.KANSEI_MCP_COMMAND || 'npx freee-mcp')).split(/\s+/).filter(Boolean);
+
 // past expires_at the run stops by default (contents may be disclosed); --allow-expired overrides.
 const ALLOW_EXPIRED = args.includes('--allow-expired');
 
@@ -73,11 +74,17 @@ if (existsSync(join(ROOT, '.env'))) {
   }
 }
 
+const MCP_COMMAND = (flag('mcp', process.env.KANSEI_MCP_COMMAND || 'npx freee-mcp')).split(/\s+/).filter(Boolean);
+
 // ---- pack ----
 const packPath = resolve(ROOT, 'exec-harness', packArg.replace(/^exec-harness[\\/]/, ''));
 const PACK = JSON.parse(readFileSync(packPath, 'utf8'));
 const MK = PACK.marker;
 if (!MK?.marker_id || !MK.commitment_file || !MK.sealed_path_env || !MK.expected_digest) { console.error('taskpack has no complete marker block'); process.exit(1); }
+const modeReasons = testOnlyReasons({ args, env: process.env, executor: EXECUTOR, pack: PACK, packPath,
+  sealedPath: process.env[MK.sealed_path_env], commitmentPath: join(ROOT, MK.commitment_file), fixturesDir: join(__dir, 'fixtures') });
+if (!['agent', 'empty'].includes(EXECUTOR)) { console.error('invalid executor'); process.exit(2); }
+if (!DRY && modeReasons.length) { console.error('test-only execution requires --dry-run: ' + modeReasons.join(', ')); process.exit(5); }
 const MAX_READINGS = Number(MAX_READINGS_FLAG ?? MK.max_readings ?? 7);
 const HARNESS_VERSION = (() => { let g = '0000000'; try { g = execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim(); } catch { /* not a repo */ } return `run-marker@${VERSION}+${g}`; })();
 const OBSERVER = `kansei_harness@run-marker@${VERSION}`;
@@ -443,9 +450,9 @@ async function main() {
   const manifest = {
     bundle: `marker-${MK.marker_id}`, generated_at_utc: new Date().toISOString(), generated_at_local: isoWithOffset(new Date()),
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },
-    executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(fileURLToPath(import.meta.url)), libs: { 'lib/mcp-client.mjs': fileSha(join(__dir, 'lib', 'mcp-client.mjs')), 'lib/provider-loops.mjs': fileSha(join(__dir, 'lib', 'provider-loops.mjs')), 'lib/reading.mjs': fileSha(join(__dir, 'lib', 'reading.mjs')), 'lib/marker-judge.mjs': fileSha(join(__dir, 'lib', 'marker-judge.mjs')), 'lib/marker-bundle.mjs': fileSha(join(__dir, 'lib', 'marker-bundle.mjs')) }, git_head: HARNESS_VERSION.split('+')[1] },
+    executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(fileURLToPath(import.meta.url)), libs: { 'lib/mcp-client.mjs': fileSha(join(__dir, 'lib', 'mcp-client.mjs')), 'lib/provider-loops.mjs': fileSha(join(__dir, 'lib', 'provider-loops.mjs')), 'lib/reading.mjs': fileSha(join(__dir, 'lib', 'reading.mjs')), 'lib/marker-judge.mjs': fileSha(join(__dir, 'lib', 'marker-judge.mjs')), 'lib/marker-bundle.mjs': fileSha(join(__dir, 'lib', 'marker-bundle.mjs')), 'lib/marker-mode.mjs': fileSha(join(__dir, 'lib', 'marker-mode.mjs')) }, git_head: HARNESS_VERSION.split('+')[1] },
     marker: { marker_id: MK.marker_id, kind: 'synthetic', expected_digest: sealed.digest, commitment_file: MK.commitment_file, commitment_commit: sealed.commitSha, commitment_remote_branches: sealed.remoteBranches, sealed_at: sealed.sealedAt, expires_at: sealed.expiresAt, expired_at_run: sealed.expired, sealed_key_kind: sealed.keyKind ?? null, ground_truth_consistent: gtConsistent, sealed_company_visible_to_token: truth ? truth.sealedIsOwn : null, companies_visible_to_token: truth ? truth.ownIds.length : null, sealed_company_was_current_at_start: truth ? !truth.needSwitch : null },
-    environment: { freee_mcp_version: mcpVersion, tool_schema_sha256: sha256(JSON.stringify(tools.map((t) => ({ name: t.name, inputSchema: t.inputSchema })))), node: process.version, dry_run: DRY, arm_trap: ARM_TRAP, max_readings: MAX_READINGS, allow_expired: ALLOW_EXPIRED },
+    environment: { freee_mcp_version: mcpVersion, tool_schema_sha256: sha256(JSON.stringify(tools.map((t) => ({ name: t.name, inputSchema: t.inputSchema })))), node: process.version, mcp_command: MCP_COMMAND, executor: EXECUTOR, dry_run: DRY, arm_trap: ARM_TRAP, max_readings: MAX_READINGS, allow_expired: ALLOW_EXPIRED },
     models: Object.fromEntries(runRows.map((r) => [r.provider, r.model])),
     note: 'goal-prompt-only; sealed file and scripted steps never shown to the model; R0 tool allowlist + pack-derived least-privilege guard (permitted paths, own companies only); judgement is rule-based against the harness direct read and the sealed expectation; tenant identifiers, counts and amounts withheld from every committed file (raw values only in transcript.jsonl, which is git-ignored)',
     files: [],

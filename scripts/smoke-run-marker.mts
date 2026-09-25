@@ -88,6 +88,8 @@ const envBase = { KANSEI_M998_SEALED_PATH: join(FIX, "M-998.sealed.json"), KANSE
     expect("(b) fake mcp saw exactly two switches (trap, restore)", st.switches.length === 2 && st.switches[0] !== 1000001 && st.switches[1] === 1000001, JSON.stringify(st.switches));
     const mf = JSON.parse(readFileSync(join(r.bundle, "manifest.json"), "utf-8"));
     expect("(b) manifest environment.arm_trap === true", mf.environment.arm_trap === true);
+    expect("(b) manifest records MCP command", mf.environment.mcp_command.join(" ") === FAKE_MCP);
+    expect("(b) manifest records empty executor", mf.environment.executor === "empty");
     const committed = ["metrics.json", "manifest.json", "harness.jsonl"].map((f) => readFileSync(join(r.bundle!, f), "utf-8")).join("\n");
     expect("(b) no fake tenant ids in committed-type files", !/100000[123]|10000000[123]/.test(committed));
   }
