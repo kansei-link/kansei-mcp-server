@@ -119,9 +119,12 @@ export function classifyReliabilitySource(
   const liveAgentHashes = new Set<string>();
 
   for (const r of rows) {
+    // Sealed markers and other synthetic observations are a separate instrument,
+    // not live reports or estimates of service reliability.
+    if (r.provenance === "synthetic") continue;
     // A null hash should never occur (column defaults to 'anonymous'), but if
     // it did we err on the side of NOT counting it as a trustworthy live agent.
-    if (r.provenance === "synthetic" || r.provenance === "legacy_unknown" || r.provenance === "public" || r.provenance === "vendor_reported" || r.provenance === "kansei_probe" || r.hash == null || synthetic.has(r.hash)) {
+    if (r.provenance === "legacy_unknown" || r.provenance === "public" || r.provenance === "vendor_reported" || r.provenance === "kansei_probe" || r.hash == null || synthetic.has(r.hash)) {
       estimated_reports += r.n;
     } else {
       live_reports += r.n;

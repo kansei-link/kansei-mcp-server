@@ -61,7 +61,7 @@ export function parseDbTime(s: string | null | undefined): Date | null {
 }
 
 function hoursBetween(a: Date, b: Date): number {
-  return Math.round(((b.getTime() - a.getTime()) / 3_600_000) * 10) / 10;
+  return (b.getTime() - a.getTime()) / 3_600_000;
 }
 
 function tableExists(db: Database.Database, name: string): boolean {
@@ -128,8 +128,9 @@ export function computeSelfPulse(db: Database.Database, opts: SelfPulseOptions =
       const fin = parseDbTime(lastOk.finished_at);
       crawler.last_success_finished_at = lastOk.finished_at;
       if (fin) {
-        crawler.hours_since_last_success = hoursBetween(fin, now);
-        crawler.within_baseline = crawler.hours_since_last_success <= crawlerMax;
+        const age = hoursBetween(fin, now);
+        crawler.hours_since_last_success = Math.round(age * 10) / 10;
+        crawler.within_baseline = age <= crawlerMax;
       }
     } else if (crawler.table_present) {
       crawler.within_baseline = null;
@@ -163,13 +164,14 @@ export function computeSelfPulse(db: Database.Database, opts: SelfPulseOptions =
       if (!t) {
         marker.reason = "observed_at unreadable";
       } else {
-        marker.hours_since_last_observation = hoursBetween(t, now);
-        if (marker.hours_since_last_observation <= markerMax) {
+        const age = hoursBetween(t, now);
+        marker.hours_since_last_observation = Math.round(age * 10) / 10;
+        if (age <= markerMax) {
           marker.display_status = "fresh";
-          marker.reason = `last reading ${marker.hours_since_last_observation}h ago (<= ${markerMax}h)`;
+          marker.reason = `last reading ${age}h ago (<= ${markerMax}h)`;
         } else {
           marker.display_status = "unknown";
-          marker.reason = `last reading ${marker.hours_since_last_observation}h ago (> ${markerMax}h): no reading came back`;
+          marker.reason = `last reading ${age}h ago (> ${markerMax}h): no reading came back`;
         }
       }
     }

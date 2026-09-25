@@ -125,5 +125,22 @@ expect("parseDbTime: iso offset", parseDbTime("2026-09-24T12:00:00+09:00")?.toIS
   expect("marker 2h: hours 2", p.marker.hours_since_last_observation, 2);
 }
 
+// Compare unrounded ages: even one millisecond beyond a boundary is stale.
+for (const over of [0, 1]) {
+  const db = freshDb();
+  const crawlerTime = new Date(NOW.getTime() - 30 * 3_600_000 - over).toISOString();
+  const markerTime = new Date(NOW.getTime() - 24 * 3_600_000 - over).toISOString();
+  db.prepare("INSERT INTO crawl_runs(started_at,finished_at,status) VALUES(?,?,'success')").run(crawlerTime, crawlerTime);
+  db.prepare("INSERT INTO crawl_runs(started_at,status) VALUES(?,'running')").run(crawlerTime);
+  db.prepare(`INSERT INTO marker_readings(reading_id,claim,marker_id,expected_digest,target_json,stage_reached,stage_stopped,observed_json,evidence_ref,observer,kind,observed_at)
+    VALUES('boundary','boundary test','M-001',?,'{}','done',NULL,'{}','test','kansei_harness@smoke','synthetic',?)`).run('a'.repeat(64), markerTime);
+  const p = computeSelfPulse(db, { now: NOW });
+  expect(`crawler 30h + ${over}ms`, p.crawler.display_status, over ? 'unknown' : 'running');
+  expect(`success baseline 30h + ${over}ms`, p.crawler.within_baseline, !over);
+  expect(`marker 24h + ${over}ms`, p.marker.display_status, over ? 'unknown' : 'fresh');
+  expect(`boundary rows untouched +${over}ms`, db.prepare("SELECT status FROM crawl_runs ORDER BY id DESC LIMIT 1").pluck().get(), 'running');
+  db.close();
+}
+
 console.log(failures === 0 ? "\nself-pulse smoke: ALL PASS" : `\nself-pulse smoke: ${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

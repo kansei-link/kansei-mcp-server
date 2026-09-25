@@ -1,0 +1,24 @@
+#!/usr/bin/env tsx
+import assert from 'node:assert/strict';
+import Database from 'better-sqlite3';
+import { initializeDb } from '../src/db/schema.js';
+import { classifyReliabilitySource } from '../src/utils/reliability-source.js';
+const db = new Database(':memory:'); initializeDb(db);
+db.exec("INSERT INTO services(id,name,category) VALUES('freee','freee','accounting')");
+const insert = db.prepare("INSERT INTO outcomes(service_id,agent_id_hash,success,provenance,verification_status,model_name,task_type) VALUES('freee',?,?,?,'assertion_verified','audit-model','marker:M-001')");
+const empty = classifyReliabilitySource(db, 'freee');
+for (let i = 0; i < 7; i++) insert.run('kansei-marker-harness', 1, 'synthetic');
+assert.deepEqual(classifyReliabilitySource(db, 'freee'), empty);
+assert.equal(db.prepare("SELECT COUNT(*) FROM publishable_outcomes").pluck().get(), 0);
+assert.equal(db.prepare("SELECT COUNT(*) FROM publishable_service_stats").pluck().get(), 0);
+console.log('PASS synthetic-only: no reliability estimates, live reports or public rows');
+for (let i = 0; i < 5; i++) insert.run('real-agent', 0, 'kansei_measured');
+insert.run('legacy-agent', 1, 'legacy_unknown');
+const before = classifyReliabilitySource(db, 'freee');
+insert.run('another-marker', 1, 'synthetic');
+assert.deepEqual(classifyReliabilitySource(db, 'freee'), before);
+assert.equal(before.live_reports, 5); assert.equal(before.estimated_reports, 1);
+assert.equal(before.public_reports, 5); assert.equal(before.public_success_rate, 0);
+assert.equal(before.public_verified, true);
+console.log('PASS mixed data: synthetic changes no reliability field; legitimate estimate preserved');
+db.close(); console.log('marker-quarantine smoke: ALL PASS');
