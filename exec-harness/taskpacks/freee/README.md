@@ -33,4 +33,9 @@ Level 1測定基盤のfreee会計Adapter。最初はR0（read-only）のScripted
 - 実行: `node exec-harness/run-marker.mjs taskpacks/freee/freee-accounting-m001-monthly-deal-count.v1.json --models claude --runs 1`。読みの一行は `marker_readings`（`exec-harness/schemas/marker_readings.sql`・追記のみ）と `evidence/freee/<日付>/marker-m001/<時刻>/` に残る。形式は `docs/READING-PREDICATE-v1.md`。
 - 公開統計との隔離: outcomes 行は `provenance='synthetic'`。`publishable_outcomes` には入らない（実行のたびに件数 0 を自己確認し、0 でなければ exit 1）。
 - 0.3.0: MCP上書き・empty executor・fixtureは非dry-runを拒否する。各run前に七行の残り枠を確認する。初日の訂正は `--supersedes <旧agent行ID> --supersedes-ground-truth <旧直接読み行ID>` を付けて1回だけ実行し、旧行は保持する。metricsは不変で、manifestの指紋から完全なreadingを復元できる（形式・スモークは述語文書 §4）。
+- 0.3.1: preflight は ok と版だけを記録し、認証出力の先頭は保存しない。可視事業所数・封印事業所の可視性・開始時の選択状態は `environment.private.json`（git 外）へ移し、manifest.files には sha256 と committed=false だけを載せる。私的側車には推測照合を防ぐランダム nonce を含む。公開 harness ログからも件数・候補数・生エラー文を除く。生成時の秘匿検査と `scripts/smoke-marker-published.mts <ref> <bundle> --private-environment` を公開前に実行する。
+
+### 1e. 初日の bundle に関する追記
+
+初日（2026-09-24）の bundle に認証出力の先頭160字と可視事業所数が入った。以後、運用情報は私的側車 `environment.private.json` へ移し、preflight の生出力は記録しない。初日の bundle は証拠の履歴として削除・改変しない。公開する新規 bundle は `manifest.json`・`metrics.json`・`harness.jsonl` に限定し、私的側車と transcript は公開しない。
 - Rekor / OpenTimestamps への刻印（任意・未実施）: `evidence/commitments/M-001.sha256` を対象に `rekor-cli upload --artifact evidence/commitments/M-001.sha256 --signature <sig> --public-key <pub>`（要 cosign 鍵）、または `ots stamp evidence/commitments/M-001.sha256` → 生成される `.ots` をコミット。どちらも GitHub の公開コミットとは独立した第三者の時刻証明になる。実施は Michie 判断。

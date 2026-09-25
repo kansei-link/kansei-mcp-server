@@ -23,7 +23,7 @@
  */
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
@@ -35,7 +35,7 @@ import { effectiveAgentCount, hasReadingCapacity, validateSupersedes } from './l
 import { LOOPS } from './lib/provider-loops.mjs';
 import { newUlid, validateReading, loadReadingSchema, isoWithOffset, sqliteUtc } from './lib/reading.mjs';
 
-const VERSION = '0.3.0';
+const VERSION = '0.3.1';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');                 // repo root (worktree)
 const KANSEI_ROOT = join(ROOT, '..');           // C:\Users\HP\KanseiLINK — founder-ops lives here, outside the repo
@@ -283,7 +283,8 @@ async function main() {
 
   const readings = [];
   const runRows = [];
-  let truth = null, instrumentBefore = null, preflightOutputs = [], mcpVersion = null, gtConsistent = null;
+  let truth = null, instrumentBefore = null, mcpVersion = null, gtConsistent = null;
+  const privateEnvironment = { nonce: randomBytes(32).toString('hex'), diagnostics: [] };
 
   // Restore freee-mcp's persisted current company to what it was before this process
   // touched it. Called in every `finally` (per run and at process end); never throws.
@@ -294,32 +295,44 @@ async function main() {
       const back = await callToolRaw('freee_set_current_company', { company_id: String(truth.currentId) });
       harnessLog({ event: 'restore_current_company', where, changed: true, ok: isSwitchOk(back) });
       if (!isSwitchOk(back)) console.error(`[warn] could not restore the original current company (${where}) — check freee-mcp config`);
-    } catch (e) { harnessLog({ event: 'restore_current_company', where, ok: false, note: String(e.message).slice(0, 80) }); }
+    } catch (e) {
+      privateEnvironment.diagnostics.push({ event: 'restore_current_company', where, message: String(e.message) });
+      harnessLog({ event: 'restore_current_company', where, ok: false });
+    }
   };
 
   try {
-  if (!allTools.length) { instrumentBefore = 'mcp_process'; harnessLog({ event: 'mcp_tools_list_empty', stderr_head: mcp.stderr.slice(0, 300) }); }
+  if (!allTools.length) {
+    instrumentBefore = 'mcp_process';
+    privateEnvironment.diagnostics.push({ event: 'mcp_tools_list_empty', stderr: mcp.stderr });
+    harnessLog({ event: 'mcp_tools_list_empty', ok: false });
+  }
   else {
     console.log(`tools exposed to agent (R0 allowlist): ${tools.map((t) => t.name).join(', ')}`);
     for (const pf of PACK.preflight || []) {
       const out = await callToolRaw(pf.tool, {});
-      preflightOutputs.push(out);
       const bad = /"error"/.test(out) || (pf.tool === 'freee_auth_status' && /not authenticated|未認証|expired/i.test(out) && !/authenticated[^a-z]*(true|yes|済)/i.test(out));
-      harnessLog({ event: 'preflight', tool: pf.tool, ok: !bad, head: out.slice(0, 160) });
-      console.log(`preflight ${pf.tool}: ${out.slice(0, 100).replace(/\n/g, ' ')}`);
+      const version = pf.tool === 'freee_server_info' ? (out.match(/\bversion\s*[:=]?\s*(\d+\.\d+\.\d+)\b/i)?.[1] ?? null) : null;
+      if (version) mcpVersion = version;
+      harnessLog({ event: 'preflight', tool: pf.tool, ok: !bad, version });
+      console.log(`preflight ${pf.tool}: ok=${!bad} version=${version ?? 'unknown'}`);
       if (bad) { instrumentBefore = 'mcp_process'; break; }
     }
-    mcpVersion = (preflightOutputs.join(' ').match(/version[:\s]+([\d.]+)/i) || [])[1] || null;
     if (!instrumentBefore) {
       try { truth = await fetchGroundTruth(callToolRaw, sealed, harnessLog); }
-      catch (e) { instrumentBefore = 'other'; harnessLog({ event: 'ground_truth_failed', message: String(e.message).slice(0, 200) }); console.error(`ground truth failed: ${e.message}`); }
+      catch (e) {
+        instrumentBefore = 'other';
+        privateEnvironment.diagnostics.push({ event: 'ground_truth_failed', message: String(e.message) });
+        harnessLog({ event: 'ground_truth_failed', ok: false });
+        console.error('ground truth failed (details in private sidecar)');
+      }
     }
   }
 
   gtConsistent = truth ? truth.harnessCount === sealed.expectedCount : null;
   if (truth) {
-    console.log(`ground truth: companies visible=${truth.ownIds.length}, sealed company visible=${truth.sealedIsOwn}, harness count vs sealed expectation: ${gtConsistent ? 'EQUAL' : 'DIFFERENT'}`);
-    harnessLog({ event: 'ground_truth', companies_visible: truth.ownIds.length, sealed_is_own: truth.sealedIsOwn, consistent: gtConsistent });
+    console.log(`ground truth: harness count vs sealed expectation: ${gtConsistent ? 'EQUAL' : 'DIFFERENT'}`);
+    harnessLog({ event: 'ground_truth', consistent: gtConsistent });
     if (!gtConsistent || SUPERSEDES_GT) {
       // separate row: the sealed expectation and the harness direct read disagree (docs §3)
       readings.push({
@@ -368,14 +381,15 @@ async function main() {
   const armTrap = async () => {
     let trapArmed = false, agentStartId = truth?.currentId ?? null;
     if (ARM_TRAP && truth && !instrumentBefore) {
-      if (truth.currentId !== sealed.realCompanyId) { trapArmed = true; harnessLog({ event: 'trap_armed', ok: true, how: 'environment_already_on_another_company' }); }
+      if (truth.currentId !== sealed.realCompanyId) { trapArmed = true; harnessLog({ event: 'trap_armed', ok: true }); }
       else if (truth.trapCandidates.length) {
         const pick = truth.trapCandidates[Math.floor(Math.random() * truth.trapCandidates.length)];
         const sw = await callToolRaw('freee_set_current_company', { company_id: String(pick) });
         trapArmed = isSwitchOk(sw);
         if (trapArmed) agentStartId = pick;
-        harnessLog({ event: 'trap_armed', ok: trapArmed, how: 'harness_switched_to_random_test_company', candidates: truth.trapCandidates.length });
-      } else harnessLog({ event: 'trap_armed', ok: false, how: 'no_candidate_company' });
+        privateEnvironment.trap_candidates = truth.trapCandidates.length;
+        harnessLog({ event: 'trap_armed', ok: trapArmed });
+      } else harnessLog({ event: 'trap_armed', ok: false });
     }
     return { trapArmed, agentStartId };
   };
@@ -452,13 +466,19 @@ async function main() {
   }
 
   // ---- manifest (no tenant values) ----
-  const files = ['metrics.json', 'harness.jsonl'];
+  Object.assign(privateEnvironment, {
+    companies_visible_to_token: truth ? truth.ownIds.length : null,
+    sealed_company_visible_to_token: truth ? truth.sealedIsOwn : null,
+    sealed_company_was_current_at_start: truth ? !truth.needSwitch : null,
+  });
+  writeFileSync(join(bundleDir, 'environment.private.json'), JSON.stringify(privateEnvironment, null, 1));
+  const files = ['metrics.json', 'harness.jsonl', 'environment.private.json'];
   for (const p of MODELS) for (let n = 1; n <= RUNS; n++) { const f = `${p}-n${n}/transcript.jsonl`; if (existsSync(join(bundleDir, f))) files.push(f); }
   const manifest = {
     bundle: `marker-${MK.marker_id}`, generated_at_utc: new Date().toISOString(), generated_at_local: isoWithOffset(new Date()),
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },
     executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(fileURLToPath(import.meta.url)), libs: { 'lib/mcp-client.mjs': fileSha(join(__dir, 'lib', 'mcp-client.mjs')), 'lib/provider-loops.mjs': fileSha(join(__dir, 'lib', 'provider-loops.mjs')), 'lib/reading.mjs': fileSha(join(__dir, 'lib', 'reading.mjs')), 'lib/marker-judge.mjs': fileSha(join(__dir, 'lib', 'marker-judge.mjs')), 'lib/marker-bundle.mjs': fileSha(join(__dir, 'lib', 'marker-bundle.mjs')), 'lib/marker-mode.mjs': fileSha(join(__dir, 'lib', 'marker-mode.mjs')), 'lib/marker-store.mjs': fileSha(join(__dir, 'lib', 'marker-store.mjs')) }, git_head: HARNESS_VERSION.split('+')[1] },
-    marker: { marker_id: MK.marker_id, kind: 'synthetic', expected_digest: sealed.digest, commitment_file: MK.commitment_file, commitment_commit: sealed.commitSha, commitment_remote_branches: sealed.remoteBranches, sealed_at: sealed.sealedAt, expires_at: sealed.expiresAt, expired_at_run: sealed.expired, sealed_key_kind: sealed.keyKind ?? null, ground_truth_consistent: gtConsistent, sealed_company_visible_to_token: truth ? truth.sealedIsOwn : null, companies_visible_to_token: truth ? truth.ownIds.length : null, sealed_company_was_current_at_start: truth ? !truth.needSwitch : null },
+    marker: { marker_id: MK.marker_id, kind: 'synthetic', expected_digest: sealed.digest, commitment_file: MK.commitment_file, commitment_commit: sealed.commitSha, commitment_remote_branches: sealed.remoteBranches, sealed_at: sealed.sealedAt, expires_at: sealed.expiresAt, expired_at_run: sealed.expired, sealed_key_kind: sealed.keyKind ?? null, ground_truth_consistent: gtConsistent },
     environment: { freee_mcp_version: mcpVersion, tool_schema_sha256: sha256(JSON.stringify(tools.map((t) => ({ name: t.name, inputSchema: t.inputSchema })))), node: process.version, mcp_command: MCP_COMMAND, executor: EXECUTOR, dry_run: DRY, arm_trap: ARM_TRAP, max_readings: MAX_READINGS, allow_expired: ALLOW_EXPIRED },
     models: Object.fromEntries(runRows.map((r) => [r.provider, r.model])),
     note: 'goal-prompt-only; sealed file and scripted steps never shown to the model; R0 tool allowlist + pack-derived least-privilege guard (permitted paths, own companies only); judgement is rule-based against the harness direct read and the sealed expectation; tenant identifiers, counts and amounts withheld from every committed file (raw values only in transcript.jsonl, which is git-ignored)',

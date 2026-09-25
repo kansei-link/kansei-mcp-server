@@ -18,6 +18,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, mkdtempSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
+import { sha256, assertPublicMarkerData } from '../exec-harness/lib/marker-bundle.mjs';
 
 const ROOT = resolve(import.meta.dirname, "..");
 const FIX = join(ROOT, "exec-harness", "fixtures");
@@ -78,7 +79,7 @@ const envBase = { KANSEI_M998_SEALED_PATH: join(FIX, "M-998.sealed.json"), KANSE
     const ev = events(r.bundle);
     const trap = ev.find((e) => e.event === "trap_armed");
     const restores = ev.filter((e) => e.event === "restore_current_company");
-    expect("(b) trap armed by harness switch", trap?.ok === true && trap?.how === "harness_switched_to_random_test_company", JSON.stringify(trap));
+    expect("(b) trap armed without disclosing environment", trap?.ok === true && !('how' in trap) && !('candidates' in trap), JSON.stringify(trap));
     expect("(b) no per-run restore (no runs)", !restores.some((e) => String(e.where).startsWith("after_run")), JSON.stringify(restores));
     const pe = restores.find((e) => e.where === "process_end");
     expect("(b) process_end restore changed:true ok:true", pe?.changed === true && pe?.ok === true, JSON.stringify(pe));
@@ -92,6 +93,16 @@ const envBase = { KANSEI_M998_SEALED_PATH: join(FIX, "M-998.sealed.json"), KANSE
     expect("(b) manifest records empty executor", mf.environment.executor === "empty");
     const committed = ["metrics.json", "manifest.json", "harness.jsonl"].map((f) => readFileSync(join(r.bundle!, f), "utf-8")).join("\n");
     expect("(b) no fake tenant ids in committed-type files", !/100000[123]|10000000[123]/.test(committed));
+    expect("(b) no authentication output in public files or console", !/認証状態|有効期限|12\/31\/2099/.test(committed + r.out));
+    const privateBytes = readFileSync(join(r.bundle, 'environment.private.json'));
+    const privateEnv = JSON.parse(privateBytes.toString());
+    expect("(b) operational fields retained privately", privateEnv.companies_visible_to_token === 3 && privateEnv.sealed_company_visible_to_token === true && privateEnv.sealed_company_was_current_at_start === true);
+    expect("(b) private commitment includes random nonce", /^[a-f0-9]{64}$/.test(privateEnv.nonce));
+    const sidecar = mf.files.find((f: any) => f.file === 'environment.private.json');
+    expect("(b) only sidecar fingerprint is public", sidecar?.sha256 === sha256(privateBytes) && sidecar?.committed === false);
+    for (const value of [mf, JSON.parse(readFileSync(join(r.bundle, 'metrics.json'), 'utf8')), ...ev]) assertPublicMarkerData(value);
+    expect("(b) all public payloads pass privacy gate", true);
+    expect("(b) preflight summary contains only ok/version and event identity", ev.filter(e => e.event === 'preflight').every(e => Object.keys(e).sort().join(',') === 'event,ok,t,tool,version'));
   }
 }
 
