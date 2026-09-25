@@ -1,0 +1,31 @@
+#!/usr/bin/env tsx
+import assert from 'node:assert/strict';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { writeMarkerBundle, sha256 } from '../exec-harness/lib/marker-bundle.mjs';
+import { newUlid, validateReading } from '../exec-harness/lib/reading.mjs';
+const root = mkdtempSync(join(tmpdir(), 'marker-bundle-'));
+const rel = 'evidence/freee/test/marker-test';
+const dir = join(root, rel); mkdirSync(dir, { recursive: true });
+const reading = { reading_id: newUlid(), claim: 'audit fixture observation', marker_id: 'M-998', expected_digest: 'a'.repeat(64), target: { service_id: 'freee', model: 'none', harness_version: 'smoke' }, stage_reached: 'discover', stage_stopped: 'discover', observed: { pass: false, method: 'harness_direct_api_vs_sealed_expectation' }, evidence_ref: '', observer: 'kansei_harness@smoke', kind: 'synthetic', observed_at: new Date().toISOString(), supersedes: null };
+const digest = writeMarkerBundle({ bundleDir: dir, bundleRel: rel, metrics: { fixture: true }, manifest: { files: [] }, files: ['metrics.json'], readings: [reading] });
+const bytes = readFileSync(join(dir, 'metrics.json'));
+const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
+assert.equal(manifest.files[0].sha256, sha256(bytes));
+assert.equal(reading.evidence_ref, `${rel}#sha256:${digest}`);
+assert.deepEqual(validateReading(reading), []);
+assert.equal('evidence_ref' in JSON.parse(bytes.toString()).readings[0], false);
+console.log('PASS immutable metrics and complete reading have no hash cycle');
+// Verify the exact repository attributes in a disposable Git index, including autocrlf.
+writeFileSync(join(root, '.gitattributes'), readFileSync(resolve(import.meta.dirname, '../.gitattributes')));
+const git = (...args: string[]) => execFileSync('git', ['-c', 'core.autocrlf=true', ...args], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
+git('init'); git('add', '.gitattributes', rel);
+const blob = (file: string) => git('show', `:${rel}/${file}`);
+const gitManifest = JSON.parse(blob('manifest.json').toString());
+assert.equal(sha256(blob('manifest.json')), digest);
+assert.equal(gitManifest.files[0].sha256, sha256(blob('metrics.json')));
+assert.deepEqual(blob('metrics.json'), bytes);
+console.log('PASS Git blobs verify with core.autocrlf=true');
+console.log('marker-bundle smoke: ALL PASS');

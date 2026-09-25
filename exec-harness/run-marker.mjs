@@ -29,6 +29,7 @@ import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { McpClient, textOf, extractJson } from './lib/mcp-client.mjs';
 import { judge, isErrorResult, isSwitchOk } from './lib/marker-judge.mjs';
+import { writeMarkerBundle } from './lib/marker-bundle.mjs';
 import { LOOPS } from './lib/provider-loops.mjs';
 import { newUlid, validateReading, loadReadingSchema, isoWithOffset, sqliteUtc } from './lib/reading.mjs';
 
@@ -442,21 +443,17 @@ async function main() {
   const manifest = {
     bundle: `marker-${MK.marker_id}`, generated_at_utc: new Date().toISOString(), generated_at_local: isoWithOffset(new Date()),
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },
-    executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(fileURLToPath(import.meta.url)), libs: { 'lib/mcp-client.mjs': fileSha(join(__dir, 'lib', 'mcp-client.mjs')), 'lib/provider-loops.mjs': fileSha(join(__dir, 'lib', 'provider-loops.mjs')), 'lib/reading.mjs': fileSha(join(__dir, 'lib', 'reading.mjs')) }, git_head: HARNESS_VERSION.split('+')[1] },
+    executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(fileURLToPath(import.meta.url)), libs: { 'lib/mcp-client.mjs': fileSha(join(__dir, 'lib', 'mcp-client.mjs')), 'lib/provider-loops.mjs': fileSha(join(__dir, 'lib', 'provider-loops.mjs')), 'lib/reading.mjs': fileSha(join(__dir, 'lib', 'reading.mjs')), 'lib/marker-judge.mjs': fileSha(join(__dir, 'lib', 'marker-judge.mjs')), 'lib/marker-bundle.mjs': fileSha(join(__dir, 'lib', 'marker-bundle.mjs')) }, git_head: HARNESS_VERSION.split('+')[1] },
     marker: { marker_id: MK.marker_id, kind: 'synthetic', expected_digest: sealed.digest, commitment_file: MK.commitment_file, commitment_commit: sealed.commitSha, commitment_remote_branches: sealed.remoteBranches, sealed_at: sealed.sealedAt, expires_at: sealed.expiresAt, expired_at_run: sealed.expired, sealed_key_kind: sealed.keyKind ?? null, ground_truth_consistent: gtConsistent, sealed_company_visible_to_token: truth ? truth.sealedIsOwn : null, companies_visible_to_token: truth ? truth.ownIds.length : null, sealed_company_was_current_at_start: truth ? !truth.needSwitch : null },
     environment: { freee_mcp_version: mcpVersion, tool_schema_sha256: sha256(JSON.stringify(tools.map((t) => ({ name: t.name, inputSchema: t.inputSchema })))), node: process.version, dry_run: DRY, arm_trap: ARM_TRAP, max_readings: MAX_READINGS, allow_expired: ALLOW_EXPIRED },
     models: Object.fromEntries(runRows.map((r) => [r.provider, r.model])),
     note: 'goal-prompt-only; sealed file and scripted steps never shown to the model; R0 tool allowlist + pack-derived least-privilege guard (permitted paths, own companies only); judgement is rule-based against the harness direct read and the sealed expectation; tenant identifiers, counts and amounts withheld from every committed file (raw values only in transcript.jsonl, which is git-ignored)',
     files: [],
   };
-  // metrics first (readings without evidence digest), then manifest digest, then patch evidence_ref
-  const writeMetrics = () => writeFileSync(join(bundleDir, 'metrics.json'), JSON.stringify({ pack: PACK.id, pack_version: PACK.version, marker_id: MK.marker_id, kind: 'synthetic', date: stamp, lang: LANG, dry_run: DRY, runs: runRows, readings: readings.map(({ _outcome, ...r }) => r) }, null, 1));
-  writeMetrics();
-  manifest.files = files.map((f) => ({ file: f, sha256: existsSync(join(bundleDir, f)) ? fileSha(join(bundleDir, f)) : null, committed: !f.endsWith('transcript.jsonl') }));
-  writeFileSync(join(bundleDir, 'manifest.json'), JSON.stringify(manifest, null, 1));
-  const manifestSha = fileSha(join(bundleDir, 'manifest.json'));
-  for (const r of readings) r.evidence_ref = `${bundleRel}#sha256:${manifestSha}`;
-  writeMetrics();
+  const manifestSha = writeMarkerBundle({
+    bundleDir, bundleRel, manifest, files, readings,
+    metrics: { pack: PACK.id, pack_version: PACK.version, marker_id: MK.marker_id, kind: 'synthetic', date: stamp, lang: LANG, dry_run: DRY, runs: runRows },
+  });
 
   // ---- validate every reading against the schema before anything is stored ----
   for (const r of readings) {
