@@ -78,4 +78,3 @@ export function judge({ finalText, callLog, error, budgetExceeded, truth, sealed
   }
   return { reached, stopped, pass: pass && !error, checks, falseCompletion, instrument };
 }
-
