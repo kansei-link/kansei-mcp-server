@@ -31,10 +31,11 @@ import { McpClient, textOf, extractJson } from './lib/mcp-client.mjs';
 import { judge, isErrorResult, isSwitchOk } from './lib/marker-judge.mjs';
 import { writeMarkerBundle } from './lib/marker-bundle.mjs';
 import { testOnlyReasons } from './lib/marker-mode.mjs';
+import { effectiveAgentCount, hasReadingCapacity, validateSupersedes } from './lib/marker-store.mjs';
 import { LOOPS } from './lib/provider-loops.mjs';
 import { newUlid, validateReading, loadReadingSchema, isoWithOffset, sqliteUtc } from './lib/reading.mjs';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');                 // repo root (worktree)
 const KANSEI_ROOT = join(ROOT, '..');           // C:\Users\HP\KanseiLINK — founder-ops lives here, outside the repo
@@ -65,6 +66,8 @@ const EXECUTOR = flag('executor', 'agent');
 
 // past expires_at the run stops by default (contents may be disclosed); --allow-expired overrides.
 const ALLOW_EXPIRED = args.includes('--allow-expired');
+const SUPERSEDES = flag('supersedes', null);
+const SUPERSEDES_GT = flag('supersedes-ground-truth', null);
 
 // ---- .env (repo root, git-ignored) ----
 if (existsSync(join(ROOT, '.env'))) {
@@ -86,6 +89,8 @@ const modeReasons = testOnlyReasons({ args, env: process.env, executor: EXECUTOR
 if (!['agent', 'empty'].includes(EXECUTOR)) { console.error('invalid executor'); process.exit(2); }
 if (!DRY && modeReasons.length) { console.error('test-only execution requires --dry-run: ' + modeReasons.join(', ')); process.exit(5); }
 const MAX_READINGS = Number(MAX_READINGS_FLAG ?? MK.max_readings ?? 7);
+if (!Number.isInteger(MAX_READINGS) || MAX_READINGS < 0 || !Number.isInteger(RUNS) || RUNS < 1) { console.error('max-readings must be a nonnegative integer; runs must be a positive integer'); process.exit(2); }
+if ((SUPERSEDES || SUPERSEDES_GT) && (DRY || RUNS !== 1 || MODELS.length !== 1 || !LOOPS[MODELS[0]])) { console.error('supersedes requires exactly one non-dry agent run'); process.exit(2); }
 const HARNESS_VERSION = (() => { let g = '0000000'; try { g = execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim(); } catch { /* not a repo */ } return `run-marker@${VERSION}+${g}`; })();
 const OBSERVER = `kansei_harness@run-marker@${VERSION}`;
 
@@ -156,17 +161,15 @@ function openDb() {
   const dbPath = flag('db', process.env.KANSEI_DB_PATH);
   if (!dbPath) { console.error('KANSEI_DB_PATH is required (dedicated marker DB); refusing to guess'); process.exit(2); }
   if (!existsSync(dbPath)) { console.error(`DB not found: ${dbPath}\n  run:  npx tsx scripts/init-marker-db.mts`); process.exit(2); }
-  const db = new Database(dbPath);
-  db.pragma('journal_mode = WAL'); db.pragma('foreign_keys = ON');
+  const db = new Database(dbPath, { readonly: true });
   const has = (t) => !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(t);
   if (!has('outcomes') || !has('services')) { console.error('DB not initialised (outcomes/services missing). run: npx tsx scripts/init-marker-db.mts'); process.exit(2); }
   if (!db.prepare('SELECT 1 FROM services WHERE id=?').get(PACK.service_id)) { console.error(`service '${PACK.service_id}' missing from services; run scripts/init-marker-db.mts`); process.exit(2); }
-  db.exec(readFileSync(join(__dir, 'schemas', 'marker_readings.sql'), 'utf8'));
-  // --max-readings: count effective agent readings (outcome-backed, not superseded)
-  const have = db.prepare(`SELECT COUNT(*) AS n FROM marker_readings r
-     WHERE r.marker_id = ? AND r.outcome_id IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM marker_readings s WHERE s.supersedes = r.reading_id)`).get(MK.marker_id).n;
-  if (Number.isFinite(MAX_READINGS) && have >= MAX_READINGS) {
+  const subject = { markerId: MK.marker_id, digest: MK.expected_digest, serviceId: PACK.service_id };
+  validateSupersedes(db, SUPERSEDES, { ...subject, agent: true });
+  validateSupersedes(db, SUPERSEDES_GT, { ...subject, agent: false });
+  const have = effectiveAgentCount(db, MK.marker_id);
+  if (!hasReadingCapacity(db, MK.marker_id, MAX_READINGS, [], Boolean(SUPERSEDES))) {
     console.log(`marker ${MK.marker_id} already has ${have} effective reading(s) (max ${MAX_READINGS}); not running. Nothing written.`);
     db.close(); process.exit(0);
   }
@@ -255,13 +258,13 @@ async function main() {
 
   const sealed = loadSealed();
   console.log(`sealed digest ${sealed.digest.slice(0, 12)}… matches commitment; commitment commit ${sealed.commitSha ? sealed.commitSha.slice(0, 7) : 'none'} on ${sealed.remoteBranches.join(', ') || '(no remote branch)'}`);
-  const db = openDb();
+  let db = openDb();
   const schema = loadReadingSchema();
 
   // Evidence Bundle dir (one per invocation; several runs a day never overwrite each other)
   const stamp = t0.toISOString().slice(0, 10);
   const hhmmss = isoWithOffset(t0).slice(11, 19).replace(/:/g, '');
-  const bundleDir = join(ROOT, 'evidence', DRY ? '_dryrun' : PACK.service_id, stamp, `marker-${MK.marker_id.toLowerCase()}`, hhmmss);
+  const bundleDir = join(ROOT, 'evidence', DRY ? '_dryrun' : PACK.service_id, stamp, `marker-${MK.marker_id.toLowerCase()}`, `${hhmmss}-${newUlid()}`);
   mkdirSync(bundleDir, { recursive: true });
   const bundleRel = relative(ROOT, bundleDir).replaceAll('\\', '/');
   const harnessLog = (e) => appendFileSync(join(bundleDir, 'harness.jsonl'), JSON.stringify({ t: new Date().toISOString(), ...e }) + '\n');
@@ -317,14 +320,14 @@ async function main() {
   if (truth) {
     console.log(`ground truth: companies visible=${truth.ownIds.length}, sealed company visible=${truth.sealedIsOwn}, harness count vs sealed expectation: ${gtConsistent ? 'EQUAL' : 'DIFFERENT'}`);
     harnessLog({ event: 'ground_truth', companies_visible: truth.ownIds.length, sealed_is_own: truth.sealedIsOwn, consistent: gtConsistent });
-    if (!gtConsistent) {
+    if (!gtConsistent || SUPERSEDES_GT) {
       // separate row: the sealed expectation and the harness direct read disagree (docs §3)
       readings.push({
         reading_id: newUlid(), claim: 'sealed expectation matches harness direct API read for the sealed company and period', marker_id: MK.marker_id,
         expected_digest: sealed.digest, target: { service_id: PACK.service_id, model: 'none', harness_version: HARNESS_VERSION },
         stage_reached: 'done', stage_stopped: null,
-        observed: { pass: false, method: 'sealed_expectation_vs_harness_direct_api', checks: [{ label: 'harness_direct_count_equals_sealed_expectation', ok: false }], ground_truth_consistent: false, instrument_error: null },
-        evidence_ref: `${bundleRel}#sha256:PENDING`, observer: OBSERVER, kind: 'synthetic', observed_at: isoWithOffset(new Date()), supersedes: null, _outcome: null,
+        observed: { pass: gtConsistent, method: 'sealed_expectation_vs_harness_direct_api', checks: [{ label: 'harness_direct_count_equals_sealed_expectation', ok: gtConsistent }], ground_truth_consistent: gtConsistent, instrument_error: null },
+        evidence_ref: `${bundleRel}#sha256:PENDING`, observer: OBSERVER, kind: 'synthetic', observed_at: isoWithOffset(new Date()), supersedes: SUPERSEDES_GT, _outcome: null,
       });
     }
   }
@@ -385,10 +388,14 @@ async function main() {
     console.log(`executor=empty: no model run (trap_armed=${t.trapArmed})`);
   }
 
-  for (const providerName of (EXECUTOR === 'empty' ? [] : MODELS)) {
+  runs: for (const providerName of (EXECUTOR === 'empty' ? [] : MODELS)) {
     const loop = LOOPS[providerName];
     if (!loop) { console.log(`skip unknown model ${providerName}`); continue; }
     for (let n = 1; n <= RUNS; n++) {
+      if (!hasReadingCapacity(db, MK.marker_id, MAX_READINGS, readings, Boolean(SUPERSEDES))) {
+        console.log('max-readings reached; remaining runs skipped');
+        break runs;
+      }
       const runDir = join(bundleDir, `${providerName}-n${n}`);
       mkdirSync(runDir, { recursive: true });
       const transcriptPath = join(runDir, 'transcript.jsonl');
@@ -429,7 +436,7 @@ async function main() {
         target: { service_id: PACK.service_id, model: run.model || providerName, harness_version: HARNESS_VERSION },
         stage_reached: v.reached, stage_stopped: v.stopped,
         observed: { pass: v.pass, method: 'harness_direct_api_vs_sealed_expectation', checks: v.checks, false_completion: v.falseCompletion, ground_truth_consistent: gtConsistent, instrument_error: v.instrument, trap_armed: trapArmed },
-        evidence_ref: `${bundleRel}#sha256:PENDING`, observer: OBSERVER, kind: 'synthetic', observed_at: observedAt, supersedes: null,
+        evidence_ref: `${bundleRel}#sha256:PENDING`, observer: OBSERVER, kind: 'synthetic', observed_at: observedAt, supersedes: SUPERSEDES,
         _outcome: { success: v.pass ? 1 : 0, latency_ms: elapsed, error_type: v.instrument ? `instrument_${v.instrument}` : (v.stopped ? `stage_${v.stopped}` : null), model_name: run.model || providerName, failed_step: v.stopped, verification_status: v.instrument ? 'unverified' : 'assertion_verified', context_masked: `[marker ${MK.marker_id}] stage_reached=${v.reached} stage_stopped=${v.stopped ?? 'none'} false_completion=${v.falseCompletion}` },
       };
       readings.push(reading);
@@ -450,7 +457,7 @@ async function main() {
   const manifest = {
     bundle: `marker-${MK.marker_id}`, generated_at_utc: new Date().toISOString(), generated_at_local: isoWithOffset(new Date()),
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },
-    executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(fileURLToPath(import.meta.url)), libs: { 'lib/mcp-client.mjs': fileSha(join(__dir, 'lib', 'mcp-client.mjs')), 'lib/provider-loops.mjs': fileSha(join(__dir, 'lib', 'provider-loops.mjs')), 'lib/reading.mjs': fileSha(join(__dir, 'lib', 'reading.mjs')), 'lib/marker-judge.mjs': fileSha(join(__dir, 'lib', 'marker-judge.mjs')), 'lib/marker-bundle.mjs': fileSha(join(__dir, 'lib', 'marker-bundle.mjs')), 'lib/marker-mode.mjs': fileSha(join(__dir, 'lib', 'marker-mode.mjs')) }, git_head: HARNESS_VERSION.split('+')[1] },
+    executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(fileURLToPath(import.meta.url)), libs: { 'lib/mcp-client.mjs': fileSha(join(__dir, 'lib', 'mcp-client.mjs')), 'lib/provider-loops.mjs': fileSha(join(__dir, 'lib', 'provider-loops.mjs')), 'lib/reading.mjs': fileSha(join(__dir, 'lib', 'reading.mjs')), 'lib/marker-judge.mjs': fileSha(join(__dir, 'lib', 'marker-judge.mjs')), 'lib/marker-bundle.mjs': fileSha(join(__dir, 'lib', 'marker-bundle.mjs')), 'lib/marker-mode.mjs': fileSha(join(__dir, 'lib', 'marker-mode.mjs')), 'lib/marker-store.mjs': fileSha(join(__dir, 'lib', 'marker-store.mjs')) }, git_head: HARNESS_VERSION.split('+')[1] },
     marker: { marker_id: MK.marker_id, kind: 'synthetic', expected_digest: sealed.digest, commitment_file: MK.commitment_file, commitment_commit: sealed.commitSha, commitment_remote_branches: sealed.remoteBranches, sealed_at: sealed.sealedAt, expires_at: sealed.expiresAt, expired_at_run: sealed.expired, sealed_key_kind: sealed.keyKind ?? null, ground_truth_consistent: gtConsistent, sealed_company_visible_to_token: truth ? truth.sealedIsOwn : null, companies_visible_to_token: truth ? truth.ownIds.length : null, sealed_company_was_current_at_start: truth ? !truth.needSwitch : null },
     environment: { freee_mcp_version: mcpVersion, tool_schema_sha256: sha256(JSON.stringify(tools.map((t) => ({ name: t.name, inputSchema: t.inputSchema })))), node: process.version, mcp_command: MCP_COMMAND, executor: EXECUTOR, dry_run: DRY, arm_trap: ARM_TRAP, max_readings: MAX_READINGS, allow_expired: ALLOW_EXPIRED },
     models: Object.fromEntries(runRows.map((r) => [r.provider, r.model])),
@@ -471,12 +478,18 @@ async function main() {
 
   // ---- DB (append-only) ----
   if (db) {
+    const dbPath = db.name; db.close(); db = new Database(dbPath);
+    db.pragma('foreign_keys = ON');
+    db.exec(readFileSync(join(__dir, 'schemas', 'marker_readings.sql'), 'utf8'));
     const insOutcome = db.prepare(`INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, context_masked, provenance, verification_status, model_name, agent_type, task_type, failed_step, created_at)
       VALUES (?, 'kansei-marker-harness', ?, ?, ?, ?, 'synthetic', ?, ?, 'harness', ?, ?, ?)`);
     const insReading = db.prepare(`INSERT INTO marker_readings (reading_id, outcome_id, claim, marker_id, expected_digest, target_json, stage_reached, stage_stopped, observed_json, evidence_ref, observer, kind, observed_at, supersedes)
       VALUES (@reading_id, @outcome_id, @claim, @marker_id, @expected_digest, @target_json, @stage_reached, @stage_stopped, @observed_json, @evidence_ref, @observer, @kind, @observed_at, @supersedes)`);
     db.transaction(() => {
+      const additions = readings.filter((r) => r._outcome && !r.supersedes).length;
+      if (effectiveAgentCount(db, MK.marker_id) + additions > MAX_READINGS) throw new Error('max-readings changed concurrently; nothing appended');
       for (const r of readings) {
+        validateSupersedes(db, r.supersedes, { markerId: MK.marker_id, digest: sealed.digest, serviceId: PACK.service_id, agent: Boolean(r._outcome) });
         let outcomeId = null;
         if (r._outcome) {
           const o = r._outcome;
@@ -484,7 +497,7 @@ async function main() {
         }
         insReading.run({ reading_id: r.reading_id, outcome_id: outcomeId, claim: r.claim, marker_id: r.marker_id, expected_digest: r.expected_digest, target_json: JSON.stringify(r.target), stage_reached: r.stage_reached, stage_stopped: r.stage_stopped, observed_json: JSON.stringify(r.observed), evidence_ref: r.evidence_ref, observer: r.observer, kind: r.kind, observed_at: r.observed_at, supersedes: r.supersedes });
       }
-    })();
+    }).immediate();
     const leak = db.prepare(`SELECT COUNT(*) AS n FROM publishable_outcomes WHERE task_type = ?`).get(`marker:${MK.marker_id}`);
     console.log(`db: ${readings.length} reading(s) appended; publishable_outcomes rows for this marker = ${leak.n} (must be 0)`);
     if (leak.n !== 0) { console.error('QUARANTINE BREACH: synthetic marker rows visible in publishable_outcomes'); process.exit(1); }
@@ -496,8 +509,8 @@ async function main() {
   if (!DRY && existsSync(readmePath)) {
     let md = readFileSync(readmePath, 'utf8');
     const append = (marker, rowsText) => { const i = md.indexOf(marker); if (i < 0) return false; md = md.slice(0, i) + rowsText + md.slice(i); return true; };
-    const agentRows = readings.filter((r) => r._outcome).map((r) => `| ${r.observed_at.slice(0, 10)} | ${r.reading_id} | ${r.stage_reached} | ${r.stage_stopped ?? '—'} | ${r.observed.instrument_error ? `計器:${r.observed.instrument_error}` : r.observed.pass ? 'pass' : 'fail'}${r.observed.false_completion ? '（自称成功）' : ''} | ${r.evidence_ref} |\n`).join('');
-    const gtRows = readings.filter((r) => !r._outcome).map((r) => `| ${r.observed_at.slice(0, 10)} | ${r.reading_id} | 不一致 | ${r.evidence_ref} |\n`).join('');
+    const agentRows = readings.filter((r) => r._outcome).map((r) => `| ${r.observed_at.slice(0, 10)} | ${r.reading_id}${r.supersedes ? `（訂正:${r.supersedes}）` : ''} | ${r.stage_reached} | ${r.stage_stopped ?? '—'} | ${r.observed.instrument_error ? `計器:${r.observed.instrument_error}` : r.observed.pass ? 'pass' : 'fail'}${r.observed.false_completion ? '（自称成功）' : ''} | ${r.evidence_ref} |\n`).join('');
+    const gtRows = readings.filter((r) => !r._outcome).map((r) => `| ${r.observed_at.slice(0, 10)} | ${r.reading_id}${r.supersedes ? `（訂正:${r.supersedes}）` : ''} | ${r.observed.pass ? '一致' : '不一致'} | ${r.evidence_ref} |\n`).join('');
     const ok1 = agentRows ? append('<!-- seven-rows:end -->', agentRows) : true;
     const ok2 = gtRows ? append('<!-- gt-rows:end -->', gtRows) : true;
     if (ok1 && ok2) { writeFileSync(readmePath, md); console.log(`readme: appended ${readings.length} row(s) to ${readmePath}`); }
