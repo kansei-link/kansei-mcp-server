@@ -32,4 +32,5 @@ Level 1測定基盤のfreee会計Adapter。最初はR0（read-only）のScripted
 - 半減期: 封印ファイルの `expires_at`（sealed_at + 30 日 = 2026-10-24T14:00:00+09:00）。**期限後は封印ファイルの中身を公開してよい**（指紋と突き合わせれば、事前に固定されていたことを誰でも検証できる）。期限内は git にもレポートにも中身を書かない。
 - 実行: `node exec-harness/run-marker.mjs taskpacks/freee/freee-accounting-m001-monthly-deal-count.v1.json --models claude --runs 1`。読みの一行は `marker_readings`（`exec-harness/schemas/marker_readings.sql`・追記のみ）と `evidence/freee/<日付>/marker-m001/<時刻>/` に残る。形式は `docs/READING-PREDICATE-v1.md`。
 - 公開統計との隔離: outcomes 行は `provenance='synthetic'`。`publishable_outcomes` には入らない（実行のたびに件数 0 を自己確認し、0 でなければ exit 1）。
+- 0.3.0: MCP上書き・empty executor・fixtureは非dry-runを拒否する。各run前に七行の残り枠を確認する。初日の訂正は `--supersedes <旧agent行ID> --supersedes-ground-truth <旧直接読み行ID>` を付けて1回だけ実行し、旧行は保持する。metricsは不変で、manifestの指紋から完全なreadingを復元できる（形式・スモークは述語文書 §4）。
 - Rekor / OpenTimestamps への刻印（任意・未実施）: `evidence/commitments/M-001.sha256` を対象に `rekor-cli upload --artifact evidence/commitments/M-001.sha256 --signature <sig> --public-key <pub>`（要 cosign 鍵）、または `ots stamp evidence/commitments/M-001.sha256` → 生成される `.ots` をコミット。どちらも GitHub の公開コミットとは独立した第三者の時刻証明になる。実施は Michie 判断。

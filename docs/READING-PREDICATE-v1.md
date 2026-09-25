@@ -75,7 +75,7 @@
 補足規則:
 - **freee-mcp（0.26.5）は、`freee_api_get` の company_id が「現在の事業所」（`~/.config/freee-mcp/config.json` に永続化）と違うとエラーで拒否し、`freee_set_current_company` で切り替えろと返す**（2026-09-24 ドライランで確認）。よって正しい事業所を選ぶには切替ツールが必須で、M-001 では R0 許可リストに `freee_set_current_company` を加える（自アカウントの事業所 ID のみ・freee のデータは変えない・ハーネスが実行後に元の選択へ戻す）。ある呼び出しが「どの事業所に届いたか」は、その時点の現在の事業所（開始時の値＋成功した切替の履歴）で決める。company_id を省略した呼び出しは現在の事業所に届いたものと見なす。checks に `switched_to_sealed_company` を残す。
 - 封印ファイルの `real_company_id` は、API の `id`（8 桁）でも freee 画面の**事業所番号 `company_number`**（10 桁）でもよい。ハーネスは `/api/1/companies` の一意一致で `id` に解決し、どちらだったかを manifest の `sealed_key_kind` に残す（M-001 の封印は `company_number` だった・2026-09-24）。最終回答が事業所番号で本番事業所を名指ししていれば「名指しした」と数える。
-- 複数の事業所に取引一覧を投げた場合は、**最終回答に書かれた事業所 ID** で understand を判定する。回答に ID が無ければ、最後の deals 呼び出しの company_id で判定する。
+- 複数の事業所に取引一覧を投げた場合は、最終回答の事業所 ID に対応する **実際の deals 呼び出し先**を確認する。回答 ID だけでは到達先を代替できない。切替失敗後の不整合な要求 ID も到達先には数えない。本物への deals 呼び出しがなければ `understand` で止まる。
 - 期間指定（2026-08-01〜08-31）の有無は checks に `deals_call_used_sealed_period` として残すが、件数が直接読みと一致すれば done とする（期間を変えて同じ件数になることは通常ないため）。
 - ハーネスの直接読みと封印の期待件数が食い違った日は、エージェントの行とは**別に** `claim="sealed expectation matches harness direct API read"` の行を `observed.method="sealed_expectation_vs_harness_direct_api"`, `pass=false` で書く。エージェントの行の `ground_truth_consistent=false` で相互参照する。その日のエージェント判定は**ハーネスの直接読み**を基準に行う（封印値は「Michie が画面で見た値」で、締め処理で動きうる）。
 - 計器の失敗（instrument_error≠null）は、失敗が起きる前に到達した臓器を `stage_reached`、同じ臓器を `stage_stopped` に書く。ただしプロバイダ API が最初の応答すら返さない場合は `discover/discover`。
@@ -91,6 +91,15 @@
    ORDER BY observed_at DESC;
   ```
 - 七行表（`founder-ops/research/Marker-M001_2026-09-24/README.md`）はこの表から `date / reading_id / stage_reached / stage_stopped / pass / evidence_ref` だけを写す。
+
+### run-marker 0.3.0 の保存・訂正
+
+- ハッシュの向きは **reading → manifest → metrics**。`metrics.json` は一度だけ書く。その `readings` は `evidence_ref` を除いた観測ペイロードであり、manifest の sha256 から `evidence_ref` を復元すると完全な述語になる。完全な述語は DB に保存する。manifest 生成後に metrics を書き換えない。対象 Evidence ファイルは `.gitattributes` の `-text` で Git blob のバイト列を保持する。
+- `--mcp`・環境変数 `KANSEI_MCP_COMMAND`（`.env` を含む）・`--executor empty`・fixture の pack/封印/指紋は **非 dry-run を exit 5 で拒否**する。コピーされた既知 fixture の封印も sha256 で検出する。dry-run の manifest にも `environment.mcp_command` と `environment.executor` を残す。
+- 残り枠を起動時と **各 run 前**に確認し、同じ起動でまだ保存していない読みも数える。起動時に満杯なら読み取り専用で終了する。最終 INSERT の immediate transaction 内でも枠と訂正対象を再確認する。
+- 訂正は `--supersedes <agent-reading-id>`、直接読みの訂正は `--supersedes-ground-truth <reading-id>`。同じマーカー・指紋・サービス・主語の有効行だけを対象とし、1 model / 1 run で実行する。元行と元 Evidence は変更・削除しない。README に訂正元 ID を表示し、直接読みが一致へ変わった場合も訂正行を残す。
+- synthetic は `reliability-source` の `estimated_reports` にも加算しない。脈の閾値判定は丸め前の時間で行い、表示用の時間だけ丸める。
+- 回帰試験: `scripts/smoke-marker-{judge,bundle,isolation,limits,quarantine}.mts`。D-2 の6履歴、Git blob の指紋、非 dry-run 拒否、6→7での停止、期限停止、追記による訂正を架空データで検証する。limits 試験は独立したローカル Git sandbox とテスト専用 preload で I/O を置換し、本番コードに検疫の迂回フラグを設けない。
 
 ## 5. 自己診断（計器の脈・CANON 原則 8）
 
