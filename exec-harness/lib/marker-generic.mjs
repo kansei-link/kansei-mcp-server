@@ -15,6 +15,7 @@ import { writeMarkerBundle } from './marker-bundle.mjs';
 import { newUlid, validateReading, loadReadingSchema, isoWithOffset } from './reading.mjs';
 import { persistReadings, appendReadme } from './marker-persist.mjs';
 import { resolveEnvRefs } from './marker-targets.mjs';
+import { assertExclusive } from './llm-answer-rules.mjs';
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const fileSha = (p) => sha256(readFileSync(p));
@@ -109,13 +110,16 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
   // ---- bundle ----
   writeFileSync(join(bundleDir, 'environment.private.json'), JSON.stringify(privateEnvironment, null, 1));
   const libs = {};
-  for (const f of ['marker-sealed.mjs', 'marker-generic.mjs', 'marker-targets.mjs', 'marker-persist.mjs', 'llm-ask.mjs', 'reading.mjs', 'marker-bundle.mjs', 'marker-store.mjs']) libs[`lib/${f}`] = fileSha(join(libDir, f));
+  for (const f of ['marker-sealed.mjs', 'marker-generic.mjs', 'marker-targets.mjs', 'marker-persist.mjs', 'llm-ask.mjs', 'llm-answer-rules.mjs', 'reading.mjs', 'marker-bundle.mjs', 'marker-store.mjs']) libs[`lib/${f}`] = fileSha(join(libDir, f));
   const manifest = {
     bundle: `marker-${MK.marker_id}`, generated_at_utc: new Date().toISOString(), generated_at_local: isoWithOffset(new Date()),
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },
     executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(join(libDir, '..', 'run-marker.mjs')), libs, git_head: HARNESS_VERSION.split('+')[1] },
     marker: { marker_id: MK.marker_id, kind: 'synthetic', kind_of_truth: MK.kind_of_truth, observation: MK.observation || null, expected_digest: sealedCommon.digest, commitment_file: MK.commitment_file, commitment_commit: sealedCommon.commitSha, commitment_remote_branches: sealedCommon.remoteBranches, sealed_at: sealedCommon.sealedAt, expires_at: sealedCommon.expiresAt, expired_at_run: sealedCommon.expired, ground_truth_consistent: gtConsistent },
     environment: { node: process.version, executor: flags.executor, dry_run: flags.dry, max_readings: flags.maxReadings, allow_expired: flags.allowExpired, observers: observers.map((o) => o.label), display_api_url: MKr.display_api_url || null, fetch_check_dir: MKr.fetch_check_dir || null, providers: MKr.providers || null },
+    // (D) the size of the guidance: for llm_answer the prompt ends with a fixed two-line answer
+    // format that lists the AUTH options — recorded so the reading can be discounted accordingly.
+    prompt_guidance: target.promptGuidance ? target.promptGuidance({ MK: MKr, flags }) : null,
     models: Object.fromEntries(runRows.map((r) => [r.observer, r.model])),
     note: 'harness-only ground truth; judgement is rule-based (no model grades a model); one reading per observer; subject values (endpoints, page bodies, answer texts) only in transcript.jsonl (git-ignored); synthetic readings never enter public statistics',
     files: [],
@@ -126,6 +130,8 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     const { _outcome, ...pure } = r;
     const errs = validateReading(pure, schema);
     if (errs.length) { console.error(`reading ${r.reading_id} violates reading.v1 schema:\n  ${errs.join('\n  ')}`); process.exit(1); }
+    // ⑤ belt and braces: exactly one of pass / false_completion / undetermined / instrument_error (agent rows)
+    if (r._outcome) { try { assertExclusive(r.observed); } catch (e) { console.error(`reading ${r.reading_id}: ${e.message}`); process.exit(1); } }
   }
 
   if (db) persistReadings({ db, readings, MK, PACK, sealedDigest: sealedCommon.digest, maxReadings: flags.maxReadings, schemasDir: join(libDir, '..', 'schemas') });

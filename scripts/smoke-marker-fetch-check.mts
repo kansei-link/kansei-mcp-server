@@ -70,6 +70,7 @@ try {
   {
     const r = await run(summary({ "fetch-index": { claude: "fetched", codex: "denied" }, "fetch-square": { claude: "fetched", codex: "denied" }, "fetch-control-insights": { claude: "fetched", codex: "fetched" } }));
     expect("(2) codex stage_stopped discover", r.codex?.stage_stopped === "discover" && r.codex?.observed.pass === false, JSON.stringify(r.codex?.observed));
+    expect("(2) ⑤ denied is the agent's own undetermined (exclusive: not fc, not instrument)", r.codex?.observed.undetermined === true && r.codex?.observed.false_completion === false && r.codex?.observed.instrument_error === null);
     expect("(2) codex control page recorded as fetched", r.codex?.observed.checks.some((c: any) => c.label === "page_3_control_fetched" && c.ok === true));
     expect("(2) claude still done", r.claude?.stage_reached === "done");
   }

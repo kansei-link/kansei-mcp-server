@@ -128,12 +128,18 @@
 
 - `catalog_display`: 観測は「整った tool 結果」か「カタログ自身の明示の not found」だけ。JSON-RPC の error・tool の isError・パースできない payload・別 service の payload・その他の error 文は**計器**（discover で停止・pass=false・false_completion=false）。封印の全 service が観測できた日だけ判定に進む（check `every_service_observed`）。
 - `fetch_check_summary`: status は fetched／denied／unclear／error／missing の五つだけ。未知の status は計器。done は「wiki ページが 1 本以上あり、全部 fetched」のときだけ。要約の `date` が当日でなければ（明示 `--fetch-summary` でも）行を立てない。
-- `llm_answer`（規則は `lib/llm-answer-rules.mjs` に集約・Codex 再審査 2026-09-27 反映）は三つの問いに分けて読む。
+- **M-004 は閉じた形式で問う（2026-09-27・Michie）。誘導の大きさは記録する。** 自由文の判定はこれ以上直さない。課題文の末尾にハーネスが二行の回答形式を付け（`lib/llm-answer-rules.mjs` の `ANSWER_FORMAT`）、判定はその二行だけを読む: `REPO: <公式 MCP サーバーのリポジトリ URL を 1 つ、無ければ none>` ／ `AUTH: <OAuth 2.0 | Basic | API key | unknown のうち一つ>`。説明文は transcript.jsonl（git 外）に証拠として残すが判定に使わない。規則: REPO=封印 → 発見通過。REPO=none → discover 停止・undetermined。REPO=別 URL（丸ごと URL として解析し hostname 完全一致・深い path や別 host は別 URL）→ discover 停止＋偽の完了。AUTH=OAuth 2.0 → done。AUTH=Basic／API key → understand 停止＋偽の完了。AUTH=unknown → understand 停止・undetermined。二行の欠落・重複・形式外の値・複数 URL・行内の説明 → **format_violation＝エージェント側の未判定**（計器エラーではない・`checks` の `format_violation` が false）。**誘導の大きさ**: AUTH の選択肢に期待方式が含まれる（4 択の中の 1 つを名指し）。REPO は URL を求めるだけで名指ししない。この事実を manifest の `prompt_guidance`（形式・行数・列挙した選択肢・漏らしたもの）に毎回記録し、読みを割り引く材料にする。
+  - ① URL トークン: 本文から scheme 付き URL をまず丸ごと切り出し、その内部は再走査しない。scheme 無しの候補は URL 範囲外からだけ取る。各トークンは `new URL` で解析し hostname が `github.com` 等と完全一致するものだけをリポジトリ URL とみなす。
+  - ⑤ 三値の排他: エージェントの読みは pass／false_completion／undetermined／instrument_error の**真がちょうど一つ**。候補ゼロ（REPO=none）も undetermined に分類する。保存前の検証（`validateReading`＋`assertExclusive`）と `reading.v1.schema.json` の `observed.oneOf` の両方で強制。例外は正解側の行（`sealed_*`・pass=整合）と、固定 runtime で動く M-001 の従来 method（七行が並んだ後に見直す）。
+  - fetch_check: denied／unclear／missing は「エージェント側の未判定」（undetermined=true）。error・未知 status は計器。
+  - 回帰: `exec-harness/fixtures/llm-answer-cases.json`（二行形式のケースのみ・期待は排他）。旧い自由文のケース（C/A/X/R）と Codex の N/T 全文は `exec-harness/fixtures/evidence/` に証拠として保存し、判定対象から外す。
+
+- （旧・自由文の三段判定の記述は 2026-09-27 に廃止。以下は履歴として残す）`llm_answer` は三つの問いに分けて読む。
   (1) **URL の同定**: 本文中のリポジトリらしい URL をすべて候補として**丸ごと URL として解析**（`new URL`）し、**hostname が `github.com` 等と完全一致**するものだけを残す（サブドメイン・類似ドメイン・別 URL のクエリ内は不可）。scheme 無しの表記にも開始境界を要求する。key は `host/owner/repo[/deeper]`（`.git`・`#`・`?`・末尾句読点は除去）。文中で否定された候補（「X は非公式／ではない」「not X」「fork」）は集合から外す。**否定されていない候補の集合が {封印} と等しいときだけ発見を通す。** 候補が複数、別リポジトリ、深い path → discover 停止で **undetermined=true**（false_completion=false）。候補ゼロで公式 MCP の明示否定 → discover 停止＋false_completion。
   (2) **公式性の否定**は文ごとに読む。候補 URL を含む文の「非公式」はその候補の否定であって、公式 MCP の否定ではない。候補を含まない文の「公式 MCP は確認できない／存在しない／未確認／非公式」「no official MCP / unofficial」→ discover 停止＋false_completion。
   (3) **認証の判定は三値**: **合格**＝現在形の肯定の白リスト一致のみ（「認証は OAuth 2.0 です」「uses OAuth 2.0」「OAuth 2.0 で認証」「Basic ではなく OAuth 2.0」…）かつ OAuth の明示否定が無い／**偽の完了**＝誤方式（Basic・API キー）の明示肯定、または OAuth の明示否定（矛盾を含む）／**未判定（undetermined）**＝それ以外（触れない・曖昧・疑問文・条件・将来・省略）。疑問文・条件・将来の文（「〜ですか？」「〜なら」「予定」「if / will / would」…）は肯定にも否定にも数えない。未判定は understand 停止・pass=false・false_completion=false・`observed.undetermined=true`。
   回帰: `exec-harness/fixtures/llm-answer-cases.json`（期待は三値で書く: stopped／pass／false_completion／undetermined）。全件をスモークが期待どおりに通す。
-- `catalog_display` の**不在**は、構造化コード（`code: "not_found"`）か、要求した service_id を含む既知の不在文（`Service '<id>' not found …`）だけ。「not found」の部分一致は不可。`mcp_status` が空、`freshness` が欠落など**不完全な観測は計器エラー**。
+- ④ `catalog_display` の応答は**不在と表示の二つの排他的な形**として検証する（`classifyCatalogPayload`）。不在＝ちょうど `{code:"not_found", service_id:<要求 id>}` か `{error:"Service '<要求 id>' not found …"}`（表示欄を含まない）。表示＝`service_id` が要求 id と一致し、`mcp_status` と `freshness.confidence` が空でない（error／code 欄を含まない）。両方の情報がある・id が矛盾する・別の error が併存する・欄が欠ける・「not found」の部分一致だけ、はすべて**計器エラー**（観測ではない）。
 - `fetch_check_summary`: `summary.date` に加えて `run_at` の日付、cell ごとの `date` も当日でなければ使わない（混在した summary は行を立てない／その cell は missing）。
 
 共通の規律:

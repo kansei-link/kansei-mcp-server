@@ -50,6 +50,11 @@ const server = createServer((req, res) => {
       if (mode === "loose_not_found") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ error: "Backend not found (503)" }) }] } });
       if (mode === "not_found_other_id") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ error: "Service 'someone-else' not found. Use search_services to find valid service IDs." }) }] } });
       if (mode === "structured_not_found") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ code: "not_found", service_id: id }) }] } });
+      // ④ exclusive shapes: absence and display information in one payload, or contradicting ids, are not observations
+      if (mode === "mixed_absence_display") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ error: `Service '${id}' not found. Use search_services to find valid service IDs.`, service_id: id, mcp_status: "verified", freshness: { confidence: "high" } }) }] } });
+      if (mode === "structured_not_found_other_id") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ code: "not_found", service_id: "someone-else" }) }] } });
+      if (mode === "absence_plus_other_error") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ code: "not_found", service_id: id, error: "storage degraded" }) }] } });
+      if (mode === "display_plus_code") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ service_id: id, mcp_status: "official", freshness: { confidence: "medium" }, code: "ok" }) }] } });
       // the real catalog's absence message: "Service '<id>' not found. Use search_services …"
       const payload = d ? { _mode: "detail", service_id: id, mcp_status: d.mcp_status, freshness: { data_age_days: 1, last_refreshed: "2026-09-24", confidence: d.confidence } } : { error: `Service '${id}' not found. Use search_services to find valid service IDs.` };
       return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(payload) }] } });
@@ -105,7 +110,7 @@ try {
     display["fake-dead-one"] = { mcp_status: "official", confidence: "medium" };
   }
   // (4b) instrument failures must never become "not displayed": each failure mode → instrument, pass=false
-  for (const mode of ["rpc_error", "tool_error", "invalid_payload", "other_payload_error", "mismatch", "empty_content", "empty_object", "other_service_full", "partial_no_freshness", "empty_status", "loose_not_found", "not_found_other_id"]) {
+  for (const mode of ["rpc_error", "tool_error", "invalid_payload", "other_payload_error", "mismatch", "empty_content", "empty_object", "other_service_full", "partial_no_freshness", "empty_status", "loose_not_found", "not_found_other_id", "mixed_absence_display", "structured_not_found_other_id", "absence_plus_other_error", "display_plus_code"]) {
     failMode["fake-dead-two"] = mode;
     const r = await run();
     expect(`(4b) catalog ${mode} → instrument_error, discover stop, pass=false`, r.agent?.observed.instrument_error === "other" && r.agent?.stage_stopped === "discover" && r.agent?.observed.pass === false && r.agent?.observed.false_completion === false, JSON.stringify(r.agent?.observed));

@@ -49,12 +49,13 @@ for (const { rel, pack } of packs) {
   // synthesise the agent reading and the ground-truth reading exactly as the harness does
   const observers = kind === "http_probe" && MK.observation === "fetch_check_summary" ? (MK.observers || []).map((o: any) => `${o.id}@1.0.0`) : ["kansei_harness@run-marker@0.4.0"];
   for (const observer of observers) {
-    for (const stage of [["done", null, true], ["understand", "understand", false], ["discover", "discover", false]] as const) {
+    // ⑤ every synthesised agent reading carries exactly one true value: pass (done), false_completion (understand), undetermined (discover)
+    for (const stage of [["done", null, true, false, false], ["understand", "understand", false, true, false], ["discover", "discover", false, false, true]] as const) {
       const reading = {
         reading_id: newUlid(), claim: MK.claim, marker_id: MK.marker_id, expected_digest: "0".repeat(64),
         target: { service_id: pack.service_id, model: "model-x", harness_version: "run-marker@0.4.0+0000000" },
         stage_reached: stage[0], stage_stopped: stage[1],
-        observed: { pass: stage[2], method: METHODS[key], checks: [{ label: "x", ok: stage[2] }], false_completion: false, ground_truth_consistent: true, instrument_error: null, trap_armed: false },
+        observed: { pass: stage[2], method: METHODS[key], checks: [{ label: "x", ok: stage[2] }], false_completion: stage[3], undetermined: stage[4], ground_truth_consistent: true, instrument_error: null, trap_armed: false },
         evidence_ref: `evidence/x/${MK.marker_id.toLowerCase()}#sha256:${"a".repeat(64)}`, observer, kind: "synthetic", observed_at: isoWithOffset(new Date()), supersedes: null,
       };
       const errs = validateReading(reading, schema);

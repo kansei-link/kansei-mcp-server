@@ -49,6 +49,12 @@ expect("ground-truth section has exactly one 不一致 row and it is not in the 
 expect("ground-truth row kept outcome_id null (counted in period line)", md.includes("正解側の行 1）"));
 let hexAdjacent = false; try { renderSheet([{ ...rows[0], claim: "主張 a12345678b を含む" }], { markerId: "M-777" }); } catch { hexAdjacent = true; }
 expect("renderer refuses an 8-digit run even between hex letters", hexAdjacent);
+// P2: only the two fingerprint FIELDS are exempt — a fingerprint-looking string inside the claim is still checked
+let claimDigest = false; try { renderSheet([{ ...rows[0], claim: "主張 `" + "0123456789abcdef".repeat(4) + "` を含む" }], { markerId: "M-777" }); } catch { claimDigest = true; }
+expect("renderer refuses a backticked 64-hex string inside the claim", claimDigest);
+let claimEvidence = false; try { renderSheet([{ ...rows[0], claim: "主張 12345678abcd… を含む" }], { markerId: "M-777" }); } catch { claimEvidence = true; }
+expect("renderer refuses an evidence-looking 12-hex… inside the claim", claimEvidence);
+expect("the genuine fingerprint line and 証拠 cells still render", md.includes("`" + dg + "`") && /\| [0-9a-f]{12}… \|$/m.test(md));
 expect("last observation fresh (2h)", md.includes("計器の最終観測: 2026-09-23T09:50:00+09:00"));
 const stale = renderSheet(rows, { markerId: "M-777", now: new Date("2026-09-25T12:00:00+09:00") });
 expect("last observation 不明 after 24h", /計器の最終観測: 不明/.test(stale));

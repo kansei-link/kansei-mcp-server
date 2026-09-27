@@ -16,7 +16,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { askLlm } from './llm-ask.mjs';
-import { AUTH_RULE, judgeLlmAnswer } from './llm-answer-rules.mjs';
+import { AUTH_RULE, ANSWER_FORMAT, judgeLlmAnswer } from './llm-answer-rules.mjs';
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const DEAD = new Set(['gone', 'dns_fail', 'connection_refused']);
@@ -54,6 +54,33 @@ export async function fetchBody(url, timeoutMs = 15000) {
   finally { clearTimeout(t); }
 }
 
+/** ④ Absence and display are two EXCLUSIVE shapes. Anything that mixes them, names another
+ *  service, carries another error, or lacks a required display field is not an observation.
+ *   absent  : exactly { code:'not_found', service_id:<id> }  OR  { error:"Service '<id>' not found…" } — no display fields
+ *   display : service_id === id, non-empty mcp_status, freshness.confidence non-empty — no error/code fields
+ *  Returns { kind: 'absent' | 'display' | 'invalid', error? }. */
+export function classifyCatalogPayload(payload, serviceId) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { kind: 'invalid', error: 'invalid_payload' };
+  const keys = Object.keys(payload);
+  const hasErrorField = 'error' in payload || 'code' in payload;
+  const displayFields = ['mcp_status', 'freshness', 'trust_score', 'connection_guide', 'name', 'category'];
+  const hasDisplayField = displayFields.some((k) => k in payload);
+  const esc = String(serviceId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (hasErrorField) {
+    if (hasDisplayField) return { kind: 'invalid', error: 'mixed_absence_and_display' };
+    const idOk = payload.service_id === undefined || payload.service_id === serviceId;
+    const structured = payload.code === 'not_found' && !('error' in payload) && idOk && keys.every((k) => ['code', 'service_id', '_mode', '_tier', 'message'].includes(k));
+    const knownText = !('code' in payload) && idOk && typeof payload.error === 'string' && new RegExp(`^Service '${esc}' not found\\b`).test(payload.error) && keys.every((k) => ['error', 'service_id', '_mode', '_tier'].includes(k));
+    if (structured || knownText) return { kind: 'absent' };
+    if (!idOk) return { kind: 'invalid', error: 'absence_names_other_service' };
+    return { kind: 'invalid', error: 'payload_error' };
+  }
+  if (payload.service_id !== serviceId) return { kind: 'invalid', error: 'payload_mismatch' };
+  const incomplete = typeof payload.mcp_status !== 'string' || !payload.mcp_status.trim() || !payload.freshness || typeof payload.freshness !== 'object' || typeof payload.freshness.confidence !== 'string' || !payload.freshness.confidence.trim();
+  if (incomplete) return { kind: 'invalid', error: 'incomplete_payload' };
+  return { kind: 'display' };
+}
+
 /** Read one service's public display through the catalog MCP endpoint (tools/call lookup detail). */
 export async function readCatalogDisplay(apiUrl, serviceId, timeoutMs = 20000) {
   const c = new AbortController(); const t = setTimeout(() => c.abort(), timeoutMs);
@@ -70,18 +97,9 @@ export async function readCatalogDisplay(apiUrl, serviceId, timeoutMs = 20000) {
     if (rpc.result?.isError) return { reachable: true, valid: false, http: r.status, error: 'tool_error' };
     let payload; try { payload = JSON.parse(rpc.result?.content?.[0]?.text ?? ''); } catch { return { reachable: true, valid: false, http: r.status, error: 'invalid_payload' }; }
     if (!payload || typeof payload !== 'object') return { reachable: true, valid: false, http: r.status, error: 'invalid_payload' };
-    if (payload.error || payload.code) {
-      // Legitimate absence = a structured code, or the catalog's known absence sentence that
-      // names THIS service_id. "not found" as a loose substring is not accepted.
-      const esc = serviceId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const structured = payload.code === 'not_found' && (payload.service_id === serviceId || payload.service_id === undefined);
-      const knownText = new RegExp(`^Service '${esc}' not found\\b`).test(String(payload.error || ''));
-      if (structured || knownText) return { reachable: true, valid: true, found: false, http: r.status, tokens: [] };
-      return { reachable: true, valid: false, http: r.status, error: 'payload_error' };
-    }
-    if (payload.service_id !== serviceId) return { reachable: true, valid: false, http: r.status, error: 'payload_mismatch' };
-    // Incomplete display (empty status, missing freshness) is not an observation.
-    if (typeof payload.mcp_status !== 'string' || !payload.mcp_status.trim() || !payload.freshness || typeof payload.freshness !== 'object' || typeof payload.freshness.confidence !== 'string' || !payload.freshness.confidence.trim()) return { reachable: true, valid: false, http: r.status, error: 'incomplete_payload' };
+    const shape = classifyCatalogPayload(payload, serviceId);
+    if (shape.kind === 'absent') return { reachable: true, valid: true, found: false, http: r.status, tokens: [] };
+    if (shape.kind !== 'display') return { reachable: true, valid: false, http: r.status, error: shape.error };
     const tokens = [String(payload.mcp_status).toLowerCase()];
     if (payload.freshness?.confidence === 'high') tokens.push('updated');
     if (payload.freshness?.confidence) tokens.push(`freshness:${payload.freshness.confidence}`);
@@ -190,24 +208,25 @@ const fetchCheck = {
       ...pages.map((p, i) => ({ label: `page_${i + 1}_${p.control ? 'control_' : ''}fetched`, ok: p.status === 'fetched' })),
       { label: 'all_statuses_known', ok: pages.length > 0 && pages.every((p) => KNOWN.has(p.status)) },
     ];
-    let reached, stopped, instrument = null;
-    // Closed judgement: an unknown status or a tool error is the instrument; done only when
+    let reached, stopped, instrument = null, undetermined = false;
+    // Closed judgement (⑤ exclusive): an unknown status or a tool error is the instrument; a page the
+    // agent could not open (denied/unclear/missing) is the agent's own undetermined; done only when
     // there is at least one wiki page and every wiki page is fetched.
     if (!pages.length || pages.some((p) => !KNOWN.has(p.status))) { reached = 'discover'; stopped = 'discover'; instrument = 'other'; }
     else if (pages.some((p) => p.status === 'error')) { reached = 'discover'; stopped = 'discover'; instrument = 'other'; }
-    else if (wiki.some((p) => p.status === 'denied' || p.status === 'missing')) { reached = 'discover'; stopped = 'discover'; }
-    else if (wiki.some((p) => p.status === 'unclear')) { reached = 'understand'; stopped = 'understand'; }
+    else if (wiki.some((p) => p.status === 'denied' || p.status === 'missing')) { reached = 'discover'; stopped = 'discover'; undetermined = true; }
+    else if (wiki.some((p) => p.status === 'unclear')) { reached = 'understand'; stopped = 'understand'; undetermined = true; }
     else if (wiki.length && wiki.every((p) => p.status === 'fetched')) { reached = 'done'; stopped = null; }
     else { reached = 'discover'; stopped = 'discover'; instrument = 'other'; }
-    return { reached, stopped, pass: reached === 'done', checks, falseCompletion: false, instrument };
+    return { reached, stopped, pass: reached === 'done', checks, falseCompletion: false, undetermined, instrument };
   },
 };
 
 /* ================= llm_answer (M-004: discover + understand; connect/execute = M-005) ================= */
 const normRepo = (u) => String(u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\.git$/, '').replace(/[#?].*$/, '').replace(/\/+$/, '');
 
-// Rules live in ./llm-answer-rules.mjs (candidates, official-MCP denial, three-valued auth verdict).
-export { AUTH_RULE, extractRepoCandidates, repoCandidateSet, deniesOfficialMcp, readAuthVerdict, judgeLlmAnswer } from './llm-answer-rules.mjs';
+// Rules live in ./llm-answer-rules.mjs (closed two-line form: REPO/AUTH; URL tokens; exclusivity).
+export { AUTH_RULE, ANSWER_FORMAT, extractUrlTokens, extractRepoCandidates, parseRepoUrl, parseAnswerLines, judgeLlmAnswer, assertExclusive } from './llm-answer-rules.mjs';
 
 const llmAnswer = {
   method: 'llm_answer_rules_vs_sealed_expectation',
@@ -233,7 +252,10 @@ const llmAnswer = {
   },
   observers({ MK }) { return (MK.providers || ['openai', 'gemini', 'perplexity', 'claude']).map((p) => ({ id: 'kansei_harness', label: p, provider: p, model: null })); },
   async observe({ PACK, observer, flags, log }) {
-    const question = PACK.goal_prompt[flags.lang] || PACK.goal_prompt.ja;
+    // Closed form (B): the task text plus the two-line answer format. The format lines are the
+    // only guidance the model gets; their size is recorded in the manifest (prompt_guidance).
+    const lang = PACK.goal_prompt[flags.lang] ? flags.lang : 'ja';
+    const question = `${PACK.goal_prompt[lang]}\n\n${ANSWER_FORMAT[lang] || ANSWER_FORMAT.ja}`;
     const a = await askLlm(observer.provider, question, { label: observer.label });
     log({ role: 'assistant', provider: observer.provider, model: a.model, error: a.error || null, text: a.text || '', citations: a.citations || [] });
     return { text: a.text || '', model: a.model, error: a.error || null, citations: a.citations || [] };
@@ -251,6 +273,11 @@ const llmAnswer = {
    * done needs all three; anything ambiguous or contradictory is not done.
    */
   judge({ obs, sealed }) { return judgeLlmAnswer(obs, sealed); },
+  /** (D) recorded in the manifest: what the prompt leaks beyond the task text. */
+  promptGuidance({ flags }) {
+    const lang = flags?.lang && ANSWER_FORMAT[flags.lang] ? flags.lang : 'ja';
+    return { form: 'two_lines_REPO_AUTH', lines: ANSWER_FORMAT.lines, auth_options_listed: [...ANSWER_FORMAT.auth_options_listed], format_text: ANSWER_FORMAT[lang], leaks_expected_repo_url: false, leaks_expected_auth_method: true, note: 'the AUTH option list names the expected method among four; the REPO line asks for a URL without naming it' };
+  },
 };
 
 export function selectTarget(MK) {

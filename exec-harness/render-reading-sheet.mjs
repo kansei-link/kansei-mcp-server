@@ -95,9 +95,14 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
   const md = lines.join('\n') + '\n';
   const leak = md.match(FORBIDDEN_WORDS);
   if (leak) throw new Error(`sheet contains a forbidden word: ${leak[0]}`);
-  // Only the two official fingerprint fields are exempt (the 64-hex seal digest in backticks and
-  // the 12-hex evidence prefix followed by …); any other run of 8+ digits, whatever its neighbours, is refused.
-  const stripped = md.replace(/`[0-9a-f]{64}`/g, '`<digest>`').replace(/\b[0-9a-f]{12}…/g, '<evidence>');
+  // Only the two official fingerprint FIELDS are exempt: the seal-digest bullet line and the last
+  // cell (証拠の指紋) of each table row. Everything else — including fingerprint-looking strings
+  // inside the claim — is checked for any run of 8+ digits, whatever its neighbours.
+  const stripped = md.split('\n').map((line) => {
+    if (/^- 色素の指紋（封印ファイルの sha256）: `[0-9a-f]{64}`$/.test(line)) return '- 色素の指紋: <digest>';
+    if (/^\| /.test(line)) { const cells = line.split(' | '); const last = cells[cells.length - 1]; if (/^[0-9a-f]{12}… \|$/.test(last)) cells[cells.length - 1] = '<evidence> |'; return cells.join(' | '); }
+    return line;
+  }).join('\n');
   if (/[0-9]{8,}/.test(stripped)) throw new Error('sheet contains a long digit run (possible tenant value)');
   return md;
 }

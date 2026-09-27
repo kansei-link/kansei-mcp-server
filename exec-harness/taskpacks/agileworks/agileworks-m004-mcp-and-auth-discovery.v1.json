@@ -24,7 +24,8 @@
     "verify_repo_via_github": true,
     "report_readme": "founder-ops/research/Marker-M004_2026-09-25/README.md",
     "max_readings": 28,
-    "note": "M-004 covers discover + understand only (the former \"M-004a\"; connect + execute will be M-005, which needs the vendor's trial environment). No contact with the vendor: the harness only asks public LLMs (same plain one-turn method as the 2026-07-29 audit) and checks the sealed repository's existence through the public GitHub API. THE SEAL HOLDS ONLY THE OFFICIAL MCP REPOSITORY URL. The expected authentication method (OAuth 2.0) and the wrong-method tokens (Basic, API key) are constants of the judgement rule in lib/marker-targets.mjs (AUTH_RULE), declared in docs/READING-PREDICATE-v1.md §6, not sealed values. Judgement is rules on the answer text (lib/llm-answer-rules.mjs, closed and three-valued): discover passes only when the set of non-negated repository candidates (whole-URL parse, exact hostname) equals {sealed URL}; several/other candidates = discover stop with undetermined=true; an explicit denial of an official MCP = discover stop with false_completion. Authentication verdict: affirmed (present-tense whitelist match for OAuth 2.0 and no denial) = done; false_completion (explicit affirmation of Basic/API key, or explicit denial of OAuth) = understand stop; everything else (silence, hedge, question, conditional, future) = understand stop with undetermined=true, pass=false, false_completion=false."
+    "note": "M-004 covers discover + understand only (connect + execute will be M-005). No contact with the vendor: the harness only asks public LLMs (one plain turn) and checks the sealed repository's existence through the public GitHub API. THE SEAL HOLDS ONLY THE OFFICIAL MCP REPOSITORY URL. CLOSED FORM (Michie 2026-09-27): the harness appends a fixed two-line answer format to the task text (lib/llm-answer-rules.mjs ANSWER_FORMAT) — REPO: <one URL or none> / AUTH: <OAuth 2.0 | Basic | API key | unknown> — and the judge reads ONLY those two lines; the explanation is kept in transcript.jsonl as evidence and never judged. Rules: REPO = sealed → discover passed; none → discover stop, undetermined; another URL → discover stop, false_completion; AUTH = OAuth 2.0 → done; Basic/API key → understand stop, false_completion; unknown → understand stop, undetermined; a missing/duplicated line, a value outside the form or several URLs → format_violation = undetermined on the agent's side (not an instrument error). Exactly one of pass / false_completion / undetermined / instrument is true (reading.v1 oneOf + assertExclusive). The expected method (OAuth 2.0) and the wrong tokens are rule constants (AUTH_RULE), not sealed values. The size of the guidance (the AUTH option list names the expected method among four) is recorded in manifest.prompt_guidance so the reading can be discounted.",
+    "answer_format": "two_lines_REPO_AUTH"
   },
   "goal_prompt": {
     "ja": "AgileWorks（株式会社エイトレッド）を AI エージェントから操作したい。公式の MCP サーバーの有無と所在、Web API の認証方式を特定し、根拠の URL を添えて報告せよ。",
@@ -33,7 +34,8 @@
   "preflight": [],
   "preconditions": [
     "Sealed file holds the official MCP repository URL only (draft: exec-harness/draft-marker.mjs M-004)",
-    "API keys for the four providers in .env (git-ignored)"
+    "API keys for the four providers in .env (git-ignored)",
+    "The two-line answer format is appended by the harness (not written into goal_prompt) so the exact leaked text is versioned in lib/llm-answer-rules.mjs"
   ],
   "scripted_steps": [],
   "agentic": {

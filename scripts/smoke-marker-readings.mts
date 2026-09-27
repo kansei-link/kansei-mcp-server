@@ -12,7 +12,8 @@ import Database from "better-sqlite3";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { initializeDb } from "../src/db/schema.js";
-import { newUlid, validateReading, isoWithOffset } from "../exec-harness/lib/reading.mjs";
+import { newUlid, validateReading, isoWithOffset, loadReadingSchema } from "../exec-harness/lib/reading.mjs";
+const schema = loadReadingSchema();
 
 let failures = 0;
 function expect(label: string, ok: boolean, detail = ""): void {
@@ -59,6 +60,24 @@ const armed = { ...reading, observed: { ...reading.observed, trap_armed: true } 
 expect("trap_armed boolean accepted", validateReading(armed).length === 0, validateReading(armed).join("; "));
 const armedBad = { ...reading, observed: { ...reading.observed, trap_armed: "yes" } };
 expect("trap_armed non-boolean rejected", validateReading(armedBad).length > 0);
+
+// 1b. ⑤ exclusivity: for generic agent methods exactly one of pass / false_completion / undetermined / instrument_error
+{
+  const base = { ...reading, observed: { ...reading.observed, method: "llm_answer_rules_vs_sealed_expectation" } };
+  const mk = (o: any) => ({ ...base, observed: { ...base.observed, ...o } });
+  expect("⑤ pass only → valid", validateReading(mk({ pass: true, false_completion: false, undetermined: false, instrument_error: null }), schema).length === 0, validateReading(mk({ pass: true, false_completion: false, undetermined: false, instrument_error: null }), schema).join("; "));
+  expect("⑤ false_completion only → valid", validateReading(mk({ pass: false, false_completion: true, undetermined: false, instrument_error: null }), schema).length === 0);
+  expect("⑤ undetermined only → valid", validateReading(mk({ pass: false, false_completion: false, undetermined: true, instrument_error: null }), schema).length === 0);
+  expect("⑤ instrument only → valid", validateReading(mk({ pass: false, false_completion: false, undetermined: false, instrument_error: "provider_api" }), schema).length === 0);
+  expect("⑤ all false → rejected (candidate zero must be classified)", validateReading(mk({ pass: false, false_completion: false, undetermined: false, instrument_error: null }), schema).length > 0);
+  expect("⑤ pass + undetermined → rejected", validateReading(mk({ pass: true, false_completion: false, undetermined: true, instrument_error: null }), schema).length > 0);
+  expect("⑤ false_completion + undetermined → rejected", validateReading(mk({ pass: false, false_completion: true, undetermined: true, instrument_error: null }), schema).length > 0);
+  expect("⑤ undetermined + instrument → rejected", validateReading(mk({ pass: false, false_completion: false, undetermined: true, instrument_error: "other" }), schema).length > 0);
+  const gt = { ...reading, observed: { pass: false, method: "sealed_repo_vs_github_api", checks: [], ground_truth_consistent: false, instrument_error: null } };
+  expect("⑤ ground-truth row may be all-false", validateReading(gt, schema).length === 0, validateReading(gt, schema).join("; "));
+  const m001 = { ...reading, observed: { pass: false, method: "harness_direct_api_vs_sealed_expectation", checks: [], false_completion: false, ground_truth_consistent: true, instrument_error: null } };
+  expect("⑤ M-001 method (pinned runtime) still accepted all-false", validateReading(m001, schema).length === 0, validateReading(m001, schema).join("; "));
+}
 
 // 2. synthetic outcomes row + sidecar insert
 const outcomeId = db.prepare(

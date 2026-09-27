@@ -41,9 +41,13 @@ function typeOf(v) {
 
 function check(value, schema, path, errors) {
   if (schema.oneOf) {
+    // JSON-Schema oneOf = exactly one branch matches (⑤: the three values never overlap)
     const sub = schema.oneOf.map((s) => { const e = []; check(value, s, path, e); return e; });
-    if (!sub.some((e) => e.length === 0)) errors.push(`${path}: matches none of oneOf`);
-    return;
+    const matches = sub.filter((e) => e.length === 0).length;
+    if (matches === 0) errors.push(`${path}: matches none of oneOf`);
+    else if (matches > 1) errors.push(`${path}: matches ${matches} branches of oneOf (must be exactly one)`);
+    // a schema may combine oneOf with its own type/required/properties: keep checking those
+    if (!schema.type && !schema.properties && !schema.required) return;
   }
   if (schema.type) {
     const t = typeOf(value);
@@ -79,6 +83,14 @@ export function validateReading(reading, schema = loadReadingSchema()) {
     if (reading.stage_reached === 'done' && reading.stage_stopped !== null) errors.push('$.stage_stopped: must be null when stage_reached is done');
     if (reading.stage_reached !== 'done' && reading.stage_stopped === null && reading.observed?.instrument_error == null) errors.push('$.stage_stopped: must name a stage when stage_reached is not done');
     if (reading.stage_stopped && STAGES.indexOf(reading.stage_stopped) > STAGES.indexOf(reading.stage_reached)) errors.push('$.stage_stopped: cannot be beyond stage_reached');
+    // ⑤ exclusivity: for a generic agent reading exactly one of pass / false_completion / undetermined /
+    // instrument_error is true. Exempt: ground-truth rows (method sealed_*, pass = consistency) and the
+    // M-001 method (its judge predates the three values; revisited after the seven rows, runtime pinned).
+    const o = reading.observed;
+    if (o && typeof o === 'object' && typeof o.method === 'string' && !o.method.startsWith('sealed_') && o.method !== 'harness_direct_api_vs_sealed_expectation') {
+      const n = [o.pass === true, o.false_completion === true, o.undetermined === true, o.instrument_error != null].filter(Boolean).length;
+      if (n !== 1) errors.push(`$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got ${n})`);
+    }
   }
   return errors;
 }
