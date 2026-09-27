@@ -41,6 +41,15 @@ const server = createServer((req, res) => {
       if (mode === "invalid_payload") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: "<html>502 Bad Gateway</html>" }] } });
       if (mode === "other_payload_error") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ error: "Rate limit exceeded. Try again later." }) }] } });
       if (mode === "mismatch") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ service_id: "someone-else", mcp_status: "official" }) }] } });
+      // K-cases (review-2 re-review): HTTP 200 with empty / other-service / partial / loose "not found"
+      if (mode === "empty_content") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: "" }] } });
+      if (mode === "empty_object") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: "{}" }] } });
+      if (mode === "other_service_full") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ service_id: "someone-else", mcp_status: "official", freshness: { confidence: "medium" } }) }] } });
+      if (mode === "partial_no_freshness") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ service_id: id, mcp_status: "official" }) }] } });
+      if (mode === "empty_status") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ service_id: id, mcp_status: "", freshness: { confidence: "medium" } }) }] } });
+      if (mode === "loose_not_found") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ error: "Backend not found (503)" }) }] } });
+      if (mode === "not_found_other_id") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ error: "Service 'someone-else' not found. Use search_services to find valid service IDs." }) }] } });
+      if (mode === "structured_not_found") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ code: "not_found", service_id: id }) }] } });
       // the real catalog's absence message: "Service '<id>' not found. Use search_services …"
       const payload = d ? { _mode: "detail", service_id: id, mcp_status: d.mcp_status, freshness: { data_age_days: 1, last_refreshed: "2026-09-24", confidence: d.confidence } } : { error: `Service '${id}' not found. Use search_services to find valid service IDs.` };
       return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(payload) }] } });
@@ -96,19 +105,27 @@ try {
     display["fake-dead-one"] = { mcp_status: "official", confidence: "medium" };
   }
   // (4b) instrument failures must never become "not displayed": each failure mode → instrument, pass=false
-  for (const mode of ["rpc_error", "tool_error", "invalid_payload", "other_payload_error", "mismatch"]) {
+  for (const mode of ["rpc_error", "tool_error", "invalid_payload", "other_payload_error", "mismatch", "empty_content", "empty_object", "other_service_full", "partial_no_freshness", "empty_status", "loose_not_found", "not_found_other_id"]) {
     failMode["fake-dead-two"] = mode;
     const r = await run();
     expect(`(4b) catalog ${mode} → instrument_error, discover stop, pass=false`, r.agent?.observed.instrument_error === "other" && r.agent?.stage_stopped === "discover" && r.agent?.observed.pass === false && r.agent?.observed.false_completion === false, JSON.stringify(r.agent?.observed));
     expect(`(4b) catalog ${mode} → every_service_observed=false`, r.agent?.observed.checks.some((c: any) => c.label === "every_service_observed" && c.ok === false));
     failMode["fake-dead-two"] = null;
   }
-  // (4c) the catalog's genuine not-found is a valid observation (not a false claim)
+  // (4c) the catalog's genuine not-found (known sentence naming THIS service_id) is a valid observation
   {
     display["fake-dead-two"] = null;
     const r = await run();
-    expect("(4c) explicit not-found → observed, pass", r.agent?.observed.pass === true && r.agent?.observed.instrument_error === null, JSON.stringify(r.agent?.observed));
+    expect("(4c) known not-found sentence with the requested id → observed, pass", r.agent?.observed.pass === true && r.agent?.observed.instrument_error === null, JSON.stringify(r.agent?.observed));
     display["fake-dead-two"] = { mcp_status: "official", confidence: "medium" };
+  }
+  // (4d) a structured absence code is the other accepted form
+  {
+    failMode["fake-dead-one"] = "structured_not_found";
+    const r = await run();
+    expect("(4d) structured code not_found → observed, pass", r.agent?.observed.pass === true && r.agent?.observed.instrument_error === null, JSON.stringify(r.agent?.observed));
+    expect("(4d) generic kinds never set undetermined", r.agent?.observed.undetermined === false);
+    failMode["fake-dead-one"] = null;
   }
   // (5) ground truth drift: sealed endpoint came back alive → gt row pass=false; agent reading still judged
   {

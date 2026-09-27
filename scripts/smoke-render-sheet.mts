@@ -41,6 +41,7 @@ expect("has the claim, fingerprint and period", md.includes("テスト主張") &
 expect("observers listed incl. agent CLI observer", md.includes("codex@0.153.4（gpt-6-astra）"));
 expect("day rows: 4 agent rows", (md.match(/^\| 2026-09-2\d \| /gm) || []).length === 4 + 1, `${(md.match(/^\| 2026-09-2\d \| /gm) || []).length}`);
 expect("false completion marked and counted", md.includes("| あり |") && md.includes("偽の完了: 1 回"));
+expect("未判定 column present and counted (none in this ledger)", md.includes("| 未判定 |") && md.includes("未判定（規則が通しも落としもできなかった読み）: 0 回"));
 expect("instrument row shown as 計器", md.includes("計器:provider_api"));
 expect("stop days per stage", md.includes("| 発見 | 1 |") && md.includes("| 理解 | 1 |") && md.includes("| 接続 | 0 |"));
 expect("ground-truth section header present (not just the footer count)", md.includes("### 正解側の行（封印の期待 vs ハーネスの直接読み）"));

@@ -39,7 +39,7 @@
 | 5 | target | object | service_id / model / harness_version | outcomes.service_id, outcomes.model_name |
 | 6 | stage_reached | enum | 到達した最遠の臓器: discover / understand / connect / execute / done | outcomes.failed_step の原型 |
 | 7 | stage_stopped | enum or null | 止まった臓器。done なら null | outcomes.failed_step |
-| 8 | observed | object | pass/fail と**照合方法**・固定ラベルの checks・false_completion・ground_truth_consistent・instrument_error・trap_armed。**値そのもの（事業所 ID・件数）は書かない** | outcomes.success |
+| 8 | observed | object | pass/fail と**照合方法**・固定ラベルの checks・false_completion・ground_truth_consistent・instrument_error・trap_armed・**undetermined（未判定＝規則が通しも落としもできなかった。pass=false・false_completion=false と必ず組）**。**値そのもの（事業所 ID・件数）は書かない** | outcomes.success |
 | 9 | evidence_ref | string | Evidence Bundle のパス `#sha256:` manifest.json の指紋 | ― |
 | 10 | observer | string | `kansei_harness@<version>`、`human:<role>`、または観測したのがエージェント自身のとき `<agent-cli>@<版>`（例 `claude-code@2.1.274`・`codex@0.153.4`・M-003） | outcomes.agent_id_hash |
 | 11 | kind | enum | synthetic / lived。**M-001 は synthetic 固定** | outcomes.provenance（synthetic→`'synthetic'`、lived→`'user_reported'`） |
@@ -128,7 +128,13 @@
 
 - `catalog_display`: 観測は「整った tool 結果」か「カタログ自身の明示の not found」だけ。JSON-RPC の error・tool の isError・パースできない payload・別 service の payload・その他の error 文は**計器**（discover で停止・pass=false・false_completion=false）。封印の全 service が観測できた日だけ判定に進む（check `every_service_observed`）。
 - `fetch_check_summary`: status は fetched／denied／unclear／error／missing の五つだけ。未知の status は計器。done は「wiki ページが 1 本以上あり、全部 fetched」のときだけ。要約の `date` が当日でなければ（明示 `--fetch-summary` でも）行を立てない。
-- `llm_answer` は三つの問いに分けて読む。(1) **URL の同定**: 本文から境界付きで GitHub URL 候補を抽出（`extractRepoCandidates`）→ 各候補を正規化（scheme/www/`.git`/`#`/`?`/末尾の句読点・スラッシュ）→ host と 2 段の path の完全一致。`/sub` や `-v2` は別リポジトリ。英文中の URL を落とさない（全文の空白削除はしない）。(2) **公式性の否定**: 「公式 MCP は確認できない／存在しない／未確認／非公式」「no official MCP / unofficial」があれば、URL があっても discover で停止＋false_completion。(3) **認証の主張**: 文ごとに方式トークン（OAuth 2.0／Basic／API キー）の肯否を読む（日本語は後置の否定「非対応・ではない・使えない・記載がない…」、英語は前置の「not / no / n't / without」、「X ではなく Y」「not X but Y」は X 否定・Y 肯定）。**誤方式の肯定、OAuth の否定、OAuth の肯定と否定の同居**は understand で停止＋false_completion（OAuth の語があるだけでは通らない）。OAuth の肯定のみで否定が無いときだけ理解通過＝done。認証に触れない → understand 停止（false_completion なし）。回帰: `exec-harness/fixtures/llm-answer-cases.json`（Codex の回答 11 件＋既存＋境界例、全件をスモークが期待どおりに通す）。
+- `llm_answer`（規則は `lib/llm-answer-rules.mjs` に集約・Codex 再審査 2026-09-27 反映）は三つの問いに分けて読む。
+  (1) **URL の同定**: 本文中のリポジトリらしい URL をすべて候補として**丸ごと URL として解析**（`new URL`）し、**hostname が `github.com` 等と完全一致**するものだけを残す（サブドメイン・類似ドメイン・別 URL のクエリ内は不可）。scheme 無しの表記にも開始境界を要求する。key は `host/owner/repo[/deeper]`（`.git`・`#`・`?`・末尾句読点は除去）。文中で否定された候補（「X は非公式／ではない」「not X」「fork」）は集合から外す。**否定されていない候補の集合が {封印} と等しいときだけ発見を通す。** 候補が複数、別リポジトリ、深い path → discover 停止で **undetermined=true**（false_completion=false）。候補ゼロで公式 MCP の明示否定 → discover 停止＋false_completion。
+  (2) **公式性の否定**は文ごとに読む。候補 URL を含む文の「非公式」はその候補の否定であって、公式 MCP の否定ではない。候補を含まない文の「公式 MCP は確認できない／存在しない／未確認／非公式」「no official MCP / unofficial」→ discover 停止＋false_completion。
+  (3) **認証の判定は三値**: **合格**＝現在形の肯定の白リスト一致のみ（「認証は OAuth 2.0 です」「uses OAuth 2.0」「OAuth 2.0 で認証」「Basic ではなく OAuth 2.0」…）かつ OAuth の明示否定が無い／**偽の完了**＝誤方式（Basic・API キー）の明示肯定、または OAuth の明示否定（矛盾を含む）／**未判定（undetermined）**＝それ以外（触れない・曖昧・疑問文・条件・将来・省略）。疑問文・条件・将来の文（「〜ですか？」「〜なら」「予定」「if / will / would」…）は肯定にも否定にも数えない。未判定は understand 停止・pass=false・false_completion=false・`observed.undetermined=true`。
+  回帰: `exec-harness/fixtures/llm-answer-cases.json`（期待は三値で書く: stopped／pass／false_completion／undetermined）。全件をスモークが期待どおりに通す。
+- `catalog_display` の**不在**は、構造化コード（`code: "not_found"`）か、要求した service_id を含む既知の不在文（`Service '<id>' not found …`）だけ。「not found」の部分一致は不可。`mcp_status` が空、`freshness` が欠落など**不完全な観測は計器エラー**。
+- `fetch_check_summary`: `summary.date` に加えて `run_at` の日付、cell ごとの `date` も当日でなければ使わない（混在した summary は行を立てない／その cell は missing）。
 
 共通の規律:
 - 回答文・本文・URL は transcript.jsonl（git 外）にだけ残す。公開 bundle の checks は固定ラベル（service は番号で指す）。

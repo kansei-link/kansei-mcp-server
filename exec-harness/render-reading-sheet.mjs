@@ -69,10 +69,10 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
   lines.push('');
   lines.push('## 一日一行');
   lines.push('');
-  lines.push('| 日付 | 観測者 | 到達 | 止まった臓器 | 判定 | 偽の完了 | 正解側の整合 | 証拠の指紋 |');
-  lines.push('|---|---|---|---|---|---|---|---|');
-  for (const r of agent) lines.push(`| ${r.observed_at.slice(0, 10)} | ${observerOf(r)} | ${STAGE_JA[r.stage_reached] || r.stage_reached} | ${r.stage_stopped ? STAGE_JA[r.stage_stopped] : '—'} | ${verdict(r)} | ${r.observed.false_completion ? 'あり' : '—'} | ${gtOf(r)} | ${digestOf(r)} |`);
-  if (!agent.length) lines.push('| — | — | — | — | — | — | — | — |');
+  lines.push('| 日付 | 観測者 | 到達 | 止まった臓器 | 判定 | 偽の完了 | 未判定 | 正解側の整合 | 証拠の指紋 |');
+  lines.push('|---|---|---|---|---|---|---|---|---|');
+  for (const r of agent) lines.push(`| ${r.observed_at.slice(0, 10)} | ${observerOf(r)} | ${STAGE_JA[r.stage_reached] || r.stage_reached} | ${r.stage_stopped ? STAGE_JA[r.stage_stopped] : '—'} | ${verdict(r)} | ${r.observed.false_completion ? 'あり' : '—'} | ${r.observed.undetermined ? 'あり' : '—'} | ${gtOf(r)} | ${digestOf(r)} |`);
+  if (!agent.length) lines.push('| — | — | — | — | — | — | — | — | — |');
   if (gt.length) {
     lines.push('');
     lines.push('### 正解側の行（封印の期待 vs ハーネスの直接読み）');
@@ -89,6 +89,7 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
   for (const s of STAGES) lines.push(`| ${STAGE_JA[s]} | ${stopDays[s].size} |`);
   lines.push('');
   lines.push(`- 偽の完了: ${falseCompletions} 回`);
+  lines.push(`- 未判定（規則が通しも落としもできなかった読み）: ${agent.filter((r) => r.observed.undetermined).length} 回`);
   lines.push(`- 計器の最終観測: ${lastText}${last && ageH > 24 ? `（最後の読みから ${Math.floor(ageH)} 時間・24 時間を超えたため「不明」）` : ''}`);
   lines.push('');
   const md = lines.join('\n') + '\n';

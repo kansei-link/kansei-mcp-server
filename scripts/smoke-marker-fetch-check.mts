@@ -38,11 +38,11 @@ await new Promise<void>((r) => server.listen(47332, "127.0.0.1", () => r()));
 
 const tmp = mkdtempSync(join(tmpdir(), "fetch-check-"));
 const TODAY = new Date().toISOString().slice(0, 10);
-function summary(cells: Record<string, Record<string, string>>, cli: Record<string, string> = { claude: "9.9.9 (Claude Code)", codex: "codex-cli 0.0.1" }, date = TODAY) {
+function summary(cells: Record<string, Record<string, string | { status: string; date?: string }>>, cli: Record<string, string> = { claude: "9.9.9 (Claude Code)", codex: "codex-cli 0.0.1" }, date = TODAY, runAt?: string) {
   const p = join(tmp, `${Date.now()}-${Math.random().toString(36).slice(2, 6)}.json`);
   const checks: any = {};
-  for (const [id, byAgent] of Object.entries(cells)) { checks[id] = {}; for (const [agent, status] of Object.entries(byAgent)) checks[id][agent] = { status, error: null, snippet: "…" }; }
-  writeFileSync(p, JSON.stringify({ date, agents: { claude: "claude-opus-5", codex: "gpt-6-astra" }, cli_versions: cli, checks }));
+  for (const [id, byAgent] of Object.entries(cells)) { checks[id] = {}; for (const [agent, v] of Object.entries(byAgent)) checks[id][agent] = typeof v === "string" ? { status: v, error: null, snippet: "…" } : { status: v.status, date: v.date, error: null, snippet: "…" }; }
+  writeFileSync(p, JSON.stringify({ date, run_at: runAt ?? `${date}T00:00:01.000Z`, agents: { claude: "claude-opus-5", codex: "gpt-6-astra" }, cli_versions: cli, checks }));
   return p;
 }
 async function run(summaryPath: string, extra: string[] = []) {
@@ -103,6 +103,18 @@ try {
   {
     const r = await run(summary({ "fetch-index": { claude: "fetched", codex: "fetched" }, "fetch-square": { claude: "fetched", codex: "fetched" }, "fetch-control-insights": { claude: "fetched", codex: "fetched" } }, undefined, "2026-01-01"));
     expect("(5c) stale summary → no readings, skip logged with the date", r.status === 0 && !r.claude && !r.codex && /summary date 2026-01-01 is not today/.test(r.out), r.out.slice(-300));
+  }
+  // (5d) F-cases (review-2 re-review): mixed dates inside one summary
+  {
+    // F1: date is today but run_at is yesterday → inconsistent summary, no rows
+    const r1 = await run(summary({ "fetch-index": { claude: "fetched" }, "fetch-square": { claude: "fetched" }, "fetch-control-insights": { claude: "fetched" } }, undefined, TODAY, "2026-01-01T00:00:00.000Z"));
+    expect("(5d) F1 run_at from another day → no readings", r1.status === 0 && !r1.claude && /run_at 2026-01-01 is not today/.test(r1.out), r1.out.slice(-300));
+    // F2: one cell carries an old date → that page is missing → discover stop (never done)
+    const r2 = await run(summary({ "fetch-index": { claude: { status: "fetched", date: "2026-01-01" } }, "fetch-square": { claude: "fetched" }, "fetch-control-insights": { claude: "fetched" } }));
+    expect("(5d) F2 old-dated cell → missing → discover, pass=false", r2.claude?.stage_stopped === "discover" && r2.claude?.observed.pass === false, JSON.stringify(r2.claude?.observed));
+    // F3: only the control page is today's; wiki cells old → discover (control never lifts the stage)
+    const r3 = await run(summary({ "fetch-index": { claude: { status: "fetched", date: "2026-01-01" } }, "fetch-square": { claude: { status: "fetched", date: "2026-01-01" } }, "fetch-control-insights": { claude: "fetched" } }));
+    expect("(5d) F3 wiki cells old, control today → discover, pass=false", r3.claude?.stage_stopped === "discover" && r3.claude?.observed.pass === false, JSON.stringify(r3.claude?.observed));
   }
   // (6) --observers filter and public files free of URLs
   {

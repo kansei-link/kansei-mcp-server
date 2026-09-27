@@ -96,7 +96,7 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
       reading_id: newUlid(), claim: MK.claim, marker_id: MK.marker_id, expected_digest: sealedCommon.digest,
       target: { service_id: PACK.service_id, model, harness_version: HARNESS_VERSION },
       stage_reached: v.reached, stage_stopped: v.stopped,
-      observed: { pass: v.pass, method: target.method, checks: v.checks, false_completion: v.falseCompletion, ground_truth_consistent: gtConsistent, instrument_error: v.instrument, trap_armed: false },
+      observed: { pass: v.pass, method: target.method, checks: v.checks, false_completion: v.falseCompletion, ground_truth_consistent: gtConsistent, instrument_error: v.instrument, trap_armed: false, undetermined: Boolean(v.undetermined) },
       evidence_ref: `${bundleRel}#sha256:PENDING`, observer: observerStr, kind: 'synthetic', observed_at: observedAt, supersedes: flags.supersedes || null,
       _outcome: { success: v.pass ? 1 : 0, latency_ms: elapsed, error_type: v.instrument ? `instrument_${v.instrument}` : (v.stopped ? `stage_${v.stopped}` : null), model_name: model, failed_step: v.stopped, verification_status: v.instrument ? 'unverified' : 'assertion_verified', context_masked: `[marker ${MK.marker_id}] observer=${observer.label} stage_reached=${v.reached} stage_stopped=${v.stopped ?? 'none'} false_completion=${v.falseCompletion}` },
     };

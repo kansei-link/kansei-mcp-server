@@ -16,6 +16,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { askLlm } from './llm-ask.mjs';
+import { AUTH_RULE, judgeLlmAnswer } from './llm-answer-rules.mjs';
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const DEAD = new Set(['gone', 'dns_fail', 'connection_refused']);
@@ -69,12 +70,18 @@ export async function readCatalogDisplay(apiUrl, serviceId, timeoutMs = 20000) {
     if (rpc.result?.isError) return { reachable: true, valid: false, http: r.status, error: 'tool_error' };
     let payload; try { payload = JSON.parse(rpc.result?.content?.[0]?.text ?? ''); } catch { return { reachable: true, valid: false, http: r.status, error: 'invalid_payload' }; }
     if (!payload || typeof payload !== 'object') return { reachable: true, valid: false, http: r.status, error: 'invalid_payload' };
-    if (payload.error) {
-      // Only the catalog's explicit "not found" is a legitimate absence.
-      if (/not found/i.test(String(payload.error))) return { reachable: true, valid: true, found: false, http: r.status, tokens: [] };
+    if (payload.error || payload.code) {
+      // Legitimate absence = a structured code, or the catalog's known absence sentence that
+      // names THIS service_id. "not found" as a loose substring is not accepted.
+      const esc = serviceId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const structured = payload.code === 'not_found' && (payload.service_id === serviceId || payload.service_id === undefined);
+      const knownText = new RegExp(`^Service '${esc}' not found\\b`).test(String(payload.error || ''));
+      if (structured || knownText) return { reachable: true, valid: true, found: false, http: r.status, tokens: [] };
       return { reachable: true, valid: false, http: r.status, error: 'payload_error' };
     }
-    if (payload.service_id !== serviceId || typeof payload.mcp_status !== 'string') return { reachable: true, valid: false, http: r.status, error: 'payload_mismatch' };
+    if (payload.service_id !== serviceId) return { reachable: true, valid: false, http: r.status, error: 'payload_mismatch' };
+    // Incomplete display (empty status, missing freshness) is not an observation.
+    if (typeof payload.mcp_status !== 'string' || !payload.mcp_status.trim() || !payload.freshness || typeof payload.freshness !== 'object' || typeof payload.freshness.confidence !== 'string' || !payload.freshness.confidence.trim()) return { reachable: true, valid: false, http: r.status, error: 'incomplete_payload' };
     const tokens = [String(payload.mcp_status).toLowerCase()];
     if (payload.freshness?.confidence === 'high') tokens.push('updated');
     if (payload.freshness?.confidence) tokens.push(`freshness:${payload.freshness.confidence}`);
@@ -160,11 +167,15 @@ const fetchCheck = {
     // The summary must be today's: a reading's observed_at is the day it was made, so an
     // older summary (even one passed explicitly) writes no row.
     if (s.date !== stamp) return { missing: true, summaryPath, reason: `summary date ${s.date} is not today (${stamp})` };
+    // A summary whose run_at is another day is inconsistent (mixed dates) and is not used at all.
+    if (s.run_at && String(s.run_at).slice(0, 10) !== stamp) return { missing: true, summaryPath, reason: `summary run_at ${String(s.run_at).slice(0, 10)} is not today (${stamp})` };
     const key = observer.summary_key;
     const pages = sealed.pages.map((p, i) => {
       const id = (MK.pages || [])[i]?.summary_id;
       const cell = s.checks?.[id]?.[key];
-      return { summary_id: id, status: cell?.status ?? 'missing', control: Boolean((MK.pages || [])[i]?.control) };
+      // A cell that carries its own date must be today's; otherwise it is treated as missing.
+      const cellDated = cell && cell.date != null && String(cell.date).slice(0, 10) !== stamp;
+      return { summary_id: id, status: cellDated ? 'missing' : (cell?.status ?? 'missing'), control: Boolean((MK.pages || [])[i]?.control) };
     });
     if (pages.every((p) => p.status === 'missing')) return { missing: true, summaryPath, reason: `no cells for ${key}` };
     log({ role: 'tool_result', tool: 'fetch_check_summary', args: { observer: key, date: s.date }, result_head: JSON.stringify(pages).slice(0, 400) });
@@ -195,69 +206,8 @@ const fetchCheck = {
 /* ================= llm_answer (M-004: discover + understand; connect/execute = M-005) ================= */
 const normRepo = (u) => String(u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\.git$/, '').replace(/[#?].*$/, '').replace(/\/+$/, '');
 
-/** GitHub URL candidates in free text, each normalised to "github.com/<owner>/<repo>[/more]".
- *  Boundaries: a candidate starts at (https://)(www.)github.com/ and ends at whitespace or a
- *  closing bracket/quote; trailing punctuation, ".git", "#fragment" and "?query" are stripped
- *  per candidate. Case-insensitive. Nothing else in the text is touched. */
-export function extractRepoCandidates(text) {
-  const out = [];
-  const re = /(?:https?:\/\/)?(?:www\.)?github\.com\/[^\s<>"'`()\[\]{}（）「」『』【】]+/gi;
-  for (const m of String(text || '').matchAll(re)) {
-    let u = m[0].toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/[#?].*$/, '').replace(/[.,;:!?。、]+$/g, '').replace(/\/+$/, '').replace(/\.git$/, '');
-    if (/^github\.com\/[^/]+\/[^/]+/.test(u)) out.push(u);
-  }
-  return [...new Set(out)];
-}
-
-const DENIED_OFFICIAL_MCP = [
-  /(公式|official)[^。.\n]{0,40}mcp[^。.\n]{0,40}(確認できない|確認できません|未確認|存在しない|存在しません|提供していない|提供されていない|提供していません|ありません|見当たらない|見つかりません|不明|非公式)/i,
-  /mcp[^。.\n]{0,40}(公式ではない|公式ではありません|非公式)/i,
-  /(?:^|[^a-z])非公式/i,
-  /\b(no|not\s+an?|isn'?t\s+an?|without\s+an?)\s+official\s+mcp/i,
-  /\bofficial\s+mcp[^.\n]{0,40}\b(not\s+(found|available|confirmed|exist|provided|published)|unconfirmed|unknown|does\s+not\s+exist)/i,
-  /\b(unofficial|not\s+official|non-?official)\b/i,
-  /\bthere\s+is\s+no\s+official\s+mcp/i,
-];
-
-/** Per-sentence polarity of authentication-method mentions.
- *  Returns { affirmed:Set, denied:Set } over keys 'oauth' | 'basic' | 'apikey' | <other wrong token>.
- *  Japanese negation follows the token (…は非対応／ではない／使わない); English negation
- *  precedes it (not / no / doesn't use / without). "X ではなく Y" denies X and affirms Y. */
-export function readAuthPolarity(text, wrongTokens = []) {
-  const affirmed = new Set(), denied = new Set();
-  const tokens = [{ key: 'oauth', re: /oauth\s*2(?:\.0)?\b|oauth2\b|\boauth\b/i }];
-  for (const w of wrongTokens) {
-    if (/basic/i.test(w)) tokens.push({ key: 'basic', re: /\bbasic\b(?:\s*(?:認証|auth(?:entication)?))?/i });
-    else if (/api\s*キー|api\s*key|apiキー/i.test(w)) tokens.push({ key: 'apikey', re: /api\s*(?:キー|key)s?/i });
-    // '存在しない' / '未確認' are officialness tokens, handled by DENIED_OFFICIAL_MCP
-  }
-  // Japanese: negation / "not stated" follows the token. English: negation precedes it.
-  const NEG_AFTER = /^[^。.!?\n]{0,25}?(非対応|未対応|ではない|ではありません|じゃない|使わない|使いません|使えない|使えません|使用しない|使用しません|利用できない|利用できません|対応していない|対応していません|サポートしていない|サポートされていない|不可|できない|できません|ありません|ではなく|以外|記載(が|は)?(ない|ありません)|明記されていない|不明|分からない|わからない)/;
-  const NEG_BEFORE = /(\bnot\b|\bno\b|n't\b|\bwithout\b|\bnever\b|\bneither\b|\bnor\b|\binstead\s+of\b|\brather\s+than\b)[^.!?\n]{0,25}$/i;
-  // Sentence boundaries: 。！？ newline, or "." followed by whitespace/end (so "2.0" stays whole).
-  for (const sentence of String(text || '').split(/(?<=[。！？!?\n])|(?<=\.)(?=\s|$)/)) {
-    for (const t of tokens) {
-      for (const m of sentence.matchAll(new RegExp(t.re.source, 'gi'))) {
-        // "not X but Y" / "X ではなく Y": the negation belongs to X only, so the window before Y
-        // starts after the last "but" / "ではなく".
-        const beforeRaw = sentence.slice(Math.max(0, m.index - 40), m.index);
-        const before = beforeRaw.split(/\bbut\b|ではなく/i).pop();
-        const after = sentence.slice(m.index + m[0].length, m.index + m[0].length + 40);
-        const negated = NEG_AFTER.test(after) || NEG_BEFORE.test(before);
-        if (negated) denied.add(t.key); else affirmed.add(t.key);
-      }
-    }
-  }
-  return { affirmed, denied };
-}
-/** Judgement-rule constants for llm_answer (docs/READING-PREDICATE-v1.md §6). These are NOT
- *  sealed values: the seal holds only the official repository URL. The expected auth method
- *  and the wrong-method tokens are declared here, in the open, so the seal cannot carry the
- *  answer key for stage "understand" and the rule is reviewable. */
-export const AUTH_RULE = Object.freeze({
-  expected: 'OAuth 2.0',
-  wrongTokens: Object.freeze(['Basic', 'APIキー', 'API key']),
-});
+// Rules live in ./llm-answer-rules.mjs (candidates, official-MCP denial, three-valued auth verdict).
+export { AUTH_RULE, extractRepoCandidates, repoCandidateSet, deniesOfficialMcp, readAuthVerdict, judgeLlmAnswer } from './llm-answer-rules.mjs';
 
 const llmAnswer = {
   method: 'llm_answer_rules_vs_sealed_expectation',
@@ -300,35 +250,7 @@ const llmAnswer = {
    *      with false_completion. Only OAuth 2.0 affirmed (and never denied) passes.
    * done needs all three; anything ambiguous or contradictory is not done.
    */
-  judge({ obs, sealed }) {
-    const text = String(obs.text || '');
-    const urls = extractRepoCandidates(text);
-    const urlOk = urls.some((u) => u === sealed.repo);
-    const otherRepoNamed = urls.some((u) => u !== sealed.repo && u.startsWith(`${sealed.repo}/`) || (u !== sealed.repo && u.startsWith(`${sealed.repo}-`)));
-    const citedAny = /https?:\/\/\S+/i.test(text) || (obs.citations || []).length > 0;
-    const deniedMcp = DENIED_OFFICIAL_MCP.some((re) => re.test(text));
-    const auth = readAuthPolarity(text, sealed.wrongTokens);
-    const oauthAffirmed = auth.affirmed.has('oauth');
-    const oauthDenied = auth.denied.has('oauth');
-    const wrongAffirmed = [...auth.affirmed].some((k) => k !== 'oauth');
-    let reached, stopped, falseCompletion = false, instrument = null;
-    if (obs.error) { reached = 'discover'; stopped = 'discover'; instrument = 'provider_api'; }
-    else if (!urlOk) { reached = 'discover'; stopped = 'discover'; falseCompletion = deniedMcp; }
-    else if (deniedMcp) { reached = 'discover'; stopped = 'discover'; falseCompletion = true; }
-    else if (wrongAffirmed || oauthDenied) { reached = 'understand'; stopped = 'understand'; falseCompletion = true; }
-    else if (!oauthAffirmed) { reached = 'understand'; stopped = 'understand'; falseCompletion = false; }
-    else { reached = 'done'; stopped = null; }
-    const checks = [
-      { label: 'named_official_mcp_repo_url', ok: urlOk },
-      { label: 'named_no_other_repo_path', ok: !otherRepoNamed },
-      { label: 'denied_official_mcp_exists', ok: !deniedMcp },
-      { label: 'auth_oauth2_affirmed', ok: oauthAffirmed },
-      { label: 'auth_oauth2_not_denied', ok: !oauthDenied },
-      { label: 'auth_wrong_method_not_affirmed', ok: !wrongAffirmed },
-      { label: 'cited_any_url', ok: citedAny },
-    ];
-    return { reached, stopped, pass: reached === 'done' && !obs.error, checks, falseCompletion, instrument };
-  },
+  judge({ obs, sealed }) { return judgeLlmAnswer(obs, sealed); },
 };
 
 export function selectTarget(MK) {

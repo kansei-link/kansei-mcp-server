@@ -26,13 +26,16 @@ const J = (text: string, error: string | null = null) => TARGETS.llmAnswer.judge
 // ── Part A: rules, every case in exec-harness/fixtures/llm-answer-cases.json ─
 // (Codex review-2 answers C01–C11, the original A cases under the closed policy, edge cases X*)
 {
-  const cases = JSON.parse(readFileSync(join(FIX, "llm-answer-cases.json"), "utf-8")).cases as Array<{ id: string; text: string; error?: string; expect: { stopped: string | null; pass: boolean; false_completion: boolean; instrument?: string } }>;
+  const cases = JSON.parse(readFileSync(join(FIX, "llm-answer-cases.json"), "utf-8")).cases as Array<{ id: string; text: string; error?: string; expect: { stopped: string | null; pass: boolean; false_completion: boolean; undetermined: boolean; instrument?: string } }>;
   expect("A0 case file has the 11 reviewer answers", cases.filter((c) => /^C\d\d$/.test(c.id)).length === 11);
+  expect("A0 every case has a three-valued expectation", cases.every((c) => typeof c.expect.undetermined === "boolean" && typeof c.expect.false_completion === "boolean"));
   for (const c of cases) {
     const r = J(c.text, c.error ?? null);
-    const ok = r.stopped === c.expect.stopped && r.pass === c.expect.pass && r.falseCompletion === c.expect.false_completion && (c.expect.instrument === undefined || r.instrument === c.expect.instrument) && (c.expect.stopped !== null || r.reached === "done");
-    expect(`${c.id} ${c.text.slice(0, 48).replace(/\s+/g, " ")}${c.error ? ` [error ${c.error}]` : ""}`, ok, `got stopped=${r.stopped} pass=${r.pass} fc=${r.falseCompletion} inst=${r.instrument}; want ${JSON.stringify(c.expect)}`);
+    const closed = !(r.pass && (r.falseCompletion || r.undetermined)) && !(r.undetermined && r.falseCompletion); // the three values never overlap
+    const ok = closed && r.stopped === c.expect.stopped && r.pass === c.expect.pass && r.falseCompletion === c.expect.false_completion && Boolean(r.undetermined) === c.expect.undetermined && (c.expect.instrument === undefined || r.instrument === c.expect.instrument) && (c.expect.stopped !== null || r.reached === "done");
+    expect(`${c.id} ${c.text.slice(0, 48).replace(/\s+/g, " ")}${c.error ? ` [error ${c.error}]` : ""}`, ok, `got stopped=${r.stopped} pass=${r.pass} fc=${r.falseCompletion} und=${r.undetermined} inst=${r.instrument}; want ${JSON.stringify(c.expect)}`);
   }
+  console.log(`A: ${cases.length} cases in fixtures (C=${cases.filter((c) => c.id.startsWith("C")).length}, A=${cases.filter((c) => c.id.startsWith("A")).length}, X=${cases.filter((c) => c.id.startsWith("X")).length}, R=${cases.filter((c) => c.id.startsWith("R")).length})`);
 }
 
 // ── Part B: end to end with fake provider ────────────────────────────────
