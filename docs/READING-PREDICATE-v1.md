@@ -120,7 +120,9 @@
 |---|---|---|---|---|
 | `http_probe` / `catalog_display`（M-002） | 封印の各エンドポイントへ MCP initialize を POST。gone(404/410)・dns_fail・connection_refused を死亡と数える。1 件でも生き返れば正解側の別行（`sealed_expectation_vs_harness_http_probe`・pass=false） | 公開カタログ（本番 MCP `tools/call lookup detail`・読むだけ）の表示トークン＝`mcp_status`＋（freshness.confidence が high なら `updated`） | `kansei_harness@…`（観測者はハーネス） | カタログ API に届かない → discover（計器）。どれか 1 件でも禁止トークン（verified/updated/確認済み/更新済み）→ **understand・pass=false・false_completion=true**（自分の状態の誤認）。カタログにその service が無い → 誤認ではないので通過。全件通過 → done |
 | `http_probe` / `fetch_check_summary`（M-003） | 封印の各 URL を直接取得し本文 sha256 を封印と照合。不一致＝ページが変わった＝正解側の別行（エージェントの失敗ではない） | 既存 fetch-check の `<日付>.json`（fetched/denied/unclear/error）を観測者ごとに読む。当日分が無い観測者は行を立てない | `claude-code@<CLI版>` / `codex@<CLI版>`（観測したのはエージェント自身）。`target.model` は要約の agents | error → 計器。wiki ページが denied／欠落 → discover。unclear → understand。wiki ページ全部 fetched → done（対照ページは check にだけ残す） |
-| `llm_answer`（M-004a） | 封印のリポジトリが GitHub API で公開・未アーカイブか。消えれば正解側の別行（`sealed_repo_vs_github_api`） | 公開 LLM 4 社（openai/gemini/perplexity/claude）へ課題文だけを 1 問 1 答（検索ツールなし・7/29 と同じ）。モデル 1 つにつき 1 行 | `kansei_harness@…`、`target.model`＝プロバイダが返したモデル名 | 封印のリポジトリ URL（大小文字・`.git`・`#` 無視・別パスは不可）を含む → discover 通過。`OAuth 2.0`/`OAuth2` を名指し → understand 通過＝**done**（この色素の主張は発見と理解までなので、その二つが通れば done）。URL なし → discover で停止、「公式 MCP は未確認／存在しない」と断言していれば false_completion。URL ありで Basic／API キーと断言 → understand で停止＋false_completion。認証に触れない → understand で停止（false_completion なし）。プロバイダ API の失敗 → 計器 provider_api |
+| `llm_answer`（M-004＝発見と理解。接続・完遂は M-005） | 封印のリポジトリが GitHub API で公開・未アーカイブか。消えれば正解側の別行（`sealed_repo_vs_github_api`） | 公開 LLM 4 社（openai/gemini/perplexity/claude）へ課題文だけを 1 問 1 答（検索ツールなし・7/29 と同じ）。モデル 1 つにつき 1 行 | `kansei_harness@…`、`target.model`＝プロバイダが返したモデル名 | 封印のリポジトリ URL（大小文字・`.git`・`#` 無視・別パスは不可）を含む → discover 通過。`OAuth 2.0`/`OAuth2` を肯定 → understand 通過＝**done**（この色素の主張は発見と理解までなので、その二つが通れば done）。URL なし → discover で停止、「公式 MCP は未確認／存在しない」と断言していれば false_completion。URL ありで Basic／API キーと断言 → understand で停止＋false_completion。認証に触れない → understand で停止（false_completion なし）。プロバイダ API の失敗 → 計器 provider_api |
+
+**M-004 の封印はリポジトリ URL だけ。** 理解段階の期待値（認証方式 `OAuth 2.0`）と誤方式トークン（`Basic`・`APIキー`・`API key`）は**判定規則の定数**（`lib/marker-targets.mjs` の `AUTH_RULE`）であって封印値ではない。封印に `auth_method` 等が書かれていても読まない（規則が封印の中に隠れないようにするため・Codex 審査 2 の P2/D）。マーカー ID は述語の `^M-[0-9]{3,}$` に従う（`M-004a` は不可。旧 M-004a は M-004 に改名、将来の接続・完遂は M-005）。
 
 **閉じた判定**（Codex 審査 2 の差し戻しで確定・2026-09-25）: 必要な印がすべて揃い、悪い印が一つも無いときだけ done。曖昧・矛盾・観測不能は不合格か計器エラーであって、決して done ではない。
 
@@ -130,7 +132,7 @@
 
 共通の規律:
 - 回答文・本文・URL は transcript.jsonl（git 外）にだけ残す。公開 bundle の checks は固定ラベル（service は番号で指す）。
-- `--max-readings` は marker_id ごとに数える（`marker_readings` の有効な outcome 付き行）。観測者が複数の色素は taskpack の `max_readings` を観測者数×日数にする（M-003=14・M-004a=28）。
+- `--max-readings` は marker_id ごとに数える（`marker_readings` の有効な outcome 付き行）。観測者が複数の色素は taskpack の `max_readings` を観測者数×日数にする（M-003=14・M-004=28）。
 - 偽の fixtures（M-994/995/996）・偽プロバイダ `fake`・`${ENV:…}` 置換は test-only＝非 dry-run を exit 5 で拒否。スモーク: `scripts/smoke-marker-{http-probe,fetch-check,llm-answer}.mts`。
 - 罠（`--arm-trap`）は `mcp_direct_read` だけ。一般化した対象では `trap_armed=false` 固定。
 

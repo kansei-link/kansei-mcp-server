@@ -1,5 +1,5 @@
 /**
- * One-turn "ask a public LLM" for kind_of_truth = llm_answer (M-004a).
+ * One-turn "ask a public LLM" for kind_of_truth = llm_answer (M-004).
  * Mirrors the 2026-07-29 audit (scripts/ai-answer-audit.mjs): plain chat
  * completion, no tools, no system prompt, no search grounding. The question is
  * the only text the model sees. Returns { text, model, citations } and never

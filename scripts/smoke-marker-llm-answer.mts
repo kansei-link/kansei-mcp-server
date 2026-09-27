@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Smoke test for kind_of_truth=llm_answer (M-004a shape): the judgement is rules
+ * Smoke test for kind_of_truth=llm_answer (M-004 shape): the judgement is rules
  * on the answer text, never a model grading a model.
  *
  *   npx tsx scripts/smoke-marker-llm-answer.mts

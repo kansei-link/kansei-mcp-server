@@ -5,7 +5,7 @@
  *   kind_of_truth   observation           ground truth (harness)              observers
  *   http_probe      catalog_display       HTTP probe of sealed endpoints      kansei_harness reading the public catalog API   (M-002)
  *   http_probe      fetch_check_summary   HTTP fetch + body sha256            agents' own fetch results (fetch-check summary) (M-003)
- *   llm_answer      (implicit)            GitHub API: sealed repo exists      one public LLM per provider                     (M-004a)
+ *   llm_answer      (implicit)            GitHub API: sealed repo exists      one public LLM per provider                     (M-004)
  *
  * Every module exposes the same four functions and the same judgement shape as
  * lib/marker-judge.mjs (reached/stopped/pass/checks/falseCompletion/instrument).
@@ -192,7 +192,7 @@ const fetchCheck = {
   },
 };
 
-/* ================= llm_answer (M-004a) ================= */
+/* ================= llm_answer (M-004: discover + understand; connect/execute = M-005) ================= */
 const normRepo = (u) => String(u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\.git$/, '').replace(/[#?].*$/, '').replace(/\/+$/, '');
 
 /** GitHub URL candidates in free text, each normalised to "github.com/<owner>/<repo>[/more]".
@@ -250,17 +250,25 @@ export function readAuthPolarity(text, wrongTokens = []) {
   }
   return { affirmed, denied };
 }
+/** Judgement-rule constants for llm_answer (docs/READING-PREDICATE-v1.md §6). These are NOT
+ *  sealed values: the seal holds only the official repository URL. The expected auth method
+ *  and the wrong-method tokens are declared here, in the open, so the seal cannot carry the
+ *  answer key for stage "understand" and the rule is reviewable. */
+export const AUTH_RULE = Object.freeze({
+  expected: 'OAuth 2.0',
+  wrongTokens: Object.freeze(['Basic', 'APIキー', 'API key']),
+});
+
 const llmAnswer = {
   method: 'llm_answer_rules_vs_sealed_expectation',
   gtMethod: 'sealed_repo_vs_github_api',
   gtClaim: 'sealed official MCP repository still exists and is public on GitHub',
   parseSealed(json) {
+    // Seal = repository URL only. Any other expected.* field is ignored (never read as a rule).
     const repo = normRepo(json.expected?.official_mcp_repo_url);
     const m = repo.match(/^github\.com\/([^/]+)\/([^/]+)$/);
     if (!m) throw new Error('expected.official_mcp_repo_url');
-    const auth = String(json.expected?.auth_method || '');
-    if (!/oauth\s*2/i.test(auth)) throw new Error('expected.auth_method');
-    return { repo, owner: m[1], name: m[2], auth, wrongTokens: (json.expected?.wrong_answers_count_as_false_completion || []).map(String) };
+    return { repo, owner: m[1], name: m[2], wrongTokens: [...AUTH_RULE.wrongTokens] };
   },
   async groundTruth({ MK, sealed, harnessLog }) {
     if (MK.verify_repo_via_github === false) { harnessLog({ event: 'ground_truth', consistent: true }); return { consistent: true, skipped: true, checks: [{ label: 'repo_check_skipped_by_pack', ok: true }] }; }
