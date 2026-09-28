@@ -16,7 +16,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { askLlm } from './llm-ask.mjs';
-import { AUTH_RULE, ANSWER_FORMAT, judgeLlmAnswer, extractUrlTokens, parseCanonicalRepoUrl } from './llm-answer-rules.mjs';
+import { AUTH_RULE, ANSWER_FORMAT, judgeLlmAnswer } from './llm-answer-rules.mjs';
+import { sourceListsRepo } from './attribution-rules.mjs';
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const DEAD = new Set(['gone', 'dns_fail', 'connection_refused']);
@@ -275,8 +276,10 @@ const llmAnswer = {
   /**
    * Attribution columns A and B (ATTRIBUTION-Rules v0.1 §1, §2-1). Ground-truth side rows, written
    * once per run; they read only (public pages, the public catalog) and never touch the subject.
-   * Both use the REPO line's own normalisation: URL tokens → parseCanonicalRepoUrl → key, compared
-   * with the sealed key. Values stay in memory; rows carry booleans and field NAMES only.
+   * Source match (sourceListsRepo, lib/attribution-rules.mjs): a false A or B blames the company or
+   * KanseiLINK, so host/owner/repo must match exactly but a deeper path, query, fragment or ".git"
+   * below the repository is allowed; A pages are HTML-decoded (&amp;, &#x2F; …) before the URL tokens
+   * are taken. Values stay in memory; rows carry booleans and field NAMES only.
    *   A (sealed_repo_vs_official_docs): pass = A1 or A2 lists the key. A page that cannot be fetched
    *     makes the row an instrument error only when no fetched page lists the key.
    *   B (sealed_repo_vs_kansei_catalog): pass = some field of the catalog item yields the key
@@ -285,7 +288,6 @@ const llmAnswer = {
   async attribution({ MK, sealed, harnessLog }) {
     const cfg = MK.attribution;
     if (!cfg) return [];
-    const hasKey = (text) => extractUrlTokens(text).some((t) => parseCanonicalRepoUrl(t.raw)?.key === sealed.repo);
     const rows = [];
 
     // A: official documentation pages fixed in the taskpack
@@ -296,7 +298,7 @@ const llmAnswer = {
       const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000);
       try {
         const r = await fetch(p.url, { headers: { 'user-agent': 'kansei-marker-harness/0.4' }, signal: c.signal });
-        if (r.ok) { fetched = true; listed = hasKey(await r.text()); }
+        if (r.ok) { fetched = true; listed = sourceListsRepo(await r.text(), sealed.repo, { html: true }); }
       } catch { /* network */ } finally { clearTimeout(t); }
       aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_page_lists_sealed_repo`, ok: listed });
       if (listed) aListed = true; if (!fetched) aFailed = true;
@@ -316,7 +318,7 @@ const llmAnswer = {
       bChecks.push({ label: 'catalog_item_present', ok: true });
       const fields = [];
       const walk = (v, path) => {
-        if (typeof v === 'string') { if (hasKey(v)) fields.push(path || '(root)'); }
+        if (typeof v === 'string') { if (sourceListsRepo(v, sealed.repo)) fields.push(path || '(root)'); }
         else if (Array.isArray(v)) v.forEach((x) => walk(x, `${path}[]`));
         else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k);
       };

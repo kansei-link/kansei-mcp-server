@@ -4,7 +4,8 @@
  *
  *   npx tsx scripts/smoke-marker-attribution.mts
  *
- * Part A: lib/attribution-rules.mjs as pure functions — the whole truth table (#1–#8), the
+ * Part A: lib/attribution-rules.mjs as pure functions (A2: the source matcher — host/owner/repo exact,
+ *         anything below the repository allowed, HTML character references decoded for A pages) — the whole truth table (#1–#8), the
  *         undetermined cases U0–U4 and their precedence, and the cell texts.
  * Part B: run-marker end to end in --dry-run with the M-994 fixture seal, provider 'fake', and a
  *         loopback server (127.0.0.1:47336) playing A1/A2, the KanseiLINK catalog and the GitHub API.
@@ -16,7 +17,7 @@ import { createServer } from "node:http";
 import { readFileSync, writeFileSync, mkdtempSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
-import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS } from "../exec-harness/lib/attribution-rules.mjs";
+import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs } from "../exec-harness/lib/attribution-rules.mjs";
 import { renderSheet } from "../exec-harness/render-reading-sheet.mjs";
 import { validateReading, loadReadingSchema } from "../exec-harness/lib/reading.mjs";
 
@@ -70,13 +71,37 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
   expect("gtLabel A/B/classic", gtLabel({ method: ATTR_METHODS.A, pass: true }) === "A 公式情報: 載っている" && gtLabel({ method: ATTR_METHODS.B, pass: false, instrument_error: "other" }) === "B KanseiLINK: 計器エラー" && gtLabel({ method: "sealed_repo_vs_github_api", pass: false }) === "不一致");
 }
 
+// ── Part A2: the source matcher (yardstick: blaming the other side must be right) ──
+{
+  const K = "github.com/fake-vendor/fake-official-mcp-server";
+  const U0 = "https://github.com/fake-vendor/fake-official-mcp-server";
+  const pos = [U0, U0 + "/", U0 + ".git", U0 + ".git/", U0 + "/tree/main", U0 + "/blob/main/README.md", U0 + "#readme", U0 + "?tab=readme-ov-file", U0 + "/tree/main?x=1#y", U0.toUpperCase().replace("HTTPS", "https"), U0 + "/issues/1"];
+  const neg = ["https://evilgithub.com/fake-vendor/fake-official-mcp-server", "https://github.com.evil.example/fake-vendor/fake-official-mcp-server", "https://www.github.com/fake-vendor/fake-official-mcp-server", "https://github.com:443/fake-vendor/fake-official-mcp-server", "https://u@github.com/fake-vendor/fake-official-mcp-server",
+    "https://github.com/other-vendor/fake-official-mcp-server", "https://github.com/fake-vendor/other-repo", U0 + "-v2", U0 + "/../../other/other", U0 + "/%2e%2e/other/other", U0 + "\..\other", "https://github.com/fake-vendor", "https://github.com/fake-vendor/.git", "github.com/fake-vendor/fake-official-mcp-server"];
+  for (const u of pos) expect(`A2 (+) source key matches: ${u.slice(19)}`, sourceRepoKey(u) === K, String(sourceRepoKey(u)));
+  for (const u of neg) expect(`A2 (−) source key does not match: ${u}`, sourceRepoKey(u) !== K, String(sourceRepoKey(u)));
+  expect("A2 decode &amp; &#x2F; &#47; &quot;", decodeHtmlCharRefs("a&amp;b&#x2F;c&#47;d&quot;e") === 'a&b/c/d"e');
+  expect("A2 decode once (no double decoding)", decodeHtmlCharRefs("&amp;amp;") === "&amp;");
+  expect("A2 unknown names and bad code points left as they are", decodeHtmlCharRefs("&bogus; &#0; &#xD800;") === "&bogus; &#0; &#xD800;");
+  expect("A2 page with &amp; in the href lists the repo", sourceListsRepo(`<a href="${U0}?a=1&amp;b=2">x</a>`, K, { html: true }));
+  expect("A2 page with &#x2F; in the href lists the repo only after decoding", sourceListsRepo(`<a href="https:&#x2F;&#x2F;github.com&#x2F;fake-vendor&#x2F;fake-official-mcp-server">x</a>`, K, { html: true }) && !sourceListsRepo(`<a href="https:&#x2F;&#x2F;github.com&#x2F;fake-vendor&#x2F;fake-official-mcp-server">x</a>`, K));
+  expect("A2 a URL inside another URL's query is not the page pointing at the repo", !sourceListsRepo(`<a href="https://evil.example/r?to=${U0}">x</a>`, K, { html: true }));
+}
+
 // ── Part B: end to end on loopback ───────────────────────────────────────
 const REPO = "https://github.com/fake-vendor/fake-official-mcp-server";
 const mode: Record<string, string> = { a1: "none", a2: "listed", catalog: "no_repo", gh: "ok" };
 const page = (m: string) => m === "listed" ? `<html><body><a href="${REPO}">公式 MCP</a></body></html>`
   : m === "listed_fragment" ? `<html><body><a href="${REPO}#readme">公式 MCP</a></body></html>`
   : m === "listed_tree" ? `<html><body><a href="${REPO}/tree/main">公式 MCP</a></body></html>`
-  : m === "other_repo" ? `<html><body><a href="https://github.com/other/other">x</a></body></html>` : "<html><body>AI 活用</body></html>";
+  : m === "listed_blob" ? `<html><body><a href="${REPO}/blob/main/README.md#setup">README</a></body></html>`
+  : m === "listed_amp" ? `<html><body><a href="${REPO}?tab=readme-ov-file&amp;utm_source=news">公式 MCP</a></body></html>`
+  : m === "listed_entities" ? `<html><body><a href="https:&#x2F;&#x2F;github.com&#x2F;fake-vendor&#x2F;fake-official-mcp-server">公式 MCP</a></body></html>`
+  : m === "other_repo" ? `<html><body><a href="https://github.com/other/other">x</a></body></html>`
+  : m === "other_owner" ? `<html><body><a href="https://github.com/other-vendor/fake-official-mcp-server/tree/main">x</a></body></html>`
+  : m === "similar_host" ? `<html><body><a href="https://evilgithub.com/fake-vendor/fake-official-mcp-server">x</a> <a href="https://github.com.evil.example/fake-vendor/fake-official-mcp-server">y</a></body></html>`
+  : m === "dot_segments" ? `<html><body><a href="${REPO}/../../other/other">x</a> <a href="${REPO}/%2e%2e/%2E%2E/other/other">y</a></body></html>`
+  : m === "repo_prefix" ? `<html><body><a href="${REPO}-v2/tree/main">x</a></body></html>` : "<html><body>AI 活用</body></html>";
 const server = createServer((req, res) => {
   let body = ""; req.on("data", (d) => (body += d)); req.on("end", () => {
     const u = req.url || "";
@@ -90,6 +115,8 @@ const server = createServer((req, res) => {
       const item: any = { service_id: id, name: "Fake", mcp_endpoint: "https://<your-host>/mcp", mcp_status: "official", api_auth_method: "oauth2", freshness: { confidence: "medium" }, connection_guide: { steps: ["install"] } };
       if (mode.catalog === "repo_in_guide") item.connection_guide.repository = REPO;
       if (mode.catalog === "repo_bare") item.connection_guide.repository = REPO.replace("https://", "");
+      if (mode.catalog === "repo_tree") item.connection_guide.setup_url = `${REPO}/tree/main#install`;
+      if (mode.catalog === "repo_other_owner") item.connection_guide.setup_url = "https://github.com/other-vendor/fake-official-mcp-server";
       return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(item) }] } });
     }
     if (u === "/gh/repos/fake-vendor/fake-official-mcp-server") {
@@ -144,6 +171,12 @@ try {
     mode.catalog = "repo_bare";
     const r2 = await run();
     expect("B2 scheme-less value in the catalog is not the canonical form → B false (same normalisation as the REPO line)", r2.B?.observed.pass === false, JSON.stringify(r2.B?.observed.checks));
+    mode.catalog = "repo_tree";
+    const rtree = await run();
+    expect("B2 (+) catalog field with /tree/main#install below the repo → B true, field name recorded", rtree.B?.observed.pass === true && ok(rtree.B?.observed, "catalog_field_lists_sealed_repo:connection_guide.setup_url") === true, JSON.stringify(rtree.B?.observed.checks));
+    mode.catalog = "repo_other_owner";
+    const rown = await run();
+    expect("B2 (−) catalog field naming another owner → B false", rown.B?.observed.pass === false);
     mode.catalog = "absent";
     const r3 = await run();
     expect("B2 catalog has no item → B false (not instrument), catalog_item_present false", r3.B?.observed.pass === false && r3.B?.observed.instrument_error === null && ok(r3.B?.observed, "catalog_item_present") === false);
@@ -159,13 +192,18 @@ try {
     expect("B3 neither page lists → A false (not instrument)", r.A?.observed.pass === false && r.A?.observed.instrument_error === null && validateReading(r.A, schema).length === 0);
     mode.a2 = "listed_fragment";
     const rf = await run();
-    expect("B3 a page linking with #fragment is not the canonical form → A false", rf.A?.observed.pass === false);
+    expect("B3 (+) a page linking with #readme lists the repo → A true", rf.A?.observed.pass === true, JSON.stringify(rf.A?.observed.checks));
     mode.a2 = "listed_tree";
     const rt = await run();
-    expect("B3 a page linking to /tree/main is not the canonical form → A false", rt.A?.observed.pass === false);
+    expect("B3 (+) a page linking to /tree/main lists the repo → A true", rt.A?.observed.pass === true);
+    for (const [m, want, why] of [["listed_blob", true, "(+) /blob/…#setup below the repo"], ["listed_amp", true, "(+) query written with &amp;"], ["listed_entities", true, "(+) href written with &#x2F;"], ["other_owner", false, "(−) same repo name under another owner"], ["similar_host", false, "(−) evilgithub.com / github.com.evil.example"], ["dot_segments", false, "(−) /../ or %2e%2e below the repo leads elsewhere"], ["repo_prefix", false, "(−) repo name with a suffix (-v2)"]] as const) {
+      mode.a2 = m;
+      const rx = await run();
+      expect(`B3 ${why} → A ${want}`, rx.A?.observed.pass === want && rx.A?.observed.instrument_error === null, JSON.stringify(rx.A?.observed.checks));
+    }
     mode.a2 = "other_repo";
     const ro = await run();
-    expect("B3 a page naming another repo → A false", ro.A?.observed.pass === false);
+    expect("B3 (−) a page naming another repo → A false", ro.A?.observed.pass === false);
     mode.a1 = "500"; mode.a2 = "listed";
     const r2 = await run();
     expect("B3 A1 fails but A2 lists → A true (known), A1 fetched=false", r2.A?.observed.pass === true && r2.A?.observed.instrument_error === null && ok(r2.A?.observed, "A1_page_fetched") === false);

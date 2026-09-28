@@ -18,7 +18,50 @@
  *   U3 the AI answer violated the two-line form                       → 未確定（回答形式）
  * Precedence: U0 > U1 > U2 > U4 > U3 > #1–#8.
  */
+import { REPO_HOSTS, extractUrlTokens } from './llm-answer-rules.mjs';
+
 export const RULES_LABEL = '規則 v0.1';
+
+/* ---------- matching the sealed repository in a SOURCE (columns A and B) ----------
+ * Yardstick (Michie 2026-09-28): a judgement that blames the other side (the company, KanseiLINK)
+ * must always be right. A false A or B becomes 「会社側の穴」/「KanseiLINK 側の穴」, so the source
+ * match must not be stricter than "the page points at the sealed repository". Opposite to the
+ * judge: host, owner and repo stay an EXACT match (evilgithub.com, github.com.evil.example, another
+ * owner or repo never match), but anything BELOW the repository — a deeper path (/tree/…, /blob/…),
+ * a query, a fragment, a trailing slash, ".git" — is allowed. A tail that could lead a browser
+ * somewhere else (a dot segment "..", "%2e", a backslash) is not allowed.
+ */
+const escapeRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// no "u" flag: "i" folds ASCII letters only
+const SOURCE_REPO = new RegExp(`^https://(${REPO_HOSTS.map(escapeRe).join('|')})/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\\.git)?([/?#].*)?$`, 'i');
+const ONLY_DOTS = /^\.+$/;
+
+/** host/owner/repo key of a source URL token, or null. */
+export function sourceRepoKey(raw) {
+  const m = SOURCE_REPO.exec(String(raw));
+  if (!m) return null;
+  const [, host, owner, repo, tail = ''] = m;
+  if (ONLY_DOTS.test(owner) || ONLY_DOTS.test(repo) || /^\.git$/i.test(repo)) return null;
+  const path = tail.split(/[?#]/)[0];
+  if (/\\/.test(tail) || path.split('/').some((seg) => ONLY_DOTS.test(seg) || /^(?:\.|%2e)+$/i.test(seg))) return null;
+  return `${host}/${owner}/${repo}`.toLowerCase();
+}
+
+/** Decode HTML character references once (named basics, &#NN;, &#xHH;), so hrefs written with
+ *  &amp; or &#x2F; are read as the browser reads them. Unknown names are left as they are. */
+const NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', sol: '/', colon: ':', period: '.', num: '#', quest: '?', equals: '=', lowbar: '_', hyphen: '-', dash: '-' };
+export function decodeHtmlCharRefs(html) {
+  return String(html).replace(/&(?:#(\d{1,7})|#[xX]([0-9a-fA-F]{1,6})|([A-Za-z]{2,8}));/g, (all, dec, hex, name) => {
+    if (dec || hex) { const cp = dec ? Number(dec) : parseInt(hex, 16); return cp > 0 && cp <= 0x10ffff && !(cp >= 0xd800 && cp <= 0xdfff) ? String.fromCodePoint(cp) : all; }
+    return Object.prototype.hasOwnProperty.call(NAMED, name.toLowerCase()) ? NAMED[name.toLowerCase()] : all;
+  });
+}
+
+/** true when some URL token in text points at the sealed repository key. opts.html decodes first. */
+export function sourceListsRepo(text, sealedKey, opts = {}) {
+  const s = opts.html ? decodeHtmlCharRefs(text) : String(text || '');
+  return extractUrlTokens(s).some((t) => sourceRepoKey(t.raw) === sealedKey);
+}
 export const ATTR_METHODS = Object.freeze({ A: 'sealed_repo_vs_official_docs', B: 'sealed_repo_vs_kansei_catalog' });
 export const AGENT_METHOD = 'llm_answer_rules_vs_sealed_expectation';
 
