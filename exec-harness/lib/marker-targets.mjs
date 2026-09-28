@@ -68,11 +68,13 @@ export function classifyCatalogPayload(payload, serviceId) {
   const esc = String(serviceId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (hasErrorField) {
     if (hasDisplayField) return { kind: 'invalid', error: 'mixed_absence_and_display' };
-    const idOk = payload.service_id === undefined || payload.service_id === serviceId;
-    const structured = payload.code === 'not_found' && !('error' in payload) && idOk && keys.every((k) => ['code', 'service_id', '_mode', '_tier', 'message'].includes(k));
-    const knownText = !('code' in payload) && idOk && typeof payload.error === 'string' && new RegExp(`^Service '${esc}' not found\\b`).test(payload.error) && keys.every((k) => ['error', 'service_id', '_mode', '_tier'].includes(k));
+    if ('service_id' in payload && payload.service_id !== serviceId) return { kind: 'invalid', error: 'absence_names_other_service' };
+    const sameKeys = (allowed) => keys.length === allowed.length && allowed.every((k) => keys.includes(k));
+    // structured absence: EXACTLY { code: "not_found", service_id: <requested id> } — service_id required
+    const structured = sameKeys(['code', 'service_id']) && payload.code === 'not_found' && payload.service_id === serviceId;
+    // known absence sentence: EXACTLY { error: "Service '<requested id>' not found…" }
+    const knownText = sameKeys(['error']) && typeof payload.error === 'string' && new RegExp(`^Service '${esc}' not found\\b`).test(payload.error);
     if (structured || knownText) return { kind: 'absent' };
-    if (!idOk) return { kind: 'invalid', error: 'absence_names_other_service' };
     return { kind: 'invalid', error: 'payload_error' };
   }
   if (payload.service_id !== serviceId) return { kind: 'invalid', error: 'payload_mismatch' };
@@ -226,7 +228,7 @@ const fetchCheck = {
 const normRepo = (u) => String(u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\.git$/, '').replace(/[#?].*$/, '').replace(/\/+$/, '');
 
 // Rules live in ./llm-answer-rules.mjs (closed two-line form: REPO/AUTH; URL tokens; exclusivity).
-export { AUTH_RULE, ANSWER_FORMAT, extractUrlTokens, extractRepoCandidates, parseRepoUrl, parseAnswerLines, judgeLlmAnswer, assertExclusive } from './llm-answer-rules.mjs';
+export { AUTH_RULE, ANSWER_FORMAT, extractUrlTokens, parseRepoUrl, parseAnswerLines, judgeLlmAnswer, assertExclusive } from './llm-answer-rules.mjs';
 
 const llmAnswer = {
   method: 'llm_answer_rules_vs_sealed_expectation',

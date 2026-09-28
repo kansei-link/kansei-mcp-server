@@ -1,0 +1,91 @@
+{
+  "note": "Catalog payload shapes (classifyCatalogPayload). Payloads copied verbatim from Codex e4955ec review evidence (requested service_id = \"fake-service\"); expectations follow the strict exclusive-shape rule. Every value is invented.",
+  "service_id": "fake-service",
+  "cases": [
+    {
+      "id": "CXK01",
+      "payload": {
+        "code": "not_found"
+      },
+      "expect_kind": "invalid",
+      "why": "structured absence requires service_id"
+    },
+    {
+      "id": "CXK02",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service"
+      },
+      "expect_kind": "absent",
+      "why": "structured absence with the requested id"
+    },
+    {
+      "id": "CXK03",
+      "payload": {
+        "error": "Service 'fake-service' not found."
+      },
+      "expect_kind": "absent",
+      "why": "known absence sentence naming the requested id"
+    },
+    {
+      "id": "CXK04",
+      "payload": {
+        "code": "not_found",
+        "service_id": "other"
+      },
+      "expect_kind": "invalid",
+      "why": "absence naming another service"
+    },
+    {
+      "id": "CXK05",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service",
+        "error": "storage failed"
+      },
+      "expect_kind": "invalid",
+      "why": "structured absence plus an error field"
+    },
+    {
+      "id": "CXK06",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service",
+        "message": "storage failed"
+      },
+      "expect_kind": "invalid",
+      "why": "structured absence plus an extra key (message)"
+    },
+    {
+      "id": "CXK07",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service",
+        "mcp_status": "verified"
+      },
+      "expect_kind": "invalid",
+      "why": "absence mixed with a display field"
+    },
+    {
+      "id": "CXK08",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": "medium"
+        }
+      },
+      "expect_kind": "display",
+      "why": "complete display"
+    },
+    {
+      "id": "CXK09",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official"
+      },
+      "expect_kind": "invalid",
+      "why": "display without freshness"
+    }
+  ]
+}

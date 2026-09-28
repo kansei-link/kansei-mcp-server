@@ -75,6 +75,16 @@ async function run(extra: string[] = []) {
   return { status: r.status, out, bundle, metrics, agent, gt };
 }
 
+// (0) ④ exclusive shapes as a unit: Codex's 9 payloads, strict expectations (fixtures/catalog-payload-cases.json)
+{
+  const { classifyCatalogPayload } = await import("../exec-harness/lib/marker-targets.mjs");
+  const cat = JSON.parse(readFileSync(join(FIX, "catalog-payload-cases.json"), "utf-8"));
+  for (const c of cat.cases) {
+    const k = classifyCatalogPayload(c.payload, cat.service_id).kind;
+    expect(`(0) ${c.id} ${c.why} → ${c.expect_kind}`, k === c.expect_kind, `got ${k} for ${JSON.stringify(c.payload)}`);
+  }
+}
+
 try {
   // (1) dead endpoints, catalog shows 'official' → pass, done, no gt row
   {

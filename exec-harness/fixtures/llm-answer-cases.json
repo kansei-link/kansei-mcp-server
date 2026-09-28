@@ -1,34 +1,725 @@
 {
-  "note": "Permanent regression cases for judgeLlmAnswer (lib/llm-answer-rules.mjs), CLOSED FORM: the judge reads only the two trailing lines REPO:/AUTH:. Expectations are exclusive: exactly one of pass / false_completion / undetermined / instrument is true. U = the M-994 fixture repo https://github.com/fake-vendor/fake-official-mcp-server. Free-text cases (the earlier C/A/X/R sets and Codex's N answers) are no longer judged; they live in fixtures/evidence/ as evidence only. Every value is invented.",
+  "note": "Permanent regression cases for judgeLlmAnswer (lib/llm-answer-rules.mjs), CLOSED FORM: the answer region is the last two non-empty physical lines, which must be \"REPO: <value>\" then \"AUTH: <value>\"; form is checked before content. Expectations are exclusive: exactly one of pass / false_completion / undetermined / instrument is true. U = the M-994 fixture repo https://github.com/fake-vendor/fake-official-mcp-server. T01–T28 are the author's cases; CX-R01–CX-R30 are Codex's e4955ec review cases, text and expected outcome copied verbatim from fixtures/evidence/codex-e4955ec-independent-evidence.json. Every value is invented.",
   "sealed_fixture": "M-994.sealed.json",
   "cases": [
-    { "id": "T01", "text": "公式 MCP は GitHub にあります。認証は OAuth 2.0 です。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0", "expect": { "stopped": null, "pass": true, "false_completion": false, "undetermined": false, "outcome": "pass" } },
-    { "id": "T02", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic", "expect": { "stopped": "understand", "pass": false, "false_completion": true, "undetermined": false, "outcome": "auth_wrong" } },
-    { "id": "T03", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: API key", "expect": { "stopped": "understand", "pass": false, "false_completion": true, "undetermined": false, "outcome": "auth_wrong" } },
-    { "id": "T04", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown", "expect": { "stopped": "understand", "pass": false, "false_completion": false, "undetermined": true, "outcome": "auth_unknown" } },
-    { "id": "T05", "text": "公式 MCP は見つかりませんでした。\nREPO: none\nAUTH: unknown", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": true, "outcome": "repo_none" } },
-    { "id": "T06", "text": "REPO: https://github.com/other-org/other-thing\nAUTH: OAuth 2.0", "expect": { "stopped": "discover", "pass": false, "false_completion": true, "undetermined": false, "outcome": "repo_other" } },
-    { "id": "T07", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server/sub\nAUTH: OAuth 2.0", "expect": { "stopped": "discover", "pass": false, "false_completion": true, "undetermined": false, "outcome": "repo_other" }, "why": "a deeper path is another URL" },
-    { "id": "T08", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server-v2\nAUTH: OAuth 2.0", "expect": { "stopped": "discover", "pass": false, "false_completion": true, "undetermined": false, "outcome": "repo_other" } },
-    { "id": "T09", "text": "REPO: https://evilgithub.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "not a repository-host URL → the line is outside the form" },
-    { "id": "T10", "text": "REPO: https://api.github.com/repos/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "subdomain is not an exact hostname" },
-    { "id": "T11", "text": "REPO: https://evil.example/redirect?to=https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "① the inner URL is never re-scanned; the line is one non-repo URL" },
-    { "id": "T12", "text": "REPO: github.com/fake-vendor/fake-official-mcp-server\nAUTH: oauth2", "expect": { "stopped": null, "pass": true, "false_completion": false, "undetermined": false, "outcome": "pass" }, "why": "scheme-less at a boundary; AUTH spelling variant accepted" },
-    { "id": "T13", "text": "REPO: <https://github.com/fake-vendor/fake-official-mcp-server.git>\nAUTH: OAuth 2", "expect": { "stopped": null, "pass": true, "false_completion": false, "undetermined": false, "outcome": "pass" }, "why": "angle brackets and .git tolerated" },
-    { "id": "T14", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server と https://github.com/other-org/other-thing\nAUTH: OAuth 2.0", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "several URLs on the REPO line" },
-    { "id": "T15", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server（公式）\nAUTH: OAuth 2.0", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "explanation mixed into the line" },
-    { "id": "T16", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth", "expect": { "stopped": "understand", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "version unspecified is outside the form" },
-    { "id": "T17", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0 (probably)", "expect": { "stopped": "understand", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "hedge inside the line is outside the form" },
-    { "id": "T18", "text": "認証は OAuth 2.0 です。公式リポジトリは https://github.com/fake-vendor/fake-official-mcp-server です。", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "no REPO/AUTH lines: free text is never judged" },
-    { "id": "T19", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server", "expect": { "stopped": "understand", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "AUTH line missing" },
-    { "id": "T20", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0\nREPO: https://github.com/other-org/other-thing\nAUTH: Basic", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": true, "outcome": "format_violation" }, "why": "duplicated lines" },
-    { "id": "T21", "text": "REPO: None\nAUTH: Unknown", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": true, "outcome": "repo_none" }, "why": "case-insensitive none/unknown" },
-    { "id": "T22", "text": "REPO: https://github.com/Fake-Vendor/Fake-Official-MCP-Server/\nAUTH: OAuth 2.0", "expect": { "stopped": null, "pass": true, "false_completion": false, "undetermined": false, "outcome": "pass" }, "why": "case and trailing slash" },
-    { "id": "T23", "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server#readme\nAUTH: Basic 認証", "expect": { "stopped": "understand", "pass": false, "false_completion": true, "undetermined": false, "outcome": "auth_wrong" }, "why": "fragment ignored; Japanese 'Basic 認証' maps to Basic" },
-    { "id": "T24", "text": "REPO: https://gitlab.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0", "expect": { "stopped": "discover", "pass": false, "false_completion": true, "undetermined": false, "outcome": "repo_other" }, "why": "another host that is a repo host = another URL" },
-    { "id": "T25", "text": "説明: 将来 OAuth 2.0 に対応する予定です。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown", "expect": { "stopped": "understand", "pass": false, "false_completion": false, "undetermined": true, "outcome": "auth_unknown" }, "why": "the explanation (future tense) is not judged; the AUTH line is" },
-    { "id": "T26", "text": "説明: 認証は Basic ではなく OAuth 2.0 です。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0", "expect": { "stopped": null, "pass": true, "false_completion": false, "undetermined": false, "outcome": "pass" } },
-    { "id": "T27", "text": "", "error": "HTTP 429", "expect": { "stopped": "discover", "pass": false, "false_completion": false, "undetermined": false, "instrument": "provider_api", "outcome": "instrument" } },
-    { "id": "T28", "text": "repo: https://github.com/fake-vendor/fake-official-mcp-server\nauth: oauth 2.0", "expect": { "stopped": null, "pass": true, "false_completion": false, "undetermined": false, "outcome": "pass" }, "why": "line labels are case-insensitive" }
+    {
+      "id": "T01",
+      "text": "公式 MCP は GitHub にあります。認証は OAuth 2.0 です。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "T02",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "expect": {
+        "stopped": "understand",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "auth_wrong"
+      }
+    },
+    {
+      "id": "T03",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: API key",
+      "expect": {
+        "stopped": "understand",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "auth_wrong"
+      }
+    },
+    {
+      "id": "T04",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "expect": {
+        "stopped": "understand",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "auth_unknown"
+      }
+    },
+    {
+      "id": "T05",
+      "text": "公式 MCP は見つかりませんでした。\nREPO: none\nAUTH: unknown",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "repo_none"
+      }
+    },
+    {
+      "id": "T06",
+      "text": "REPO: https://github.com/other-org/other-thing\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "repo_other"
+      }
+    },
+    {
+      "id": "T07",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server/sub\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "repo_other"
+      },
+      "why": "a deeper path is another URL"
+    },
+    {
+      "id": "T08",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server-v2\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "repo_other"
+      }
+    },
+    {
+      "id": "T09",
+      "text": "REPO: https://evilgithub.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "not a repository-host URL → the line is outside the form"
+    },
+    {
+      "id": "T10",
+      "text": "REPO: https://api.github.com/repos/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "subdomain is not an exact hostname"
+    },
+    {
+      "id": "T11",
+      "text": "REPO: https://evil.example/redirect?to=https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "① the inner URL is never re-scanned; the line is one non-repo URL"
+    },
+    {
+      "id": "T12",
+      "text": "REPO: github.com/fake-vendor/fake-official-mcp-server\nAUTH: oauth2",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "why": "scheme-less at a boundary; AUTH spelling variant accepted"
+    },
+    {
+      "id": "T13",
+      "text": "REPO: <https://github.com/fake-vendor/fake-official-mcp-server.git>\nAUTH: OAuth 2",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "why": "angle brackets and .git tolerated"
+    },
+    {
+      "id": "T14",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server と https://github.com/other-org/other-thing\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "several URLs on the REPO line"
+    },
+    {
+      "id": "T15",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server（公式）\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "explanation mixed into the line"
+    },
+    {
+      "id": "T16",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "version unspecified is outside the form"
+    },
+    {
+      "id": "T17",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0 (probably)",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "hedge inside the line is outside the form"
+    },
+    {
+      "id": "T18",
+      "text": "認証は OAuth 2.0 です。公式リポジトリは https://github.com/fake-vendor/fake-official-mcp-server です。",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "no REPO/AUTH lines: free text is never judged"
+    },
+    {
+      "id": "T19",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "AUTH line missing → form violation regardless of REPO"
+    },
+    {
+      "id": "T20",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0\nREPO: https://github.com/other-org/other-thing\nAUTH: Basic",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "repo_other"
+      },
+      "why": "answer region = the last two lines only; earlier REPO/AUTH lines are not judged"
+    },
+    {
+      "id": "T21",
+      "text": "REPO: None\nAUTH: Unknown",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "repo_none"
+      },
+      "why": "case-insensitive none/unknown"
+    },
+    {
+      "id": "T22",
+      "text": "REPO: https://github.com/Fake-Vendor/Fake-Official-MCP-Server/\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "why": "case and trailing slash"
+    },
+    {
+      "id": "T23",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server#readme\nAUTH: Basic 認証",
+      "expect": {
+        "stopped": "understand",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "auth_wrong"
+      },
+      "why": "fragment ignored; Japanese 'Basic 認証' maps to Basic"
+    },
+    {
+      "id": "T24",
+      "text": "REPO: https://gitlab.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "repo_other"
+      },
+      "why": "another host that is a repo host = another URL"
+    },
+    {
+      "id": "T25",
+      "text": "説明: 将来 OAuth 2.0 に対応する予定です。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "expect": {
+        "stopped": "understand",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "auth_unknown"
+      },
+      "why": "the explanation (future tense) is not judged; the AUTH line is"
+    },
+    {
+      "id": "T26",
+      "text": "説明: 認証は Basic ではなく OAuth 2.0 です。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "T27",
+      "text": "",
+      "error": "HTTP 429",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": false,
+        "instrument": "provider_api",
+        "outcome": "instrument"
+      }
+    },
+    {
+      "id": "T28",
+      "text": "repo: https://github.com/fake-vendor/fake-official-mcp-server\nauth: oauth 2.0",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "why": "line labels are case-insensitive"
+    },
+    {
+      "id": "CX-R01",
+      "text": "REPO: https://www.github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: hostname must exactly match REPO_HOSTS; www is a subdomain",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R02",
+      "text": "REPO: https://github.com/fake-vendor.git/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "repo_other"
+      },
+      "why": "Codex e4955ec review: .git may normalize the repository suffix, never the owner segment",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R03",
+      "text": "REPO:\nhttps://github.com/fake-vendor/fake-official-mcp-server\nAUTH:\nOAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: empty answer lines must not take values from the next physical line",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R04",
+      "text": "REPO: https://github.com/other-owner/other-repo\nAUTH: nonsense",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: AUTH format violation is an agent undetermined, not false completion",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R05",
+      "text": "REPO: https://github.com/other-owner/other-repo",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: missing AUTH must be format violation",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R06",
+      "text": "REPO: none\nAUTH: nonsense",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: none must not hide an AUTH format violation",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R07",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0\nThis explanation is after the required final pair.",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: ANSWER_FORMAT requires explanations before the final pair",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R08",
+      "text": "AUTH: OAuth 2.0\nREPO: https://github.com/fake-vendor/fake-official-mcp-server",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: the specified pair is REPO then AUTH",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R09",
+      "text": "REPO: ftp://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: unsupported scheme",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R10",
+      "text": "REPO: https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: a URL inside another URL is not a repository",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R11",
+      "text": "REPO: https://api.github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: subdomain",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R12",
+      "text": "REPO: https://evilgithub.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: lookalike host",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R13",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: two URLs",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R14",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server (official)\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: inline explanation",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R15",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0 (official)",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: inline AUTH explanation",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R16",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0\nAUTH: Basic",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: duplicate AUTH",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R17",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0\nREPO: https://github.com/fake-vendor/fake-official-mcp-server",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: duplicate REPO",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R18",
+      "text": "REPO: github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "why": "Codex e4955ec review: scheme-less accepted",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R19",
+      "text": "REPO: \"https://github.com/fake-vendor/fake-official-mcp-server\"\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "why": "Codex e4955ec review: quoted URL accepted",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R20",
+      "text": "REPO: <https://github.com/fake-vendor/fake-official-mcp-server.git>\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "why": "Codex e4955ec review: repository suffix accepted",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R21",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server#readme\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "why": "Codex e4955ec review: fragment ignored",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R22",
+      "text": "REPO: HTTPS://GITHUB.COM/FAKE-VENDOR/FAKE-OFFICIAL-MCP-SERVER\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "why": "Codex e4955ec review: case insensitive per existing contract",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R23",
+      "text": "REPO: (https://github.com/fake-vendor/fake-official-mcp-server)\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: parentheses outside token",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R24",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "expect": {
+        "stopped": "understand",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "auth_unknown"
+      },
+      "why": "Codex e4955ec review: undetermined AUTH",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R25",
+      "text": "REPO: none\nAUTH: unknown",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "repo_none"
+      },
+      "why": "Codex e4955ec review: no candidate",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R26",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "expect": {
+        "stopped": "understand",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "auth_wrong"
+      },
+      "why": "Codex e4955ec review: wrong AUTH",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R27",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: API key",
+      "expect": {
+        "stopped": "understand",
+        "pass": false,
+        "false_completion": true,
+        "undetermined": false,
+        "outcome": "auth_wrong"
+      },
+      "why": "Codex e4955ec review: wrong AUTH",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R28",
+      "text": "REPO: https://github.com.evil.example/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: hostname suffix",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R29",
+      "text": "ＲＥＰＯ： https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: fullwidth label outside form",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-R30",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: ＯＡｕｔｈ ２．０",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "why": "Codex e4955ec review: fullwidth value outside form",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    }
   ]
 }

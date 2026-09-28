@@ -35,6 +35,15 @@ const J = (text: string, error: string | null = null) => TARGETS.llmAnswer.judge
     expect(`${c.id} ${c.text.replace(/\s+/g, " ").slice(0, 60)}${c.error ? ` [error ${c.error}]` : ""}`, ok, `got stopped=${r.stopped} pass=${r.pass} fc=${r.falseCompletion} und=${r.undetermined} inst=${r.instrument} outcome=${r.outcome}; want ${JSON.stringify(c.expect)}`);
   }
   console.log(`A: ${cases.length} two-line cases in fixtures`);
+  // P2: the answer region is the last two lines only — any prefix (explanations, code quotes that look
+  // like the two lines, URLs inside URLs) must leave the verdict unchanged. Prefixes from Codex's evidence.
+  const ev = JSON.parse(readFileSync(join(FIX, "evidence", "codex-e4955ec-independent-evidence.json"), "utf-8"));
+  const base = "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0";
+  const baseOutcome = J(base).outcome;
+  for (const pc of ev.prefixChecks as Array<{ prefix: string }>) {
+    const r = J(pc.prefix + base);
+    expect(`P2 prefix does not change the verdict: ${JSON.stringify(pc.prefix.slice(0, 40))}`, r.outcome === baseOutcome && r.pass === true, `got ${r.outcome}`);
+  }
   // ① URL tokens: the inside of a scheme URL is never re-scanned; scheme-less only outside
   const { extractUrlTokens } = await import("../exec-harness/lib/llm-answer-rules.mjs");
   const toks = extractUrlTokens("see https://evil.example/r?to=https://github.com/a/b and github.com/c/d and https://github.com/e/f");
