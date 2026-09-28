@@ -1,0 +1,6407 @@
+{
+  "commit": "ee163f7b3fd1429258bca9af6fb61ba075885975",
+  "provenance": "New independent synthetic review. No production seal, DB, MCP or LLM API. All service values invented. Non-default port URLs are never fetched.",
+  "sealed_fixture": {
+    "repo": "github.com/fake-vendor/fake-official-mcp-server",
+    "owner": "fake-vendor",
+    "name": "fake-official-mcp-server",
+    "wrongTokens": [
+      "Basic",
+      "API key"
+    ]
+  },
+  "cases": [
+    {
+      "id": "N01",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "baseline",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N02",
+      "text": "REPO: https://github.com:65535/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "non-default port changes origin; it is not the sealed official endpoint",
+      "conforms": false,
+      "fatal": true
+    },
+    {
+      "id": "N03",
+      "text": "REPO: https://github.com:444/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "second non-default port control",
+      "conforms": false,
+      "fatal": true
+    },
+    {
+      "id": "N04",
+      "text": "REPO: https://github.com:443/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "explicit default HTTPS port normalizes to the sealed origin",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N05",
+      "text": "REPO: http://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "HTTP spelling is supported by the existing URL policy",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N06",
+      "text": "REPO: \"　https://github.com/fake-vendor/fake-official-mcp-server　\"\nAUTH: \"　OAuth 2.0　\"",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "only ASCII space/tab whitespace is allowed, including after unwrapping",
+      "conforms": false,
+      "fatal": true
+    },
+    {
+      "id": "N07",
+      "text": "REPO: \" https://github.com/fake-vendor/fake-official-mcp-server \"\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "NBSP padding is not ASCII space/tab",
+      "conforms": false,
+      "fatal": true
+    },
+    {
+      "id": "N08",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: \"\u000bOAuth 2.0\u000b\"",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "vertical-tab padding is not ASCII space/tab",
+      "conforms": false,
+      "fatal": true
+    },
+    {
+      "id": "N09",
+      "text": "REPO: \" https://github.com/fake-vendor/fake-official-mcp-server \"\nAUTH: \" OAuth 2.0 \"",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "ASCII-space padded quoted values",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N10",
+      "text": "REPO: https://www.github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "repo_value_not_a_repository_url"
+        ]
+      },
+      "reason": "previous hostname flaw",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N11",
+      "text": "REPO: https://github.com/fake-vendor.git/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "repo_other",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "repo_other",
+        "violations": []
+      },
+      "reason": "previous owner normalization flaw",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N12",
+      "text": "REPO:\nhttps://github.com/fake-vendor/fake-official-mcp-server\nAUTH:\nOAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "second_to_last_line_is_not_REPO_value",
+          "last_line_is_not_AUTH_value"
+        ]
+      },
+      "reason": "previous physical-line flaw",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N13",
+      "text": "REPO: https://github.com/other/other\nAUTH: nonsense",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "auth_value_outside_options"
+        ]
+      },
+      "reason": "form before wrong repo",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N14",
+      "text": "REPO: none\nAUTH: nonsense",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "auth_value_outside_options"
+        ]
+      },
+      "reason": "form before none",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N15",
+      "text": "AUTH: OAuth 2.0\nREPO: https://github.com/fake-vendor/fake-official-mcp-server",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "second_to_last_line_is_not_REPO_value",
+          "last_line_is_not_AUTH_value"
+        ]
+      },
+      "reason": "wrong order",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N16",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0\ntrailing explanation",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "second_to_last_line_is_not_REPO_value",
+          "last_line_is_not_AUTH_value"
+        ]
+      },
+      "reason": "trailing text changes answer region",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N17",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0\nAUTH: Basic",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "second_to_last_line_is_not_REPO_value"
+        ]
+      },
+      "reason": "last two physical lines are both AUTH",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N18",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0\nREPO: none\nAUTH: unknown",
+      "expected": "repo_none",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      },
+      "reason": "earlier answer pair is prefix under the new policy",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N19",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server.git#readme\nAUTH: OAuth 2.0",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "repository suffix then fragment",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N20",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server?to=https://evil.example/x/y#readme\nAUTH: OAuth 2.0",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "query and fragment are explicitly ignored",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N21",
+      "text": "REPO: https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "repo_value_not_a_repository_url"
+        ]
+      },
+      "reason": "outer host wins over URL in URL",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N22",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "repo_value_several_urls"
+        ]
+      },
+      "reason": "multiple URLs",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N23",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server (official)\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "repo_value_not_exactly_one_url"
+        ]
+      },
+      "reason": "inline explanation",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N24",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0 (official)",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "auth_value_outside_options"
+        ]
+      },
+      "reason": "inline AUTH explanation",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N25",
+      "text": "REPO： https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "second_to_last_line_is_not_REPO_value"
+        ]
+      },
+      "reason": "non-ASCII colon",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N26",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nＡＵＴＨ: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "last_line_is_not_AUTH_value"
+        ]
+      },
+      "reason": "non-ASCII label",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N27",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth\t2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "auth_value_outside_options"
+        ]
+      },
+      "reason": "option spelling is closed",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N28",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0　",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "last_line_is_not_AUTH_value"
+        ]
+      },
+      "reason": "unquoted Unicode padding",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N29",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\r\nAUTH: OAuth 2.0",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "CRLF",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N30",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\rAUTH: OAuth 2.0",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "CR",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N31",
+      "text": "\tREPO:\thttps://github.com/fake-vendor/fake-official-mcp-server\t\n\tAUTH:\tOAuth 2.0\t",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "ASCII tab around values",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N32",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0\n \t\n",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "trailing blank physical lines ignored by the stated rule",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N33",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "expected": "auth_unknown",
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "auth_unknown",
+        "violations": []
+      },
+      "reason": "unknown",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N34",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "expected": "auth_wrong",
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      },
+      "reason": "Basic",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N35",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: API key",
+      "expected": "auth_wrong",
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      },
+      "reason": "API key",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N36",
+      "text": "REPO: none\nAUTH: OAuth 2.0",
+      "expected": "repo_none",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      },
+      "reason": "no candidate",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N37",
+      "text": "REPO: https://github.com.evil.example/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "repo_value_not_a_repository_url"
+        ]
+      },
+      "reason": "hostname suffix",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N38",
+      "text": "REPO: https://github.com@evil.example/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "repo_value_not_a_repository_url"
+        ]
+      },
+      "reason": "userinfo lure",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N39",
+      "text": "REPO: https://evil.example\\@github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "repo_value_not_a_repository_url"
+        ]
+      },
+      "reason": "backslash authority lure",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N40",
+      "text": "REPO: https://github.com/fake-vendor/%zz\nAUTH: OAuth 2.0",
+      "expected": "format_violation",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": false
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "format_violation",
+        "violations": [
+          "repo_value_not_a_repository_url"
+        ]
+      },
+      "reason": "invalid percent encoding",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N41",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server/sub\nAUTH: OAuth 2.0",
+      "expected": "repo_other",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "repo_other",
+        "violations": []
+      },
+      "reason": "deeper path",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N42",
+      "text": "REPO: github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "scheme-less",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N43",
+      "text": "REPO: HTTPS://GITHUB.COM/FAKE-VENDOR/FAKE-OFFICIAL-MCP-SERVER\nAUTH: OAuth 2.0",
+      "expected": "pass",
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      },
+      "reason": "existing case policy",
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "N44",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expected": "instrument",
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "provider_api",
+        "outcome": "instrument",
+        "violations": []
+      },
+      "reason": "provider error overrides otherwise passing answer",
+      "conforms": true,
+      "fatal": false
+    }
+  ],
+  "prefixChecks": [
+    {
+      "prefix": "説明には判定材料を入れない。\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "text": "説明には判定材料を入れない。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "unchanged": true,
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "説明には判定材料を入れない。\n",
+      "base": "REPO: none\nAUTH: unknown",
+      "text": "説明には判定材料を入れない。\nREPO: none\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "説明には判定材料を入れない。\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "text": "説明には判定材料を入れない。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "説明には判定材料を入れない。\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "text": "説明には判定材料を入れない。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "auth_unknown",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "REPO: none\nAUTH: Basic\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "text": "REPO: none\nAUTH: Basic\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "unchanged": true,
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "REPO: none\nAUTH: Basic\n",
+      "base": "REPO: none\nAUTH: unknown",
+      "text": "REPO: none\nAUTH: Basic\nREPO: none\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "REPO: none\nAUTH: Basic\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "text": "REPO: none\nAUTH: Basic\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "REPO: none\nAUTH: Basic\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "text": "REPO: none\nAUTH: Basic\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "auth_unknown",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "```\nREPO: none\nAUTH: unknown\n```\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "text": "```\nREPO: none\nAUTH: unknown\n```\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "unchanged": true,
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "```\nREPO: none\nAUTH: unknown\n```\n",
+      "base": "REPO: none\nAUTH: unknown",
+      "text": "```\nREPO: none\nAUTH: unknown\n```\nREPO: none\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "```\nREPO: none\nAUTH: unknown\n```\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "text": "```\nREPO: none\nAUTH: unknown\n```\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "```\nREPO: none\nAUTH: unknown\n```\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "text": "```\nREPO: none\nAUTH: unknown\n```\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "auth_unknown",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "text": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "unchanged": true,
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\n",
+      "base": "REPO: none\nAUTH: unknown",
+      "text": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\nREPO: none\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "text": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "text": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "auth_unknown",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "REPO:\nAUTH:\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "text": "REPO:\nAUTH:\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "unchanged": true,
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "REPO:\nAUTH:\n",
+      "base": "REPO: none\nAUTH: unknown",
+      "text": "REPO:\nAUTH:\nREPO: none\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "REPO:\nAUTH:\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "text": "REPO:\nAUTH:\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "REPO:\nAUTH:\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "text": "REPO:\nAUTH:\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "auth_unknown",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "\u0000arbitrary prefix\r\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "text": "\u0000arbitrary prefix\r\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "unchanged": true,
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "\u0000arbitrary prefix\r\n",
+      "base": "REPO: none\nAUTH: unknown",
+      "text": "\u0000arbitrary prefix\r\nREPO: none\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "\u0000arbitrary prefix\r\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "text": "\u0000arbitrary prefix\r\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "\u0000arbitrary prefix\r\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "text": "\u0000arbitrary prefix\r\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "auth_unknown",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "OAuth 2.0 は使えません。\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "text": "OAuth 2.0 は使えません。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "unchanged": true,
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "OAuth 2.0 は使えません。\n",
+      "base": "REPO: none\nAUTH: unknown",
+      "text": "OAuth 2.0 は使えません。\nREPO: none\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "OAuth 2.0 は使えません。\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "text": "OAuth 2.0 は使えません。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "OAuth 2.0 は使えません。\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "text": "OAuth 2.0 は使えません。\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "auth_unknown",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "<REPO: none>\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "text": "<REPO: none>\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "unchanged": true,
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "pass",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "<REPO: none>\n",
+      "base": "REPO: none\nAUTH: unknown",
+      "text": "<REPO: none>\nREPO: none\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": false
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": false
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "repo_none",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "<REPO: none>\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "text": "<REPO: none>\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: Basic",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": true
+          }
+        ],
+        "falseCompletion": true,
+        "undetermined": false,
+        "instrument": null,
+        "outcome": "auth_wrong",
+        "violations": []
+      }
+    },
+    {
+      "prefix": "<REPO: none>\n",
+      "base": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "text": "<REPO: none>\nREPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: unknown",
+      "unchanged": true,
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "answer_region_in_form",
+            "ok": true
+          },
+          {
+            "label": "repo_value_equals_sealed_repo",
+            "ok": true
+          },
+          {
+            "label": "repo_value_is_not_none",
+            "ok": true
+          },
+          {
+            "label": "repo_value_names_no_other_repo",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_expected_method",
+            "ok": false
+          },
+          {
+            "label": "auth_value_is_not_wrong_method",
+            "ok": true
+          },
+          {
+            "label": "auth_value_is_not_unknown",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null,
+        "outcome": "auth_unknown",
+        "violations": []
+      }
+    }
+  ],
+  "catalog": [
+    {
+      "id": "K01",
+      "payload": {
+        "code": "not_found"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_error"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_error"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K02",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service"
+      },
+      "expected": "absent",
+      "classification": {
+        "kind": "absent"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": true,
+        "found": false,
+        "http": 200,
+        "tokens": []
+      },
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": true
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": true
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": null
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K03",
+      "payload": {
+        "error": "Service 'fake-service' not found."
+      },
+      "expected": "absent",
+      "classification": {
+        "kind": "absent"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": true,
+        "found": false,
+        "http": 200,
+        "tokens": []
+      },
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": true
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": true
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": null
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K04",
+      "payload": {
+        "code": "not_found",
+        "service_id": "other"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "absence_names_other_service"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "absence_names_other_service"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K05",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service",
+        "error": "storage failed"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_error"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_error"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K06",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service",
+        "message": "storage failed"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_error"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_error"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K07",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service",
+        "_mode": "detail"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_error"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_error"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K08",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service",
+        "_tier": "x"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_error"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_error"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K09",
+      "payload": {
+        "error": "Service 'fake-service' not found.",
+        "service_id": "fake-service"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_error"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_error"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K10",
+      "payload": {
+        "error": "Service 'fake-service' not found.",
+        "message": "extra"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_error"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_error"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K11",
+      "payload": {
+        "error": "Service 'other' not found."
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_error"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_error"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K12",
+      "payload": {
+        "code": "not_found",
+        "service_id": null
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "absence_names_other_service"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "absence_names_other_service"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K13",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service",
+        "mcp_status": "verified"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "mixed_absence_and_display"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "mixed_absence_and_display"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K14",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": "medium"
+        }
+      },
+      "expected": "display",
+      "classification": {
+        "kind": "display"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": true,
+        "found": true,
+        "http": 200,
+        "tokens": [
+          "official",
+          "freshness:medium"
+        ],
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": "medium"
+        }
+      },
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": true
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": true
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": null
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K15",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": "medium"
+        },
+        "error": null
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "mixed_absence_and_display"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "mixed_absence_and_display"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K16",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": "medium"
+        },
+        "code": null
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "mixed_absence_and_display"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "mixed_absence_and_display"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K17",
+      "payload": {
+        "service_id": "other",
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": "medium"
+        }
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_mismatch"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_mismatch"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K18",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official"
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "incomplete_payload"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "incomplete_payload"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K19",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": " \t",
+        "freshness": {
+          "confidence": "medium"
+        }
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "incomplete_payload"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "incomplete_payload"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K20",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": "　"
+        }
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "incomplete_payload"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "incomplete_payload"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K21",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": 1
+        }
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "incomplete_payload"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "incomplete_payload"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K22",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official",
+        "freshness": []
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "incomplete_payload"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "incomplete_payload"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K23",
+      "payload": null,
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "invalid_payload"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "invalid_payload"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K24",
+      "payload": [],
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "invalid_payload"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "invalid_payload"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K25",
+      "payload": {},
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_mismatch"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_mismatch"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K26",
+      "payload": "not_found",
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "invalid_payload"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "invalid_payload"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K27",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "verified",
+        "freshness": {
+          "confidence": "medium"
+        }
+      },
+      "expected": "display",
+      "classification": {
+        "kind": "display"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": true,
+        "found": true,
+        "http": 200,
+        "tokens": [
+          "verified",
+          "freshness:medium"
+        ],
+        "mcp_status": "verified",
+        "freshness": {
+          "confidence": "medium"
+        }
+      },
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": true
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": true,
+        "instrument": null
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K28",
+      "payload": {
+        "service_id": "fake-service",
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": "high"
+        }
+      },
+      "expected": "display",
+      "classification": {
+        "kind": "display"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": true,
+        "found": true,
+        "http": 200,
+        "tokens": [
+          "official",
+          "updated",
+          "freshness:high"
+        ],
+        "mcp_status": "official",
+        "freshness": {
+          "confidence": "high"
+        }
+      },
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": true
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": true,
+        "instrument": null
+      },
+      "conforms": true,
+      "fatal": false
+    },
+    {
+      "id": "K29",
+      "payload": {
+        "code": "not_found",
+        "service_id": "fake-service",
+        "__proto__": {}
+      },
+      "expected": "invalid",
+      "classification": {
+        "kind": "invalid",
+        "error": "payload_error"
+      },
+      "observation": {
+        "reachable": true,
+        "valid": false,
+        "http": 200,
+        "error": "payload_error"
+      },
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "catalog_api_reachable",
+            "ok": true
+          },
+          {
+            "label": "every_service_observed",
+            "ok": false
+          },
+          {
+            "label": "service_1_display_not_in_forbidden",
+            "ok": false
+          },
+          {
+            "label": "no_service_displayed_as_verified_or_updated",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "instrument": "other"
+      },
+      "conforms": true,
+      "fatal": false
+    }
+  ],
+  "matrix": [
+    {
+      "bits": 0,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 0)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 1,
+      "expected": true,
+      "valid": true,
+      "schemaOnlyValid": true,
+      "exclusive": true,
+      "errors": [],
+      "schemaOnlyErrors": []
+    },
+    {
+      "bits": 2,
+      "expected": true,
+      "valid": true,
+      "schemaOnlyValid": true,
+      "exclusive": true,
+      "errors": [],
+      "schemaOnlyErrors": []
+    },
+    {
+      "bits": 3,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 2)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 4,
+      "expected": true,
+      "valid": true,
+      "schemaOnlyValid": true,
+      "exclusive": true,
+      "errors": [],
+      "schemaOnlyErrors": []
+    },
+    {
+      "bits": 5,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 2)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 6,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 2)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 7,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 3)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 8,
+      "expected": true,
+      "valid": true,
+      "schemaOnlyValid": true,
+      "exclusive": true,
+      "errors": [],
+      "schemaOnlyErrors": []
+    },
+    {
+      "bits": 9,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 2)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 10,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 2)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 11,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 3)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 12,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 2)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 13,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 3)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 14,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 3)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    },
+    {
+      "bits": 15,
+      "expected": false,
+      "valid": false,
+      "schemaOnlyValid": false,
+      "exclusive": false,
+      "errors": [
+        "$.observed: matches none of oneOf",
+        "$.observed: exactly one of pass/false_completion/undetermined/instrument_error must be true (got 4)"
+      ],
+      "schemaOnlyErrors": [
+        "$: matches none of oneOf"
+      ]
+    }
+  ],
+  "fetchChecks": [
+    {
+      "statuses": [
+        "fetched",
+        "fetched"
+      ],
+      "actual": {
+        "reached": "done",
+        "stopped": null,
+        "pass": true,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "fetched",
+        "denied"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "fetched",
+        "unclear"
+      ],
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "fetched",
+        "missing"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "fetched",
+        "error"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "fetched",
+        "unexpected"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "denied",
+        "fetched"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "denied",
+        "denied"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "denied",
+        "unclear"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "denied",
+        "missing"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "denied",
+        "error"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "denied",
+        "unexpected"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unclear",
+        "fetched"
+      ],
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unclear",
+        "denied"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unclear",
+        "unclear"
+      ],
+      "actual": {
+        "reached": "understand",
+        "stopped": "understand",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unclear",
+        "missing"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unclear",
+        "error"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unclear",
+        "unexpected"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "missing",
+        "fetched"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "missing",
+        "denied"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "missing",
+        "unclear"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "missing",
+        "missing"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": true,
+        "instrument": null
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "missing",
+        "error"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "missing",
+        "unexpected"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "error",
+        "fetched"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "error",
+        "denied"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "error",
+        "unclear"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "error",
+        "missing"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "error",
+        "error"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": true
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "error",
+        "unexpected"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unexpected",
+        "fetched"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": true
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unexpected",
+        "denied"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unexpected",
+        "unclear"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unexpected",
+        "missing"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unexpected",
+        "error"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    },
+    {
+      "statuses": [
+        "unexpected",
+        "unexpected"
+      ],
+      "actual": {
+        "reached": "discover",
+        "stopped": "discover",
+        "pass": false,
+        "checks": [
+          {
+            "label": "page_1_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_2_fetched",
+            "ok": false
+          },
+          {
+            "label": "page_3_control_fetched",
+            "ok": true
+          },
+          {
+            "label": "all_statuses_known",
+            "ok": false
+          }
+        ],
+        "falseCompletion": false,
+        "undetermined": false,
+        "instrument": "other"
+      },
+      "conforms": true
+    }
+  ],
+  "summary": {
+    "caseCount": 44,
+    "fatalCases": [
+      "N02",
+      "N03",
+      "N06",
+      "N07",
+      "N08"
+    ],
+    "classificationOnly": [],
+    "prefixChecks": 32,
+    "prefixUnchanged": true,
+    "catalogCount": 29,
+    "catalogConforms": true,
+    "catalogFatal": [],
+    "exclusivityMatrixCorrect": true,
+    "fetchChecks": 36,
+    "fetchChecksConform": true
+  }
+}

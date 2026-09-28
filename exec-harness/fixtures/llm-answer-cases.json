@@ -1,5 +1,5 @@
 {
-  "note": "Permanent regression cases for judgeLlmAnswer (lib/llm-answer-rules.mjs), CLOSED FORM: the answer region is the last two non-empty physical lines, which must be \"REPO: <value>\" then \"AUTH: <value>\"; form is checked before content. Expectations are exclusive: exactly one of pass / false_completion / undetermined / instrument is true. U = the M-994 fixture repo https://github.com/fake-vendor/fake-official-mcp-server. T01–T28 are the author's cases; CX-R01–CX-R30 are Codex's e4955ec review cases, text and expected outcome copied verbatim from fixtures/evidence/codex-e4955ec-independent-evidence.json. Every value is invented.",
+  "note": "Permanent regression cases for judgeLlmAnswer (lib/llm-answer-rules.mjs), CLOSED FORM: the answer region is the last two non-empty physical lines, which must be \"REPO: <value>\" then \"AUTH: <value>\"; form is checked before content. Expectations are exclusive: exactly one of pass / false_completion / undetermined / instrument is true. U = the M-994 fixture repo https://github.com/fake-vendor/fake-official-mcp-server. T01–T44 are the author's cases; CX-R01–CX-R30 are Codex's e4955ec review cases and CX-N02/N03/N06/N07/N08 Codex's ee163f7 fatal cases, text and expected outcome copied verbatim from fixtures/evidence/codex-e4955ec-independent-evidence.json and codex-ee163f7-independent-evidence.json. Cases with a \"revised\" field had their expectation made stricter on 2026-09-28 (closed by kind); none moved toward pass. Every value is invented.",
   "sealed_fixture": "M-994.sealed.json",
   "cases": [
     {
@@ -74,11 +74,12 @@
       "expect": {
         "stopped": "discover",
         "pass": false,
-        "false_completion": true,
-        "undetermined": false,
-        "outcome": "repo_other"
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
       },
-      "why": "a deeper path is another URL"
+      "why": "deeper path is not the canonical form (was repo_other)",
+      "revised": "2026-09-28 closed by kind (Michie 2026-09-28): REPO must fully match ^https://<REPO_HOSTS>/<owner>/<repo>(.git)?/?$ after at most one <…>/`…`/\"…\" wrapper; AUTH must be one of the four words: deeper path is not the canonical form (was repo_other) — earlier why: a deeper path is another URL"
     },
     {
       "id": "T08",
@@ -131,25 +132,27 @@
       "id": "T12",
       "text": "REPO: github.com/fake-vendor/fake-official-mcp-server\nAUTH: oauth2",
       "expect": {
-        "stopped": null,
-        "pass": true,
+        "stopped": "discover",
+        "pass": false,
         "false_completion": false,
-        "undetermined": false,
-        "outcome": "pass"
+        "undetermined": true,
+        "outcome": "format_violation"
       },
-      "why": "scheme-less at a boundary; AUTH spelling variant accepted"
+      "why": "scheme-less host and \"oauth2\" are not the canonical form (was pass)",
+      "revised": "2026-09-28 closed by kind (Michie 2026-09-28): REPO must fully match ^https://<REPO_HOSTS>/<owner>/<repo>(.git)?/?$ after at most one <…>/`…`/\"…\" wrapper; AUTH must be one of the four words: scheme-less host and \"oauth2\" are not the canonical form (was pass) — earlier why: scheme-less at a boundary; AUTH spelling variant accepted"
     },
     {
       "id": "T13",
       "text": "REPO: <https://github.com/fake-vendor/fake-official-mcp-server.git>\nAUTH: OAuth 2",
       "expect": {
-        "stopped": null,
-        "pass": true,
+        "stopped": "discover",
+        "pass": false,
         "false_completion": false,
-        "undetermined": false,
-        "outcome": "pass"
+        "undetermined": true,
+        "outcome": "format_violation"
       },
-      "why": "angle brackets and .git tolerated"
+      "why": "\"OAuth 2\" is not one of the four AUTH words (was pass)",
+      "revised": "2026-09-28 closed by kind (Michie 2026-09-28): REPO must fully match ^https://<REPO_HOSTS>/<owner>/<repo>(.git)?/?$ after at most one <…>/`…`/\"…\" wrapper; AUTH must be one of the four words: \"OAuth 2\" is not one of the four AUTH words (was pass) — earlier why: angle brackets and .git tolerated"
     },
     {
       "id": "T14",
@@ -263,13 +266,14 @@
       "id": "T23",
       "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server#readme\nAUTH: Basic 認証",
       "expect": {
-        "stopped": "understand",
+        "stopped": "discover",
         "pass": false,
-        "false_completion": true,
-        "undetermined": false,
-        "outcome": "auth_wrong"
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
       },
-      "why": "fragment ignored; Japanese 'Basic 認証' maps to Basic"
+      "why": "fragment \"#readme\" and \"Basic 認証\" are not the canonical form (was auth_wrong)",
+      "revised": "2026-09-28 closed by kind (Michie 2026-09-28): REPO must fully match ^https://<REPO_HOSTS>/<owner>/<repo>(.git)?/?$ after at most one <…>/`…`/\"…\" wrapper; AUTH must be one of the four words: fragment \"#readme\" and \"Basic 認証\" are not the canonical form (was auth_wrong) — earlier why: fragment ignored; Japanese 'Basic 認証' maps to Basic"
     },
     {
       "id": "T24",
@@ -556,14 +560,15 @@
       "id": "CX-R18",
       "text": "REPO: github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
       "expect": {
-        "stopped": null,
-        "pass": true,
+        "stopped": "discover",
+        "pass": false,
         "false_completion": false,
-        "undetermined": false,
-        "outcome": "pass"
+        "undetermined": true,
+        "outcome": "format_violation"
       },
-      "why": "Codex e4955ec review: scheme-less accepted",
-      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+      "why": "scheme-less host is not the canonical form (was pass in the e4955ec review)",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)",
+      "revised": "2026-09-28 closed by kind (Michie 2026-09-28): REPO must fully match ^https://<REPO_HOSTS>/<owner>/<repo>(.git)?/?$ after at most one <…>/`…`/\"…\" wrapper; AUTH must be one of the four words: scheme-less host is not the canonical form (was pass in the e4955ec review) — earlier why: Codex e4955ec review: scheme-less accepted"
     },
     {
       "id": "CX-R19",
@@ -595,14 +600,15 @@
       "id": "CX-R21",
       "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server#readme\nAUTH: OAuth 2.0",
       "expect": {
-        "stopped": null,
-        "pass": true,
+        "stopped": "discover",
+        "pass": false,
         "false_completion": false,
-        "undetermined": false,
-        "outcome": "pass"
+        "undetermined": true,
+        "outcome": "format_violation"
       },
-      "why": "Codex e4955ec review: fragment ignored",
-      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+      "why": "fragment \"#readme\" is not the canonical form (was pass in the e4955ec review)",
+      "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)",
+      "revised": "2026-09-28 closed by kind (Michie 2026-09-28): REPO must fully match ^https://<REPO_HOSTS>/<owner>/<repo>(.git)?/?$ after at most one <…>/`…`/\"…\" wrapper; AUTH must be one of the four words: fragment \"#readme\" is not the canonical form (was pass in the e4955ec review) — earlier why: Codex e4955ec review: fragment ignored"
     },
     {
       "id": "CX-R22",
@@ -720,6 +726,258 @@
       },
       "why": "Codex e4955ec review: fullwidth value outside form",
       "source": "exec-harness/fixtures/evidence/codex-e4955ec-independent-evidence.json (verbatim text and expected outcome)"
+    },
+    {
+      "id": "CX-N02",
+      "text": "REPO: https://github.com:65535/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "source": "Codex ee163f7 review (fatal), verbatim from fixtures/evidence/codex-ee163f7-independent-evidence.json"
+    },
+    {
+      "id": "CX-N03",
+      "text": "REPO: https://github.com:444/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "source": "Codex ee163f7 review (fatal), verbatim from fixtures/evidence/codex-ee163f7-independent-evidence.json"
+    },
+    {
+      "id": "CX-N06",
+      "text": "REPO: \"　https://github.com/fake-vendor/fake-official-mcp-server　\"\nAUTH: \"　OAuth 2.0　\"",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "source": "Codex ee163f7 review (fatal), verbatim from fixtures/evidence/codex-ee163f7-independent-evidence.json"
+    },
+    {
+      "id": "CX-N07",
+      "text": "REPO: \" https://github.com/fake-vendor/fake-official-mcp-server \"\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "source": "Codex ee163f7 review (fatal), verbatim from fixtures/evidence/codex-ee163f7-independent-evidence.json"
+    },
+    {
+      "id": "CX-N08",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: \"\u000bOAuth 2.0\u000b\"",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "source": "Codex ee163f7 review (fatal), verbatim from fixtures/evidence/codex-ee163f7-independent-evidence.json"
+    },
+    {
+      "id": "T29",
+      "text": "REPO: https://github.com:443/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "default port written out is still a port (Codex ee163f7 N04 expected pass; superseded by the closed-by-kind rule)"
+    },
+    {
+      "id": "T30",
+      "text": "REPO: http://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "http (Codex ee163f7 N05 expected pass; superseded)"
+    },
+    {
+      "id": "T31",
+      "text": "REPO: \" https://github.com/fake-vendor/fake-official-mcp-server \"\nAUTH: \" OAuth 2.0 \"",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "ASCII spaces inside the REPO wrapper (Codex ee163f7 N09 expected pass; superseded). The AUTH part alone would be accepted"
+    },
+    {
+      "id": "T32",
+      "text": "REPO: https://user:pw@github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "userinfo"
+    },
+    {
+      "id": "T33",
+      "text": "REPO: https://github.com./fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "trailing-dot host"
+    },
+    {
+      "id": "T34",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server?tab=readme\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "query (Codex ee163f7 N20 expected pass; superseded)"
+    },
+    {
+      "id": "T35",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-%73erver\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "percent-encoding"
+    },
+    {
+      "id": "T36",
+      "text": "REPO: https://github.com:/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "empty port"
+    },
+    {
+      "id": "T37",
+      "text": "REPO: https://github.com/faKe-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "U+212A KELVIN SIGN in place of k (no Unicode case folding)"
+    },
+    {
+      "id": "T38",
+      "text": "REPO: 'https://github.com/fake-vendor/fake-official-mcp-server'\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "single quotes are no longer an allowed wrapper"
+    },
+    {
+      "id": "T39",
+      "text": "REPO: \"<https://github.com/fake-vendor/fake-official-mcp-server>\"\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "two wrapper pairs"
+    },
+    {
+      "id": "T40",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "NO-BREAK SPACE inside the AUTH word"
+    },
+    {
+      "id": "T41",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: APIキー",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "\"APIキー\" is not one of the four AUTH words (was accepted as API key)"
+    },
+    {
+      "id": "T42",
+      "text": "`https://github.com/fake-vendor/fake-official-mcp-server.git/`\nAUTH: `OAuth 2.0`",
+      "expect": {
+        "stopped": "discover",
+        "pass": false,
+        "false_completion": false,
+        "undetermined": true,
+        "outcome": "format_violation"
+      },
+      "note": "value without the REPO label inside backticks: the second-to-last line is not a REPO line"
+    },
+    {
+      "id": "T43",
+      "text": "REPO: `https://github.com/fake-vendor/fake-official-mcp-server.git/`\nAUTH: `OAuth 2.0`",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "note": "backtick wrapper, .git and trailing slash on the canonical form"
+    },
+    {
+      "id": "T44",
+      "text": "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: \"\tOAuth 2.0 \"",
+      "expect": {
+        "stopped": null,
+        "pass": true,
+        "false_completion": false,
+        "undetermined": false,
+        "outcome": "pass"
+      },
+      "note": "ASCII tab/space around the AUTH word inside the wrapper are allowed"
     }
   ]
 }

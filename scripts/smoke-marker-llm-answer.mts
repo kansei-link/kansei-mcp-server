@@ -37,12 +37,16 @@ const J = (text: string, error: string | null = null) => TARGETS.llmAnswer.judge
   console.log(`A: ${cases.length} two-line cases in fixtures`);
   // P2: the answer region is the last two lines only — any prefix (explanations, code quotes that look
   // like the two lines, URLs inside URLs) must leave the verdict unchanged. Prefixes from Codex's evidence.
-  const ev = JSON.parse(readFileSync(join(FIX, "evidence", "codex-e4955ec-independent-evidence.json"), "utf-8"));
   const base = "REPO: https://github.com/fake-vendor/fake-official-mcp-server\nAUTH: OAuth 2.0";
   const baseOutcome = J(base).outcome;
-  for (const pc of ev.prefixChecks as Array<{ prefix: string }>) {
-    const r = J(pc.prefix + base);
-    expect(`P2 prefix does not change the verdict: ${JSON.stringify(pc.prefix.slice(0, 40))}`, r.outcome === baseOutcome && r.pass === true, `got ${r.outcome}`);
+  for (const evFile of ["codex-e4955ec-independent-evidence.json", "codex-ee163f7-independent-evidence.json"]) {
+    const ev = JSON.parse(readFileSync(join(FIX, "evidence", evFile), "utf-8"));
+    for (const pc of ev.prefixChecks as Array<{ prefix: string; base?: string }>) {
+      const b = pc.base ?? base; // e4955ec: one pass base; ee163f7: several bases
+      const want = pc.base === undefined ? baseOutcome : J(b).outcome;
+      const r = J(pc.prefix + b);
+      expect(`P2 prefix does not change the verdict (${evFile.slice(6, 13)}): ${JSON.stringify(pc.prefix.slice(0, 30))} + ${JSON.stringify(b.slice(-20))}`, r.outcome === want && (pc.base !== undefined || r.pass === true), `got ${r.outcome}, want ${want}`);
+    }
   }
   // ① URL tokens: the inside of a scheme URL is never re-scanned; scheme-less only outside
   const { extractUrlTokens } = await import("../exec-harness/lib/llm-answer-rules.mjs");

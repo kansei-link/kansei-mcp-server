@@ -8,18 +8,27 @@
  *
  * Order of evaluation:
  *   1. FORM of both lines (before any content): the last two non-empty lines exist, are REPO then
- *      AUTH, each on one physical line with a non-empty value; REPO value is "none" or exactly one
- *      repository URL token (optionally wrapped in <> or quotes); AUTH value is one of the options.
- *      Any failure → format_violation = the agent's own undetermined (not an instrument error),
+ *      AUTH, each on one physical line with a non-empty value. Each value may carry at most ONE
+ *      wrapper pair, <…>, `…` or "…", which is removed once and whose inside is not trimmed. Then:
+ *        REPO = "none", or a string that FULLY matches the canonical form
+ *               ^https://<host in REPO_HOSTS, exactly>/<owner>/<repo>(.git)?/?$
+ *               (owner/repo = ASCII letters, digits, "_", ".", "-"; not only dots).
+ *        AUTH = exactly one of the four words, with only ASCII spaces/tabs around it.
+ *      Anything else is format_violation = the agent's own undetermined (not an instrument error),
  *      whatever the REPO content would have been.
+ *      Closed by kind, not case by case: a port (any, :443 included), userinfo, a trailing-dot
+ *      host, http, a query, a fragment, percent-encoding, a backslash, whitespace of any kind inside
+ *      the wrapper, a scheme-less host, a deeper path and every other spelling fail the canonical
+ *      form, so they never reach content. Only ASCII letter case is not significant (labels,
+ *      scheme, host, owner/repo, the AUTH words), as in the earlier contract.
  *   2. CONTENT: REPO = sealed → discover passed; none → discover, undetermined; another repo URL →
  *      discover, false_completion. With REPO = sealed: AUTH = OAuth 2.0 → done; Basic / API key →
  *      understand, false_completion; unknown → understand, undetermined.
  * Exactly one of pass / false_completion / undetermined / instrument is true.
  *
- * URL handling: a REPO value is parsed with new URL(); the hostname is compared to REPO_HOSTS
- * exactly as parsed (no "www." stripping); ".git" is removed only from the end of the repository
- * name (second path segment); query and fragment are ignored.
+ * REPO handling: no URL parser, no trimming, no decoding. The only normalisation is ASCII
+ * lower-casing of host/owner/repo and removing one ".git" from the end of the repository name.
+ * key = "host/owner/repo".
  */
 
 export const AUTH_RULE = Object.freeze({
@@ -38,7 +47,7 @@ export const ANSWER_FORMAT = Object.freeze({
   auth_options_listed: ['OAuth 2.0', 'Basic', 'API key', 'unknown'],
 });
 
-/* ---------- URL tokens (used for the REPO value) ---------- */
+/* ---------- URL tokens (NOT used by the judge; kept for scanning pages in later columns) ---------- */
 const SCHEME_URL = /https?:\/\/[^\s<>"'`()\[\]{}（）「」『』【】、。]+/gi;
 const BARE_HOST = /(?<![A-Za-z0-9./_@:=?&%-])(?:[a-z0-9-]+\.)*(?:github\.com|gitlab\.com|bitbucket\.org|codeberg\.org)(?::\d+)?\/[^\s<>"'`()\[\]{}（）「」『』【】、。]+/gi;
 
@@ -54,33 +63,32 @@ export function extractUrlTokens(text) {
   return tokens.sort((a, b) => a.index - b.index);
 }
 
-/** Parse one token as a repository URL, or null. Hostname compared exactly as parsed (lowercase by
- *  the URL parser); "www.github.com" is a different host. ".git" stripped only from the repository
- *  name (segment 2). key = "host/owner/repo[/deeper…]". */
-export function parseRepoUrl(raw) {
-  let url;
-  try { url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`); } catch { return null; }
-  if (!/^https?:$/.test(url.protocol)) return null;
-  const host = url.hostname; // WHATWG URL lowercases the host; no further normalisation
-  if (!REPO_HOSTS.includes(host)) return null;
-  let segs;
-  try { segs = url.pathname.split('/').filter(Boolean).map((x) => decodeURIComponent(x).toLowerCase()); } catch { return null; }
-  if (segs.length < 2) return null;
-  segs[1] = segs[1].replace(/\.git$/, '');
-  if (!segs[1]) return null;
-  return { host, key: `${host}/${segs.join('/')}`, segments: segs };
+/* ---------- the canonical REPO value ---------- */
+// Built from REPO_HOSTS (dots escaped). No "u" flag: "i" then folds ASCII letters only, so no
+// non-ASCII character (e.g. U+017F, U+212A) can stand in for an ASCII one.
+const escapeRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const REPO_CANONICAL = new RegExp(`^https://(${REPO_HOSTS.map(escapeRe).join('|')})/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(\\.git)?/?$`, 'i');
+const ONLY_DOTS = /^\.+$/;
+
+/** The canonical repository URL, or null. The whole string must match REPO_CANONICAL; there is no
+ *  URL parsing, trimming or decoding. key = "host/owner/repo" in ASCII lower case, one ".git"
+ *  removed from the repository name. */
+export function parseCanonicalRepoUrl(value) {
+  const m = REPO_CANONICAL.exec(String(value));
+  if (!m) return null;
+  const [, host, owner, repo] = m;
+  if (ONLY_DOTS.test(owner) || ONLY_DOTS.test(repo) || /^\.git$/i.test(repo)) return null;
+  return { host: host.toLowerCase(), key: `${host}/${owner}/${repo}`.toLowerCase() };
 }
 
 /* ---------- the answer region: last two non-empty physical lines ---------- */
 // ASCII label, ASCII colon, spaces/tabs only (never a newline) around the value.
 const LINE_FORM = { REPO: /^[ \t]*REPO:[ \t]*(\S(?:.*\S)?)[ \t]*$/i, AUTH: /^[ \t]*AUTH:[ \t]*(\S(?:.*\S)?)[ \t]*$/i };
-const AUTH_MAP = [
-  { value: 'OAuth 2.0', re: /^(?:oauth[ ]?2(?:\.0)?|oauth2)$/i },
-  { value: 'Basic', re: /^basic(?:[ ]?(?:auth(?:entication)?|認証))?$/i },
-  { value: 'API key', re: /^api[ ]?(?:key|キー)$/i },
-  { value: 'unknown', re: /^(?:unknown|不明)$/i },
-];
-const unwrap = (v) => { const m = v.match(/^(?:<(.*)>|"(.*)"|'(.*)'|「(.*)」|『(.*)』)$/); return m ? (m[1] ?? m[2] ?? m[3] ?? m[4] ?? m[5]).trim() : v; };
+// AUTH: exactly the four listed words (ASCII case-insensitive, no "u" flag), nothing else.
+const AUTH_WORDS = AUTH_RULE.options.map((value) => ({ value, re: new RegExp(`^${escapeRe(value)}$`, 'i') }));
+const AUTH_PAD = /^[ \t]+|[ \t]+$/g; // only ASCII spaces/tabs may surround the word
+// At most one wrapper pair around the whole value, removed once. Its inside is NOT trimmed.
+const unwrap = (v) => { const m = /^(?:<(.*)>|`(.*)`|"(.*)")$/.exec(v); return m ? (m[1] ?? m[2] ?? m[3]) : v; };
 
 /** Form first, then content. Returns { form_ok, violations[], repo:{kind,key}, auth:{value} }. */
 export function parseAnswerLines(text, sealedKey) {
@@ -100,20 +108,16 @@ export function parseAnswerLines(text, sealedKey) {
     const v = unwrap(rm[1]);
     if (/^none$/i.test(v)) repoForm = { kind: 'none' };
     else {
-      const tokens = extractUrlTokens(v);
-      if (tokens.length !== 1 || tokens[0].raw !== v) violations.push(tokens.length > 1 ? 'repo_value_several_urls' : 'repo_value_not_exactly_one_url');
-      else {
-        const parsed = parseRepoUrl(tokens[0].raw);
-        if (!parsed) violations.push('repo_value_not_a_repository_url');
-        else repoForm = { kind: 'url', key: parsed.key };
-      }
+      const parsed = parseCanonicalRepoUrl(v);
+      if (!parsed) violations.push('repo_value_not_canonical_repository_url');
+      else repoForm = { kind: 'url', key: parsed.key };
     }
   }
   // AUTH value form
   let authValue = null;
   if (am) {
-    const v = unwrap(am[1]);
-    const hit = AUTH_MAP.find((a) => a.re.test(v));
+    const v = unwrap(am[1]).replace(AUTH_PAD, '');
+    const hit = AUTH_WORDS.find((a) => a.re.test(v));
     if (hit) authValue = hit.value; else violations.push('auth_value_outside_options');
   }
   const formOk = violations.length === 0;

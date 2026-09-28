@@ -227,8 +227,9 @@ const fetchCheck = {
 /* ================= llm_answer (M-004: discover + understand; connect/execute = M-005) ================= */
 const normRepo = (u) => String(u || '').trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\.git$/, '').replace(/[#?].*$/, '').replace(/\/+$/, '');
 
-// Rules live in ./llm-answer-rules.mjs (closed two-line form: REPO/AUTH; URL tokens; exclusivity).
-export { AUTH_RULE, ANSWER_FORMAT, extractUrlTokens, parseRepoUrl, parseAnswerLines, judgeLlmAnswer, assertExclusive } from './llm-answer-rules.mjs';
+// Rules live in ./llm-answer-rules.mjs (closed two-line form: REPO/AUTH; canonical REPO value;
+// the four AUTH words; exclusivity). normRepo above is for the SEAL only, never for an answer.
+export { AUTH_RULE, ANSWER_FORMAT, extractUrlTokens, parseCanonicalRepoUrl, parseAnswerLines, judgeLlmAnswer, assertExclusive } from './llm-answer-rules.mjs';
 
 const llmAnswer = {
   method: 'llm_answer_rules_vs_sealed_expectation',
@@ -263,16 +264,17 @@ const llmAnswer = {
     return { text: a.text || '', model: a.model, error: a.error || null, citations: a.citations || [] };
   },
   /**
-   * Closed judgement in three separate questions (Codex review 2):
-   *   1. URL identification — candidates are extracted with boundaries from the raw text,
-   *      normalised (scheme/www/.git/#fragment/?query/trailing punctuation) and compared as
-   *      host + exact 2-segment path. Another path (/sub, -v2) is another repo.
-   *   2. Officialness — an explicit denial (no official MCP / unofficial / 未確認 …) stops at
-   *      discover with false_completion, even when the URL is named.
-   *   3. Authentication — every method token is read with its own polarity per sentence.
-   *      A wrong method affirmed, or OAuth denied, or a contradiction stops at understand
-   *      with false_completion. Only OAuth 2.0 affirmed (and never denied) passes.
-   * done needs all three; anything ambiguous or contradictory is not done.
+   * Closed two-line form (rules and their exact grammar: ./llm-answer-rules.mjs header).
+   * Only the last two non-empty physical lines are read, "REPO: <value>" then "AUTH: <value>";
+   * the text before them is never judged. Form is checked before content:
+   *   REPO value (after at most one <…>, `…` or "…" wrapper) must be "none" or fully match
+   *     ^https://<REPO_HOSTS exactly>/<owner>/<repo>(.git)?/?$ — a port, userinfo, trailing-dot
+   *     host, http, query, fragment, percent-encoding or whitespace inside the wrapper is
+   *     format_violation, never a repo.
+   *   AUTH value (after the same unwrap) must be one of OAuth 2.0 / Basic / API key / unknown,
+   *     with only ASCII spaces/tabs around it.
+   * Then: REPO = sealed and AUTH = OAuth 2.0 → done. none / unknown → undetermined. Another repo or
+   * Basic / API key → false_completion. format_violation → the agent's undetermined.
    */
   judge({ obs, sealed }) { return judgeLlmAnswer(obs, sealed); },
   /** (D) recorded in the manifest: what the prompt leaks beyond the task text. */
