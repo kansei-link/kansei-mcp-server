@@ -16,7 +16,7 @@ import { sha256 } from '../exec-harness/lib/marker-bundle.mjs';
 const source = resolve(import.meta.dirname, '..');
 const root = mkdtempSync(join(tmpdir(), 'marker-limits-'));
 mkdirSync(join(root, 'exec-harness'), { recursive: true });
-for (const item of ['run-marker.mjs', 'lib', 'schemas', 'fixtures']) cpSync(join(source, 'exec-harness', item), join(root, 'exec-harness', item), { recursive: true });
+for (const item of ['run-marker.mjs', 'lib', 'schemas', 'fixtures', 'vendor']) cpSync(join(source, 'exec-harness', item), join(root, 'exec-harness', item), { recursive: true });
 symlinkSync(join(source, 'node_modules'), join(root, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
 writeFileSync(join(root, 'package.json'), '{"type":"module"}');
 writeFileSync(join(root, '.gitignore'), 'node_modules/\n*.db*\nevidence/\n');

@@ -1,0 +1,1854 @@
+{
+  "commit": "185d63d550c8feceda735e132aa6400bf783d85d",
+  "cases": [
+    {
+      "id": "dot-tail",
+      "input": {
+        "text": "https://github.com/fake-vendor/fake-official-mcp-server/..",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": false,
+      "actual": true,
+      "conforms": false
+    },
+    {
+      "id": "dot-tail-single",
+      "input": {
+        "text": "https://github.com/fake-vendor/fake-official-mcp-server/.",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": false,
+      "actual": true,
+      "conforms": false
+    },
+    {
+      "id": "suffix-dot",
+      "input": {
+        "text": "https://github.com/fake-vendor/fake-official-mcp-server.",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": false,
+      "actual": true,
+      "conforms": false
+    },
+    {
+      "id": "bracket-relative",
+      "input": {
+        "text": "[//github.com/fake-vendor/fake-official-mcp-server]",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": true,
+      "actual": false,
+      "conforms": false
+    },
+    {
+      "id": "start-href-relative",
+      "input": {
+        "text": "href=//github.com/fake-vendor/fake-official-mcp-server",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": true,
+      "actual": false,
+      "conforms": false
+    },
+    {
+      "id": "nested-ftp",
+      "input": {
+        "text": "ftp://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": false,
+      "actual": true,
+      "conforms": false
+    },
+    {
+      "id": "entity-hyphen",
+      "input": {
+        "text": "<a href=\"https://github.com/fake&hyphen;vendor/fake-official-mcp-server\">x</a>",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": false,
+      "actual": true,
+      "conforms": false
+    },
+    {
+      "id": "entity-long-numeric",
+      "input": {
+        "text": "<a href=\"https:&#00000047;&#00000047;github.com/fake-vendor/fake-official-mcp-server\">x</a>",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "control-tree",
+      "input": {
+        "text": "https://github.com/fake-vendor/fake-official-mcp-server/tree/main?x=1&amp;y=2#readme",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "control-double-decode",
+      "input": {
+        "text": "<a href=\"https:&amp;#47;&amp;#47;github.com/fake-vendor/fake-official-mcp-server\">x</a>",
+        "sealedKey": "github.com/fake-vendor/fake-official-mcp-server",
+        "html": true
+      },
+      "expected": false,
+      "actual": true,
+      "conforms": false
+    },
+    {
+      "id": "raw-dot-tail",
+      "input": {
+        "url": "https://github.com/fake-vendor/fake-official-mcp-server/.."
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "hyphen-decoder",
+      "input": {
+        "text": "&hyphen;&dash;"
+      },
+      "expected": "‐‐",
+      "actual": "--",
+      "conforms": false
+    },
+    {
+      "id": "gt-ok",
+      "input": {
+        "mode": "ok"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "gt-rename",
+      "input": {
+        "mode": "rename"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "gt-move",
+      "input": {
+        "mode": "move"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "gt-archive",
+      "input": {
+        "mode": "archive"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "gt-private",
+      "input": {
+        "mode": "private"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "gt-no-response",
+      "input": {
+        "mode": "no-response"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "keepPayload-default",
+      "input": {
+        "endpoint": "loopback"
+      },
+      "expected": {
+        "same": true,
+        "defaultHasPayload": false,
+        "kept": true
+      },
+      "actual": {
+        "same": true,
+        "defaultHasPayload": false,
+        "kept": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "loopback-dot-tail",
+      "input": {
+        "mode": "dot-tail",
+        "A1": "http://127.0.0.1:63378/a1",
+        "A2": "http://127.0.0.1:63378/a2",
+        "B": "http://127.0.0.1:63378/mcp"
+      },
+      "expected": {
+        "aState": "not_listed",
+        "bState": "correct",
+        "judgement": "#5"
+      },
+      "actual": {
+        "aState": "listed",
+        "bState": "correct",
+        "judgement": "#1"
+      },
+      "conforms": false
+    },
+    {
+      "id": "loopback-entity-hyphen",
+      "input": {
+        "mode": "entity-hyphen",
+        "A1": "http://127.0.0.1:63378/a1",
+        "A2": "http://127.0.0.1:63378/a2",
+        "B": "http://127.0.0.1:63378/mcp"
+      },
+      "expected": {
+        "aState": "not_listed",
+        "bState": "correct",
+        "judgement": "#5"
+      },
+      "actual": {
+        "aState": "listed",
+        "bState": "correct",
+        "judgement": "#1"
+      },
+      "conforms": false
+    },
+    {
+      "id": "loopback-body-reset",
+      "input": {
+        "mode": "body-reset",
+        "A1": "http://127.0.0.1:63378/a1",
+        "A2": "http://127.0.0.1:63378/a2",
+        "B": "http://127.0.0.1:63378/mcp"
+      },
+      "expected": {
+        "aState": "unknown",
+        "bState": "correct",
+        "judgement": "U1"
+      },
+      "actual": {
+        "aState": "not_listed",
+        "bState": "correct",
+        "judgement": "#5"
+      },
+      "conforms": false
+    },
+    {
+      "id": "loopback-bracket-relative",
+      "input": {
+        "mode": "bracket-relative",
+        "A1": "http://127.0.0.1:63378/a1",
+        "A2": "http://127.0.0.1:63378/a2",
+        "B": "http://127.0.0.1:63378/mcp"
+      },
+      "expected": {
+        "aState": "listed",
+        "bState": "correct",
+        "judgement": "#1"
+      },
+      "actual": {
+        "aState": "listed",
+        "bState": "wrong",
+        "judgement": "#3"
+      },
+      "conforms": false
+    },
+    {
+      "id": "cli-dot-tail",
+      "input": {
+        "mode": "dot-tail",
+        "bundle": "evidence/_dryrun/2026-09-28/marker-m-994/170946-01M3KH05PFKPYK7NV2VQE59KXD"
+      },
+      "expected": {
+        "exit": 0,
+        "judgement": "#5"
+      },
+      "actual": {
+        "exit": 0,
+        "judgement": "#1"
+      },
+      "conforms": false
+    },
+    {
+      "id": "public-no-values-dot-tail",
+      "input": {
+        "sentinels": [
+          "PAGE_BODY_SENTINEL",
+          "CATALOG_VALUE_SENTINEL",
+          "ANSWER_BODY_SENTINEL"
+        ]
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "schema-dot-tail",
+      "input": {
+        "rows": 3
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "cli-entity-hyphen",
+      "input": {
+        "mode": "entity-hyphen",
+        "bundle": "evidence/_dryrun/2026-09-28/marker-m-994/170947-01M3KH071RJVHBS4Z2N5J54240"
+      },
+      "expected": {
+        "exit": 0,
+        "judgement": "#5"
+      },
+      "actual": {
+        "exit": 0,
+        "judgement": "#1"
+      },
+      "conforms": false
+    },
+    {
+      "id": "public-no-values-entity-hyphen",
+      "input": {
+        "sentinels": [
+          "PAGE_BODY_SENTINEL",
+          "CATALOG_VALUE_SENTINEL",
+          "ANSWER_BODY_SENTINEL"
+        ]
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "schema-entity-hyphen",
+      "input": {
+        "rows": 3
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "cli-body-reset",
+      "input": {
+        "mode": "body-reset",
+        "bundle": "evidence/_dryrun/2026-09-28/marker-m-994/170949-01M3KH08DANRRZ2CXA840ZXYTW"
+      },
+      "expected": {
+        "exit": 0,
+        "judgement": "U1"
+      },
+      "actual": {
+        "exit": 0,
+        "judgement": "#5"
+      },
+      "conforms": false
+    },
+    {
+      "id": "public-no-values-body-reset",
+      "input": {
+        "sentinels": [
+          "PAGE_BODY_SENTINEL",
+          "CATALOG_VALUE_SENTINEL",
+          "ANSWER_BODY_SENTINEL"
+        ]
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "schema-body-reset",
+      "input": {
+        "rows": 3
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "cli-bracket-relative",
+      "input": {
+        "mode": "bracket-relative",
+        "bundle": "evidence/_dryrun/2026-09-28/marker-m-994/170950-01M3KH09QNWNK573A403SKW4X6"
+      },
+      "expected": {
+        "exit": 0,
+        "judgement": "#1"
+      },
+      "actual": {
+        "exit": 0,
+        "judgement": "#3"
+      },
+      "conforms": false
+    },
+    {
+      "id": "public-no-values-bracket-relative",
+      "input": {
+        "sentinels": [
+          "PAGE_BODY_SENTINEL",
+          "CATALOG_VALUE_SENTINEL",
+          "ANSWER_BODY_SENTINEL"
+        ]
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "schema-bracket-relative",
+      "input": {
+        "rows": 3
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "no-attribution-empty",
+      "input": {
+        "args": [
+          "--executor",
+          "empty"
+        ]
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "no-attribution-capacity",
+      "input": {
+        "args": [
+          "--max-readings",
+          "0"
+        ]
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-correct-pass",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": true
+      },
+      "expected": "#1",
+      "actual": "#1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-correct-miss",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": true
+      },
+      "expected": "#2",
+      "actual": "#2",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-correct-format",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U3",
+      "actual": "U3",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-correct-instrument",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U4",
+      "actual": "U4",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-wrong-pass",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": true
+      },
+      "expected": "#3",
+      "actual": "#3",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-wrong-miss",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": true
+      },
+      "expected": "#4",
+      "actual": "#4",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-wrong-format",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U3",
+      "actual": "U3",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-wrong-instrument",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U4",
+      "actual": "U4",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-unknown-pass",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U2",
+      "actual": "U2",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-unknown-miss",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U2",
+      "actual": "U2",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-unknown-format",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U2",
+      "actual": "U2",
+      "conforms": true
+    },
+    {
+      "id": "table-true-listed-unknown-instrument",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U2",
+      "actual": "U2",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-correct-pass",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": true
+      },
+      "expected": "#5",
+      "actual": "#5",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-correct-miss",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": true
+      },
+      "expected": "#6",
+      "actual": "#6",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-correct-format",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U3",
+      "actual": "U3",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-correct-instrument",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U4",
+      "actual": "U4",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-wrong-pass",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": true
+      },
+      "expected": "#7",
+      "actual": "#7",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-wrong-miss",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": true
+      },
+      "expected": "#8",
+      "actual": "#8",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-wrong-format",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U3",
+      "actual": "U3",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-wrong-instrument",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U4",
+      "actual": "U4",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-unknown-pass",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U2",
+      "actual": "U2",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-unknown-miss",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U2",
+      "actual": "U2",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-unknown-format",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U2",
+      "actual": "U2",
+      "conforms": true
+    },
+    {
+      "id": "table-true-not_listed-unknown-instrument",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U2",
+      "actual": "U2",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-correct-pass",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-correct-miss",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-correct-format",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-correct-instrument",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-wrong-pass",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-wrong-miss",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-wrong-format",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-wrong-instrument",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-unknown-pass",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-unknown-miss",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-unknown-format",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-true-unknown-unknown-instrument",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-correct-pass",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-correct-miss",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-correct-format",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-correct-instrument",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-wrong-pass",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-wrong-miss",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-wrong-format",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-wrong-instrument",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-unknown-pass",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-unknown-miss",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-unknown-format",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-listed-unknown-instrument",
+      "input": {
+        "a": {
+          "state": "listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-correct-pass",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-correct-miss",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-correct-format",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-correct-instrument",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-wrong-pass",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-wrong-miss",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-wrong-format",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-wrong-instrument",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-unknown-pass",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-unknown-miss",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-unknown-format",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-not_listed-unknown-instrument",
+      "input": {
+        "a": {
+          "state": "not_listed"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-correct-pass",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-correct-miss",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-correct-format",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-correct-instrument",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "correct"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-wrong-pass",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-wrong-miss",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-wrong-format",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-wrong-instrument",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "wrong"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-unknown-pass",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "pass"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-unknown-miss",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "miss"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-unknown-format",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "format"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "table-false-unknown-unknown-instrument",
+      "input": {
+        "a": {
+          "state": "unknown"
+        },
+        "b": {
+          "state": "unknown"
+        },
+        "c": {
+          "state": "instrument"
+        },
+        "gtConsistent": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "bundle-isolation",
+      "input": [
+        {
+          "outcome_id": null,
+          "evidence_ref": "run1#sha256:x",
+          "observed": {
+            "method": "sealed_repo_vs_official_docs",
+            "pass": true,
+            "instrument_error": null,
+            "checks": []
+          }
+        },
+        {
+          "outcome_id": null,
+          "evidence_ref": "run1#sha256:x",
+          "observed": {
+            "method": "sealed_repo_vs_kansei_catalog",
+            "pass": true,
+            "instrument_error": null,
+            "checks": []
+          }
+        },
+        {
+          "outcome_id": null,
+          "evidence_ref": "run2#sha256:x",
+          "observed": {
+            "method": "sealed_repo_vs_official_docs",
+            "pass": false,
+            "instrument_error": null,
+            "checks": []
+          }
+        },
+        {
+          "outcome_id": null,
+          "evidence_ref": "run2#sha256:x",
+          "observed": {
+            "method": "sealed_repo_vs_kansei_catalog",
+            "pass": false,
+            "instrument_error": null,
+            "checks": []
+          }
+        },
+        {
+          "outcome_id": 1,
+          "evidence_ref": "run1#sha256:x",
+          "observed": {
+            "method": "llm_answer_rules_vs_sealed_expectation",
+            "ground_truth_consistent": true,
+            "checks": [
+              {
+                "label": "repo_value_equals_sealed_repo",
+                "ok": true
+              }
+            ]
+          }
+        },
+        {
+          "outcome_id": 1,
+          "evidence_ref": "run2#sha256:x",
+          "observed": {
+            "method": "llm_answer_rules_vs_sealed_expectation",
+            "ground_truth_consistent": true,
+            "checks": [
+              {
+                "label": "repo_value_equals_sealed_repo",
+                "ok": true
+              }
+            ]
+          }
+        },
+        {
+          "outcome_id": 1,
+          "evidence_ref": "run3#sha256:x",
+          "observed": {
+            "method": "llm_answer_rules_vs_sealed_expectation",
+            "ground_truth_consistent": true,
+            "checks": [
+              {
+                "label": "repo_value_equals_sealed_repo",
+                "ok": true
+              }
+            ]
+          }
+        }
+      ],
+      "expected": [
+        "#1",
+        "#7",
+        "U1"
+      ],
+      "actual": [
+        "#1",
+        "#7",
+        "U1"
+      ],
+      "conforms": true
+    }
+  ]
+}

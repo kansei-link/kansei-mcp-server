@@ -135,7 +135,8 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
   // ---- bundle ----
   writeFileSync(join(bundleDir, 'environment.private.json'), JSON.stringify(privateEnvironment, null, 1));
   const libs = {};
-  for (const f of ['marker-sealed.mjs', 'marker-generic.mjs', 'marker-targets.mjs', 'marker-persist.mjs', 'llm-ask.mjs', 'llm-answer-rules.mjs', 'reading.mjs', 'marker-bundle.mjs', 'marker-store.mjs']) libs[`lib/${f}`] = fileSha(join(libDir, f));
+  for (const f of ['marker-sealed.mjs', 'marker-generic.mjs', 'marker-targets.mjs', 'marker-persist.mjs', 'llm-ask.mjs', 'llm-answer-rules.mjs', 'attribution-rules.mjs', 'reading.mjs', 'marker-bundle.mjs', 'marker-store.mjs']) libs[`lib/${f}`] = fileSha(join(libDir, f));
+  libs['vendor/entities-8.1.0/decode.js'] = fileSha(join(libDir, '..', 'vendor', 'entities-8.1.0', 'decode.js'));
   const manifest = {
     bundle: `marker-${MK.marker_id}`, generated_at_utc: new Date().toISOString(), generated_at_local: isoWithOffset(new Date()),
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },

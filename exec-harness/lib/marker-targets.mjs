@@ -17,7 +17,7 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { askLlm } from './llm-ask.mjs';
 import { AUTH_RULE, ANSWER_FORMAT, judgeLlmAnswer } from './llm-answer-rules.mjs';
-import { sourceListsRepo } from './attribution-rules.mjs';
+import { classifySource } from './attribution-rules.mjs';
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const DEAD = new Set(['gone', 'dns_fail', 'connection_refused']);
@@ -256,14 +256,15 @@ const llmAnswer = {
     if (MK.verify_repo_via_github === false) { harnessLog({ event: 'ground_truth', consistent: true }); return { consistent: true, skipped: true, checks: [{ label: 'repo_check_skipped_by_pack', ok: true }] }; }
     const base = String(MK.github_api_base || 'https://api.github.com').replace(/\/+$/, '');
     let http = null, exists = false, sameName = false, notArchived = false, notRedirected = false;
+    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), Number(MK.github_timeout_ms) || 15000);
     try {
-      const r = await fetch(`${base}/repos/${sealed.owner}/${sealed.name}`, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'kansei-marker-harness/0.4' } });
+      const r = await fetch(`${base}/repos/${sealed.owner}/${sealed.name}`, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'kansei-marker-harness/0.4' }, signal: ctl.signal });
       http = r.status; const d = await r.json().catch(() => ({}));
       exists = r.ok && d.private === false;
       sameName = exists && typeof d.full_name === 'string' && d.full_name.toLowerCase() === `${sealed.owner}/${sealed.name}`.toLowerCase();
       notArchived = exists && d.archived === false;
       notRedirected = exists && r.redirected === false;
-    } catch { /* network: all checks stay false */ }
+    } catch { /* network or timeout: all checks stay false → inconsistent (U0) */ } finally { clearTimeout(timer); }
     const consistent = exists && sameName && notArchived;
     harnessLog({ event: 'ground_truth', consistent }); // which check failed (rename, archive) is in the ground-truth row's checks
     return { consistent, http, checks: [
@@ -276,14 +277,16 @@ const llmAnswer = {
   /**
    * Attribution columns A and B (ATTRIBUTION-Rules v0.1 §1, §2-1). Ground-truth side rows, written
    * once per run; they read only (public pages, the public catalog) and never touch the subject.
-   * Source match (sourceListsRepo, lib/attribution-rules.mjs): a false A or B blames the company or
-   * KanseiLINK, so host/owner/repo must match exactly but a deeper path, query, fragment or ".git"
-   * below the repository is allowed; A pages are HTML-decoded (&amp;, &#x2F; …) before the URL tokens
-   * are taken. Values stay in memory; rows carry booleans and field NAMES only.
-   *   A (sealed_repo_vs_official_docs): pass = A1 or A2 lists the key. A page that cannot be fetched
-   *     makes the row an instrument error only when no fetched page lists the key.
-   *   B (sealed_repo_vs_kansei_catalog): pass = some field of the catalog item yields the key
-   *     (M-002's catalog reader, read only). Not in the catalog = false. Unobservable = instrument.
+   * THREE values per source (classifySource, lib/attribution-rules.mjs; Codex review of 185d63d):
+   * listed / not listed / unknown. "Not listed" blames the company or KanseiLINK, so it needs a
+   * complete observation in which neither the owner nor the repo name appears at all; anything in
+   * between is unknown (U1 / U2), never a judgement. Values stay in memory; rows carry booleans and
+   * field NAMES only. Row encoding: pass = listed; instrument_error 'other' = unknown; else not listed.
+   *   A (sealed_repo_vs_official_docs): listed if A1 or A2 is listed; not listed only if every page
+   *     is not listed (HTTP 200, whole body read, names absent); otherwise unknown.
+   *   B (sealed_repo_vs_kansei_catalog): listed if some field of the catalog item resolves to the key
+   *     (M-002's catalog reader, read only); a field that names the owner/repo without resolving, or
+   *     an unobservable item, makes B unknown; no item or no name anywhere = not listed.
    */
   async attribution({ MK, sealed, harnessLog }) {
     const cfg = MK.attribution;
@@ -292,18 +295,24 @@ const llmAnswer = {
 
     // A: official documentation pages fixed in the taskpack
     const pages = Array.isArray(cfg.official_docs) ? cfg.official_docs : [];
-    const aChecks = []; let aListed = false, aFailed = pages.length === 0;
+    // Three values per page (lib/attribution-rules.mjs classifySource). "fetched" = HTTP 200 AND the
+    // whole body read before the timeout; anything short of that is unknown, never "not listed".
+    const aChecks = []; const states = [];
     for (const p of pages) {
-      let fetched = false, listed = false;
+      let fetched = false, state = 'unknown';
       const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000);
       try {
         const r = await fetch(p.url, { headers: { 'user-agent': 'kansei-marker-harness/0.4' }, signal: c.signal });
-        if (r.ok) { fetched = true; listed = sourceListsRepo(await r.text(), sealed.repo, { html: true }); }
-      } catch { /* network */ } finally { clearTimeout(t); }
-      aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_page_lists_sealed_repo`, ok: listed });
-      if (listed) aListed = true; if (!fetched) aFailed = true;
+        if (r.status === 200) { const body = await r.text(); fetched = true; state = classifySource(body, sealed, { html: true }).state; }
+        else await r.body?.cancel().catch(() => {});
+      } catch { fetched = false; state = 'unknown'; } finally { clearTimeout(t); }
+      states.push(state);
+      aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_page_lists_sealed_repo`, ok: state === 'listed' }, { label: `${p.id}_page_names_absent`, ok: state === 'not_listed' });
     }
-    const aInstrument = !aListed && aFailed ? 'other' : null;
+    // A = listed if any page is listed; not listed only if every page is (and there is a page); else unknown
+    const aListed = states.includes('listed');
+    const aNotListed = !aListed && states.length > 0 && states.every((x) => x === 'not_listed');
+    const aInstrument = aListed || aNotListed ? null : 'other';
     aChecks.push({ label: 'official_docs_list_sealed_repo', ok: aListed });
     rows.push({ method: 'sealed_repo_vs_official_docs', claim: 'the official documentation pages fixed in the taskpack list the sealed MCP repository', pass: aListed, instrument_error: aInstrument, checks: aChecks });
     harnessLog({ event: 'attribution', column: 'A', listed: aListed, instrument: aInstrument });
@@ -316,16 +325,21 @@ const llmAnswer = {
     else if (!d.found) bChecks.push({ label: 'catalog_item_present', ok: false });
     else {
       bChecks.push({ label: 'catalog_item_present', ok: true });
-      const fields = [];
+      const fields = [], unresolved = [];
       const walk = (v, path) => {
-        if (typeof v === 'string') { if (sourceListsRepo(v, sealed.repo)) fields.push(path || '(root)'); }
+        if (typeof v === 'string') { const st = classifySource(v, sealed).state; if (st === 'listed') fields.push(path || '(root)'); else if (st === 'unknown') unresolved.push(path || '(root)'); }
         else if (Array.isArray(v)) v.forEach((x) => walk(x, `${path}[]`));
         else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k);
       };
       walk(d.payload, '');
       bListed = fields.length > 0;
+      // a field names the owner or repo but does not resolve as a link → B is unknown, never "wrong"
+      if (!bListed && unresolved.length) bInstrument = 'other';
       // field NAMES only (never values); anything that is not a plain field path is recorded without its name
-      for (const f of [...new Set(fields)]) bChecks.push({ label: `catalog_field_lists_sealed_repo:${/^[A-Za-z0-9_.[\]()]{1,80}$/.test(f) ? f : '(unnamed)'}`, ok: true });
+      const name = (f) => (/^[A-Za-z0-9_.[\]()]{1,80}$/.test(f) ? f : '(unnamed)');
+      for (const f of [...new Set(fields)]) bChecks.push({ label: `catalog_field_lists_sealed_repo:${name(f)}`, ok: true });
+      for (const f of [...new Set(unresolved)]) bChecks.push({ label: `catalog_field_names_sealed_repo_unresolved:${name(f)}`, ok: false });
+      bChecks.push({ label: 'catalog_item_names_absent', ok: !bListed && !unresolved.length });
     }
     bChecks.push({ label: 'kansei_catalog_lists_sealed_repo', ok: bListed });
     rows.push({ method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository in some field', pass: bListed, instrument_error: bInstrument, checks: bChecks });

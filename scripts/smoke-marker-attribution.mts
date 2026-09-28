@@ -17,14 +17,15 @@ import { createServer } from "node:http";
 import { readFileSync, writeFileSync, mkdtempSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
-import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs } from "../exec-harness/lib/attribution-rules.mjs";
+import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs, classifySource } from "../exec-harness/lib/attribution-rules.mjs";
 import { renderSheet } from "../exec-harness/render-reading-sheet.mjs";
 import { validateReading, loadReadingSchema } from "../exec-harness/lib/reading.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const FIX = join(ROOT, "exec-harness", "fixtures");
 let failures = 0;
-const expect = (label: string, ok: boolean, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}${ok || !detail ? "" : `  (${detail})`}`); if (!ok) failures++; };
+const passed: string[] = [];
+const expect = (label: string, ok: boolean, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}${ok || !detail ? "" : `  (${detail})`}`); if (!ok) failures++; else passed.push(label); };
 const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: number | null; out: string }> => new Promise((res) => { const p = spawn(cmd, args, opts); let out = ""; p.stdout.on("data", (d) => (out += d)); p.stderr.on("data", (d) => (out += d)); p.on("close", (code) => res({ status: code, out })); });
 
 // ── Part A: truth table and precedence ───────────────────────────────────
@@ -55,7 +56,13 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
   const aObs = (a1: [boolean, boolean], a2: [boolean, boolean], pass: boolean, inst: string | null = null) => ({ method: ATTR_METHODS.A, pass, instrument_error: inst, checks: [{ label: "A1_page_fetched", ok: a1[0] }, { label: "A1_page_lists_sealed_repo", ok: a1[1] }, { label: "A2_page_fetched", ok: a2[0] }, { label: "A2_page_lists_sealed_repo", ok: a2[1] }] });
   expect("A cell: A2 only", columnA(aObs([true, false], [true, true], true)).text === "載っている（A1 なし・A2 あり）");
   expect("A cell: neither", columnA(aObs([true, false], [true, false], false)).state === "not_listed");
-  expect("A cell: fetch failure without a listing = unknown", columnA(aObs([false, false], [true, false], false, "other")).state === "unknown" && columnA(aObs([false, false], [true, false], false, "other")).text === "取得失敗（A1 取得失敗・A2 なし）");
+  expect("A cell: fetch failure without a listing = unknown", columnA(aObs([false, false], [true, false], false, "other")).state === "unknown" && columnA(aObs([false, false], [true, false], false, "other")).text === "判定不能（A1 取得失敗・A2 なし）", columnA(aObs([false, false], [true, false], false, "other")).text);
+  {
+    const withNames = { method: ATTR_METHODS.A, pass: false, instrument_error: "other", checks: [{ label: "A1_page_fetched", ok: true }, { label: "A1_page_lists_sealed_repo", ok: false }, { label: "A1_page_names_absent", ok: false }, { label: "A2_page_fetched", ok: true }, { label: "A2_page_lists_sealed_repo", ok: false }, { label: "A2_page_names_absent", ok: true }] };
+    expect("A cell: a page naming the repo without resolving = 判定不能", columnA(withNames).state === "unknown" && columnA(withNames).text === "判定不能（A1 判定不能・A2 なし）", columnA(withNames).text);
+    const bUnres = { method: ATTR_METHODS.B, pass: false, instrument_error: "other", checks: [{ label: "catalog_item_observed", ok: true }, { label: "catalog_item_present", ok: true }, { label: "catalog_field_names_sealed_repo_unresolved:connection_guide.repository", ok: false }] };
+    expect("B cell: a field naming the repo without resolving = 判定不能 with the field name", columnB(bUnres).state === "unknown" && columnB(bUnres).text === "判定不能（名前はあるがリンクとして解けない欄: connection_guide.repository）", columnB(bUnres).text);
+  }
   expect("A cell: missing row = unknown", columnA(undefined).state === "unknown");
   const bObs = (pass: boolean, extra: any[] = [], inst: string | null = null) => ({ method: ATTR_METHODS.B, pass, instrument_error: inst, checks: [{ label: "catalog_item_observed", ok: !inst }, ...extra] });
   expect("B cell: listed in a field", columnB(bObs(true, [{ label: "catalog_item_present", ok: true }, { label: "catalog_field_lists_sealed_repo:connection_guide.repository", ok: true }])).text === "正しい（欄: connection_guide.repository）");
@@ -68,7 +75,7 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
   expect("C cell: other URL", columnC(cObs([["answer_region_in_form", true], ["repo_value_equals_sealed_repo", false], ["repo_value_is_not_none", true]])).text === "外した（別 URL）");
   expect("C cell: format", columnC(cObs([["answer_region_in_form", false]])).state === "format");
   expect("C cell: instrument", columnC(cObs([], "provider_api")).state === "instrument");
-  expect("gtLabel A/B/classic", gtLabel({ method: ATTR_METHODS.A, pass: true }) === "A 公式情報: 載っている" && gtLabel({ method: ATTR_METHODS.B, pass: false, instrument_error: "other" }) === "B KanseiLINK: 計器エラー" && gtLabel({ method: "sealed_repo_vs_github_api", pass: false }) === "不一致");
+  expect("gtLabel A/B/classic", gtLabel({ method: ATTR_METHODS.A, pass: true }) === "A 公式情報: 載っている" && gtLabel({ method: ATTR_METHODS.B, pass: false, instrument_error: "other" }) === "B KanseiLINK: 判定不能" && gtLabel({ method: ATTR_METHODS.A, pass: false, instrument_error: "other" }) === "A 公式情報: 判定不能" && gtLabel({ method: "sealed_repo_vs_github_api", pass: false }) === "不一致");
 }
 
 // ── Part A2: the source matcher (yardstick: blaming the other side must be right) ──
@@ -83,7 +90,7 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
   for (const u of neg) expect(`A2 (−) source key does not match: ${u}`, sourceRepoKey(u) !== K, String(sourceRepoKey(u)));
   expect("A2 decode &amp; &#x2F; &#47; &quot;", decodeHtmlCharRefs("a&amp;b&#x2F;c&#47;d&quot;e") === 'a&b/c/d"e');
   expect("A2 decode once (no double decoding)", decodeHtmlCharRefs("&amp;amp;") === "&amp;");
-  expect("A2 unknown names and bad code points left as they are", decodeHtmlCharRefs("&bogus; &#0; &#xD800;") === "&bogus; &#0; &#xD800;");
+  expect("A2 decoder is the WHATWG one: unknown names stay, bad code points become U+FFFD, &hyphen; is U+2010", decodeHtmlCharRefs("&bogus; &#0; &#xD800;") === "&bogus; � �" && decodeHtmlCharRefs("&hyphen;&dash;") === "‐‐");
   expect("A2 page with &amp; in the href lists the repo", sourceListsRepo(`<a href="${U0}?a=1&amp;b=2">x</a>`, K, { html: true }));
   expect("A2 page with &#x2F; in the href lists the repo only after decoding", sourceListsRepo(`<a href="https:&#x2F;&#x2F;github.com&#x2F;fake-vendor&#x2F;fake-official-mcp-server">x</a>`, K, { html: true }) && !sourceListsRepo(`<a href="https:&#x2F;&#x2F;github.com&#x2F;fake-vendor&#x2F;fake-official-mcp-server">x</a>`, K));
   expect("A2 a URL inside another URL's query is not the page pointing at the repo", !sourceListsRepo(`<a href="https://evil.example/r?to=${U0}">x</a>`, K, { html: true }));
@@ -114,11 +121,20 @@ const page = (m: string) => m === "listed" ? `<html><body><a href="${REPO}">公�
   : m === "listed_port_443" ? `<html><body><a href="https://github.com:443/fake-vendor/fake-official-mcp-server">公式 MCP</a></body></html>`
   : m === "other_port" ? `<html><body><a href="https://github.com:8443/fake-vendor/fake-official-mcp-server">x</a></body></html>`
   : m === "url_in_url_bare" ? `<html><body>evil.example/?to=github.com/fake-vendor/fake-official-mcp-server and evil.example/?to=//github.com/fake-vendor/fake-official-mcp-server</body></html>`
-  : m === "gist_host" ? `<html><body><a href="https://gist.github.com/fake-vendor/fake-official-mcp-server">x</a></body></html>` : "<html><body>AI 活用</body></html>";
+  : m === "gist_host" ? `<html><body><a href="https://gist.github.com/fake-vendor/fake-official-mcp-server">x</a></body></html>`
+  : m === "dot_tail" ? `<html><body><a href="${REPO}/..">x</a></body></html>`
+  : m === "entity_hyphen" ? `<html><body><a href="https://github.com/fake&hyphen;vendor/fake-official-mcp-server">x</a></body></html>` : "<html><body>AI 活用</body></html>";
 const server = createServer((req, res) => {
   let body = ""; req.on("data", (d) => (body += d)); req.on("end", () => {
     const u = req.url || "";
-    if (u === "/a1" || u === "/a2") { const m = mode[u.slice(1)]; if (m === "500") { res.writeHead(500); return res.end(); } res.writeHead(200, { "content-type": "text/html" }); return res.end(page(m)); }
+    if (u === "/a1" || u === "/a2") {
+      const m = mode[u.slice(1)];
+      if (m === "500") { res.writeHead(500); return res.end(); }
+      if (m === "404") { res.writeHead(404); return res.end(); }
+      // Codex R1: HTTP 200 and the start of a body, then the connection is cut before Content-Length is reached
+      if (m === "body_reset") { res.writeHead(200, { "content-type": "text/html", "content-length": "5000" }); res.write("<html><body>AI 活用"); return setTimeout(() => res.destroy(), 50); }
+      res.writeHead(200, { "content-type": "text/html" }); return res.end(page(m));
+    }
     if (u === "/mcp") {
       const rpc = JSON.parse(body || "{}"); const id = rpc.params?.arguments?.service_id;
       res.writeHead(200, { "content-type": "text/event-stream" });
@@ -130,10 +146,12 @@ const server = createServer((req, res) => {
       if (mode.catalog === "repo_bare") item.connection_guide.repository = REPO.replace("https://", "");
       if (mode.catalog === "repo_tree") item.connection_guide.setup_url = `${REPO}/tree/main#install`;
       if (mode.catalog === "repo_other_owner") item.connection_guide.setup_url = "https://github.com/other-vendor/fake-official-mcp-server";
+      if (mode.catalog === "bracket_relative") item.connection_guide.repository = "[//github.com/fake-vendor/fake-official-mcp-server]";
       return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(item) }] } });
     }
     if (u === "/gh/repos/fake-vendor/fake-official-mcp-server") {
       if (mode.gh === "404") { res.writeHead(404, { "content-type": "application/json" }); return res.end("{}"); }
+      if (mode.gh === "hang") return; // never answers: the harness's GitHub timeout must end it (→ U0)
       const d: any = { full_name: "fake-vendor/fake-official-mcp-server", private: false, archived: false };
       if (mode.gh === "renamed") d.full_name = "fake-vendor/fake-mcp-server-v2";
       if (mode.gh === "archived") d.archived = true;
@@ -160,6 +178,10 @@ async function run(extra: string[] = []) {
   return { ...r, bundle, metrics, A: by(ATTR_METHODS.A)[0], B: by(ATTR_METHODS.B)[0], agent: by("llm_answer_rules_vs_sealed_expectation")[0], gt: by("sealed_repo_vs_github_api")[0] };
 }
 const ok = (o: any, label: string) => (o?.checks || []).find((c: any) => c.label === label)?.ok;
+// row encoding of the three values: pass = listed; instrument_error = unknown; otherwise not listed
+const stateOf = (o: any) => (!o ? "missing" : o.pass ? "listed" : o.instrument_error ? "unknown" : "not_listed");
+// the judgement (規則 v0.1) of one loopback run, as the sheet would print it
+const judgeOf = (r: any) => attributionLines([r.A, r.B, r.agent, r.gt].filter(Boolean).map((x: any) => ({ ...x, outcome_id: x.observed.method === "llm_answer_rules_vs_sealed_expectation" ? 1 : null })))[0]?.judgement.code;
 let day1: any = null, renamedRun: any = null;
 try {
   // (1) the real day-one shape: A1 without, A2 with, catalog item without the repo, repo unchanged
@@ -181,6 +203,13 @@ try {
     mode.catalog = "repo_in_guide";
     const r = await run();
     expect("B2 B row pass, field name recorded", r.B?.observed.pass === true && ok(r.B?.observed, "catalog_field_lists_sealed_repo:connection_guide.repository") === true, JSON.stringify(r.B?.observed.checks));
+    {
+      const { readCatalogDisplay } = await import("../exec-harness/lib/marker-targets.mjs");
+      const d0 = await readCatalogDisplay("http://127.0.0.1:47336/mcp", "fake-subject");
+      const d1 = await readCatalogDisplay("http://127.0.0.1:47336/mcp", "fake-subject", 20000, { keepPayload: true });
+      const { payload, ...rest } = d1 as any;
+      expect("B2 keepPayload: default off returns no payload (M-002 unchanged), on returns it, other fields identical", !("payload" in d0) && typeof payload === "object" && JSON.stringify(rest) === JSON.stringify(d0));
+    }
     mode.catalog = "repo_bare";
     const r2 = await run();
     expect("B2 (+) scheme-less github.com/owner/repo in the catalog → B true", r2.B?.observed.pass === true, JSON.stringify(r2.B?.observed.checks));
@@ -189,7 +218,10 @@ try {
     expect("B2 (+) catalog field with /tree/main#install below the repo → B true, field name recorded", rtree.B?.observed.pass === true && ok(rtree.B?.observed, "catalog_field_lists_sealed_repo:connection_guide.setup_url") === true, JSON.stringify(rtree.B?.observed.checks));
     mode.catalog = "repo_other_owner";
     const rown = await run();
-    expect("B2 (−) catalog field naming another owner → B false", rown.B?.observed.pass === false);
+    expect("B2 (−) catalog field naming the repo under another owner → B unknown (name present, does not resolve), field name recorded", stateOf(rown.B?.observed) === "unknown" && ok(rown.B?.observed, "catalog_field_names_sealed_repo_unresolved:connection_guide.setup_url") === false, JSON.stringify(rown.B?.observed.checks));
+    mode.catalog = "bracket_relative";
+    const rbr = await run();
+    expect("B2 (+) Codex R4: catalog field [//github.com/owner/repo] → B listed, judgement #1", stateOf(rbr.B?.observed) === "listed" && judgeOf(rbr) === "#1", `${judgeOf(rbr)} ${JSON.stringify(rbr.B?.observed.checks)}`);
     mode.catalog = "absent";
     const r3 = await run();
     expect("B2 catalog has no item → B false (not instrument), catalog_item_present false", r3.B?.observed.pass === false && r3.B?.observed.instrument_error === null && ok(r3.B?.observed, "catalog_item_present") === false);
@@ -202,7 +234,21 @@ try {
   {
     mode.a2 = "none";
     const r = await run();
-    expect("B3 neither page lists → A false (not instrument)", r.A?.observed.pass === false && r.A?.observed.instrument_error === null && validateReading(r.A, schema).length === 0);
+    expect("B3 neither page names the owner or repo → A not listed (not instrument)", stateOf(r.A?.observed) === "not_listed" && validateReading(r.A, schema).length === 0);
+    // Codex review of 185d63d, the fatal cases, three-valued
+    mode.a1 = "body_reset";
+    const rbody = await run();
+    expect("B3 Codex R1: A1 HTTP 200 but the body is cut off → A1 not fetched, A unknown, judgement U1", stateOf(rbody.A?.observed) === "unknown" && ok(rbody.A?.observed, "A1_page_fetched") === false && rbody.status === 0 && judgeOf(rbody) === "U1", `${judgeOf(rbody)} ${JSON.stringify(rbody.A?.observed.checks)}`);
+    mode.a1 = "404";
+    const r404 = await run();
+    expect("B3 A1 HTTP 404 → A1 not fetched, A unknown", stateOf(r404.A?.observed) === "unknown" && ok(r404.A?.observed, "A1_page_fetched") === false);
+    mode.a1 = "dot_tail";
+    const rdot = await run();
+    expect("B3 Codex R2: a link ending in /.. is not resolvable and names the repo → A unknown, judgement U1", stateOf(rdot.A?.observed) === "unknown" && judgeOf(rdot) === "U1", `${judgeOf(rdot)} ${JSON.stringify(rdot.A?.observed.checks)}`);
+    mode.a1 = "entity_hyphen";
+    const rhy = await run();
+    expect("B3 Codex R3: fake&hyphen;vendor decodes to U+2010 (another owner) and the repo name is present → A unknown, judgement U1", stateOf(rhy.A?.observed) === "unknown" && judgeOf(rhy) === "U1", `${judgeOf(rhy)} ${JSON.stringify(rhy.A?.observed.checks)}`);
+    mode.a1 = "none";
     mode.a2 = "listed_fragment";
     const rf = await run();
     expect("B3 (+) a page linking with #readme lists the repo → A true", rf.A?.observed.pass === true, JSON.stringify(rf.A?.observed.checks));
@@ -212,7 +258,9 @@ try {
     for (const [m, want, why] of [["listed_blob", true, "(+) /blob/…#setup below the repo"], ["listed_amp", true, "(+) query written with &amp;"], ["listed_entities", true, "(+) href written with &#x2F;"], ["other_owner", false, "(−) same repo name under another owner"], ["similar_host", false, "(−) evilgithub.com / github.com.evil.example"], ["dot_segments", false, "(−) /../ or %2e%2e below the repo leads elsewhere"], ["repo_prefix", false, "(−) repo name with a suffix (-v2)"], ["listed_http_www", true, "(+) http://www.github.com"], ["listed_bare_text", true, "(+) scheme-less github.com/owner/repo in the text"], ["listed_protocol_relative", true, "(+) protocol-relative //github.com in the href"], ["listed_port_443", true, "(+) :443"], ["other_port", false, "(−) :8443"], ["url_in_url_bare", false, "(−) URL inside another URL (scheme-less)"], ["gist_host", false, "(−) gist.github.com is another host"]] as const) {
       mode.a2 = m;
       const rx = await run();
-      expect(`B3 ${why} → A ${want}`, rx.A?.observed.pass === want && rx.A?.observed.instrument_error === null, JSON.stringify(rx.A?.observed.checks));
+      // three values: a negative whose page still NAMES the owner or repo is unknown (U1), never "not listed"
+      const wantState = want ? "listed" : "unknown";
+      expect(`B3 ${why} → A ${wantState}`, stateOf(rx.A?.observed) === wantState, JSON.stringify(rx.A?.observed.checks));
     }
     mode.a2 = "other_repo";
     const ro = await run();
@@ -237,6 +285,10 @@ try {
     mode.gh = "404";
     const rn = await run();
     expect("B4 gone (404) → inconsistent", rn.agent?.observed.ground_truth_consistent === false && ok(rn.gt?.observed, "sealed_repo_exists_public_on_github") === false);
+    mode.gh = "hang";
+    const t0h = Date.now();
+    const rh = await run();
+    expect("B4 GitHub API never answers → timeout ends it, inconsistent (U0), run completes", rh.status === 0 && rh.agent?.observed.ground_truth_consistent === false && Date.now() - t0h < 60000, `${rh.status} ${Date.now() - t0h}ms`);
     mode.gh = "case";
     const rc = await run();
     expect("B4 full_name differing only in ASCII case is the same repo → consistent", rc.agent?.observed.ground_truth_consistent === true && !rc.gt);
@@ -266,6 +318,21 @@ try {
   expect("C2 no repository value in the sheet", !/fake-official-mcp-server/.test(md));
   const plain = renderSheet(rows.filter((r: any) => r.outcome_id != null || r.observed.method === "sealed_repo_vs_github_api") as any, { markerId: "M-994" });
   expect("C3 no attribution rows → no attribution section", !plain.includes("三列と判断"));
+}
+
+// ── Part D: Codex's 110 independent cases (fixtures/attribution-cases.json) ──
+{
+  const fx = JSON.parse(readFileSync(join(FIX, "attribution-cases.json"), "utf-8"));
+  const S = fx.sealed_fixture;
+  expect("D0 110 cases, each with an expectation", fx.cases.length === 110 && fx.cases.every((c: any) => c.expect_state || c.expect_key === null || c.expect_text || c.expect_code || c.expect_codes || c.expect !== undefined));
+  for (const c of fx.cases) {
+    if (c.kind === "source_text") { const got = classifySource(c.input.text, S, { html: c.input.html }).state; expect(`D ${c.id} → ${c.expect_state}`, got === c.expect_state, got); }
+    else if (c.kind === "source_key") expect(`D ${c.id} → no key`, sourceRepoKey(c.input.url) === c.expect_key);
+    else if (c.kind === "decoder") expect(`D ${c.id} → WHATWG decoding`, decodeHtmlCharRefs(c.input.text) === c.expect_text);
+    else if (c.kind === "truth_table") { const j = judgeAttribution(c.input); expect(`D ${c.id} → ${c.expect_code}`, j.code === c.expect_code, j.code); }
+    else if (c.kind === "bundle_join") { const got = attributionLines(c.input).map((l: any) => l.judgement.code); expect(`D ${c.id} → ${c.expect_codes.join(",")}`, JSON.stringify(got) === JSON.stringify(c.expect_codes), JSON.stringify(got)); }
+    else if (c.kind === "loopback_equivalent") { const named = c.smoke_case.startsWith("("); expect(`D ${c.id} replayed by "${c.smoke_case}"`, named || passed.some((l) => l.startsWith(c.smoke_case))); }
+  }
 }
 
 console.log(failures === 0 ? "\nmarker attribution smoke: ALL PASS" : `\nmarker attribution smoke: ${failures} FAILED`);
