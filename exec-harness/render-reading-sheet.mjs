@@ -18,6 +18,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
+import { attributionLines, gtLabel, RULES_LABEL } from './lib/attribution-rules.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');
@@ -79,7 +80,27 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
     lines.push('');
     lines.push('| 日付 | 整合 | 証拠の指紋 |');
     lines.push('|---|---|---|');
-    for (const r of gt) lines.push(`| ${r.observed_at.slice(0, 10)} | ${r.observed.pass ? '一致' : '不一致'} | ${digestOf(r)} |`);
+    for (const r of gt) lines.push(`| ${r.observed_at.slice(0, 10)} | ${gtLabel(r.observed)} | ${digestOf(r)} |`);
+  }
+  // Attribution (ATTRIBUTION-Rules v0.1): only for markers whose runs carry the A/B rows (M-004).
+  const attr = attributionLines(rows);
+  if (attr.length) {
+    lines.push('');
+    lines.push(`## 三列と判断（${RULES_LABEL}・臓器1 発見）`);
+    lines.push('');
+    lines.push(`A・B は正解側の行（ハーネスが公開ページと KanseiLINK のカタログを読むだけ）、C は AI の読みの REPO 行。「判断（${RULES_LABEL}）」は founder-ops/ATTRIBUTION-Rules-v0_2026-09-28.md §2 の真理表による解釈で、台帳の事実ではない。正解側がずれた日（改名・移動・アーカイブ）は判断を載せず、AI の読みを外したと数えない。`);
+    lines.push('');
+    lines.push(`| 日付 | 観測者 | A 公式情報 | B KanseiLINK | C AI（REPO 行） | 判断（${RULES_LABEL}） |`);
+    lines.push('|---|---|---|---|---|---|');
+    for (const l of attr) lines.push(`| ${l.row.observed_at.slice(0, 10)} | ${observerOf(l.row)} | ${l.a.text} | ${l.b.text} | ${l.c.text} | ${l.judgement.text} |`);
+    const tally = new Map();
+    for (const l of attr) { const k = `${observerOf(l.row)}\u0000${l.judgement.text}`; tally.set(k, (tally.get(k) || 0) + 1); }
+    lines.push('');
+    lines.push(`### 観測者ごとの集計（期間通し・判断（${RULES_LABEL}））`);
+    lines.push('');
+    lines.push(`| 観測者 | 判断（${RULES_LABEL}） | 読みの数 |`);
+    lines.push('|---|---|---|');
+    for (const [k, n] of [...tally.entries()].sort()) { const [o, j] = k.split('\u0000'); lines.push(`| ${o} | ${j} | ${n} |`); }
   }
   lines.push('');
   lines.push('## 三つの数字');

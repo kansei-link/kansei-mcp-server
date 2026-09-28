@@ -45,6 +45,18 @@ for (const { rel, pack } of packs) {
   expect(`${tag}: max_readings is a positive integer`, Number.isInteger(MK.max_readings) && MK.max_readings > 0, String(MK.max_readings));
   expect(`${tag}: service_id present`, typeof pack.service_id === "string" && pack.service_id.length > 0);
   if (kind === "llm_answer") expect(`${tag}: note declares the seal is the repo URL only and auth is a rule constant`, /ONLY THE OFFICIAL MCP REPOSITORY URL/.test(MK.note || "") && /AUTH_RULE/.test(MK.note || ""));
+  // ATTRIBUTION-Rules v0.1 §2-1: A1/A2 fixed in the taskpack (public), B = the production catalog item, read only
+  if (MK.marker_id === "M-004") {
+    const at = MK.attribution || {};
+    expect(`${tag}: attribution A1/A2 fixed exactly`, JSON.stringify((at.official_docs || []).map((p: any) => [p.id, p.url])) === JSON.stringify([["A1", "https://www.atled.jp/agileworks/functions/ai-use/"], ["A2", "https://www.atled.jp/news/20260727_01/"]]), JSON.stringify(at.official_docs));
+    expect(`${tag}: attribution B reads the production catalog item agile-works`, at.catalog?.service_id === "agile-works" && at.catalog?.display_api_url === "https://kansei-link-mcp-production.up.railway.app/mcp");
+    expect(`${tag}: rename detection on (verify_repo_via_github not false, default GitHub API)`, MK.verify_repo_via_github !== false && !MK.github_api_base);
+    for (const [method, pass, inst] of [["sealed_repo_vs_official_docs", true, null], ["sealed_repo_vs_official_docs", false, null], ["sealed_repo_vs_official_docs", false, "other"], ["sealed_repo_vs_kansei_catalog", true, null], ["sealed_repo_vs_kansei_catalog", false, null], ["sealed_repo_vs_kansei_catalog", false, "other"]] as const) {
+      const row = { reading_id: newUlid(), claim: "attribution column", marker_id: MK.marker_id, expected_digest: "0".repeat(64), target: { service_id: pack.service_id, model: "none", harness_version: "run-marker@0.4.0+0000000" }, stage_reached: "done", stage_stopped: null, observed: { pass, method, checks: [{ label: "A1_page_lists_sealed_repo", ok: pass }], ground_truth_consistent: true, instrument_error: inst }, evidence_ref: `evidence/x/m-004#sha256:${"a".repeat(64)}`, observer: "kansei_harness@run-marker@0.4.0", kind: "synthetic", observed_at: isoWithOffset(new Date()), supersedes: null };
+      const e = validateReading(row, schema);
+      expect(`${tag}: attribution row ${method} pass=${pass} instrument=${inst} passes reading.v1`, e.length === 0, e.join("; "));
+    }
+  }
 
   // synthesise the agent reading and the ground-truth reading exactly as the harness does
   const observers = kind === "http_probe" && MK.observation === "fetch_check_summary" ? (MK.observers || []).map((o: any) => `${o.id}@1.0.0`) : ["kansei_harness@run-marker@0.4.0"];

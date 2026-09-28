@@ -16,7 +16,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { askLlm } from './llm-ask.mjs';
-import { AUTH_RULE, ANSWER_FORMAT, judgeLlmAnswer } from './llm-answer-rules.mjs';
+import { AUTH_RULE, ANSWER_FORMAT, judgeLlmAnswer, extractUrlTokens, parseCanonicalRepoUrl } from './llm-answer-rules.mjs';
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const DEAD = new Set(['gone', 'dns_fail', 'connection_refused']);
@@ -83,8 +83,10 @@ export function classifyCatalogPayload(payload, serviceId) {
   return { kind: 'display' };
 }
 
-/** Read one service's public display through the catalog MCP endpoint (tools/call lookup detail). */
-export async function readCatalogDisplay(apiUrl, serviceId, timeoutMs = 20000) {
+/** Read one service's public display through the catalog MCP endpoint (tools/call lookup detail).
+ *  opts.keepPayload (attribution column B only): also return the whole display payload, in memory.
+ *  Default off, so the M-002 observation and its transcript are unchanged. */
+export async function readCatalogDisplay(apiUrl, serviceId, timeoutMs = 20000, opts = {}) {
   const c = new AbortController(); const t = setTimeout(() => c.abort(), timeoutMs);
   try {
     const r = await fetch(apiUrl, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
@@ -105,7 +107,7 @@ export async function readCatalogDisplay(apiUrl, serviceId, timeoutMs = 20000) {
     const tokens = [String(payload.mcp_status).toLowerCase()];
     if (payload.freshness?.confidence === 'high') tokens.push('updated');
     if (payload.freshness?.confidence) tokens.push(`freshness:${payload.freshness.confidence}`);
-    return { reachable: true, valid: true, found: true, http: r.status, tokens, mcp_status: payload.mcp_status, freshness: payload.freshness ?? null };
+    return { reachable: true, valid: true, found: true, http: r.status, tokens, mcp_status: payload.mcp_status, freshness: payload.freshness ?? null, ...(opts.keepPayload ? { payload } : {}) };
   } catch (e) { return { reachable: false, valid: false, http: null, error: 'network', err: String(e?.message || e).slice(0, 80) }; }
   finally { clearTimeout(t); }
 }
@@ -242,16 +244,91 @@ const llmAnswer = {
     if (!m) throw new Error('expected.official_mcp_repo_url');
     return { repo, owner: m[1], name: m[2], wrongTokens: [...AUTH_RULE.wrongTokens] };
   },
+  /**
+   * Ground truth = the sealed repository is still where the seal says (ATTRIBUTION-Rules v0.1 §2-1,
+   * rename detection). The GitHub API answers a renamed or moved repository through a redirect to
+   * the new name, so the response's full_name is compared with the sealed owner/repo (ASCII case
+   * only). A different full_name, archived=true, private, or no answer → inconsistent: the day's
+   * judgement is 未確定（計器）and the AI reading is not counted as a miss (renderer).
+   */
   async groundTruth({ MK, sealed, harnessLog }) {
     if (MK.verify_repo_via_github === false) { harnessLog({ event: 'ground_truth', consistent: true }); return { consistent: true, skipped: true, checks: [{ label: 'repo_check_skipped_by_pack', ok: true }] }; }
-    let consistent = false, http = null;
+    const base = String(MK.github_api_base || 'https://api.github.com').replace(/\/+$/, '');
+    let http = null, exists = false, sameName = false, notArchived = false, notRedirected = false;
     try {
-      const r = await fetch(`https://api.github.com/repos/${sealed.owner}/${sealed.name}`, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'kansei-marker-harness/0.4' } });
+      const r = await fetch(`${base}/repos/${sealed.owner}/${sealed.name}`, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'kansei-marker-harness/0.4' } });
       http = r.status; const d = await r.json().catch(() => ({}));
-      consistent = r.ok && d.private === false && d.archived === false;
-    } catch { /* network */ }
-    harnessLog({ event: 'ground_truth', consistent });
-    return { consistent, http, checks: [{ label: 'sealed_repo_exists_public_on_github', ok: consistent }] };
+      exists = r.ok && d.private === false;
+      sameName = exists && typeof d.full_name === 'string' && d.full_name.toLowerCase() === `${sealed.owner}/${sealed.name}`.toLowerCase();
+      notArchived = exists && d.archived === false;
+      notRedirected = exists && r.redirected === false;
+    } catch { /* network: all checks stay false */ }
+    const consistent = exists && sameName && notArchived;
+    harnessLog({ event: 'ground_truth', consistent }); // which check failed (rename, archive) is in the ground-truth row's checks
+    return { consistent, http, checks: [
+      { label: 'sealed_repo_exists_public_on_github', ok: exists },
+      { label: 'sealed_repo_full_name_unchanged', ok: sameName },
+      { label: 'sealed_repo_not_archived', ok: notArchived },
+      { label: 'sealed_repo_api_not_redirected', ok: notRedirected },
+    ] };
+  },
+  /**
+   * Attribution columns A and B (ATTRIBUTION-Rules v0.1 §1, §2-1). Ground-truth side rows, written
+   * once per run; they read only (public pages, the public catalog) and never touch the subject.
+   * Both use the REPO line's own normalisation: URL tokens → parseCanonicalRepoUrl → key, compared
+   * with the sealed key. Values stay in memory; rows carry booleans and field NAMES only.
+   *   A (sealed_repo_vs_official_docs): pass = A1 or A2 lists the key. A page that cannot be fetched
+   *     makes the row an instrument error only when no fetched page lists the key.
+   *   B (sealed_repo_vs_kansei_catalog): pass = some field of the catalog item yields the key
+   *     (M-002's catalog reader, read only). Not in the catalog = false. Unobservable = instrument.
+   */
+  async attribution({ MK, sealed, harnessLog }) {
+    const cfg = MK.attribution;
+    if (!cfg) return [];
+    const hasKey = (text) => extractUrlTokens(text).some((t) => parseCanonicalRepoUrl(t.raw)?.key === sealed.repo);
+    const rows = [];
+
+    // A: official documentation pages fixed in the taskpack
+    const pages = Array.isArray(cfg.official_docs) ? cfg.official_docs : [];
+    const aChecks = []; let aListed = false, aFailed = pages.length === 0;
+    for (const p of pages) {
+      let fetched = false, listed = false;
+      const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000);
+      try {
+        const r = await fetch(p.url, { headers: { 'user-agent': 'kansei-marker-harness/0.4' }, signal: c.signal });
+        if (r.ok) { fetched = true; listed = hasKey(await r.text()); }
+      } catch { /* network */ } finally { clearTimeout(t); }
+      aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_page_lists_sealed_repo`, ok: listed });
+      if (listed) aListed = true; if (!fetched) aFailed = true;
+    }
+    const aInstrument = !aListed && aFailed ? 'other' : null;
+    aChecks.push({ label: 'official_docs_list_sealed_repo', ok: aListed });
+    rows.push({ method: 'sealed_repo_vs_official_docs', claim: 'the official documentation pages fixed in the taskpack list the sealed MCP repository', pass: aListed, instrument_error: aInstrument, checks: aChecks });
+    harnessLog({ event: 'attribution', column: 'A', listed: aListed, instrument: aInstrument });
+
+    // B: KanseiLINK's own public catalog item (M-002 reader, keepPayload in memory only)
+    const d = await readCatalogDisplay(cfg.catalog?.display_api_url, cfg.catalog?.service_id, 20000, { keepPayload: true });
+    const bChecks = [{ label: 'catalog_item_observed', ok: Boolean(d.reachable && d.valid) }];
+    let bListed = false, bInstrument = null;
+    if (!d.reachable || !d.valid) bInstrument = 'other';
+    else if (!d.found) bChecks.push({ label: 'catalog_item_present', ok: false });
+    else {
+      bChecks.push({ label: 'catalog_item_present', ok: true });
+      const fields = [];
+      const walk = (v, path) => {
+        if (typeof v === 'string') { if (hasKey(v)) fields.push(path || '(root)'); }
+        else if (Array.isArray(v)) v.forEach((x) => walk(x, `${path}[]`));
+        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k);
+      };
+      walk(d.payload, '');
+      bListed = fields.length > 0;
+      // field NAMES only (never values); anything that is not a plain field path is recorded without its name
+      for (const f of [...new Set(fields)]) bChecks.push({ label: `catalog_field_lists_sealed_repo:${/^[A-Za-z0-9_.[\]()]{1,80}$/.test(f) ? f : '(unnamed)'}`, ok: true });
+    }
+    bChecks.push({ label: 'kansei_catalog_lists_sealed_repo', ok: bListed });
+    rows.push({ method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository in some field', pass: bListed, instrument_error: bInstrument, checks: bChecks });
+    harnessLog({ event: 'attribution', column: 'B', listed: bListed, instrument: bInstrument });
+    return rows;
   },
   observers({ MK }) { return (MK.providers || ['openai', 'gemini', 'perplexity', 'claude']).map((p) => ({ id: 'kansei_harness', label: p, provider: p, model: null })); },
   async observe({ PACK, observer, flags, log }) {

@@ -55,6 +55,31 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     });
   }
 
+  // ---- attribution columns A/B (ATTRIBUTION-Rules v0.1; ground-truth side rows, once per run) ----
+  // Only when the pack declares them, the run will observe at least one agent, and it is not a correction run.
+  const wantsAttribution = typeof target.attribution === 'function' && MKr.attribution && flags.executor !== 'empty'
+    && !flags.supersedes && !flags.supersedesGt && hasReadingCapacity(db, MK.marker_id, flags.maxReadings, readings, false);
+  if (wantsAttribution) {
+    let cols;
+    try { cols = await target.attribution({ MK: MKr, sealed, harnessLog }); }
+    catch (e) {
+      privateEnvironment.diagnostics.push({ event: 'attribution_failed', message: String(e.message) }); harnessLog({ event: 'attribution_failed', ok: false });
+      cols = [{ method: 'sealed_repo_vs_official_docs', claim: 'the official documentation pages fixed in the taskpack list the sealed MCP repository', pass: false, instrument_error: 'other', checks: [] },
+        { method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository in some field', pass: false, instrument_error: 'other', checks: [] }];
+    }
+    for (const c of cols) {
+      readings.push({
+        reading_id: newUlid(), claim: c.claim, marker_id: MK.marker_id, expected_digest: sealedCommon.digest,
+        target: { service_id: PACK.service_id, model: 'none', harness_version: HARNESS_VERSION },
+        stage_reached: 'done', stage_stopped: null,
+        observed: { pass: c.pass, method: c.method, checks: c.checks, ground_truth_consistent: gtConsistent, instrument_error: c.instrument_error },
+        evidence_ref: `${bundleRel}#sha256:PENDING`, observer: OBSERVER, kind: 'synthetic', observed_at: isoWithOffset(new Date()), supersedes: null, _outcome: null,
+      });
+    }
+    const cell = (m) => { const c = cols.find((x) => x.method === m); return !c ? '-' : c.instrument_error ? 'instrument' : c.pass ? 'listed' : 'not listed'; };
+    console.log(`attribution: A official docs=${cell('sealed_repo_vs_official_docs')} B KanseiLINK catalog=${cell('sealed_repo_vs_kansei_catalog')}`);
+  }
+
   // ---- observations (one reading per observer) ----
   const runRows = [];
   const files = ['metrics.json', 'harness.jsonl', 'environment.private.json'];

@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { effectiveAgentCount, validateSupersedes } from './marker-store.mjs';
 import { sqliteUtc } from './reading.mjs';
+import { gtLabel } from './attribution-rules.mjs';
 
 /** db: a read-only handle opened by openDb (closed and reopened writable here). */
 export function persistReadings({ db, readings, MK, PACK, sealedDigest, maxReadings, schemasDir }) {
@@ -41,7 +42,7 @@ export function persistReadings({ db, readings, MK, PACK, sealedDigest, maxReadi
 /** Table row text for the founder-ops README (no tenant values; ids/digests only). */
 export function readmeRows(readings) {
   const agentRows = readings.filter((r) => r._outcome).map((r) => `| ${r.observed_at.slice(0, 10)} | ${r.reading_id}${r.supersedes ? `（訂正:${r.supersedes}）` : ''} | ${r.stage_reached} | ${r.stage_stopped ?? '—'} | ${r.observed.instrument_error ? `計器:${r.observed.instrument_error}` : r.observed.pass ? 'pass' : 'fail'}${r.observed.false_completion ? '（自称成功）' : ''} | ${r.evidence_ref} |\n`).join('');
-  const gtRows = readings.filter((r) => !r._outcome).map((r) => `| ${r.observed_at.slice(0, 10)} | ${r.reading_id}${r.supersedes ? `（訂正:${r.supersedes}）` : ''} | ${r.observed.pass ? '一致' : '不一致'} | ${r.evidence_ref} |\n`).join('');
+  const gtRows = readings.filter((r) => !r._outcome).map((r) => `| ${r.observed_at.slice(0, 10)} | ${r.reading_id}${r.supersedes ? `（訂正:${r.supersedes}）` : ''} | ${gtLabel(r.observed)} | ${r.evidence_ref} |\n`).join('');
   return { agentRows, gtRows };
 }
 

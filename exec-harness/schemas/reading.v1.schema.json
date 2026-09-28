@@ -66,7 +66,7 @@
     },
     "observed": {
       "type": "object",
-      "description": "Pass/fail and how it was decided. Never the observed values themselves. Exclusivity (⑤): for a generic agent reading exactly one of pass / false_completion / undetermined / instrument_error is true — enforced by the oneOf below (the ground-truth methods sealed_* and the M-001 method harness_direct_api_vs_sealed_expectation may be all-false).",
+      "description": "Pass/fail and how it was decided. Never the observed values themselves. Exclusivity (⑤): for a generic agent reading exactly one of pass / false_completion / undetermined / instrument_error is true — enforced by the oneOf below (the ground-truth methods sealed_* — including the attribution columns A sealed_repo_vs_official_docs and B sealed_repo_vs_kansei_catalog, where pass = the column is true — and the M-001 method harness_direct_api_vs_sealed_expectation may be all-false).",
       "additionalProperties": false,
       "required": ["pass", "method"],
       "oneOf": [
@@ -74,7 +74,7 @@
         { "description": "false completion", "required": ["false_completion"], "properties": { "pass": { "enum": [false] }, "false_completion": { "enum": [true] }, "undetermined": { "enum": [false] }, "instrument_error": { "type": "null" } } },
         { "description": "undetermined", "required": ["undetermined"], "properties": { "pass": { "enum": [false] }, "false_completion": { "enum": [false] }, "undetermined": { "enum": [true] }, "instrument_error": { "type": "null" } } },
         { "description": "instrument", "required": ["instrument_error"], "properties": { "pass": { "enum": [false] }, "false_completion": { "enum": [false] }, "undetermined": { "enum": [false] }, "instrument_error": { "type": "string" } } },
-        { "description": "all-false allowed only for ground-truth rows and the M-001 method", "required": ["method"], "properties": { "pass": { "enum": [false] }, "false_completion": { "enum": [false] }, "undetermined": { "enum": [false] }, "instrument_error": { "type": "null" }, "method": { "enum": ["sealed_expectation_vs_harness_direct_api", "sealed_expectation_vs_harness_http_probe", "sealed_repo_vs_github_api", "harness_direct_api_vs_sealed_expectation"] } } }
+        { "description": "all-false allowed only for ground-truth rows and the M-001 method", "required": ["method"], "properties": { "pass": { "enum": [false] }, "false_completion": { "enum": [false] }, "undetermined": { "enum": [false] }, "instrument_error": { "type": "null" }, "method": { "enum": ["sealed_expectation_vs_harness_direct_api", "sealed_expectation_vs_harness_http_probe", "sealed_repo_vs_github_api", "sealed_repo_vs_official_docs", "sealed_repo_vs_kansei_catalog", "harness_direct_api_vs_sealed_expectation"] } } }
       ],
       "properties": {
         "pass": { "type": "boolean" },
@@ -88,6 +88,8 @@
             "llm_answer_rules_vs_sealed_expectation",
             "sealed_expectation_vs_harness_http_probe",
             "sealed_repo_vs_github_api",
+            "sealed_repo_vs_official_docs",
+            "sealed_repo_vs_kansei_catalog",
             "human_review"
           ]
         },

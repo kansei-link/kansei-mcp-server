@@ -22,6 +22,27 @@
       "claude"
     ],
     "verify_repo_via_github": true,
+    "attribution": {
+      "rules": "founder-ops/ATTRIBUTION-Rules-v0_2026-09-28.md (v0.1, organ 1 = the REPO line)",
+      "official_docs": [
+        {
+          "id": "A1",
+          "url": "https://www.atled.jp/agileworks/functions/ai-use/",
+          "note": "product site AI feature page, where someone looking for how to connect opens first (provisional; Michie may name another MCP page)"
+        },
+        {
+          "id": "A2",
+          "url": "https://www.atled.jp/news/20260727_01/",
+          "note": "ARI Award announcement (lists the repository, the setup guide and OAuth 2.0)"
+        }
+      ],
+      "catalog": {
+        "display_api_url": "https://kansei-link-mcp-production.up.railway.app/mcp",
+        "display_api_label": "kansei-link-catalog@production",
+        "service_id": "agile-works"
+      },
+      "note": "Ground-truth side rows written once per run (never by the subject): A = sealed_repo_vs_official_docs, pass when A1 or A2 lists the sealed repository key (URL tokens incl. href, then the REPO line normalisation parseCanonicalRepoUrl); A1/A2 kept as separate checks; a page that cannot be fetched makes A an instrument error only when no fetched page lists the key. B = sealed_repo_vs_kansei_catalog, pass when some field of the catalog item yields the key (read only, the M-002 reader); only the field names are recorded. Rename detection: the GitHub API full_name must equal the sealed owner/repo and archived must be false, otherwise the ground truth is inconsistent and the day's judgement is 未確定（計器）. The judgement (truth table, SHEET) is a report-layer interpretation labelled 判断（規則 v0.1）."
+    },
     "report_readme": "founder-ops/research/Marker-M004_2026-09-25/README.md",
     "max_readings": 28,
     "note": "M-004 covers discover + understand only (connect + execute will be M-005). No contact with the vendor: the harness only asks public LLMs (one plain turn) and checks the sealed repository's existence through the public GitHub API. THE SEAL HOLDS ONLY THE OFFICIAL MCP REPOSITORY URL. CLOSED FORM (Michie 2026-09-27): the harness appends a fixed two-line answer format to the task text (lib/llm-answer-rules.mjs ANSWER_FORMAT) — REPO: <one URL or none> / AUTH: <OAuth 2.0 | Basic | API key | unknown> — and the judge reads ONLY the answer region = the last two non-empty physical lines, which must be REPO then AUTH (form checked before content; anything before them, including code quotes that look like the two lines, is never judged); the explanation is kept in transcript.jsonl as evidence and never judged. Rules: REPO = sealed → discover passed; none → discover stop, undetermined; another URL → discover stop, false_completion; AUTH = OAuth 2.0 → done; Basic/API key → understand stop, false_completion; unknown → understand stop, undetermined; a missing line, wrong order, text after the pair, an empty value, a value outside the form or several URLs → format_violation (checked before any content, so it wins over REPO content) = undetermined on the agent's side (not an instrument error). Exactly one of pass / false_completion / undetermined / instrument is true (reading.v1 oneOf + assertExclusive). The expected method (OAuth 2.0) and the wrong tokens are rule constants (AUTH_RULE), not sealed values. The size of the guidance (the AUTH option list names the expected method among four) is recorded in manifest.prompt_guidance so the reading can be discounted.",
