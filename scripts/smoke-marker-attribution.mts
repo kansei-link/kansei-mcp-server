@@ -75,9 +75,10 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
 {
   const K = "github.com/fake-vendor/fake-official-mcp-server";
   const U0 = "https://github.com/fake-vendor/fake-official-mcp-server";
-  const pos = [U0, U0 + "/", U0 + ".git", U0 + ".git/", U0 + "/tree/main", U0 + "/blob/main/README.md", U0 + "#readme", U0 + "?tab=readme-ov-file", U0 + "/tree/main?x=1#y", U0.toUpperCase().replace("HTTPS", "https"), U0 + "/issues/1"];
-  const neg = ["https://evilgithub.com/fake-vendor/fake-official-mcp-server", "https://github.com.evil.example/fake-vendor/fake-official-mcp-server", "https://www.github.com/fake-vendor/fake-official-mcp-server", "https://github.com:443/fake-vendor/fake-official-mcp-server", "https://u@github.com/fake-vendor/fake-official-mcp-server",
-    "https://github.com/other-vendor/fake-official-mcp-server", "https://github.com/fake-vendor/other-repo", U0 + "-v2", U0 + "/../../other/other", U0 + "/%2e%2e/other/other", U0 + "\..\other", "https://github.com/fake-vendor", "https://github.com/fake-vendor/.git", "github.com/fake-vendor/fake-official-mcp-server"];
+  const pos = [U0, U0 + "/", U0 + ".git", U0 + ".git/", U0 + "/tree/main", U0 + "/blob/main/README.md", U0 + "#readme", U0 + "?tab=readme-ov-file", U0 + "/tree/main?x=1#y", U0.toUpperCase().replace("HTTPS", "https"), U0 + "/issues/1",
+    "http://github.com/fake-vendor/fake-official-mcp-server", "https://www.github.com/fake-vendor/fake-official-mcp-server", "http://www.github.com/fake-vendor/fake-official-mcp-server/tree/main", "github.com/fake-vendor/fake-official-mcp-server", "www.github.com/fake-vendor/fake-official-mcp-server#readme", "//github.com/fake-vendor/fake-official-mcp-server", "https://github.com:443/fake-vendor/fake-official-mcp-server", "github.com:443/fake-vendor/fake-official-mcp-server/blob/main/README.md", "HTTP://WWW.GITHUB.COM/FAKE-VENDOR/FAKE-OFFICIAL-MCP-SERVER"];
+  const neg = ["https://evilgithub.com/fake-vendor/fake-official-mcp-server", "https://github.com.evil.example/fake-vendor/fake-official-mcp-server", "https://u@github.com/fake-vendor/fake-official-mcp-server", "https://github.com:8443/fake-vendor/fake-official-mcp-server", "http://github.com:80/fake-vendor/fake-official-mcp-server", "https://github.com:/fake-vendor/fake-official-mcp-server", "https://gist.github.com/fake-vendor/fake-official-mcp-server", "https://api.github.com/repos/fake-vendor/fake-official-mcp-server", "https://www2.github.com/fake-vendor/fake-official-mcp-server", "https://www.gitlab.com/fake-vendor/fake-official-mcp-server", "https:github.com/fake-vendor/fake-official-mcp-server", "https://github.com./fake-vendor/fake-official-mcp-server", "https://github.com:443@evil.example/fake-vendor/fake-official-mcp-server",
+    "https://github.com/other-vendor/fake-official-mcp-server", "https://github.com/fake-vendor/other-repo", U0 + "-v2", U0 + "/../../other/other", U0 + "/%2e%2e/other/other", U0 + "\..\other", "https://github.com/fake-vendor", "https://github.com/fake-vendor/.git", "mygithub.com/fake-vendor/fake-official-mcp-server", "github.com.evil.example/fake-vendor/fake-official-mcp-server"];
   for (const u of pos) expect(`A2 (+) source key matches: ${u.slice(19)}`, sourceRepoKey(u) === K, String(sourceRepoKey(u)));
   for (const u of neg) expect(`A2 (−) source key does not match: ${u}`, sourceRepoKey(u) !== K, String(sourceRepoKey(u)));
   expect("A2 decode &amp; &#x2F; &#47; &quot;", decodeHtmlCharRefs("a&amp;b&#x2F;c&#47;d&quot;e") === 'a&b/c/d"e');
@@ -86,6 +87,11 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
   expect("A2 page with &amp; in the href lists the repo", sourceListsRepo(`<a href="${U0}?a=1&amp;b=2">x</a>`, K, { html: true }));
   expect("A2 page with &#x2F; in the href lists the repo only after decoding", sourceListsRepo(`<a href="https:&#x2F;&#x2F;github.com&#x2F;fake-vendor&#x2F;fake-official-mcp-server">x</a>`, K, { html: true }) && !sourceListsRepo(`<a href="https:&#x2F;&#x2F;github.com&#x2F;fake-vendor&#x2F;fake-official-mcp-server">x</a>`, K));
   expect("A2 a URL inside another URL's query is not the page pointing at the repo", !sourceListsRepo(`<a href="https://evil.example/r?to=${U0}">x</a>`, K, { html: true }));
+  for (const [t, want] of [
+    ["公式リポジトリ: github.com/fake-vendor/fake-official-mcp-server を参照", true], ["<a href=\"//github.com/fake-vendor/fake-official-mcp-server\">x</a>", true], ["<a href=//www.github.com/fake-vendor/fake-official-mcp-server>x</a>", true], ["<img src=//github.com/fake-vendor/fake-official-mcp-server/raw/main/x.png>", true],
+    ["evil.example/?to=github.com/fake-vendor/fake-official-mcp-server", false], ["evil.example/?to=//github.com/fake-vendor/fake-official-mcp-server", false], ["<a href=\"evil.example/r?to=//github.com/fake-vendor/fake-official-mcp-server\">", false], ["a?to=x&href=//github.com/fake-vendor/fake-official-mcp-server", false],
+    ["https://evil.example/github.com/fake-vendor/fake-official-mcp-server", false], ["//evil.example/?to=//github.com/fake-vendor/fake-official-mcp-server", false], ["foo.github.com/fake-vendor/fake-official-mcp-server", false], ["github.com:8443/fake-vendor/fake-official-mcp-server", false],
+  ] as const) expect(`A2 text ${want ? "(+)" : "(−)"} ${t.replace("fake-vendor/fake-official-mcp-server", "…")}`, sourceListsRepo(t, K, { html: true }) === want);
 }
 
 // ── Part B: end to end on loopback ───────────────────────────────────────
@@ -101,7 +107,14 @@ const page = (m: string) => m === "listed" ? `<html><body><a href="${REPO}">公�
   : m === "other_owner" ? `<html><body><a href="https://github.com/other-vendor/fake-official-mcp-server/tree/main">x</a></body></html>`
   : m === "similar_host" ? `<html><body><a href="https://evilgithub.com/fake-vendor/fake-official-mcp-server">x</a> <a href="https://github.com.evil.example/fake-vendor/fake-official-mcp-server">y</a></body></html>`
   : m === "dot_segments" ? `<html><body><a href="${REPO}/../../other/other">x</a> <a href="${REPO}/%2e%2e/%2E%2E/other/other">y</a></body></html>`
-  : m === "repo_prefix" ? `<html><body><a href="${REPO}-v2/tree/main">x</a></body></html>` : "<html><body>AI 活用</body></html>";
+  : m === "repo_prefix" ? `<html><body><a href="${REPO}-v2/tree/main">x</a></body></html>`
+  : m === "listed_http_www" ? `<html><body><a href="http://www.github.com/fake-vendor/fake-official-mcp-server">公式 MCP</a></body></html>`
+  : m === "listed_bare_text" ? `<html><body><p>リポジトリ: github.com/fake-vendor/fake-official-mcp-server</p></body></html>`
+  : m === "listed_protocol_relative" ? `<html><body><a href="//github.com/fake-vendor/fake-official-mcp-server/tree/main">公式 MCP</a></body></html>`
+  : m === "listed_port_443" ? `<html><body><a href="https://github.com:443/fake-vendor/fake-official-mcp-server">公式 MCP</a></body></html>`
+  : m === "other_port" ? `<html><body><a href="https://github.com:8443/fake-vendor/fake-official-mcp-server">x</a></body></html>`
+  : m === "url_in_url_bare" ? `<html><body>evil.example/?to=github.com/fake-vendor/fake-official-mcp-server and evil.example/?to=//github.com/fake-vendor/fake-official-mcp-server</body></html>`
+  : m === "gist_host" ? `<html><body><a href="https://gist.github.com/fake-vendor/fake-official-mcp-server">x</a></body></html>` : "<html><body>AI 活用</body></html>";
 const server = createServer((req, res) => {
   let body = ""; req.on("data", (d) => (body += d)); req.on("end", () => {
     const u = req.url || "";
@@ -170,7 +183,7 @@ try {
     expect("B2 B row pass, field name recorded", r.B?.observed.pass === true && ok(r.B?.observed, "catalog_field_lists_sealed_repo:connection_guide.repository") === true, JSON.stringify(r.B?.observed.checks));
     mode.catalog = "repo_bare";
     const r2 = await run();
-    expect("B2 scheme-less value in the catalog is not the canonical form → B false (same normalisation as the REPO line)", r2.B?.observed.pass === false, JSON.stringify(r2.B?.observed.checks));
+    expect("B2 (+) scheme-less github.com/owner/repo in the catalog → B true", r2.B?.observed.pass === true, JSON.stringify(r2.B?.observed.checks));
     mode.catalog = "repo_tree";
     const rtree = await run();
     expect("B2 (+) catalog field with /tree/main#install below the repo → B true, field name recorded", rtree.B?.observed.pass === true && ok(rtree.B?.observed, "catalog_field_lists_sealed_repo:connection_guide.setup_url") === true, JSON.stringify(rtree.B?.observed.checks));
@@ -196,7 +209,7 @@ try {
     mode.a2 = "listed_tree";
     const rt = await run();
     expect("B3 (+) a page linking to /tree/main lists the repo → A true", rt.A?.observed.pass === true);
-    for (const [m, want, why] of [["listed_blob", true, "(+) /blob/…#setup below the repo"], ["listed_amp", true, "(+) query written with &amp;"], ["listed_entities", true, "(+) href written with &#x2F;"], ["other_owner", false, "(−) same repo name under another owner"], ["similar_host", false, "(−) evilgithub.com / github.com.evil.example"], ["dot_segments", false, "(−) /../ or %2e%2e below the repo leads elsewhere"], ["repo_prefix", false, "(−) repo name with a suffix (-v2)"]] as const) {
+    for (const [m, want, why] of [["listed_blob", true, "(+) /blob/…#setup below the repo"], ["listed_amp", true, "(+) query written with &amp;"], ["listed_entities", true, "(+) href written with &#x2F;"], ["other_owner", false, "(−) same repo name under another owner"], ["similar_host", false, "(−) evilgithub.com / github.com.evil.example"], ["dot_segments", false, "(−) /../ or %2e%2e below the repo leads elsewhere"], ["repo_prefix", false, "(−) repo name with a suffix (-v2)"], ["listed_http_www", true, "(+) http://www.github.com"], ["listed_bare_text", true, "(+) scheme-less github.com/owner/repo in the text"], ["listed_protocol_relative", true, "(+) protocol-relative //github.com in the href"], ["listed_port_443", true, "(+) :443"], ["other_port", false, "(−) :8443"], ["url_in_url_bare", false, "(−) URL inside another URL (scheme-less)"], ["gist_host", false, "(−) gist.github.com is another host"]] as const) {
       mode.a2 = m;
       const rx = await run();
       expect(`B3 ${why} → A ${want}`, rx.A?.observed.pass === want && rx.A?.observed.instrument_error === null, JSON.stringify(rx.A?.observed.checks));

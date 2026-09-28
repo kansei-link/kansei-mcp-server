@@ -26,26 +26,43 @@ export const RULES_LABEL = '規則 v0.1';
  * Yardstick (Michie 2026-09-28): a judgement that blames the other side (the company, KanseiLINK)
  * must always be right. A false A or B becomes 「会社側の穴」/「KanseiLINK 側の穴」, so the source
  * match must not be stricter than "the page points at the sealed repository". Opposite to the
- * judge: host, owner and repo stay an EXACT match (evilgithub.com, github.com.evil.example, another
- * owner or repo never match), but anything BELOW the repository — a deeper path (/tree/…, /blob/…),
- * a query, a fragment, a trailing slash, ".git" — is allowed. A tail that could lead a browser
- * somewhere else (a dot segment "..", "%2e", a backslash) is not allowed.
+ * judge: the host's identity and the owner and repo stay an EXACT match (evilgithub.com,
+ * github.com.evil.example, gist./api./other subdomains, another owner or repo never match), but
+ * every way of writing the same place counts:
+ *   scheme  https://, http://, or none (github.com/owner/repo, //github.com/owner/repo)
+ *   host    a REPO_HOSTS entry exactly; for GitHub also www.github.com (= github.com). No other alias.
+ *   port    none or :443 only (any other port → not listed)
+ *   below   a deeper path (/tree/…, /blob/…), a query, a fragment, a trailing slash, ".git"
+ * Refused: userinfo, a trailing-dot host, and a tail that could lead a browser elsewhere (a dot
+ * segment "..", "%2e", a backslash). A URL inside another URL (…?to=github.com/…) never counts: the
+ * token extractor takes scheme URLs whole and scheme-less hosts only at a boundary.
  */
 const escapeRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const HOST_ALIASES = Object.freeze({ 'www.github.com': 'github.com' });
+const SOURCE_HOSTS = [...REPO_HOSTS, ...Object.keys(HOST_ALIASES)];
 // no "u" flag: "i" folds ASCII letters only
-const SOURCE_REPO = new RegExp(`^https://(${REPO_HOSTS.map(escapeRe).join('|')})/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\\.git)?([/?#].*)?$`, 'i');
+const SOURCE_REPO = new RegExp(`^(?:https?:)?(?://)?(${SOURCE_HOSTS.map(escapeRe).join('|')})(?::443)?/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\\.git)?([/?#].*)?$`, 'i');
 const ONLY_DOTS = /^\.+$/;
 
-/** host/owner/repo key of a source URL token, or null. */
+/** host/owner/repo key of a source URL token (www.github.com folded to github.com), or null. */
 export function sourceRepoKey(raw) {
-  const m = SOURCE_REPO.exec(String(raw));
+  const s = String(raw);
+  // a scheme, if any, must be followed by "//" (no "https:github.com/…")
+  if (/^https?:/i.test(s) && !/^https?:\/\//i.test(s)) return null;
+  const m = SOURCE_REPO.exec(s);
   if (!m) return null;
-  const [, host, owner, repo, tail = ''] = m;
+  const [, rawHost, owner, repo, tail = ''] = m;
   if (ONLY_DOTS.test(owner) || ONLY_DOTS.test(repo) || /^\.git$/i.test(repo)) return null;
   const path = tail.split(/[?#]/)[0];
   if (/\\/.test(tail) || path.split('/').some((seg) => ONLY_DOTS.test(seg) || /^(?:\.|%2e)+$/i.test(seg))) return null;
+  const host = HOST_ALIASES[rawHost.toLowerCase()] || rawHost.toLowerCase();
   return `${host}/${owner}/${repo}`.toLowerCase();
 }
+
+// protocol-relative references ("//github.com/…" in an href) become https:// before tokenising;
+// only at a boundary: start, whitespace, a quote, a bracket, or an unquoted href=/src= attribute.
+// Never after a bare "=" (…?to=//github.com/… is a URL inside another URL and must not count).
+const PROTOCOL_RELATIVE = /(^|[\s"'(<>]|\s(?:href|src)=)\/\/(?=[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::\d+)?\/)/gi;
 
 /** Decode HTML character references once (named basics, &#NN;, &#xHH;), so hrefs written with
  *  &amp; or &#x2F; are read as the browser reads them. Unknown names are left as they are. */
@@ -59,7 +76,7 @@ export function decodeHtmlCharRefs(html) {
 
 /** true when some URL token in text points at the sealed repository key. opts.html decodes first. */
 export function sourceListsRepo(text, sealedKey, opts = {}) {
-  const s = opts.html ? decodeHtmlCharRefs(text) : String(text || '');
+  const s = (opts.html ? decodeHtmlCharRefs(text) : String(text || '')).replace(PROTOCOL_RELATIVE, '$1https://');
   return extractUrlTokens(s).some((t) => sourceRepoKey(t.raw) === sealedKey);
 }
 export const ATTR_METHODS = Object.freeze({ A: 'sealed_repo_vs_official_docs', B: 'sealed_repo_vs_kansei_catalog' });
