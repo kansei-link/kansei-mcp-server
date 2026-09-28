@@ -18,7 +18,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
-import { attributionLines, gtLabel, RULES_LABEL } from './lib/attribution-rules.mjs';
+import { attributionLines, gtLabel, RULES_LABEL } from './lib/attribution-labels.mjs'; // no imports (never the source readers or the vendored decoder)
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..');

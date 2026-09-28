@@ -17,7 +17,8 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { askLlm } from './llm-ask.mjs';
 import { AUTH_RULE, ANSWER_FORMAT, judgeLlmAnswer } from './llm-answer-rules.mjs';
-import { classifySource } from './attribution-rules.mjs';
+// attribution-rules.mjs (and the vendored HTML decoder behind it) is NOT imported here: it is loaded
+// with a dynamic import inside llmAnswer.attribution only, so M-001 / M-002 / M-003 never depend on it.
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const DEAD = new Set(['gone', 'dns_fail', 'connection_refused']);
@@ -291,6 +292,10 @@ const llmAnswer = {
   async attribution({ MK, sealed, harnessLog }) {
     const cfg = MK.attribution;
     if (!cfg) return [];
+    // First and only place the source readers are loaded. If they cannot be loaded, this throws and
+    // marker-generic writes both attribution rows as instrument errors (U1/U2); the agent readings of
+    // the run are unaffected, and no other marker ever reaches this line.
+    const { classifySource } = await import('./attribution-rules.mjs');
     const rows = [];
 
     // A: official documentation pages fixed in the taskpack

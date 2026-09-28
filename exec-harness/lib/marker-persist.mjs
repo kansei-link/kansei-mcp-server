@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { effectiveAgentCount, validateSupersedes } from './marker-store.mjs';
 import { sqliteUtc } from './reading.mjs';
-import { gtLabel } from './attribution-rules.mjs';
+import { gtLabel } from './attribution-labels.mjs'; // no imports: keeps every marker's start-up free of the attribution source readers
 
 /** db: a read-only handle opened by openDb (closed and reopened writable here). */
 export function persistReadings({ db, readings, MK, PACK, sealedDigest, maxReadings, schemasDir }) {
