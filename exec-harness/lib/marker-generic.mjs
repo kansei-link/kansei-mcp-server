@@ -61,7 +61,10 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     && !flags.supersedes && !flags.supersedesGt && hasReadingCapacity(db, MK.marker_id, flags.maxReadings, readings, false);
   if (wantsAttribution) {
     let cols;
-    try { cols = await target.attribution({ MK: MKr, sealed, harnessLog }); }
+    try {
+      cols = await target.attribution({ MK: MKr, sealed, harnessLog, attestationsDir: join(ROOT, 'evidence', 'attestations'), expectedDigest: sealedCommon.digest, markerId: MK.marker_id });
+      for (const d of cols.diagnostics || []) privateEnvironment.diagnostics.push(d); // body sha256 per source, attestation lookup result
+    }
     catch (e) {
       privateEnvironment.diagnostics.push({ event: 'attribution_failed', message: String(e.message) }); harnessLog({ event: 'attribution_failed', ok: false });
       cols = [{ method: 'sealed_repo_vs_official_docs', claim: 'the official documentation pages fixed in the taskpack list the sealed MCP repository', pass: false, instrument_error: 'other', checks: [] },
@@ -133,14 +136,18 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
   }
 
   // ---- bundle ----
-  writeFileSync(join(bundleDir, 'environment.private.json'), JSON.stringify(privateEnvironment, null, 1));
   const libs = {};
   for (const f of ['marker-sealed.mjs', 'marker-generic.mjs', 'marker-targets.mjs', 'marker-persist.mjs', 'llm-ask.mjs', 'llm-answer-rules.mjs', 'attribution-labels.mjs', 'reading.mjs', 'marker-bundle.mjs', 'marker-store.mjs']) libs[`lib/${f}`] = fileSha(join(libDir, f));
-  // Optional parts (the M-004 attribution source readers): fingerprinted when present, null when absent —
-  // their absence must never stop a marker from writing its bundle.
-  const optionalSha = (p) => (existsSync(p) ? fileSha(p) : null);
-  libs['lib/attribution-rules.mjs'] = optionalSha(join(libDir, 'attribution-rules.mjs'));
-  libs['vendor/entities-8.1.0/decode.js'] = optionalSha(join(libDir, '..', 'vendor', 'entities-8.1.0', 'decode.js'));
+  // Optional parts (the M-004 attribution source readers: attribution-rules.mjs and the six vendored decoder files).
+  // Codex 8d905ee N3: ANY failure while reading an optional part (absent, EACCES, a directory, …) is
+  // caught and recorded as null — it must never stop the reading or the bundle.
+  const optionalSha = (rel) => {
+    try { return fileSha(join(libDir, '..', rel)); }
+    catch (e) { privateEnvironment.diagnostics.push({ event: 'optional_part_unreadable', part: rel, code: String(e?.code || 'error') }); return null; }
+  };
+  for (const rel of ['lib/attribution-rules.mjs', ...['decode.js', 'decode-codepoint.js', 'generated/decode-data-html.js', 'generated/decode-data-xml.js', 'internal/bin-trie-flags.js', 'internal/decode-shared.js'].map((f) => `vendor/entities-8.1.0/${f}`)]) libs[rel] = optionalSha(rel);
+  // written after the fingerprints, so an unreadable optional part is recorded in the private sidecar
+  writeFileSync(join(bundleDir, 'environment.private.json'), JSON.stringify(privateEnvironment, null, 1));
   const manifest = {
     bundle: `marker-${MK.marker_id}`, generated_at_utc: new Date().toISOString(), generated_at_local: isoWithOffset(new Date()),
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },

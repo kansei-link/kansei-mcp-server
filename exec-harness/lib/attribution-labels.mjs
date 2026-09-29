@@ -14,8 +14,9 @@
  *   #4 A ¬B ¬C AI 側、KanseiLINK 側が併存   #8 ¬A ¬B ¬C 会社側と KanseiLINK 側の穴が併存
  * Undetermined (no judgement is printed, only the label):
  *   U0 ground truth moved (renamed / moved / archived / not public)  → 未確定（計器）; C is not counted as a miss
- *   U1 A unknown: not received completely, or a name present that does not resolve, or no A row → 未確定（計器）
- *   U2 B unknown: the item unobservable, or a field naming the repo that does not resolve, or no B row → 未確定（計器）
+ *   U1 A unknown: no page resolves and not every page carries a human attestation for that day's body
+ *      (§4-2: the automatic reading never says "not listed"), or not read completely, or no A row → 未確定（計器）
+ *   U2 B unknown: the item does not resolve and carries no human attestation, or unobservable, or no B row → 未確定（計器）
  *   U4 the AI reading itself is an instrument error                   → 未確定（計器）
  *   U3 the AI answer violated the two-line form                       → 未確定（回答形式）
  * Precedence: U0 > U1 > U2 > U4 > U3 > #1–#8.
@@ -29,31 +30,43 @@ const check = (o, label) => (o?.checks || []).find((c) => c.label === label);
 
 /** Ground-truth side label used by the README rows and the sheet's ground-truth table. */
 export function gtLabel(o) {
-  if (o.method === ATTR_METHODS.A) return o.pass ? 'A 公式情報: 載っている' : o.instrument_error ? 'A 公式情報: 判定不能' : 'A 公式情報: 載っていない';
-  if (o.method === ATTR_METHODS.B) return o.pass ? 'B KanseiLINK: 正しい' : o.instrument_error ? 'B KanseiLINK: 判定不能' : 'B KanseiLINK: 誤り';
+  const human = (label) => (o.checks || []).some((c) => c.label === label && c.ok === true);
+  if (o.method === ATTR_METHODS.A) return o.pass ? 'A 公式情報: 載っている' : (!o.instrument_error && human('official_docs_not_listed_human_attested')) ? 'A 公式情報: 載っていない（人の確認）' : 'A 公式情報: 未確定';
+  if (o.method === ATTR_METHODS.B) return o.pass ? 'B KanseiLINK: 正しい' : (!o.instrument_error && human('catalog_item_not_listed_human_attested')) ? 'B KanseiLINK: 誤り（人の確認）' : 'B KanseiLINK: 未確定';
   return o.pass ? '一致' : '不一致';
 }
 
-/** Column A from its ground-truth row (or undefined). state: listed | not_listed | unknown. */
+/**
+ * Column A from its ground-truth row (or undefined). state: listed | not_listed | unknown.
+ * §4-2: "not listed" blames the company, so it is shown ONLY when the row carries the human
+ * attestation (official_docs_not_listed_human_attested). A row that says pass=false without it —
+ * whatever produced it — is unknown.
+ */
 export function columnA(obs) {
   if (!obs) return { state: 'unknown', text: '記録なし' };
   const ids = (obs.checks || []).map((c) => /^(A\d+)_page_lists_sealed_repo$/.exec(c.label)?.[1]).filter(Boolean);
-  // per page: あり (resolves) / なし (received completely, names absent) / 判定不能 (a name that does not resolve) / 取得失敗
-  const page = (id) => check(obs, `${id}_page_lists_sealed_repo`)?.ok ? 'あり' : !check(obs, `${id}_page_fetched`)?.ok ? '取得失敗' : check(obs, `${id}_page_names_absent`)?.ok === false ? '判定不能' : 'なし';
+  // per page: あり (resolves) / なし（人の確認）(attested for that day's body) / 未確定 (read, no link) / 取得失敗
+  const page = (id) => check(obs, `${id}_page_lists_sealed_repo`)?.ok ? 'あり' : !check(obs, `${id}_page_fetched`)?.ok ? '取得失敗' : check(obs, `${id}_page_not_listed_human_attested`)?.ok ? 'なし（人の確認）' : '未確定';
   const detail = ids.map((id) => `${id} ${page(id)}`).join('・');
   const tail = detail ? `（${detail}）` : '';
-  if (!obs.pass && obs.instrument_error) return { state: 'unknown', text: `判定不能${tail}` };
-  return obs.pass ? { state: 'listed', text: `載っている${tail}`, a1: check(obs, 'A1_page_lists_sealed_repo')?.ok === true } : { state: 'not_listed', text: `載っていない${tail}` };
+  if (obs.pass) return { state: 'listed', text: `載っている${tail}`, a1: check(obs, 'A1_page_lists_sealed_repo')?.ok === true };
+  if (!obs.instrument_error && check(obs, 'official_docs_not_listed_human_attested')?.ok === true) return { state: 'not_listed', text: `載っていない・人の確認${tail}` };
+  return { state: 'unknown', text: `未確定${tail}` };
 }
 
-/** Column B from its ground-truth row (or undefined). state: correct | wrong | unknown. */
+/**
+ * Column B from its ground-truth row (or undefined). state: correct | wrong | unknown.
+ * "Wrong" (KanseiLINK's own hole) is shown ONLY with the human attestation
+ * (catalog_item_not_listed_human_attested); otherwise unknown.
+ */
 export function columnB(obs) {
   if (!obs) return { state: 'unknown', text: '記録なし' };
   const fields = (obs.checks || []).map((c) => /^catalog_field_lists_sealed_repo:(.+)$/.exec(c.label)?.[1]).filter(Boolean);
   const unresolved = (obs.checks || []).map((c) => /^catalog_field_names_sealed_repo_unresolved:(.+)$/.exec(c.label)?.[1]).filter(Boolean);
-  if (!obs.pass && obs.instrument_error) return { state: 'unknown', text: unresolved.length ? `判定不能（名前はあるがリンクとして解けない欄: ${unresolved.join(', ')}）` : '判定不能（観測できない）' };
   if (obs.pass) return { state: 'correct', text: `正しい（欄: ${fields.join(', ') || '—'}）` };
-  return { state: 'wrong', text: check(obs, 'catalog_item_present')?.ok === false ? '誤り（項なし）' : '誤り（欠落）' };
+  if (!obs.instrument_error && check(obs, 'catalog_item_not_listed_human_attested')?.ok === true) return { state: 'wrong', text: check(obs, 'catalog_item_present')?.ok === false ? '誤り・人の確認（項なし）' : '誤り・人の確認（欠落）' };
+  if (check(obs, 'catalog_item_observed')?.ok === false) return { state: 'unknown', text: '未確定（観測できない）' };
+  return { state: 'unknown', text: unresolved.length ? `未確定（名前はあるがリンクとして解けない欄: ${unresolved.join(', ')}）` : '未確定（人の確認なし）' };
 }
 
 /** Column C = the AI reading's REPO line. state: pass | miss | format | instrument. */

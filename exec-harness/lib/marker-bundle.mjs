@@ -24,7 +24,7 @@ export function assertPublicMarkerData(value) {
       ground_truth_failed: ['t', 'event', 'ok'],
       mcp_tools_list_empty: ['t', 'event', 'ok'],
       restore_current_company: ['t', 'event', 'where', 'changed', 'ok'],
-      attribution: ['t', 'event', 'column', 'listed', 'instrument'],
+      attribution: ['t', 'event', 'column', 'listed', 'attested', 'instrument'],
       attribution_failed: ['t', 'event', 'ok'],
     };
     const allowed = eventKeys[v.event];

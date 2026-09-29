@@ -11,7 +11,11 @@
  *
  * Part 1: the static import graph of every entry point reaches neither attribution-rules.mjs nor
  *         vendor/ — only attribution-labels.mjs, which has no imports at all.
- * Part 2: a copy of the harness WITHOUT vendor/: the M-001 shape (M-998 fixture, fake freee MCP,
+ * Part 2–4 (Codex 8d905ee N3 and P3): a git copy of the harness, first WITHOUT vendor/, then with an
+ *         EACCES injected on reading the decoder (fingerprint), then with attribution-rules.mjs broken
+ *         (syntax error, missing export). In every case M-001, M-002, M-003 and M-004's agent reading run
+ *         exactly as before; only M-004's two attribution rows become instrument errors.
+ * Part 2 (first case): a copy of the harness WITHOUT vendor/: the M-001 shape (M-998 fixture, fake freee MCP,
  *         empty executor) and the M-002 shape (M-996 fixture, loopback catalog) dry-run exactly as
  *         before; the M-004 shape (M-994 attribution fixture, fake provider, loopback A/B/GitHub)
  *         still runs, its agent reading is unaffected, and ONLY its two attribution rows become
@@ -23,6 +27,7 @@ import { createServer } from "node:http";
 import { mkdtempSync, mkdirSync, cpSync, readFileSync, writeFileSync, existsSync, symlinkSync, rmSync } from "node:fs";
 import { resolve, join, dirname, relative } from "node:path";
 import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 
 const SRC = resolve(import.meta.dirname, "..");
 let failures = 0;
@@ -82,49 +87,97 @@ await new Promise<void>((r) => server.listen(47331, "127.0.0.1", () => r()));
 const answers = join(root, "answers.json");
 writeFileSync(answers, JSON.stringify({ fake: `説明。\nREPO: ${REPO}\nAUTH: OAuth 2.0` }));
 const baseEnv = { ...process.env, KANSEI_M998_SEALED_PATH: join(FIX, "M-998.sealed.json"), KANSEI_M996_SEALED_PATH: join(FIX, "M-996.sealed.json"), KANSEI_M994_SEALED_PATH: join(FIX, "M-994.sealed.json"), KANSEI_FAKE_LLM_ANSWERS_FILE: answers, KANSEI_FAKE_ATTR_BASE: "http://127.0.0.1:47331", FAKE_FREEE_STATE_FILE: join(root, "fake-freee-state.json") };
-async function run(pack: string, extra: string[] = []) {
-  const r = await spawnAsync(process.execPath, [join(root, "exec-harness", "run-marker.mjs"), pack, "--dry-run", ...extra], { cwd: root, env: baseEnv });
+// M-003 shape: the fetch-check summary (loopback pages on 47332, the port the M-995 fixture seal names)
+const PAGES: Record<string, string> = {
+  "/agent-wiki/": "<html><head><title>Fake Agent Wiki index</title></head><body>fixture</body></html>\n",
+  "/agent-wiki/services/square.html": "<html><head><title>Fake Square guide</title></head><body>fixture</body></html>\n",
+  "/insights/control.html": "<html><head><title>Fake control article</title></head><body>fixture</body></html>\n",
+};
+const pages = createServer((req, res) => { const b = PAGES[req.url || ""]; if (!b) { res.writeHead(404); return res.end(); } res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(b); });
+await new Promise<void>((r) => pages.listen(47332, "127.0.0.1", () => r()));
+const TODAY = new Date().toISOString().slice(0, 10);
+const summaryPath = join(root, "fetch-summary.json");
+const cell = { status: "fetched", error: null, snippet: "…" };
+writeFileSync(summaryPath, JSON.stringify({ date: TODAY, run_at: `${TODAY}T00:00:01.000Z`, agents: { claude: "claude-opus-5", codex: "gpt-6-astra" }, cli_versions: { claude: "9.9.9 (Claude Code)", codex: "codex-cli 0.0.1" }, checks: { "fetch-index": { claude: cell, codex: cell }, "fetch-square": { claude: cell, codex: cell }, "fetch-control-insights": { claude: cell, codex: cell } } }));
+// preload that makes reading the vendored decoder's bytes fail with EACCES (Codex 8d905ee N3 injection)
+const preloadEacces = join(root, "preload-eacces.mjs");
+writeFileSync(preloadEacces, `import fs from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+const orig = fs.readFileSync;
+fs.readFileSync = function (p, ...a) {
+  const s = String(p && p.href ? p.href : p).replaceAll('\\\\', '/');
+  if (s.endsWith('vendor/entities-8.1.0/decode.js')) { const e = new Error('Injected EACCES for the optional decoder fingerprint'); e.code = 'EACCES'; throw e; }
+  return orig.call(this, p, ...a);
+};
+syncBuiltinESMExports();
+`);
+const withEnv = { ...baseEnv, KANSEI_M995_SEALED_PATH: join(FIX, "M-995.sealed.json") };
+async function runIn(pack: string, extra: string[] = [], nodeArgs: string[] = []) {
+  const r = await spawnAsync(process.execPath, [...nodeArgs, join(root, "exec-harness", "run-marker.mjs"), pack, "--dry-run", ...extra], { cwd: root, env: withEnv });
   const m = /evidence: (\S+?)\/ \(manifest/.exec(r.out);
   const bundle = m ? join(root, m[1]) : null;
   const metrics = bundle && existsSync(join(bundle, "metrics.json")) ? JSON.parse(readFileSync(join(bundle, "metrics.json"), "utf-8")) : null;
-  return { ...r, bundle, metrics, readings: (metrics?.readings || []) as any[] };
+  const manifest = bundle && existsSync(join(bundle, "manifest.json")) ? JSON.parse(readFileSync(join(bundle, "manifest.json"), "utf-8")) : null;
+  return { ...r, bundle, metrics, manifest, readings: (metrics?.readings || []) as any[] };
 }
+const FAKE_MCP = `node ${join(FIX, "fake-freee-mcp.mjs").replaceAll("\\", "/")}`;
+/** M-001, M-002, M-003 must run exactly as before; M-004's agent reading must be unaffected. */
+async function existingMarkersUnaffected(tag: string, nodeArgs: string[] = []) {
+  const r1 = await runIn("fixtures/taskpack-m998.json", ["--mcp", FAKE_MCP, "--executor", "empty"], nodeArgs);
+  expect(`${tag} M-001 shape (M-998) starts and completes`, r1.status === 0 && Boolean(r1.bundle) && !/ERR_MODULE_NOT_FOUND|Cannot find module|SyntaxError/.test(r1.out), r1.out.slice(-500));
+  const r2 = await runIn("fixtures/taskpack-m996.json", [], nodeArgs);
+  const a2 = r2.readings.find((x) => x.observed.method === "catalog_display_vs_sealed_expectation");
+  expect(`${tag} M-002 shape (M-996) completes, reading as before (done/pass)`, r2.status === 0 && Boolean(r2.bundle) && a2?.stage_reached === "done" && a2?.observed.pass === true && a2?.observed.instrument_error === null, r2.out.slice(-500));
+  const r3 = await runIn("fixtures/taskpack-m995.json", ["--fetch-summary", summaryPath], nodeArgs);
+  const obs3 = r3.readings.filter((x) => x.observed.method === "agent_fetch_vs_sealed_body_digest");
+  expect(`${tag} M-003 shape (M-995 fetch-check) completes, both observers done/pass`, r3.status === 0 && obs3.length === 2 && obs3.every((x) => x.stage_reached === "done" && x.observed.pass === true), `${r3.status} ${obs3.length} ${r3.out.slice(-400)}`);
+  const r4 = await runIn("fixtures/taskpack-m994-attribution.json", [], nodeArgs);
+  const agent = r4.readings.find((x) => x.observed.method === "llm_answer_rules_vs_sealed_expectation");
+  expect(`${tag} M-004 shape completes, its agent reading unaffected (done/pass)`, r4.status === 0 && agent?.stage_reached === "done" && agent?.observed.pass === true, r4.out.slice(-500));
+  return { r1, r2, r3, r4 };
+}
+const attrRows = (r: any) => ({ A: r.readings.find((x: any) => x.observed.method === "sealed_repo_vs_official_docs"), B: r.readings.find((x: any) => x.observed.method === "sealed_repo_vs_kansei_catalog") });
 try {
-  // M-001 shape: the freee path (fake MCP, empty executor) — starts and writes its bundle as before
+  // (2) no vendor/ at all
   {
-    const r = await run("fixtures/taskpack-m998.json", ["--mcp", `node ${join(FIX, "fake-freee-mcp.mjs").replaceAll("\\", "/")}`, "--executor", "empty"]);
-    expect("2 M-001 shape (M-998) starts and completes without vendor/", r.status === 0 && Boolean(r.bundle), r.out.slice(-600));
-    expect("2 M-001 shape: no module-resolution error", !/ERR_MODULE_NOT_FOUND|Cannot find module/.test(r.out));
-  }
-  // M-002 shape: catalog display (the catalog shows 'official' for dead endpoints → pass)
-  {
-    const r = await run("fixtures/taskpack-m996.json");
-    const agent = r.readings.find((x) => x.observed.method === "catalog_display_vs_sealed_expectation");
-    expect("2 M-002 shape (M-996) completes without vendor/", r.status === 0 && Boolean(r.bundle), r.out.slice(-600));
-    expect("2 M-002 shape: reading as before (done/pass, not an instrument error)", agent?.stage_reached === "done" && agent?.observed.pass === true && agent?.observed.instrument_error === null, JSON.stringify(agent?.observed));
-  }
-  // M-004 shape: the agent reading is unaffected; only the attribution rows turn into instrument errors
-  {
-    const r = await run("fixtures/taskpack-m994-attribution.json");
-    const agent = r.readings.find((x) => x.observed.method === "llm_answer_rules_vs_sealed_expectation");
-    const A = r.readings.find((x) => x.observed.method === "sealed_repo_vs_official_docs");
-    const B = r.readings.find((x) => x.observed.method === "sealed_repo_vs_kansei_catalog");
-    expect("2 M-004 shape (M-994 + attribution) completes without vendor/ (exit 0)", r.status === 0 && Boolean(r.bundle), r.out.slice(-600));
-    expect("2 M-004: the agent reading is unaffected (done/pass by the judge)", agent?.stage_reached === "done" && agent?.observed.pass === true, JSON.stringify(agent?.observed));
+    const { r4 } = await existingMarkersUnaffected("2 without vendor/:");
+    const { A, B } = attrRows(r4);
     expect("2 M-004: ONLY the attribution rows are instrument errors (A and B, pass=false)", A?.observed.instrument_error === "other" && B?.observed.instrument_error === "other" && A?.observed.pass === false && B?.observed.pass === false, JSON.stringify([A?.observed, B?.observed]));
-    expect("2 M-004: the attribution line says instrument", /attribution: A official docs=instrument B KanseiLINK catalog=instrument/.test(r.out), r.out.slice(-400));
-    const harness = r.bundle ? readFileSync(join(r.bundle, "harness.jsonl"), "utf-8") : "";
+    expect("2 M-004: the attribution line says instrument", /attribution: A official docs=instrument B KanseiLINK catalog=instrument/.test(r4.out), r4.out.slice(-400));
+    const harness = r4.bundle ? readFileSync(join(r4.bundle, "harness.jsonl"), "utf-8") : "";
     expect("2 M-004: the public log records attribution_failed only as an event (no message)", /"event":"attribution_failed","ok":false/.test(harness) && !/Cannot find|ERR_MODULE/.test(harness));
+    expect("2 manifest: the absent optional parts are fingerprinted as null, the run still completes", r4.manifest?.executor?.libs?.["vendor/entities-8.1.0/decode.js"] === null && r4.manifest?.executor?.libs?.["vendor/entities-8.1.0/generated/decode-data-html.js"] === null);
   }
-  // control: with vendor/ restored the same copy reads A/B again
+  // (3) control: vendor/ restored
+  cpSync(join(SRC, "exec-harness", "vendor"), join(root, "exec-harness", "vendor"), { recursive: true });
   {
-    cpSync(join(SRC, "exec-harness", "vendor"), join(root, "exec-harness", "vendor"), { recursive: true });
-    const r = await run("fixtures/taskpack-m994-attribution.json");
-    const A = r.readings.find((x) => x.observed.method === "sealed_repo_vs_official_docs");
-    expect("2 control: with vendor/ back, A is read again (listed via A2)", A?.observed.pass === true && A?.observed.instrument_error === null, JSON.stringify(A?.observed));
+    const r2 = await runIn("fixtures/taskpack-m996.json");
+    const a2 = r2.readings.find((x) => x.observed.method === "catalog_display_vs_sealed_expectation");
+    expect("3 control: with vendor/ back, M-002 completes (done/pass) and all six decoder files are fingerprinted", r2.status === 0 && a2?.observed.pass === true && ["decode.js", "decode-codepoint.js", "generated/decode-data-html.js", "generated/decode-data-xml.js", "internal/bin-trie-flags.js", "internal/decode-shared.js"].every((f) => /^[0-9a-f]{64}$/.test(r2.manifest?.executor?.libs?.[`vendor/entities-8.1.0/${f}`] || "")), JSON.stringify(r2.manifest?.executor?.libs));
+    const r4 = await runIn("fixtures/taskpack-m994-attribution.json");
+    expect("3 control: with vendor/ back, A is read again (listed via A2)", attrRows(r4).A?.observed.pass === true && attrRows(r4).A?.observed.instrument_error === null, JSON.stringify(attrRows(r4).A?.observed));
   }
+  // (3) EACCES while reading the decoder's bytes for the fingerprint (Codex 8d905ee N3)
+  {
+    const { r2, r4 } = await existingMarkersUnaffected("3 EACCES on the decoder fingerprint:", ["--import", pathToFileURL(preloadEacces).href]);
+    expect("3 EACCES: M-002's manifest records the unreadable decoder as null and the bundle is complete", r2.manifest?.executor?.libs?.["vendor/entities-8.1.0/decode.js"] === null && Boolean(r2.metrics));
+    const priv = r2.bundle ? JSON.parse(readFileSync(join(r2.bundle, "environment.private.json"), "utf-8")) : {};
+    expect("3 EACCES: the private sidecar says which part could not be read", (priv.diagnostics || []).some((d: any) => d.event === "optional_part_unreadable" && d.part === "vendor/entities-8.1.0/decode.js" && d.code === "EACCES"), JSON.stringify(priv.diagnostics));
+    const { A, B } = attrRows(r4);
+    expect("3 EACCES: M-004 still writes both attribution rows (read, or instrument — never a crash)", Boolean(A && B) && [A, B].every((x: any) => x.observed.pass === true || x.observed.instrument_error === "other" || x.observed.pass === false));
+  }
+  // (4) a broken optional part: syntax error, then a missing export
+  const rules = join(root, "exec-harness", "lib", "attribution-rules.mjs");
+  const original = readFileSync(rules, "utf-8");
+  for (const [tag, broken] of [["4 syntax error in attribution-rules.mjs:", "export const = ;\n"], ["4 export missing from attribution-rules.mjs:", "export const unrelated = 1;\n"]] as const) {
+    writeFileSync(rules, broken);
+    const { r4 } = await existingMarkersUnaffected(tag);
+    const { A, B } = attrRows(r4);
+    expect(`${tag} M-004's attribution rows become instrument errors (U1/U2) and nothing else`, A?.observed.instrument_error === "other" && B?.observed.instrument_error === "other", JSON.stringify([A?.observed, B?.observed]));
+  }
+  writeFileSync(rules, original);
 } finally {
-  server.close();
+  server.close(); pages.close();
   try { rmSync(root, { recursive: true, force: true }); } catch { /* junction cleanup is best effort */ }
 }
 

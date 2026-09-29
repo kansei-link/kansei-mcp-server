@@ -104,7 +104,7 @@ export async function readCatalogDisplay(apiUrl, serviceId, timeoutMs = 20000, o
     let payload; try { payload = JSON.parse(rpc.result?.content?.[0]?.text ?? ''); } catch { return { reachable: true, valid: false, http: r.status, error: 'invalid_payload' }; }
     if (!payload || typeof payload !== 'object') return { reachable: true, valid: false, http: r.status, error: 'invalid_payload' };
     const shape = classifyCatalogPayload(payload, serviceId);
-    if (shape.kind === 'absent') return { reachable: true, valid: true, found: false, http: r.status, tokens: [] };
+    if (shape.kind === 'absent') return { reachable: true, valid: true, found: false, http: r.status, tokens: [], ...(opts.keepPayload ? { payload } : {}) };
     if (shape.kind !== 'display') return { reachable: true, valid: false, http: r.status, error: shape.error };
     const tokens = [String(payload.mcp_status).toLowerCase()];
     if (payload.freshness?.confidence === 'high') tokens.push('updated');
@@ -276,79 +276,88 @@ const llmAnswer = {
     ] };
   },
   /**
-   * Attribution columns A and B (ATTRIBUTION-Rules v0.1 §1, §2-1). Ground-truth side rows, written
-   * once per run; they read only (public pages, the public catalog) and never touch the subject.
-   * THREE values per source (classifySource, lib/attribution-rules.mjs; Codex review of 185d63d):
-   * listed / not listed / unknown. "Not listed" blames the company or KanseiLINK, so it needs a
-   * complete observation in which neither the owner nor the repo name appears at all; anything in
-   * between is unknown (U1 / U2), never a judgement. Values stay in memory; rows carry booleans and
-   * field NAMES only. Row encoding: pass = listed; instrument_error 'other' = unknown; else not listed.
-   *   A (sealed_repo_vs_official_docs): listed if A1 or A2 is listed; not listed only if every page
-   *     is not listed (HTTP 200, whole body read, names absent); otherwise unknown.
-   *   B (sealed_repo_vs_kansei_catalog): listed if some field of the catalog item resolves to the key
-   *     (M-002's catalog reader, read only); a field that names the owner/repo without resolving, or
-   *     an unobservable item, makes B unknown; no item or no name anywhere = not listed.
+   * Attribution columns A and B (ATTRIBUTION-Rules v0.1 §1, §2-1, §4-2). Ground-truth side rows,
+   * written once per run; they read only (public pages, the public catalog) and never touch the
+   * subject. Values stay in memory; rows carry booleans and field NAMES only.
+   * §4-2 (Michie 2026-09-29): the automatic reading is "listed" or "unknown" only. A source is
+   * "not listed" only when a valid HUMAN attestation exists for the sha256 of the exact body read
+   * this run (evidence/attestations/<marker>-<source>-<sha>.json); a changed body expires it.
+   * Row encoding: pass = listed; instrument_error 'other' = unknown; pass=false with
+   * instrument_error=null = not listed BY HUMAN ATTESTATION (check *_not_listed_human_attested).
+   *   A (sealed_repo_vs_official_docs): listed if A1 or A2 is listed; not listed only if EVERY page
+   *     is attested not listed for today's body; otherwise unknown. A page counts as read only after
+   *     HTTP 200 and the whole body received before the timeout; its body = the raw bytes.
+   *   B (sealed_repo_vs_kansei_catalog): listed if some field of the catalog item resolves to the
+   *     key (M-002's reader, read only); not listed only with an attestation for today's body
+   *     (catalogBody: string leaves without the top-level "_*" keys and "freshness"); otherwise unknown.
    */
-  async attribution({ MK, sealed, harnessLog }) {
+  async attribution({ MK, sealed, harnessLog, attestationsDir, expectedDigest, markerId }) {
     const cfg = MK.attribution;
     if (!cfg) return [];
     // First and only place the source readers are loaded. If they cannot be loaded, this throws and
     // marker-generic writes both attribution rows as instrument errors (U1/U2); the agent readings of
     // the run are unaffected, and no other marker ever reaches this line.
-    const { classifySource } = await import('./attribution-rules.mjs');
-    const rows = [];
+    const { classifySource, catalogStringLeaves, catalogBody, sha256Hex, findAttestation } = await import('./attribution-rules.mjs');
+    const dir = (typeof cfg.attestations_dir === 'string' && cfg.attestations_dir.trim()) ? cfg.attestations_dir : attestationsDir;
+    const rows = []; const diagnostics = [];
 
     // A: official documentation pages fixed in the taskpack
     const pages = Array.isArray(cfg.official_docs) ? cfg.official_docs : [];
-    // Three values per page (lib/attribution-rules.mjs classifySource). "fetched" = HTTP 200 AND the
-    // whole body read before the timeout; anything short of that is unknown, never "not listed".
     const aChecks = []; const states = [];
     for (const p of pages) {
-      let fetched = false, state = 'unknown';
+      let fetched = false, state = 'unknown', attested = false;
       const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000);
       try {
         const r = await fetch(p.url, { headers: { 'user-agent': 'kansei-marker-harness/0.4' }, signal: c.signal });
-        if (r.status === 200) { const body = await r.text(); fetched = true; state = classifySource(body, sealed, { html: true }).state; }
-        else await r.body?.cancel().catch(() => {});
+        if (r.status === 200) {
+          const bytes = Buffer.from(await r.arrayBuffer()); fetched = true; // the whole body, received
+          state = classifySource(bytes.toString('utf8'), sealed, { html: true }).state;
+          if (state !== 'listed') {
+            const bodySha = sha256Hex(bytes);
+            const f = findAttestation(dir, { markerId, expectedDigest, sourceId: p.id, bodySha });
+            attested = f.attested; if (attested) state = 'not_listed';
+            diagnostics.push({ event: 'attribution_source', source_id: p.id, body_sha256: bodySha, attestation: f.why });
+          }
+        } else await r.body?.cancel().catch(() => {});
       } catch { fetched = false; state = 'unknown'; } finally { clearTimeout(t); }
       states.push(state);
-      aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_page_lists_sealed_repo`, ok: state === 'listed' }, { label: `${p.id}_page_names_absent`, ok: state === 'not_listed' });
+      aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_page_lists_sealed_repo`, ok: state === 'listed' }, { label: `${p.id}_page_not_listed_human_attested`, ok: attested });
     }
-    // A = listed if any page is listed; not listed only if every page is (and there is a page); else unknown
     const aListed = states.includes('listed');
     const aNotListed = !aListed && states.length > 0 && states.every((x) => x === 'not_listed');
     const aInstrument = aListed || aNotListed ? null : 'other';
-    aChecks.push({ label: 'official_docs_list_sealed_repo', ok: aListed });
+    aChecks.push({ label: 'official_docs_list_sealed_repo', ok: aListed }, { label: 'official_docs_not_listed_human_attested', ok: aNotListed });
     rows.push({ method: 'sealed_repo_vs_official_docs', claim: 'the official documentation pages fixed in the taskpack list the sealed MCP repository', pass: aListed, instrument_error: aInstrument, checks: aChecks });
-    harnessLog({ event: 'attribution', column: 'A', listed: aListed, instrument: aInstrument });
+    harnessLog({ event: 'attribution', column: 'A', listed: aListed, attested: aNotListed, instrument: aInstrument });
 
     // B: KanseiLINK's own public catalog item (M-002 reader, keepPayload in memory only)
     const d = await readCatalogDisplay(cfg.catalog?.display_api_url, cfg.catalog?.service_id, 20000, { keepPayload: true });
     const bChecks = [{ label: 'catalog_item_observed', ok: Boolean(d.reachable && d.valid) }];
-    let bListed = false, bInstrument = null;
-    if (!d.reachable || !d.valid) bInstrument = 'other';
-    else if (!d.found) bChecks.push({ label: 'catalog_item_present', ok: false });
-    else {
-      bChecks.push({ label: 'catalog_item_present', ok: true });
+    let bListed = false, bAttested = false;
+    if (d.reachable && d.valid) {
+      bChecks.push({ label: 'catalog_item_present', ok: Boolean(d.found) });
       const fields = [], unresolved = [];
-      const walk = (v, path) => {
-        if (typeof v === 'string') { const st = classifySource(v, sealed).state; if (st === 'listed') fields.push(path || '(root)'); else if (st === 'unknown') unresolved.push(path || '(root)'); }
-        else if (Array.isArray(v)) v.forEach((x) => walk(x, `${path}[]`));
-        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k);
-      };
-      walk(d.payload, '');
+      for (const [path, value] of catalogStringLeaves(d.payload)) {
+        const st = classifySource(value, sealed);
+        if (st.state === 'listed') fields.push(path); else if (st.reason === 'name_present_not_resolvable') unresolved.push(path);
+      }
       bListed = fields.length > 0;
-      // a field names the owner or repo but does not resolve as a link → B is unknown, never "wrong"
-      if (!bListed && unresolved.length) bInstrument = 'other';
       // field NAMES only (never values); anything that is not a plain field path is recorded without its name
       const name = (f) => (/^[A-Za-z0-9_.[\]()]{1,80}$/.test(f) ? f : '(unnamed)');
       for (const f of [...new Set(fields)]) bChecks.push({ label: `catalog_field_lists_sealed_repo:${name(f)}`, ok: true });
       for (const f of [...new Set(unresolved)]) bChecks.push({ label: `catalog_field_names_sealed_repo_unresolved:${name(f)}`, ok: false });
-      bChecks.push({ label: 'catalog_item_names_absent', ok: !bListed && !unresolved.length });
+      if (!bListed) {
+        const bodySha = sha256Hex(catalogBody(d.payload));
+        const f = findAttestation(dir, { markerId, expectedDigest, sourceId: 'B', bodySha });
+        bAttested = f.attested;
+        diagnostics.push({ event: 'attribution_source', source_id: 'B', body_sha256: bodySha, attestation: f.why });
+      }
     }
-    bChecks.push({ label: 'kansei_catalog_lists_sealed_repo', ok: bListed });
+    const bInstrument = bListed || bAttested ? null : 'other';
+    bChecks.push({ label: 'kansei_catalog_lists_sealed_repo', ok: bListed }, { label: 'catalog_item_not_listed_human_attested', ok: bAttested });
     rows.push({ method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository in some field', pass: bListed, instrument_error: bInstrument, checks: bChecks });
-    harnessLog({ event: 'attribution', column: 'B', listed: bListed, instrument: bInstrument });
+    harnessLog({ event: 'attribution', column: 'B', listed: bListed, attested: bAttested, instrument: bInstrument });
+    rows.diagnostics = diagnostics; // private sidecar only (environment.private.json)
     return rows;
   },
   observers({ MK }) { return (MK.providers || ['openai', 'gemini', 'perplexity', 'claude']).map((p) => ({ id: 'kansei_harness', label: p, provider: p, model: null })); },

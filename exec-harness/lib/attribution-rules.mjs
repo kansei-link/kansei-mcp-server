@@ -1,29 +1,28 @@
 /**
- * ATTRIBUTION-Rules v0.1 — reading the sealed repository in a SOURCE (columns A and B), three values.
+ * ATTRIBUTION-Rules v0.1 — reading the sealed repository in a SOURCE (columns A and B).
  * Loaded ONLY by the M-004 attribution step (marker-targets.mjs, dynamic import), so a broken
  * decoder or source reader never stops a marker that does not use it. The display and judgement
  * functions live in ./attribution-labels.mjs (no imports) and are re-exported here for callers.
+ *
+ * §4-2 (Michie 2026-09-29, after Codex review of 8d905ee): the AUTOMATIC reading returns only
+ * "listed" or "unknown". "Not listed" — a judgement that blames the company or KanseiLINK — is given
+ * only by a HUMAN attestation bound to the sha256 of the exact body that was read that day
+ * (evidence/attestations/<marker>-<source>-<body sha256>.json). When the body changes, the
+ * attestation no longer matches and the source is unknown again.
  */
 export * from './attribution-labels.mjs';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { REPO_HOSTS } from './llm-answer-rules.mjs';
 import { decodeHTML } from '../vendor/entities-8.1.0/decode.js';
 
-
-/* ---------- reading the sealed repository in a SOURCE (columns A and B): THREE values ----------
- * Yardstick (Michie 2026-09-28): a judgement that blames the other side (the company, KanseiLINK)
- * must always be right, and a judgement that clears it must not be given on a guess either. A
- * source is therefore read into one of three states (Codex review of 185d63d, closed by kind):
- *   listed      some URL token of the source resolves CLEANLY to the sealed key (sourceRepoKey)
- *   not_listed  the observation is complete (HTTP 200 and the whole body received in time) AND the
- *               decoded body never contains the sealed owner name nor the repo name (ASCII case-
- *               insensitive substring), and no undecodable reference sits near a repository host
- *   unknown     everything else: a truncated body, a name present but not resolvable as a link,
- *               an undecodable reference near a host… → the truth table's U1 (A) / U2 (B)
- * Resolving (sourceRepoKey) keeps the host's identity and the owner/repo exact and accepts every way
- * of writing the same place: scheme https://, http:// or none (incl. //github.com); a REPO_HOSTS
- * entry exactly, for GitHub also www.github.com; port none or :443; anything below the repository
- * (/tree/…, /blob/…, query, fragment, .git). A token is never trimmed: a trailing "." or "/..", or
- * "%2e" anywhere, makes it unresolvable (and then the name rule usually makes the source unknown).
+/* ---------- resolving one URL token to the sealed key ----------
+ * Keeps the host's identity and the owner/repo exact and accepts every way of writing the same
+ * place: scheme https://, http:// or none (incl. //github.com); a REPO_HOSTS entry exactly, for
+ * GitHub also www.github.com; port none or :443; anything below the repository (/tree/…, /blob/…,
+ * query, fragment, .git). A token is never trimmed: a trailing "." or "/..", "%2e" anywhere, or a
+ * backslash makes it unresolvable. Percent-encoded owner/repo names are not decoded: unresolvable.
  */
 const escapeRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const HOST_ALIASES = Object.freeze({ 'www.github.com': 'github.com' });
@@ -46,23 +45,43 @@ export function sourceRepoKey(raw) {
   return `${host}/${owner}/${repo}`.toLowerCase();
 }
 
-/* URL tokens for sources. Characters are never trimmed. A token ends only at whitespace, a quote,
- * a backtick, an angle/round/square/curly bracket or CJK punctuation. Scheme URLs (any scheme:
- * https, ftp, …) are taken whole first and their insides are never re-scanned; scheme-less and
- * protocol-relative hosts are then taken only outside them and only at a boundary: start, or a
- * character that cannot be part of a URL ([ ( < > { " ' ` whitespace, non-ASCII), or right after
- * an href= / src= attribute. Never after a bare "=" or "/" (a URL inside another URL). */
+/* ---------- URL tokens of a source ----------
+ * Scanned left to right for "name:" at a boundary (not preceded by a letter, digit, "+", "." or "-"):
+ *   http: / https:  the token runs to the first stop character (whitespace, quote, backtick,
+ *                   < > ( ) [ ] { }, CJK brackets and punctuation) and is taken WHOLE; its inside is
+ *                   never re-scanned.
+ *   any other name  (data:, mailto:, javascript:, urn:, ftp:, …, with or without "//") — the rest up
+ *                   to the next WHITESPACE is opaque: never read, never re-scanned (Codex 8d905ee N1).
+ *   "host:NNN/"     a port, not a scheme (github.com:443/…) — left for the scheme-less pass.
+ * Then, outside those spans only, scheme-less and protocol-relative hosts are taken at a boundary:
+ * start, or a character that cannot be part of a URL ([ ( < > { " ' ` whitespace, non-ASCII), or
+ * right after an href= / src= attribute — never after a bare "=" or "/" (a URL inside another URL).
+ * Characters are never trimmed from any token. */
 const STOP = '\\s<>"\'`()\\[\\]{}（）「」『』【】、。';
-const SCHEME_TOKEN = new RegExp(`[A-Za-z][A-Za-z0-9+.-]*://[^${STOP}]+`, 'g');
+const HTTP_TOKEN = new RegExp(`^[^${STOP}]+`);
+const SCHEME_AT = /(?<![A-Za-z0-9+.-])([A-Za-z][A-Za-z0-9+.-]*):/g;
 const BARE_TOKEN = new RegExp(`(?:(?<=(?:^|\\s)(?:href|src)=)|(?<![A-Za-z0-9._~!$&*+,;=:@/?#%-]))(?://)?[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+(?::[0-9]*)?/[^${STOP}]+`, 'gi');
 export function sourceUrlTokens(text) {
   const s = String(text || '');
-  const tokens = [];
-  for (const m of s.matchAll(SCHEME_TOKEN)) tokens.push({ raw: m[0], index: m.index, end: m.index + m[0].length });
+  const tokens = []; const spans = [];
+  const re = new RegExp(SCHEME_AT.source, 'g');
+  let m;
+  while ((m = re.exec(s))) {
+    const start = m.index; const after = start + m[0].length; const name = m[1].toLowerCase();
+    if (/^[0-9]+(?=[/?#\s]|$)/.test(s.slice(after, after + 8))) continue; // host:port
+    if (name === 'http' || name === 'https') {
+      const raw = HTTP_TOKEN.exec(s.slice(start))[0];
+      tokens.push({ raw, index: start, end: start + raw.length, opaque: false });
+      spans.push([start, start + raw.length]); re.lastIndex = start + raw.length;
+    } else {
+      const opaque = /^\S*/.exec(s.slice(start))[0];
+      spans.push([start, start + opaque.length]); re.lastIndex = Math.max(start + opaque.length, after);
+    }
+  }
   let masked = s;
-  for (const t of tokens) masked = masked.slice(0, t.index) + ' '.repeat(t.end - t.index) + masked.slice(t.end);
-  for (const m of masked.matchAll(BARE_TOKEN)) tokens.push({ raw: m[0], index: m.index, end: m.index + m[0].length });
-  return tokens.sort((a, b) => a.index - b.index);
+  for (const [a, b] of spans) masked = masked.slice(0, a) + ' '.repeat(b - a) + masked.slice(b);
+  for (const t of masked.matchAll(BARE_TOKEN)) tokens.push({ raw: t[0], index: t.index, end: t.index + t[0].length, opaque: false });
+  return tokens.sort((x, y) => x.index - y.index);
 }
 
 /** HTML character references decoded ONCE with the vendored WHATWG-conformant decoder (entities
@@ -81,9 +100,9 @@ function residualNearHost(s) {
 }
 
 /**
- * Three-valued reading of one source that was received completely.
+ * The AUTOMATIC reading of one source: 'listed' or 'unknown' — never 'not_listed' (§4-2).
  * sealed = { repo: 'host/owner/repo', owner, name }; opts.html decodes HTML character references once.
- * Returns { state: 'listed' | 'not_listed' | 'unknown', reason }.
+ * The reason is a diagnostic only (why the source is unknown); it never changes the state.
  */
 export function classifySource(text, sealed, opts = {}) {
   const s = opts.html ? decodeHtmlCharRefs(text) : String(text ?? '');
@@ -91,11 +110,75 @@ export function classifySource(text, sealed, opts = {}) {
   const lower = s.toLowerCase();
   if (lower.includes(String(sealed.owner).toLowerCase()) || lower.includes(String(sealed.name).toLowerCase())) return { state: 'unknown', reason: 'name_present_not_resolvable' };
   if (residualNearHost(s)) return { state: 'unknown', reason: 'undecodable_reference_near_host' };
-  return { state: 'not_listed', reason: 'names_absent' };
+  return { state: 'unknown', reason: 'no_resolving_link' };
 }
 
 /** Kept for callers that only need the positive answer. */
 export function sourceListsRepo(text, sealedKey, opts = {}) {
   const s = opts.html ? decodeHtmlCharRefs(text) : String(text ?? '');
   return sourceUrlTokens(s).some((t) => sourceRepoKey(t.raw) === sealedKey);
+}
+
+/* ---------- the "body" a human attests (and the automatic reading reads) ---------- */
+export const sha256Hex = (bytes) => createHash('sha256').update(bytes).digest('hex');
+
+/** Column B's body: every string leaf of the catalog item with its path, sorted, EXCLUDING the
+ *  top-level keys that start with "_" (per-request metadata such as _meta.attempt_id) and
+ *  "freshness" (dates that move every day). Neither can name a repository. */
+export function catalogStringLeaves(payload) {
+  const leaves = [];
+  const walk = (v, path) => {
+    if (typeof v === 'string') leaves.push([path || '(root)', v]);
+    else if (Array.isArray(v)) v.forEach((x) => walk(x, `${path}[]`));
+    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k);
+  };
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    for (const [k, v] of Object.entries(payload)) if (!k.startsWith('_') && k !== 'freshness') walk(v, k);
+  }
+  return leaves.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
+}
+export function catalogBody(payload) { return JSON.stringify(catalogStringLeaves(payload)); }
+
+/* ---------- human attestations (§4-2) ----------
+ * File: <attestations dir>/<marker_id>-<source_id>-<body sha256>.json, exactly these keys:
+ *   attestation   "kansei-attribution-not-listed/v1"
+ *   marker_id     e.g. "M-004"            (must equal the run's marker)
+ *   expected_digest  the seal's sha256     (binds the attestation to the sealed repository)
+ *   source_id     "A1" | "A2" | "B" …     (must equal the source being read)
+ *   target        the URL or the catalog item/field that was read (text)
+ *   body_sha256   sha256 of the body read that day (must equal today's body)
+ *   verdict       "not_listed"
+ *   observer      "human:<name>"
+ *   date          "YYYY-MM-DD"
+ *   reason        one line
+ * Anything else (a missing or extra key, a placeholder, another seal, another body) is ignored and
+ * the source stays unknown. Unsigned drafts carry "_draft_instructions" and are therefore invalid. */
+export const ATTESTATION_KIND = 'kansei-attribution-not-listed/v1';
+const ATTESTATION_KEYS = ['attestation', 'body_sha256', 'date', 'expected_digest', 'marker_id', 'observer', 'reason', 'source_id', 'target', 'verdict'];
+export function attestationPath(dir, markerId, sourceId, bodySha) { return join(dir, `${markerId}-${sourceId}-${bodySha}.json`); }
+export function validateAttestation(a, { markerId, expectedDigest, sourceId, bodySha }) {
+  if (!a || typeof a !== 'object' || Array.isArray(a)) return 'not_an_object';
+  const keys = Object.keys(a).sort();
+  if (keys.length !== ATTESTATION_KEYS.length || keys.some((k, i) => k !== ATTESTATION_KEYS[i])) return 'keys';
+  if (a.attestation !== ATTESTATION_KIND) return 'kind';
+  if (a.marker_id !== markerId) return 'marker_id';
+  if (a.expected_digest !== expectedDigest) return 'expected_digest';
+  if (a.source_id !== sourceId) return 'source_id';
+  if (!/^[0-9a-f]{64}$/.test(String(a.body_sha256)) || a.body_sha256 !== bodySha) return 'body_sha256';
+  if (a.verdict !== 'not_listed') return 'verdict';
+  if (typeof a.observer !== 'string' || !/^human:[^\s<>{}][^<>{}\r\n]{0,59}$/.test(a.observer)) return 'observer';
+  if (typeof a.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(a.date) || Number.isNaN(Date.parse(`${a.date}T00:00:00Z`))) return 'date';
+  if (typeof a.target !== 'string' || !a.target.trim() || /[\r\n<>]/.test(a.target)) return 'target';
+  if (typeof a.reason !== 'string' || !a.reason.trim() || a.reason.length > 200 || /[\r\n<>{}]/.test(a.reason)) return 'reason';
+  return null;
+}
+/** { attested: boolean, why } — reads at most one file, never throws. */
+export function findAttestation(dir, ctx) {
+  try {
+    if (!dir) return { attested: false, why: 'no_dir' };
+    const p = attestationPath(dir, ctx.markerId, ctx.sourceId, ctx.bodySha);
+    if (!existsSync(p)) return { attested: false, why: 'none_for_this_body' };
+    const bad = validateAttestation(JSON.parse(readFileSync(p, 'utf8')), ctx);
+    return bad ? { attested: false, why: `invalid:${bad}` } : { attested: true, why: 'valid' };
+  } catch (e) { return { attested: false, why: 'unreadable' }; }
 }

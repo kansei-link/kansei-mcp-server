@@ -1,0 +1,1073 @@
+{
+  "commit": "8d905ee62f50f3ddeac63e39bea308e28e78e6a9",
+  "network": "loopback only",
+  "count": 93,
+  "conforming": 76,
+  "cases": [
+    {
+      "id": "source-plain",
+      "input": {
+        "text": "https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "source-square",
+      "input": {
+        "text": "[github.com/acme/widget]",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "source-href",
+      "input": {
+        "text": "href=//github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "source-dot",
+      "input": {
+        "text": "https://github.com/acme/widget/..",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-encoded-dot",
+      "input": {
+        "text": "https://github.com/acme/widget/%2e",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-backslash",
+      "input": {
+        "text": "https://github.com/acme/widget\\tail",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-nested-http",
+      "input": {
+        "text": "https://elsewhere.invalid/?q=https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-nested-ftp",
+      "input": {
+        "text": "ftp://elsewhere.invalid/https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-nested-data",
+      "input": {
+        "text": "data:text/plain,https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "listed",
+      "conforms": false
+    },
+    {
+      "id": "source-nested-mailto",
+      "input": {
+        "text": "mailto:reader@example.invalid?body=https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "listed",
+      "conforms": false
+    },
+    {
+      "id": "source-nested-urn",
+      "input": {
+        "text": "urn:example:https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "listed",
+      "conforms": false
+    },
+    {
+      "id": "source-percent-names",
+      "input": {
+        "text": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "not_listed",
+      "conforms": false
+    },
+    {
+      "id": "source-owner-present",
+      "input": {
+        "text": "ACME supplies software",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-repo-present",
+      "input": {
+        "text": "WIDGET is available",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-absent",
+      "input": {
+        "text": "ordinary unrelated text",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "not_listed",
+      "actual": "not_listed",
+      "conforms": true
+    },
+    {
+      "id": "source-other-host",
+      "input": {
+        "text": "https://github.com.evil.invalid/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-other-owner",
+      "input": {
+        "text": "https://github.com/other/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-residual",
+      "input": {
+        "text": "https://github.com/&bogus;/unrelated",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "source-decoded",
+      "input": {
+        "text": "https://github.com/&#97;cme/widg&#101;t",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "source-double",
+      "input": {
+        "text": "https://github.com/&amp;#97;cme/widg&amp;#101;t",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "hyphen",
+      "input": "&hyphen;",
+      "expected": "‐",
+      "actual": "‐",
+      "conforms": true
+    },
+    {
+      "id": "table-1",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "pass"
+      },
+      "expected": "#1",
+      "actual": "#1",
+      "conforms": true
+    },
+    {
+      "id": "table-2",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "miss"
+      },
+      "expected": "#2",
+      "actual": "#2",
+      "conforms": true
+    },
+    {
+      "id": "table-3",
+      "input": {
+        "a": "listed",
+        "b": "wrong",
+        "c": "pass"
+      },
+      "expected": "#3",
+      "actual": "#3",
+      "conforms": true
+    },
+    {
+      "id": "table-4",
+      "input": {
+        "a": "listed",
+        "b": "wrong",
+        "c": "miss"
+      },
+      "expected": "#4",
+      "actual": "#4",
+      "conforms": true
+    },
+    {
+      "id": "table-5",
+      "input": {
+        "a": "not_listed",
+        "b": "correct",
+        "c": "pass"
+      },
+      "expected": "#5",
+      "actual": "#5",
+      "conforms": true
+    },
+    {
+      "id": "table-6",
+      "input": {
+        "a": "not_listed",
+        "b": "correct",
+        "c": "miss"
+      },
+      "expected": "#6",
+      "actual": "#6",
+      "conforms": true
+    },
+    {
+      "id": "table-7",
+      "input": {
+        "a": "not_listed",
+        "b": "wrong",
+        "c": "pass"
+      },
+      "expected": "#7",
+      "actual": "#7",
+      "conforms": true
+    },
+    {
+      "id": "table-8",
+      "input": {
+        "a": "not_listed",
+        "b": "wrong",
+        "c": "miss"
+      },
+      "expected": "#8",
+      "actual": "#8",
+      "conforms": true
+    },
+    {
+      "id": "u0",
+      "input": {
+        "a": "unknown",
+        "b": "unknown",
+        "c": "instrument",
+        "gt": false
+      },
+      "expected": "U0",
+      "actual": "U0",
+      "conforms": true
+    },
+    {
+      "id": "u1",
+      "input": {
+        "a": "unknown",
+        "b": "unknown",
+        "c": "instrument",
+        "gt": true
+      },
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "u2",
+      "input": {
+        "a": "listed",
+        "b": "unknown",
+        "c": "instrument",
+        "gt": true
+      },
+      "expected": "U2",
+      "actual": "U2",
+      "conforms": true
+    },
+    {
+      "id": "u4",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "instrument",
+        "gt": true
+      },
+      "expected": "U4",
+      "actual": "U4",
+      "conforms": true
+    },
+    {
+      "id": "u3",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "format",
+        "gt": true
+      },
+      "expected": "U3",
+      "actual": "U3",
+      "conforms": true
+    },
+    {
+      "id": "separate-bundles",
+      "input": [
+        {
+          "outcome_id": null,
+          "evidence_ref": "bundle-one#hash",
+          "observed": {
+            "method": "sealed_repo_vs_official_docs",
+            "pass": true
+          }
+        },
+        {
+          "outcome_id": null,
+          "evidence_ref": "bundle-one#hash",
+          "observed": {
+            "method": "sealed_repo_vs_kansei_catalog",
+            "pass": true
+          }
+        },
+        {
+          "outcome_id": 1,
+          "evidence_ref": "bundle-two#hash",
+          "observed": {
+            "method": "llm_answer_rules_vs_sealed_expectation",
+            "ground_truth_consistent": true,
+            "checks": [
+              {
+                "label": "repo_value_equals_sealed_repo",
+                "ok": true
+              }
+            ]
+          }
+        }
+      ],
+      "expected": "U1",
+      "actual": "U1",
+      "conforms": true
+    },
+    {
+      "id": "gt-normal",
+      "input": {
+        "full_name": "acme/widget",
+        "private": false,
+        "archived": false
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "gt-renamed",
+      "input": {
+        "full_name": "acme/renamed",
+        "private": false,
+        "archived": false
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "gt-moved",
+      "input": {
+        "full_name": "other/widget",
+        "private": false,
+        "archived": false
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "gt-archived",
+      "input": {
+        "full_name": "acme/widget",
+        "private": false,
+        "archived": true
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "gt-private",
+      "input": {
+        "full_name": "acme/widget",
+        "private": true,
+        "archived": false
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "gt-missing-fields",
+      "input": {},
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "gt-timeout",
+      "input": {},
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-plain",
+      "input": {
+        "page": "https://github.com/acme/widget"
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-plain",
+      "input": {
+        "description": "https://github.com/acme/widget"
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-square",
+      "input": {
+        "page": "[github.com/acme/widget]"
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-square",
+      "input": {
+        "description": "[github.com/acme/widget]"
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-href",
+      "input": {
+        "page": "href=//github.com/acme/widget"
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-href",
+      "input": {
+        "description": "href=//github.com/acme/widget"
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-dot",
+      "input": {
+        "page": "https://github.com/acme/widget/.."
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-dot",
+      "input": {
+        "description": "https://github.com/acme/widget/.."
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-encoded-dot",
+      "input": {
+        "page": "https://github.com/acme/widget/%2e"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-encoded-dot",
+      "input": {
+        "description": "https://github.com/acme/widget/%2e"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-backslash",
+      "input": {
+        "page": "https://github.com/acme/widget\\tail"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-backslash",
+      "input": {
+        "description": "https://github.com/acme/widget\\tail"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-nested-http",
+      "input": {
+        "page": "https://elsewhere.invalid/?q=https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-nested-http",
+      "input": {
+        "description": "https://elsewhere.invalid/?q=https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-nested-ftp",
+      "input": {
+        "page": "ftp://elsewhere.invalid/https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-nested-ftp",
+      "input": {
+        "description": "ftp://elsewhere.invalid/https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-nested-data",
+      "input": {
+        "page": "data:text/plain,https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "listed",
+      "conforms": false
+    },
+    {
+      "id": "loopback-B-nested-data",
+      "input": {
+        "description": "data:text/plain,https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "listed",
+      "conforms": false
+    },
+    {
+      "id": "judgement-nested-data",
+      "input": {
+        "page": "data:text/plain,https://github.com/acme/widget",
+        "description": "data:text/plain,https://github.com/acme/widget"
+      },
+      "expected": "U1",
+      "actual": "#2",
+      "conforms": false
+    },
+    {
+      "id": "loopback-A-nested-mailto",
+      "input": {
+        "page": "mailto:reader@example.invalid?body=https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "listed",
+      "conforms": false
+    },
+    {
+      "id": "loopback-B-nested-mailto",
+      "input": {
+        "description": "mailto:reader@example.invalid?body=https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "listed",
+      "conforms": false
+    },
+    {
+      "id": "loopback-A-nested-urn",
+      "input": {
+        "page": "urn:example:https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "listed",
+      "conforms": false
+    },
+    {
+      "id": "loopback-B-nested-urn",
+      "input": {
+        "description": "urn:example:https://github.com/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "listed",
+      "conforms": false
+    },
+    {
+      "id": "loopback-A-percent-names",
+      "input": {
+        "page": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74"
+      },
+      "expected": "unknown",
+      "actual": "not_listed",
+      "conforms": false
+    },
+    {
+      "id": "loopback-B-percent-names",
+      "input": {
+        "description": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74"
+      },
+      "expected": "unknown",
+      "actual": "not_listed",
+      "conforms": false
+    },
+    {
+      "id": "judgement-percent-names",
+      "input": {
+        "page": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74",
+        "description": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74"
+      },
+      "expected": "U1",
+      "actual": "#8",
+      "conforms": false
+    },
+    {
+      "id": "loopback-A-owner-present",
+      "input": {
+        "page": "ACME supplies software"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-owner-present",
+      "input": {
+        "description": "ACME supplies software"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-repo-present",
+      "input": {
+        "page": "WIDGET is available"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-repo-present",
+      "input": {
+        "description": "WIDGET is available"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-absent",
+      "input": {
+        "page": "ordinary unrelated text"
+      },
+      "expected": "not_listed",
+      "actual": "not_listed",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-absent",
+      "input": {
+        "description": "ordinary unrelated text"
+      },
+      "expected": "not_listed",
+      "actual": "not_listed",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-other-host",
+      "input": {
+        "page": "https://github.com.evil.invalid/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-other-host",
+      "input": {
+        "description": "https://github.com.evil.invalid/acme/widget"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-other-owner",
+      "input": {
+        "page": "https://github.com/other/widget"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-other-owner",
+      "input": {
+        "description": "https://github.com/other/widget"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-residual",
+      "input": {
+        "page": "https://github.com/&bogus;/unrelated"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-residual",
+      "input": {
+        "description": "https://github.com/&bogus;/unrelated"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-decoded",
+      "input": {
+        "page": "https://github.com/&#97;cme/widg&#101;t"
+      },
+      "expected": "listed",
+      "actual": "listed",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-decoded",
+      "input": {
+        "description": "https://github.com/&#97;cme/widg&#101;t"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-A-double",
+      "input": {
+        "page": "https://github.com/&amp;#97;cme/widg&amp;#101;t"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "loopback-B-double",
+      "input": {
+        "description": "https://github.com/&amp;#97;cme/widg&amp;#101;t"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "partial-body",
+      "input": {},
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "optional-decode-read-control",
+      "input": {
+        "target": "M-002 catalogDisplay",
+        "fault": "none",
+        "network": "loopback only"
+      },
+      "expected": {
+        "completed": true,
+        "pass": true
+      },
+      "actual": {
+        "completed": true,
+        "pass": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "optional-decode-read-EACCES",
+      "input": {
+        "target": "M-002 catalogDisplay",
+        "fault": "fs.readFileSync(decode.js) throws EACCES",
+        "network": "loopback only"
+      },
+      "expected": {
+        "completed": true,
+        "pass": true
+      },
+      "actual": {
+        "completed": false,
+        "error": "EACCES",
+        "message": "Injected EACCES for optional decoder fingerprint",
+        "stack": "Error: Injected EACCES for optional decoder fingerprint\n    at fs.readFileSync (file:///C:/Users/HP/Documents/Codex/2026-09-29/files-pasted-by-the-user-kanseilink/kl-review-8d905ee/work/optional-io.mjs:10:138)\n    at fileSha (file:///C:/Users/HP/Documents/Codex/2026-09-29/files-pasted-by-the-user-kanseilink/kl-review-8d905ee/exec-harness/lib/marker-generic.mjs:21:31)\n    at optionalSha (file:///C:/Users/HP/Documents/Codex/2026-09-29/files-pasted-by-the-user-kanseilink/kl-review-8d905ee/exec-harness/lib/marker-generic.mjs:141:47)\n    at runGenericMarker (file:///C:/Users/HP/Documents/Codex/2026-09-29/files-pasted-by-the-user-kanseilink/kl-review-8d905ee/exec-harness/lib/marker-generic.mjs:143:45)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async file:///C:/Users/HP/Documents/Codex/2026-09-29/files-pasted-by-the-user-kanseilink/kl-review-8d905ee/work/optional-io.mjs:22:15"
+      },
+      "conforms": false
+    },
+    {
+      "id": "e2e-nested-data",
+      "input": {
+        "source": "data:text/plain,https://github.com/acme/widget",
+        "answer": "REPO: none; AUTH: OAuth 2.0"
+      },
+      "expected": {
+        "A": "unknown",
+        "B": "unknown",
+        "judgement": "U1"
+      },
+      "actual": {
+        "A": "listed",
+        "B": "listed",
+        "judgement": "#2"
+      },
+      "conforms": false
+    },
+    {
+      "id": "privacy-nested-data",
+      "input": {
+        "canaries": [
+          "PAGE_CANARY_PRIVATE",
+          "CATALOG_CANARY_PRIVATE",
+          "ANSWER_CANARY_PRIVATE"
+        ]
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "schema-nested-data",
+      "input": {
+        "description": "runGenericMarker returned after validateReading/assertExclusive"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "e2e-percent-names",
+      "input": {
+        "source": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74",
+        "answer": "REPO: none; AUTH: OAuth 2.0"
+      },
+      "expected": {
+        "A": "unknown",
+        "B": "unknown",
+        "judgement": "U1"
+      },
+      "actual": {
+        "A": "not_listed",
+        "B": "not_listed",
+        "judgement": "#8"
+      },
+      "conforms": false
+    },
+    {
+      "id": "privacy-percent-names",
+      "input": {
+        "canaries": [
+          "PAGE_CANARY_PRIVATE",
+          "CATALOG_CANARY_PRIVATE",
+          "ANSWER_CANARY_PRIVATE"
+        ]
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "schema-percent-names",
+      "input": {
+        "description": "runGenericMarker returned after validateReading/assertExclusive"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    }
+  ]
+}

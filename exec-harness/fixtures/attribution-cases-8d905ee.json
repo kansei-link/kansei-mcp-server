@@ -1,0 +1,1178 @@
+{
+  "note": "Regression cases for the attribution columns after the Codex review of 8d905ee (93 cases, verbatim in evidence/codex-8d905ee-independent-cases.json). kind: source_text (classifySource, input.sealed), source_page (A: HTML page text), source_catalog_field (B: one catalog string field, no HTML decoding), decoder, truth_table (judgeAttribution; u* inputs carry gt), bundle_join (attributionLines), ground_truth (llmAnswer.groundTruth against a loopback GitHub stub that answers input; gt-timeout never answers), judgement_from_sources (A from page, B from description, C pass), loopback_equivalent (a named smoke case replays the same situation live). Cases with \"revised\": Codex expected an automatic \"not_listed\"; §4-2 (Michie 2026-09-29) makes the automatic reading listed/unknown only, so they expect \"unknown\". Every other expectation is Codex's own. Sealed key for the acme cases: github.com/acme/widget. All values invented.",
+  "sealed": {
+    "repo": "github.com/acme/widget",
+    "owner": "acme",
+    "name": "widget"
+  },
+  "cases": [
+    {
+      "id": "CX4-source-plain",
+      "codex_id": "source-plain",
+      "input": {
+        "text": "https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "listed",
+      "kind": "source_text",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-source-square",
+      "codex_id": "source-square",
+      "input": {
+        "text": "[github.com/acme/widget]",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "listed",
+      "kind": "source_text",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-source-href",
+      "codex_id": "source-href",
+      "input": {
+        "text": "href=//github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "listed",
+      "kind": "source_text",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-source-dot",
+      "codex_id": "source-dot",
+      "input": {
+        "text": "https://github.com/acme/widget/..",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-encoded-dot",
+      "codex_id": "source-encoded-dot",
+      "input": {
+        "text": "https://github.com/acme/widget/%2e",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-backslash",
+      "codex_id": "source-backslash",
+      "input": {
+        "text": "https://github.com/acme/widget\\tail",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-nested-http",
+      "codex_id": "source-nested-http",
+      "input": {
+        "text": "https://elsewhere.invalid/?q=https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-nested-ftp",
+      "codex_id": "source-nested-ftp",
+      "input": {
+        "text": "ftp://elsewhere.invalid/https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-nested-data",
+      "codex_id": "source-nested-data",
+      "input": {
+        "text": "data:text/plain,https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-nested-mailto",
+      "codex_id": "source-nested-mailto",
+      "input": {
+        "text": "mailto:reader@example.invalid?body=https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-nested-urn",
+      "codex_id": "source-nested-urn",
+      "input": {
+        "text": "urn:example:https://github.com/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-percent-names",
+      "codex_id": "source-percent-names",
+      "input": {
+        "text": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-owner-present",
+      "codex_id": "source-owner-present",
+      "input": {
+        "text": "ACME supplies software",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-repo-present",
+      "codex_id": "source-repo-present",
+      "input": {
+        "text": "WIDGET is available",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-absent",
+      "codex_id": "source-absent",
+      "input": {
+        "text": "ordinary unrelated text",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "not_listed",
+      "kind": "source_text",
+      "expect": "unknown",
+      "revised": "2026-09-29 §4-2 (Michie): the automatic reading returns only listed / unknown; \"not listed\" needs a human attestation bound to the body sha256 (none in this case) → unknown"
+    },
+    {
+      "id": "CX4-source-other-host",
+      "codex_id": "source-other-host",
+      "input": {
+        "text": "https://github.com.evil.invalid/acme/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-other-owner",
+      "codex_id": "source-other-owner",
+      "input": {
+        "text": "https://github.com/other/widget",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-residual",
+      "codex_id": "source-residual",
+      "input": {
+        "text": "https://github.com/&bogus;/unrelated",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-source-decoded",
+      "codex_id": "source-decoded",
+      "input": {
+        "text": "https://github.com/&#97;cme/widg&#101;t",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "listed",
+      "kind": "source_text",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-source-double",
+      "codex_id": "source-double",
+      "input": {
+        "text": "https://github.com/&amp;#97;cme/widg&amp;#101;t",
+        "html": true,
+        "sealed": {
+          "repo": "github.com/acme/widget",
+          "owner": "acme",
+          "name": "widget"
+        }
+      },
+      "codex_expected": "unknown",
+      "kind": "source_text",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-hyphen",
+      "codex_id": "hyphen",
+      "input": "&hyphen;",
+      "codex_expected": "‐",
+      "kind": "decoder",
+      "expect": "‐"
+    },
+    {
+      "id": "CX4-table-1",
+      "codex_id": "table-1",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "pass"
+      },
+      "codex_expected": "#1",
+      "kind": "truth_table",
+      "expect": "#1"
+    },
+    {
+      "id": "CX4-table-2",
+      "codex_id": "table-2",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "miss"
+      },
+      "codex_expected": "#2",
+      "kind": "truth_table",
+      "expect": "#2"
+    },
+    {
+      "id": "CX4-table-3",
+      "codex_id": "table-3",
+      "input": {
+        "a": "listed",
+        "b": "wrong",
+        "c": "pass"
+      },
+      "codex_expected": "#3",
+      "kind": "truth_table",
+      "expect": "#3"
+    },
+    {
+      "id": "CX4-table-4",
+      "codex_id": "table-4",
+      "input": {
+        "a": "listed",
+        "b": "wrong",
+        "c": "miss"
+      },
+      "codex_expected": "#4",
+      "kind": "truth_table",
+      "expect": "#4"
+    },
+    {
+      "id": "CX4-table-5",
+      "codex_id": "table-5",
+      "input": {
+        "a": "not_listed",
+        "b": "correct",
+        "c": "pass"
+      },
+      "codex_expected": "#5",
+      "kind": "truth_table",
+      "expect": "#5"
+    },
+    {
+      "id": "CX4-table-6",
+      "codex_id": "table-6",
+      "input": {
+        "a": "not_listed",
+        "b": "correct",
+        "c": "miss"
+      },
+      "codex_expected": "#6",
+      "kind": "truth_table",
+      "expect": "#6"
+    },
+    {
+      "id": "CX4-table-7",
+      "codex_id": "table-7",
+      "input": {
+        "a": "not_listed",
+        "b": "wrong",
+        "c": "pass"
+      },
+      "codex_expected": "#7",
+      "kind": "truth_table",
+      "expect": "#7"
+    },
+    {
+      "id": "CX4-table-8",
+      "codex_id": "table-8",
+      "input": {
+        "a": "not_listed",
+        "b": "wrong",
+        "c": "miss"
+      },
+      "codex_expected": "#8",
+      "kind": "truth_table",
+      "expect": "#8"
+    },
+    {
+      "id": "CX4-u0",
+      "codex_id": "u0",
+      "input": {
+        "a": "unknown",
+        "b": "unknown",
+        "c": "instrument",
+        "gt": false
+      },
+      "codex_expected": "U0",
+      "kind": "truth_table",
+      "expect": "U0"
+    },
+    {
+      "id": "CX4-u1",
+      "codex_id": "u1",
+      "input": {
+        "a": "unknown",
+        "b": "unknown",
+        "c": "instrument",
+        "gt": true
+      },
+      "codex_expected": "U1",
+      "kind": "truth_table",
+      "expect": "U1"
+    },
+    {
+      "id": "CX4-u2",
+      "codex_id": "u2",
+      "input": {
+        "a": "listed",
+        "b": "unknown",
+        "c": "instrument",
+        "gt": true
+      },
+      "codex_expected": "U2",
+      "kind": "truth_table",
+      "expect": "U2"
+    },
+    {
+      "id": "CX4-u4",
+      "codex_id": "u4",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "instrument",
+        "gt": true
+      },
+      "codex_expected": "U4",
+      "kind": "truth_table",
+      "expect": "U4"
+    },
+    {
+      "id": "CX4-u3",
+      "codex_id": "u3",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "format",
+        "gt": true
+      },
+      "codex_expected": "U3",
+      "kind": "truth_table",
+      "expect": "U3"
+    },
+    {
+      "id": "CX4-separate-bundles",
+      "codex_id": "separate-bundles",
+      "input": [
+        {
+          "outcome_id": null,
+          "evidence_ref": "bundle-one#hash",
+          "observed": {
+            "method": "sealed_repo_vs_official_docs",
+            "pass": true
+          }
+        },
+        {
+          "outcome_id": null,
+          "evidence_ref": "bundle-one#hash",
+          "observed": {
+            "method": "sealed_repo_vs_kansei_catalog",
+            "pass": true
+          }
+        },
+        {
+          "outcome_id": 1,
+          "evidence_ref": "bundle-two#hash",
+          "observed": {
+            "method": "llm_answer_rules_vs_sealed_expectation",
+            "ground_truth_consistent": true,
+            "checks": [
+              {
+                "label": "repo_value_equals_sealed_repo",
+                "ok": true
+              }
+            ]
+          }
+        }
+      ],
+      "codex_expected": "U1",
+      "kind": "bundle_join",
+      "expect": "U1"
+    },
+    {
+      "id": "CX4-gt-normal",
+      "codex_id": "gt-normal",
+      "input": {
+        "full_name": "acme/widget",
+        "private": false,
+        "archived": false
+      },
+      "codex_expected": true,
+      "kind": "ground_truth",
+      "expect": true
+    },
+    {
+      "id": "CX4-gt-renamed",
+      "codex_id": "gt-renamed",
+      "input": {
+        "full_name": "acme/renamed",
+        "private": false,
+        "archived": false
+      },
+      "codex_expected": false,
+      "kind": "ground_truth",
+      "expect": false
+    },
+    {
+      "id": "CX4-gt-moved",
+      "codex_id": "gt-moved",
+      "input": {
+        "full_name": "other/widget",
+        "private": false,
+        "archived": false
+      },
+      "codex_expected": false,
+      "kind": "ground_truth",
+      "expect": false
+    },
+    {
+      "id": "CX4-gt-archived",
+      "codex_id": "gt-archived",
+      "input": {
+        "full_name": "acme/widget",
+        "private": false,
+        "archived": true
+      },
+      "codex_expected": false,
+      "kind": "ground_truth",
+      "expect": false
+    },
+    {
+      "id": "CX4-gt-private",
+      "codex_id": "gt-private",
+      "input": {
+        "full_name": "acme/widget",
+        "private": true,
+        "archived": false
+      },
+      "codex_expected": false,
+      "kind": "ground_truth",
+      "expect": false
+    },
+    {
+      "id": "CX4-gt-missing-fields",
+      "codex_id": "gt-missing-fields",
+      "input": {},
+      "codex_expected": false,
+      "kind": "ground_truth",
+      "expect": false
+    },
+    {
+      "id": "CX4-gt-timeout",
+      "codex_id": "gt-timeout",
+      "input": {},
+      "codex_expected": false,
+      "kind": "ground_truth",
+      "expect": false
+    },
+    {
+      "id": "CX4-loopback-A-plain",
+      "codex_id": "loopback-A-plain",
+      "input": {
+        "page": "https://github.com/acme/widget"
+      },
+      "codex_expected": "listed",
+      "kind": "source_page",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-loopback-B-plain",
+      "codex_id": "loopback-B-plain",
+      "input": {
+        "description": "https://github.com/acme/widget"
+      },
+      "codex_expected": "listed",
+      "kind": "source_catalog_field",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-loopback-A-square",
+      "codex_id": "loopback-A-square",
+      "input": {
+        "page": "[github.com/acme/widget]"
+      },
+      "codex_expected": "listed",
+      "kind": "source_page",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-loopback-B-square",
+      "codex_id": "loopback-B-square",
+      "input": {
+        "description": "[github.com/acme/widget]"
+      },
+      "codex_expected": "listed",
+      "kind": "source_catalog_field",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-loopback-A-href",
+      "codex_id": "loopback-A-href",
+      "input": {
+        "page": "href=//github.com/acme/widget"
+      },
+      "codex_expected": "listed",
+      "kind": "source_page",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-loopback-B-href",
+      "codex_id": "loopback-B-href",
+      "input": {
+        "description": "href=//github.com/acme/widget"
+      },
+      "codex_expected": "listed",
+      "kind": "source_catalog_field",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-loopback-A-dot",
+      "codex_id": "loopback-A-dot",
+      "input": {
+        "page": "https://github.com/acme/widget/.."
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-dot",
+      "codex_id": "loopback-B-dot",
+      "input": {
+        "description": "https://github.com/acme/widget/.."
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-encoded-dot",
+      "codex_id": "loopback-A-encoded-dot",
+      "input": {
+        "page": "https://github.com/acme/widget/%2e"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-encoded-dot",
+      "codex_id": "loopback-B-encoded-dot",
+      "input": {
+        "description": "https://github.com/acme/widget/%2e"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-backslash",
+      "codex_id": "loopback-A-backslash",
+      "input": {
+        "page": "https://github.com/acme/widget\\tail"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-backslash",
+      "codex_id": "loopback-B-backslash",
+      "input": {
+        "description": "https://github.com/acme/widget\\tail"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-nested-http",
+      "codex_id": "loopback-A-nested-http",
+      "input": {
+        "page": "https://elsewhere.invalid/?q=https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-nested-http",
+      "codex_id": "loopback-B-nested-http",
+      "input": {
+        "description": "https://elsewhere.invalid/?q=https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-nested-ftp",
+      "codex_id": "loopback-A-nested-ftp",
+      "input": {
+        "page": "ftp://elsewhere.invalid/https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-nested-ftp",
+      "codex_id": "loopback-B-nested-ftp",
+      "input": {
+        "description": "ftp://elsewhere.invalid/https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-nested-data",
+      "codex_id": "loopback-A-nested-data",
+      "input": {
+        "page": "data:text/plain,https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-nested-data",
+      "codex_id": "loopback-B-nested-data",
+      "input": {
+        "description": "data:text/plain,https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-judgement-nested-data",
+      "codex_id": "judgement-nested-data",
+      "input": {
+        "page": "data:text/plain,https://github.com/acme/widget",
+        "description": "data:text/plain,https://github.com/acme/widget"
+      },
+      "codex_expected": "U1",
+      "kind": "judgement_from_sources",
+      "expect": "U1"
+    },
+    {
+      "id": "CX4-loopback-A-nested-mailto",
+      "codex_id": "loopback-A-nested-mailto",
+      "input": {
+        "page": "mailto:reader@example.invalid?body=https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-nested-mailto",
+      "codex_id": "loopback-B-nested-mailto",
+      "input": {
+        "description": "mailto:reader@example.invalid?body=https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-nested-urn",
+      "codex_id": "loopback-A-nested-urn",
+      "input": {
+        "page": "urn:example:https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-nested-urn",
+      "codex_id": "loopback-B-nested-urn",
+      "input": {
+        "description": "urn:example:https://github.com/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-percent-names",
+      "codex_id": "loopback-A-percent-names",
+      "input": {
+        "page": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-percent-names",
+      "codex_id": "loopback-B-percent-names",
+      "input": {
+        "description": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-judgement-percent-names",
+      "codex_id": "judgement-percent-names",
+      "input": {
+        "page": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74",
+        "description": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74"
+      },
+      "codex_expected": "U1",
+      "kind": "judgement_from_sources",
+      "expect": "U1"
+    },
+    {
+      "id": "CX4-loopback-A-owner-present",
+      "codex_id": "loopback-A-owner-present",
+      "input": {
+        "page": "ACME supplies software"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-owner-present",
+      "codex_id": "loopback-B-owner-present",
+      "input": {
+        "description": "ACME supplies software"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-repo-present",
+      "codex_id": "loopback-A-repo-present",
+      "input": {
+        "page": "WIDGET is available"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-repo-present",
+      "codex_id": "loopback-B-repo-present",
+      "input": {
+        "description": "WIDGET is available"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-absent",
+      "codex_id": "loopback-A-absent",
+      "input": {
+        "page": "ordinary unrelated text"
+      },
+      "codex_expected": "not_listed",
+      "kind": "source_page",
+      "expect": "unknown",
+      "revised": "2026-09-29 §4-2 (Michie): the automatic reading returns only listed / unknown; \"not listed\" needs a human attestation bound to the body sha256 (none in this case) → unknown"
+    },
+    {
+      "id": "CX4-loopback-B-absent",
+      "codex_id": "loopback-B-absent",
+      "input": {
+        "description": "ordinary unrelated text"
+      },
+      "codex_expected": "not_listed",
+      "kind": "source_catalog_field",
+      "expect": "unknown",
+      "revised": "2026-09-29 §4-2 (Michie): the automatic reading returns only listed / unknown; \"not listed\" needs a human attestation bound to the body sha256 (none in this case) → unknown"
+    },
+    {
+      "id": "CX4-loopback-A-other-host",
+      "codex_id": "loopback-A-other-host",
+      "input": {
+        "page": "https://github.com.evil.invalid/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-other-host",
+      "codex_id": "loopback-B-other-host",
+      "input": {
+        "description": "https://github.com.evil.invalid/acme/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-other-owner",
+      "codex_id": "loopback-A-other-owner",
+      "input": {
+        "page": "https://github.com/other/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-other-owner",
+      "codex_id": "loopback-B-other-owner",
+      "input": {
+        "description": "https://github.com/other/widget"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-residual",
+      "codex_id": "loopback-A-residual",
+      "input": {
+        "page": "https://github.com/&bogus;/unrelated"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-residual",
+      "codex_id": "loopback-B-residual",
+      "input": {
+        "description": "https://github.com/&bogus;/unrelated"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-decoded",
+      "codex_id": "loopback-A-decoded",
+      "input": {
+        "page": "https://github.com/&#97;cme/widg&#101;t"
+      },
+      "codex_expected": "listed",
+      "kind": "source_page",
+      "expect": "listed"
+    },
+    {
+      "id": "CX4-loopback-B-decoded",
+      "codex_id": "loopback-B-decoded",
+      "input": {
+        "description": "https://github.com/&#97;cme/widg&#101;t"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-A-double",
+      "codex_id": "loopback-A-double",
+      "input": {
+        "page": "https://github.com/&amp;#97;cme/widg&amp;#101;t"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_page",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-loopback-B-double",
+      "codex_id": "loopback-B-double",
+      "input": {
+        "description": "https://github.com/&amp;#97;cme/widg&amp;#101;t"
+      },
+      "codex_expected": "unknown",
+      "kind": "source_catalog_field",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-partial-body",
+      "codex_id": "partial-body",
+      "input": {},
+      "codex_expected": "unknown",
+      "smoke_case": "scripts/smoke-marker-attribution.mts: B3 Codex R1",
+      "kind": "loopback_equivalent",
+      "expect": "unknown"
+    },
+    {
+      "id": "CX4-optional-decode-read-control",
+      "codex_id": "optional-decode-read-control",
+      "input": {
+        "target": "M-002 catalogDisplay",
+        "fault": "none",
+        "network": "loopback only"
+      },
+      "codex_expected": {
+        "completed": true,
+        "pass": true
+      },
+      "smoke_case": "scripts/smoke-marker-optional-parts.mts: 3 control",
+      "kind": "loopback_equivalent",
+      "expect": {
+        "completed": true,
+        "pass": true
+      }
+    },
+    {
+      "id": "CX4-optional-decode-read-EACCES",
+      "codex_id": "optional-decode-read-EACCES",
+      "input": {
+        "target": "M-002 catalogDisplay",
+        "fault": "fs.readFileSync(decode.js) throws EACCES",
+        "network": "loopback only"
+      },
+      "codex_expected": {
+        "completed": true,
+        "pass": true
+      },
+      "smoke_case": "scripts/smoke-marker-optional-parts.mts: 3 EACCES",
+      "kind": "loopback_equivalent",
+      "expect": {
+        "completed": true,
+        "pass": true
+      }
+    },
+    {
+      "id": "CX4-e2e-nested-data",
+      "codex_id": "e2e-nested-data",
+      "input": {
+        "source": "data:text/plain,https://github.com/acme/widget",
+        "answer": "REPO: none; AUTH: OAuth 2.0"
+      },
+      "codex_expected": {
+        "A": "unknown",
+        "B": "unknown",
+        "judgement": "U1"
+      },
+      "smoke_case": "scripts/smoke-marker-attribution.mts: B6 Codex 8d905ee e2e-nested-data",
+      "kind": "loopback_equivalent",
+      "expect": {
+        "A": "unknown",
+        "B": "unknown",
+        "judgement": "U1"
+      }
+    },
+    {
+      "id": "CX4-privacy-nested-data",
+      "codex_id": "privacy-nested-data",
+      "input": {
+        "canaries": [
+          "PAGE_CANARY_PRIVATE",
+          "CATALOG_CANARY_PRIVATE",
+          "ANSWER_CANARY_PRIVATE"
+        ]
+      },
+      "codex_expected": false,
+      "smoke_case": "scripts/smoke-marker-attribution.mts: B6 Codex 8d905ee e2e-nested-data: no page/catalog/answer value in public files",
+      "kind": "loopback_equivalent",
+      "expect": false
+    },
+    {
+      "id": "CX4-schema-nested-data",
+      "codex_id": "schema-nested-data",
+      "input": {
+        "description": "runGenericMarker returned after validateReading/assertExclusive"
+      },
+      "codex_expected": true,
+      "smoke_case": "scripts/smoke-marker-attribution.mts: B6 Codex 8d905ee e2e-nested-data: rows pass reading.v1",
+      "kind": "loopback_equivalent",
+      "expect": true
+    },
+    {
+      "id": "CX4-e2e-percent-names",
+      "codex_id": "e2e-percent-names",
+      "input": {
+        "source": "https://github.com/%61%63%6d%65/%77%69%64%67%65%74",
+        "answer": "REPO: none; AUTH: OAuth 2.0"
+      },
+      "codex_expected": {
+        "A": "unknown",
+        "B": "unknown",
+        "judgement": "U1"
+      },
+      "smoke_case": "scripts/smoke-marker-attribution.mts: B6 Codex 8d905ee e2e-percent-names",
+      "kind": "loopback_equivalent",
+      "expect": {
+        "A": "unknown",
+        "B": "unknown",
+        "judgement": "U1"
+      }
+    },
+    {
+      "id": "CX4-privacy-percent-names",
+      "codex_id": "privacy-percent-names",
+      "input": {
+        "canaries": [
+          "PAGE_CANARY_PRIVATE",
+          "CATALOG_CANARY_PRIVATE",
+          "ANSWER_CANARY_PRIVATE"
+        ]
+      },
+      "codex_expected": false,
+      "smoke_case": "scripts/smoke-marker-attribution.mts: B6 Codex 8d905ee e2e-percent-names: no page/catalog/answer value in public files",
+      "kind": "loopback_equivalent",
+      "expect": false
+    },
+    {
+      "id": "CX4-schema-percent-names",
+      "codex_id": "schema-percent-names",
+      "input": {
+        "description": "runGenericMarker returned after validateReading/assertExclusive"
+      },
+      "codex_expected": true,
+      "smoke_case": "scripts/smoke-marker-attribution.mts: B6 Codex 8d905ee e2e-percent-names: rows pass reading.v1",
+      "kind": "loopback_equivalent",
+      "expect": true
+    }
+  ]
+}
