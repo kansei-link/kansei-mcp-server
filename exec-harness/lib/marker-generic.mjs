@@ -63,12 +63,12 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     let cols;
     try {
       cols = await target.attribution({ MK: MKr, sealed, harnessLog, attestationsDir: join(ROOT, 'evidence', 'attestations'), expectedDigest: sealedCommon.digest, markerId: MK.marker_id });
-      for (const d of cols.diagnostics || []) privateEnvironment.diagnostics.push(d); // body sha256 per source, attestation lookup result
+      for (const d of cols.diagnostics || []) privateEnvironment.diagnostics.push(d); // body sha256 per source, attestation lookup, 要再確認, hint
     }
     catch (e) {
       privateEnvironment.diagnostics.push({ event: 'attribution_failed', message: String(e.message) }); harnessLog({ event: 'attribution_failed', ok: false });
-      cols = [{ method: 'sealed_repo_vs_official_docs', claim: 'the official documentation pages fixed in the taskpack list the sealed MCP repository', pass: false, instrument_error: 'other', checks: [] },
-        { method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository in some field', pass: false, instrument_error: 'other', checks: [] }];
+      cols = [{ method: 'sealed_repo_vs_official_docs', claim: 'the official documentation pages fixed in the taskpack list the sealed MCP repository (attested by a person for the body read this run)', pass: false, instrument_error: 'other', checks: [] },
+        { method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository (attested by a person for the body read this run)', pass: false, instrument_error: 'other', checks: [] }];
     }
     for (const c of cols) {
       readings.push({
@@ -79,8 +79,9 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
         evidence_ref: `${bundleRel}#sha256:PENDING`, observer: OBSERVER, kind: 'synthetic', observed_at: isoWithOffset(new Date()), supersedes: null, _outcome: null,
       });
     }
-    const cell = (m) => { const c = cols.find((x) => x.method === m); return !c ? '-' : c.instrument_error ? 'instrument' : c.pass ? 'listed' : 'not listed'; };
-    console.log(`attribution: A official docs=${cell('sealed_repo_vs_official_docs')} B KanseiLINK catalog=${cell('sealed_repo_vs_kansei_catalog')}`);
+    // listed / not listed only by a human attestation of the body read this run; otherwise unknown (§4-2)
+    const cell = (m) => { const c = cols.find((x) => x.method === m); return !c ? '-' : c.instrument_error ? 'unknown' : c.pass ? 'listed' : 'not listed'; };
+    console.log(`attribution: A official docs=${cell('sealed_repo_vs_official_docs')} B KanseiLINK catalog=${cell('sealed_repo_vs_kansei_catalog')}${cols.needsRecheck?.length ? ` 要再確認=${cols.needsRecheck.join(',')}` : ''}`);
   }
 
   // ---- observations (one reading per observer) ----
@@ -138,14 +139,14 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
   // ---- bundle ----
   const libs = {};
   for (const f of ['marker-sealed.mjs', 'marker-generic.mjs', 'marker-targets.mjs', 'marker-persist.mjs', 'llm-ask.mjs', 'llm-answer-rules.mjs', 'attribution-labels.mjs', 'reading.mjs', 'marker-bundle.mjs', 'marker-store.mjs']) libs[`lib/${f}`] = fileSha(join(libDir, f));
-  // Optional parts (the M-004 attribution source readers: attribution-rules.mjs and the six vendored decoder files).
+  // Optional parts (the M-004 attribution parts: attribution-attest.mjs, the hint reader attribution-rules.mjs and the six vendored decoder files).
   // Codex 8d905ee N3: ANY failure while reading an optional part (absent, EACCES, a directory, …) is
   // caught and recorded as null — it must never stop the reading or the bundle.
   const optionalSha = (rel) => {
     try { return fileSha(join(libDir, '..', rel)); }
     catch (e) { privateEnvironment.diagnostics.push({ event: 'optional_part_unreadable', part: rel, code: String(e?.code || 'error') }); return null; }
   };
-  for (const rel of ['lib/attribution-rules.mjs', ...['decode.js', 'decode-codepoint.js', 'generated/decode-data-html.js', 'generated/decode-data-xml.js', 'internal/bin-trie-flags.js', 'internal/decode-shared.js'].map((f) => `vendor/entities-8.1.0/${f}`)]) libs[rel] = optionalSha(rel);
+  for (const rel of ['lib/attribution-attest.mjs', 'lib/attribution-rules.mjs', ...['decode.js', 'decode-codepoint.js', 'generated/decode-data-html.js', 'generated/decode-data-xml.js', 'internal/bin-trie-flags.js', 'internal/decode-shared.js'].map((f) => `vendor/entities-8.1.0/${f}`)]) libs[rel] = optionalSha(rel);
   // written after the fingerprints, so an unreadable optional part is recorded in the private sidecar
   writeFileSync(join(bundleDir, 'environment.private.json'), JSON.stringify(privateEnvironment, null, 1));
   const manifest = {

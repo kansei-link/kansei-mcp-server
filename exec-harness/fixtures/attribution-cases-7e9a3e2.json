@@ -1,0 +1,1906 @@
+{
+ "note": "Regression cases after the Codex review of 7e9a3e2 (94 cases, byte for byte in evidence/codex-7e9a3e2-independent-cases.json; codex_expected and input copied verbatim here). §4-2 (Michie 2026-09-29): columns A and B are taken from human attestations only (verdict listed or not_listed, bound to the body sha256 of that run); the automatic reading is a private hint. kind: token (the text as the body of a source with no attestation → public unknown; the hint must equal Codex's expectation where Codex found it conforming), ground_truth (llmAnswer.groundTruth on a loopback GitHub stub), e2e / e2e_schema / e2e_privacy (run-marker --dry-run on a loopback server shaped like Codex's: /a1 and /a2 serve the same page, /mcp answers plain JSON, the fake provider answers with ANSWER_VALUE_CANARY), attestation (validateAttestation on the verbatim object and on the same change applied to a valid v2 attestation), truth_table, bundle_join. \"expect\" is what the smoke asserts; cases with \"revised\" say why it differs from codex_expected. All values invented.",
+ "commit": "7e9a3e25e7d299cc5ef3eb873865f1dd8d94e650",
+ "cases": [
+  {
+   "id": "token-plain-B",
+   "input": {
+    "text": "https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "listed"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "listed"
+   },
+   "revised": "§4-2 (7e9a3e2): no source is listed without a human attestation of its body; Codex's \"listed\" is now the private hint's expectation only"
+  },
+  {
+   "id": "token-plain-A",
+   "input": {
+    "text": "https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "listed"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "listed"
+   },
+   "revised": "§4-2 (7e9a3e2): no source is listed without a human attestation of its body; Codex's \"listed\" is now the private hint's expectation only"
+  },
+  {
+   "id": "token-other-host-B",
+   "input": {
+    "text": "https://gitlab.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-other-host-A",
+   "input": {
+    "text": "https://gitlab.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-other-owner-B",
+   "input": {
+    "text": "https://github.com/other-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-other-owner-A",
+   "input": {
+    "text": "https://github.com/other-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-other-repo-B",
+   "input": {
+    "text": "https://github.com/fake-vendor/fake-official-mcp-server-other",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-other-repo-A",
+   "input": {
+    "text": "https://github.com/fake-vendor/fake-official-mcp-server-other",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-percent-owner-B",
+   "input": {
+    "text": "https://github.com/%66ake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-percent-owner-A",
+   "input": {
+    "text": "https://github.com/%66ake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-data-basic-B",
+   "input": {
+    "text": "data:text/plain,https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-data-basic-A",
+   "input": {
+    "text": "data:text/plain,https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-mailto-basic-B",
+   "input": {
+    "text": "mailto:a@example.invalid?body=https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-mailto-basic-A",
+   "input": {
+    "text": "mailto:a@example.invalid?body=https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-data-numeric-B",
+   "input": {
+    "text": "data:123/https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": false,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": null
+   },
+   "revised": "Codex fatal ③/④: the automatic reading still says listed here, but it is a private hint only; the public state is unknown (no attestation). The hint is not asserted for this case."
+  },
+  {
+   "id": "token-data-numeric-A",
+   "input": {
+    "text": "data:123/https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": false,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": null
+   },
+   "revised": "Codex fatal ③/④: the automatic reading still says listed here, but it is a private hint only; the public state is unknown (no attestation). The hint is not asserted for this case."
+  },
+  {
+   "id": "token-urn-numeric-B",
+   "input": {
+    "text": "urn:123/https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": false,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": null
+   },
+   "revised": "Codex fatal ③/④: the automatic reading still says listed here, but it is a private hint only; the public state is unknown (no attestation). The hint is not asserted for this case."
+  },
+  {
+   "id": "token-urn-numeric-A",
+   "input": {
+    "text": "urn:123/https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": false,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": null
+   },
+   "revised": "Codex fatal ③/④: the automatic reading still says listed here, but it is a private hint only; the public state is unknown (no attestation). The hint is not asserted for this case."
+  },
+  {
+   "id": "token-data-numeric-bare-B",
+   "input": {
+    "text": "data:123/github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-data-numeric-bare-A",
+   "input": {
+    "text": "data:123/github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-bare-outer-url-B",
+   "input": {
+    "text": "evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": false,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": null
+   },
+   "revised": "Codex fatal ③/④: the automatic reading still says listed here, but it is a private hint only; the public state is unknown (no attestation). The hint is not asserted for this case."
+  },
+  {
+   "id": "token-bare-outer-url-A",
+   "input": {
+    "text": "evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": false,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": null
+   },
+   "revised": "Codex fatal ③/④: the automatic reading still says listed here, but it is a private hint only; the public state is unknown (no attestation). The hint is not asserted for this case."
+  },
+  {
+   "id": "token-relative-outer-url-B",
+   "input": {
+    "text": "//evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": false,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": null
+   },
+   "revised": "Codex fatal ③/④: the automatic reading still says listed here, but it is a private hint only; the public state is unknown (no attestation). The hint is not asserted for this case."
+  },
+  {
+   "id": "token-relative-outer-url-A",
+   "input": {
+    "text": "//evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": false,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": null
+   },
+   "revised": "Codex fatal ③/④: the automatic reading still says listed here, but it is a private hint only; the public state is unknown (no attestation). The hint is not asserted for this case."
+  },
+  {
+   "id": "token-http-outer-url-B",
+   "input": {
+    "text": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-http-outer-url-A",
+   "input": {
+    "text": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-port-443-B",
+   "input": {
+    "text": "https://github.com:443/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "listed"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "listed"
+   },
+   "revised": "§4-2 (7e9a3e2): no source is listed without a human attestation of its body; Codex's \"listed\" is now the private hint's expectation only"
+  },
+  {
+   "id": "token-port-443-A",
+   "input": {
+    "text": "https://github.com:443/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "listed"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "listed"
+   },
+   "revised": "§4-2 (7e9a3e2): no source is listed without a human attestation of its body; Codex's \"listed\" is now the private hint's expectation only"
+  },
+  {
+   "id": "token-port-8443-B",
+   "input": {
+    "text": "https://github.com:8443/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-port-8443-A",
+   "input": {
+    "text": "https://github.com:8443/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "unknown"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "unknown"
+   }
+  },
+  {
+   "id": "token-opaque-space-B",
+   "input": {
+    "text": "data:text/plain,x https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": false,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "listed"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "listed"
+   },
+   "revised": "§4-2 (7e9a3e2): no source is listed without a human attestation of its body; Codex's \"listed\" is now the private hint's expectation only"
+  },
+  {
+   "id": "token-opaque-space-A",
+   "input": {
+    "text": "data:text/plain,x https://github.com/fake-vendor/fake-official-mcp-server",
+    "html": true,
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "state": "listed"
+   },
+   "codex_conforms": true,
+   "kind": "token",
+   "expect": {
+    "public": "unknown",
+    "hint": "listed"
+   },
+   "revised": "§4-2 (7e9a3e2): no source is listed without a human attestation of its body; Codex's \"listed\" is now the private hint's expectation only"
+  },
+  {
+   "id": "ground-truth-normal",
+   "input": {
+    "mode": "normal",
+    "loopback": true
+   },
+   "codex_expected": {
+    "consistent": true
+   },
+   "codex_conforms": true,
+   "kind": "ground_truth",
+   "expect": {
+    "consistent": true
+   }
+  },
+  {
+   "id": "ground-truth-renamed",
+   "input": {
+    "mode": "renamed",
+    "loopback": true
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "kind": "ground_truth",
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-moved",
+   "input": {
+    "mode": "moved",
+    "loopback": true
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "kind": "ground_truth",
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-archived",
+   "input": {
+    "mode": "archived",
+    "loopback": true
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "kind": "ground_truth",
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-private",
+   "input": {
+    "mode": "private",
+    "loopback": true
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "kind": "ground_truth",
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-missing",
+   "input": {
+    "mode": "missing",
+    "loopback": true
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "kind": "ground_truth",
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-timeout",
+   "input": {
+    "mode": "timeout",
+    "loopback": true
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "kind": "ground_truth",
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "e2e-numeric-scheme-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131438-01M3NNYB19D13K2WF5FRQWRA7B"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "e2e-numeric-scheme-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "e2e-numeric-scheme",
+   "input": {
+    "page": "data:123/https://github.com/fake-vendor/fake-official-mcp-server",
+    "catalog": {
+     "service_id": "fake-subject",
+     "name": "Fake",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 1
+     },
+     "_meta": {
+      "attempt_id": "one"
+     },
+     "description": "data:123/https://github.com/fake-vendor/fake-official-mcp-server"
+    },
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   },
+   "codex_conforms": false,
+   "kind": "e2e",
+   "expect": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   }
+  },
+  {
+   "id": "e2e-nested-in-bare-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131439-01M3NNYCB6H2152ZPKZDN6TV1K"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "e2e-nested-in-bare-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "e2e-nested-in-bare",
+   "input": {
+    "page": "evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+    "catalog": {
+     "service_id": "fake-subject",
+     "name": "Fake",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 1
+     },
+     "_meta": {
+      "attempt_id": "one"
+     },
+     "description": "evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server"
+    },
+    "human_attestation": false
+   },
+   "codex_expected": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   },
+   "codex_conforms": false,
+   "kind": "e2e",
+   "expect": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   }
+  },
+  {
+   "id": "valid-baseline-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131440-01M3NNYD9ZVJM0F0XWQPX26Z7W"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "valid-baseline-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "valid-baseline",
+   "input": {
+    "catalog": {
+     "service_id": "fake-subject",
+     "name": "Fake",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 1
+     },
+     "_meta": {
+      "attempt_id": "one"
+     },
+     "description": "CATALOG_VALUE_CANARY"
+    },
+    "valid_human_attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    }
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#3"
+   },
+   "codex_conforms": true,
+   "kind": "e2e",
+   "expect": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#3"
+   },
+   "revised": "same expectation (#3); the attestations are rebuilt in the v2 form (kind kansei-attribution-attestation/v2, target equal to the taskpack source) and A needs its own human attestation (A1 listed) — the page text no longer makes A listed by itself"
+  },
+  {
+   "id": "excluded-1-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131441-01M3NNYE88AV7AZNAT38491S5H"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "excluded-1-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "excluded-field-_repository",
+   "input": {
+    "catalog": {
+     "service_id": "fake-subject",
+     "name": "Fake",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 1
+     },
+     "_meta": {
+      "attempt_id": "one"
+     },
+     "description": "CATALOG_VALUE_CANARY",
+     "_repository": "https://github.com/fake-vendor/fake-official-mcp-server"
+    },
+    "prior_human_attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    },
+    "current_body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+    "unchanged_digest": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "listed",
+    "judgement": "#1"
+   },
+   "codex_conforms": false,
+   "kind": "e2e",
+   "expect": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "body_changed": true,
+    "hint_B": "listed"
+   },
+   "revised": "Codex fatal ①: only _meta.attempt_id and freshness.data_age_days are outside the body now, so adding a repository link anywhere (or changing freshness.confidence) changes the body sha256 and expires the prior \"not listed\" attestation → B 未確定（本文に変化あり・要再確認）, U2 — never #3. B listed would need a person to attest the new body (the automatic reading, which sees the link, is a private hint)."
+  },
+  {
+   "id": "excluded-2-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131442-01M3NNYF4PT3HWPK23HQJPD51G"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "excluded-2-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "excluded-field-_meta.repository",
+   "input": {
+    "catalog": {
+     "service_id": "fake-subject",
+     "name": "Fake",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 1
+     },
+     "_meta": {
+      "attempt_id": "one",
+      "repository": "https://github.com/fake-vendor/fake-official-mcp-server"
+     },
+     "description": "CATALOG_VALUE_CANARY"
+    },
+    "prior_human_attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    },
+    "current_body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+    "unchanged_digest": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "listed",
+    "judgement": "#1"
+   },
+   "codex_conforms": false,
+   "kind": "e2e",
+   "expect": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "body_changed": true,
+    "hint_B": "listed"
+   },
+   "revised": "Codex fatal ①: only _meta.attempt_id and freshness.data_age_days are outside the body now, so adding a repository link anywhere (or changing freshness.confidence) changes the body sha256 and expires the prior \"not listed\" attestation → B 未確定（本文に変化あり・要再確認）, U2 — never #3. B listed would need a person to attest the new body (the automatic reading, which sees the link, is a private hint)."
+  },
+  {
+   "id": "excluded-3-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131443-01M3NNYG0R8H6NBBMN5A2586QK"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "excluded-3-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "excluded-field-freshness.repository",
+   "input": {
+    "catalog": {
+     "service_id": "fake-subject",
+     "name": "Fake",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 1,
+      "repository": "https://github.com/fake-vendor/fake-official-mcp-server"
+     },
+     "_meta": {
+      "attempt_id": "one"
+     },
+     "description": "CATALOG_VALUE_CANARY"
+    },
+    "prior_human_attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    },
+    "current_body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+    "unchanged_digest": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "listed",
+    "judgement": "#1"
+   },
+   "codex_conforms": false,
+   "kind": "e2e",
+   "expect": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "body_changed": true,
+    "hint_B": "listed"
+   },
+   "revised": "Codex fatal ①: only _meta.attempt_id and freshness.data_age_days are outside the body now, so adding a repository link anywhere (or changing freshness.confidence) changes the body sha256 and expires the prior \"not listed\" attestation → B 未確定（本文に変化あり・要再確認）, U2 — never #3. B listed would need a person to attest the new body (the automatic reading, which sees the link, is a private hint)."
+  },
+  {
+   "id": "excluded-4-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131444-01M3NNYGWX0BNC8Y2NZGDCQQG5"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "excluded-4-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "excluded-field-freshness.confidence",
+   "input": {
+    "catalog": {
+     "service_id": "fake-subject",
+     "name": "Fake",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "https://github.com/fake-vendor/fake-official-mcp-server",
+      "data_age_days": 1
+     },
+     "_meta": {
+      "attempt_id": "one"
+     },
+     "description": "CATALOG_VALUE_CANARY"
+    },
+    "prior_human_attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    },
+    "current_body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+    "unchanged_digest": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "listed",
+    "judgement": "#1"
+   },
+   "codex_conforms": false,
+   "kind": "e2e",
+   "expect": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "body_changed": true,
+    "hint_B": "listed"
+   },
+   "revised": "Codex fatal ①: only _meta.attempt_id and freshness.data_age_days are outside the body now, so adding a repository link anywhere (or changing freshness.confidence) changes the body sha256 and expires the prior \"not listed\" attestation → B 未確定（本文に変化あり・要再確認）, U2 — never #3. B listed would need a person to attest the new body (the automatic reading, which sees the link, is a private hint)."
+  },
+  {
+   "id": "included-link-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131445-01M3NNYHSAY1TKHJBZ24GCS64P"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "included-link-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "included-link",
+   "input": {
+    "catalog": {
+     "service_id": "fake-subject",
+     "name": "Fake",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 1
+     },
+     "_meta": {
+      "attempt_id": "one"
+     },
+     "description": "CATALOG_VALUE_CANARY",
+     "repository": "https://github.com/fake-vendor/fake-official-mcp-server"
+    }
+   },
+   "codex_expected": {
+    "B": "listed",
+    "judgement": "#1"
+   },
+   "codex_conforms": true,
+   "kind": "e2e",
+   "expect": {
+    "B": "unknown",
+    "judgement": "U2",
+    "hint_B": "listed",
+    "with_listed_attestation": "#1"
+   },
+   "revised": "§4-2: the link alone does not make B listed; without an attestation B is unknown (U2, hint listed); with a v2 human attestation verdict=listed for that body the judgement is Codex's #1"
+  },
+  {
+   "id": "changed-body-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131445-01M3NNYJQDCP1P4EA2F1D4FFHK"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "changed-body-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "changed-body",
+   "input": {
+    "catalog": {
+     "service_id": "fake-subject",
+     "name": "Fake",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 1
+     },
+     "_meta": {
+      "attempt_id": "one"
+     },
+     "description": "changed body"
+    },
+    "prior_human_attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown",
+    "judgement": "U2"
+   },
+   "codex_conforms": true,
+   "kind": "e2e",
+   "expect": {
+    "B": "unknown",
+    "judgement": "U2"
+   }
+  },
+  {
+   "id": "attestation-extra",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link.",
+     "extra": true
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": true,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   }
+  },
+  {
+   "id": "attestation-missing",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29"
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": true,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   }
+  },
+  {
+   "id": "attestation-seal",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": true,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   }
+  },
+  {
+   "id": "attestation-body",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": true,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   }
+  },
+  {
+   "id": "attestation-source",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "A1",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": true,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   }
+  },
+  {
+   "id": "attestation-non-human",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "agent:test",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": true,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   }
+  },
+  {
+   "id": "attestation-unsigned-draft",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:Audit Fixture Reviewer",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link.",
+     "_draft_instructions": "fill this"
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": true,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   }
+  },
+  {
+   "id": "attestation-angle-placeholder",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:<name>",
+     "date": "2026-09-29",
+     "reason": "Fixture reviewer inspected the complete source; no repository link."
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": true,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   }
+  },
+  {
+   "id": "attestation-todo-placeholder",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "TODO",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:TODO",
+     "date": "2026-09-29",
+     "reason": "TODO"
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": false,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   },
+   "revised": "Codex fatal ②: placeholders (TODO / TBD / […]) are now rejected in every value; the verbatim object is also invalid because of the v1 kind, so the same change is replayed on a valid v2 attestation (rebased) and must be rejected for the placeholder itself"
+  },
+  {
+   "id": "attestation-tbd-placeholder",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:TBD",
+     "date": "2026-09-29",
+     "reason": "TBD"
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": false,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   },
+   "revised": "Codex fatal ②: placeholders (TODO / TBD / […]) are now rejected in every value; the verbatim object is also invalid because of the v1 kind, so the same change is replayed on a valid v2 attestation (rebased) and must be rejected for the placeholder itself"
+  },
+  {
+   "id": "attestation-bracket-placeholder",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-not-listed/v1",
+     "marker_id": "M-994",
+     "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+     "source_id": "B",
+     "target": "fake-subject",
+     "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+     "verdict": "not_listed",
+     "observer": "human:[name]",
+     "date": "2026-09-29",
+     "reason": "[reason]"
+    }
+   },
+   "codex_expected": {
+    "valid": false
+   },
+   "codex_conforms": false,
+   "kind": "attestation",
+   "expect": {
+    "verbatim_valid": false,
+    "rebased_valid": false
+   },
+   "revised": "Codex fatal ②: placeholders (TODO / TBD / […]) are now rejected in every value; the verbatim object is also invalid because of the v1 kind, so the same change is replayed on a valid v2 attestation (rebased) and must be rejected for the placeholder itself"
+  },
+  {
+   "id": "placeholder-schema",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131446-01M3NNYKKTST9V50H50P2SCFPG"
+   },
+   "codex_expected": {
+    "valid": true
+   },
+   "codex_conforms": true,
+   "kind": "e2e_schema",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "placeholder-privacy",
+   "input": {
+    "canaries": [
+     "CATALOG_VALUE_CANARY",
+     "PAGE_VALUE_CANARY",
+     "ANSWER_VALUE_CANARY"
+    ]
+   },
+   "codex_expected": {
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "kind": "e2e_privacy",
+   "expect": {
+    "leaked": false
+   }
+  },
+  {
+   "id": "placeholder-e2e",
+   "input": {
+    "observer": "human:TODO",
+    "reason": "TODO",
+    "target": "TODO",
+    "human_attestation": "invalid placeholder, not a completed confirmation"
+   },
+   "codex_expected": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   },
+   "codex_conforms": false,
+   "kind": "e2e",
+   "expect": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   }
+  },
+  {
+   "id": "truth-table-#8",
+   "input": {
+    "A": "not_listed",
+    "B": "not_listed",
+    "C": false,
+    "human_attestation": "negative source states assumed to have valid confirmation"
+   },
+   "codex_expected": {
+    "code": "#8"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "#8"
+   }
+  },
+  {
+   "id": "truth-table-#7",
+   "input": {
+    "A": "not_listed",
+    "B": "not_listed",
+    "C": true,
+    "human_attestation": "negative source states assumed to have valid confirmation"
+   },
+   "codex_expected": {
+    "code": "#7"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "#7"
+   }
+  },
+  {
+   "id": "truth-table-#6",
+   "input": {
+    "A": "not_listed",
+    "B": "listed",
+    "C": false,
+    "human_attestation": "negative source states assumed to have valid confirmation"
+   },
+   "codex_expected": {
+    "code": "#6"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "#6"
+   }
+  },
+  {
+   "id": "truth-table-#5",
+   "input": {
+    "A": "not_listed",
+    "B": "listed",
+    "C": true,
+    "human_attestation": "negative source states assumed to have valid confirmation"
+   },
+   "codex_expected": {
+    "code": "#5"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "#5"
+   }
+  },
+  {
+   "id": "truth-table-#4",
+   "input": {
+    "A": "listed",
+    "B": "not_listed",
+    "C": false,
+    "human_attestation": "negative source states assumed to have valid confirmation"
+   },
+   "codex_expected": {
+    "code": "#4"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "#4"
+   }
+  },
+  {
+   "id": "truth-table-#3",
+   "input": {
+    "A": "listed",
+    "B": "not_listed",
+    "C": true,
+    "human_attestation": "negative source states assumed to have valid confirmation"
+   },
+   "codex_expected": {
+    "code": "#3"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "#3"
+   }
+  },
+  {
+   "id": "truth-table-#2",
+   "input": {
+    "A": "listed",
+    "B": "listed",
+    "C": false,
+    "human_attestation": "negative source states assumed to have valid confirmation"
+   },
+   "codex_expected": {
+    "code": "#2"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "#2"
+   }
+  },
+  {
+   "id": "truth-table-#1",
+   "input": {
+    "A": "listed",
+    "B": "listed",
+    "C": true,
+    "human_attestation": "negative source states assumed to have valid confirmation"
+   },
+   "codex_expected": {
+    "code": "#1"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "#1"
+   }
+  },
+  {
+   "id": "precedence-U0",
+   "input": {
+    "a": "unknown",
+    "b": "unknown",
+    "c": "instrument",
+    "gt": false
+   },
+   "codex_expected": {
+    "code": "U0"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "U0"
+   }
+  },
+  {
+   "id": "precedence-U1",
+   "input": {
+    "a": "unknown",
+    "b": "correct",
+    "c": "pass",
+    "gt": true
+   },
+   "codex_expected": {
+    "code": "U1"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "U1"
+   }
+  },
+  {
+   "id": "precedence-U2",
+   "input": {
+    "a": "listed",
+    "b": "unknown",
+    "c": "pass",
+    "gt": true
+   },
+   "codex_expected": {
+    "code": "U2"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "U2"
+   }
+  },
+  {
+   "id": "precedence-U3",
+   "input": {
+    "a": "listed",
+    "b": "correct",
+    "c": "format",
+    "gt": true
+   },
+   "codex_expected": {
+    "code": "U3"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "U3"
+   }
+  },
+  {
+   "id": "precedence-U4",
+   "input": {
+    "a": "listed",
+    "b": "correct",
+    "c": "instrument",
+    "gt": true
+   },
+   "codex_expected": {
+    "code": "U4"
+   },
+   "codex_conforms": true,
+   "kind": "truth_table",
+   "expect": {
+    "code": "U4"
+   }
+  },
+  {
+   "id": "bundle-isolation",
+   "input": {
+    "A_B_bundle": "run-one",
+    "C_bundle": "run-two"
+   },
+   "codex_expected": {
+    "code": "U1"
+   },
+   "codex_conforms": true,
+   "kind": "bundle_join",
+   "expect": {
+    "code": "U1"
+   }
+  }
+ ]
+}

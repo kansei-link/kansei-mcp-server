@@ -1,15 +1,24 @@
 #!/usr/bin/env tsx
 /**
- * Smoke test for the attribution columns A/B and rename detection (ATTRIBUTION-Rules v0.1, M-004).
+ * Smoke test for the attribution columns A/B and rename detection (ATTRIBUTION-Rules v0.1 §4-2, M-004).
  *
  *   npx tsx scripts/smoke-marker-attribution.mts
  *
- * Part A: lib/attribution-rules.mjs as pure functions (A2: the source matcher — host/owner/repo exact,
- *         anything below the repository allowed, HTML character references decoded for A pages) — the whole truth table (#1–#8), the
- *         undetermined cases U0–U4 and their precedence, and the cell texts.
- * Part B: run-marker end to end in --dry-run with the M-994 fixture seal, provider 'fake', and a
- *         loopback server (127.0.0.1:47336) playing A1/A2, the KanseiLINK catalog and the GitHub API.
- * Part C: the sheet drawn from Part B's readings (三列 + 判断（規則 v0.1）).
+ * §4-2 (Michie 2026-09-29, after Codex review of 7e9a3e2): A and B are decided by PEOPLE. The instrument
+ * reads each source fixed in the taskpack (A1, A2, B), takes the body's sha256 and looks for a human
+ * attestation of exactly that body (verdict listed or not_listed); without one the source is
+ * 未確定（本文に変化あり・要再確認）. The automatic reading (classifySource) is a private hint only.
+ *
+ * Part A:  the cells (from the rows' attestation checks only), the truth table (#1–#8), U0–U4 and precedence.
+ * Part A2: the HINT reader (classifySource / sourceListsRepo) — unchanged, private, decides nothing.
+ * Part A3: attribution-attest.mjs — column B's body (two volatile leaves only), the source targets, the
+ *          attestation validator (exact keys, placeholders, target, seal, body, verdict listed/not_listed).
+ * Part B:  run-marker end to end in --dry-run with the M-994 fixture seal, provider 'fake', and a loopback
+ *          server (127.0.0.1:47336) playing A1/A2, the KanseiLINK catalog and the GitHub API.
+ * Part C:  the sheet drawn from Part B's readings (三列 + 判断（規則 v0.1）).
+ * Part D/E: Codex's earlier independent cases (110 of 185d63d, 93 of 8d905ee) — hint cases replayed on the
+ *          hint reader, judgement and ground-truth cases as before, loopback cases by smoke label.
+ * Part F:  Codex's 94 independent cases of 7e9a3e2 (fixtures/attribution-cases-7e9a3e2.json).
  * No network beyond loopback, no real seal, no DB.
  */
 import { spawn } from "node:child_process";
@@ -17,9 +26,10 @@ import { createServer } from "node:http";
 import { readFileSync, writeFileSync, mkdtempSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
-import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs, classifySource, catalogBody, sha256Hex, validateAttestation } from "../exec-harness/lib/attribution-rules.mjs";
+import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, AGENT_METHOD, RECHECK_TEXT, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs, classifySource, catalogBody, sha256Hex, validateAttestation, findAttestation, sourceState, sourceTarget, ATTESTATION_KIND, B_BODY_FIELDS } from "../exec-harness/lib/attribution-rules.mjs";
 import { renderSheet } from "../exec-harness/render-reading-sheet.mjs";
 import { validateReading, loadReadingSchema } from "../exec-harness/lib/reading.mjs";
+import { readmeRows } from "../exec-harness/lib/marker-persist.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const FIX = join(ROOT, "exec-harness", "fixtures");
@@ -28,7 +38,7 @@ const passed: string[] = [];
 const expect = (label: string, ok: boolean, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}${ok || !detail ? "" : `  (${detail})`}`); if (!ok) failures++; else passed.push(label); };
 const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: number | null; out: string }> => new Promise((res) => { const p = spawn(cmd, args, opts); let out = ""; p.stdout.on("data", (d) => (out += d)); p.stderr.on("data", (d) => (out += d)); p.on("close", (code) => res({ status: code, out })); });
 
-// ── Part A: truth table and precedence ───────────────────────────────────
+// ── Part A: cells, truth table and precedence ────────────────────────────
 {
   const A = { listed: { state: "listed", text: "" }, not: { state: "not_listed", text: "" }, unk: { state: "unknown", text: "" } } as const;
   const B = { ok: { state: "correct", text: "" }, bad: { state: "wrong", text: "" }, unk: { state: "unknown", text: "" } } as const;
@@ -41,7 +51,6 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
     const j = judgeAttribution({ a, b, c, gtConsistent: true });
     expect(`A ${code}: A=${a.state} B=${b.state} C=${c.state}`, j.code === code && j.text.startsWith(code) && j.counted === true, JSON.stringify(j));
   }
-  // every one of the 8 codes appears exactly once
   expect("A truth table covers #1–#8 once each", new Set(table.map((t) => judgeAttribution({ a: t[0], b: t[1], c: t[2], gtConsistent: true }).code)).size === 8);
   const U = (o: any) => judgeAttribution({ a: A.listed, b: B.ok, c: C.pass, gtConsistent: true, ...o });
   expect("A U0 ground truth moved → 未確定（計器）, not counted", U({ gtConsistent: false }).code === "U0" && U({ gtConsistent: false }).text === "未確定（計器）" && U({ gtConsistent: false }).counted === false);
@@ -52,33 +61,41 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
   expect("A U4 AI instrument → 未確定（計器）", U({ c: C.inst }).code === "U4" && U({ c: C.inst }).text === "未確定（計器）");
   expect("A U3 format violation → 未確定（回答形式）", U({ c: C.fmt }).code === "U3" && U({ c: C.fmt }).text === "未確定（回答形式）");
   expect("A gtConsistent null (not checked) does not block a judgement", U({ gtConsistent: null }).code === "#1");
-  // cells (§4-2: "not listed" / "wrong" only with the human attestation check on the row)
-  const aObs = (a1: [boolean, boolean, boolean?], a2: [boolean, boolean, boolean?], pass: boolean, inst: string | null = null, rowAttested = false) => ({ method: ATTR_METHODS.A, pass, instrument_error: inst, checks: [{ label: "A1_page_fetched", ok: a1[0] }, { label: "A1_page_lists_sealed_repo", ok: a1[1] }, { label: "A1_page_not_listed_human_attested", ok: Boolean(a1[2]) }, { label: "A2_page_fetched", ok: a2[0] }, { label: "A2_page_lists_sealed_repo", ok: a2[1] }, { label: "A2_page_not_listed_human_attested", ok: Boolean(a2[2]) }, { label: "official_docs_not_listed_human_attested", ok: rowAttested }] });
-  expect("A cell: A2 only (A1 read, no link, no attestation)", columnA(aObs([true, false], [true, true], true)).text === "載っている（A1 未確定・A2 あり）", columnA(aObs([true, false], [true, true], true)).text);
-  expect("A cell: A2 only, A1 attested", columnA(aObs([true, false, true], [true, true], true)).text === "載っている（A1 なし（人の確認）・A2 あり）");
-  expect("A cell: neither page, no attestation → unknown", columnA(aObs([true, false], [true, false], false, "other")).state === "unknown" && columnA(aObs([true, false], [true, false], false, "other")).text === "未確定（A1 未確定・A2 未確定）");
-  expect("A cell: both pages attested → not listed, labelled 人の確認", columnA(aObs([true, false, true], [true, false, true], false, null, true)).state === "not_listed" && columnA(aObs([true, false, true], [true, false, true], false, null, true)).text === "載っていない・人の確認（A1 なし（人の確認）・A2 なし（人の確認））");
-  expect("A cell: pass=false without the attestation check (any producer) is NOT shown as not listed", columnA({ method: ATTR_METHODS.A, pass: false, instrument_error: null, checks: [] }).state === "unknown");
-  expect("A cell: fetch failure = 取得失敗 in the detail, unknown", columnA(aObs([false, false], [true, false], false, "other")).text === "未確定（A1 取得失敗・A2 未確定）", columnA(aObs([false, false], [true, false], false, "other")).text);
-  expect("A cell: missing row = unknown", columnA(undefined).state === "unknown");
-  const bObs = (pass: boolean, extra: any[] = [], inst: string | null = null) => ({ method: ATTR_METHODS.B, pass, instrument_error: inst, checks: [{ label: "catalog_item_observed", ok: inst !== "unobservable" }, ...extra] });
-  expect("B cell: listed in a field", columnB(bObs(true, [{ label: "catalog_item_present", ok: true }, { label: "catalog_field_lists_sealed_repo:connection_guide.repository", ok: true }])).text === "正しい（欄: connection_guide.repository）");
-  expect("B cell: item without the repo, attested → 誤り・人の確認（欠落）", columnB(bObs(false, [{ label: "catalog_item_present", ok: true }, { label: "catalog_item_not_listed_human_attested", ok: true }])).text === "誤り・人の確認（欠落）");
-  expect("B cell: no item, attested → 誤り・人の確認（項なし）", columnB(bObs(false, [{ label: "catalog_item_present", ok: false }, { label: "catalog_item_not_listed_human_attested", ok: true }])).text === "誤り・人の確認（項なし）");
-  expect("B cell: no link, no attestation → 未確定（人の確認なし）", columnB(bObs(false, [{ label: "catalog_item_present", ok: true }], "other")).text === "未確定（人の確認なし）");
-  expect("B cell: pass=false without the attestation check is NOT shown as wrong", columnB({ method: ATTR_METHODS.B, pass: false, instrument_error: null, checks: [] }).state === "unknown");
-  expect("B cell: a field naming the repo without resolving = 未確定 with the field name", columnB(bObs(false, [{ label: "catalog_item_present", ok: true }, { label: "catalog_field_names_sealed_repo_unresolved:connection_guide.repository", ok: false }], "other")).text === "未確定（名前はあるがリンクとして解けない欄: connection_guide.repository）");
-  expect("B cell: unobservable = unknown", columnB({ method: ATTR_METHODS.B, pass: false, instrument_error: "other", checks: [{ label: "catalog_item_observed", ok: false }] }).text === "未確定（観測できない）");
-  const cObs = (checks: Array<[string, boolean]>, inst: string | null = null) => ({ method: "llm_answer_rules_vs_sealed_expectation", instrument_error: inst, checks: checks.map(([label, ok]) => ({ label, ok })) });
+  // A cells: per page [fetched, attested listed, attested not listed]; the row's own pass/instrument/aggregate checks
+  type P = [boolean, boolean, boolean];
+  const aObs = (a1: P, a2: P, pass: boolean, inst: string | null, aggListed: boolean, aggNot: boolean) => ({ method: ATTR_METHODS.A, pass, instrument_error: inst, checks: [
+    ...([["A1", a1], ["A2", a2]] as const).flatMap(([id, [f, l, n]]) => [{ label: `${id}_page_fetched`, ok: f }, { label: `${id}_attested_listed`, ok: l }, { label: `${id}_attested_not_listed`, ok: n }, { label: `${id}_needs_recheck`, ok: f && !l && !n }]),
+    { label: "official_docs_attested_listed", ok: aggListed }, { label: "official_docs_attested_not_listed", ok: aggNot }] });
+  const cA = (...x: Parameters<typeof aObs>) => columnA(aObs(...x));
+  expect("A cell: A2 attested listed, A1 needs recheck → listed", cA([true, false, false], [true, true, false], true, null, true, false).state === "listed" && cA([true, false, false], [true, true, false], true, null, true, false).text === "載っている・人の確認（A1 要再確認・A2 あり（人の確認））", cA([true, false, false], [true, true, false], true, null, true, false).text);
+  expect("A cell: both attested not listed → not listed", cA([true, false, true], [true, false, true], false, null, false, true).state === "not_listed" && cA([true, false, true], [true, false, true], false, null, false, true).text === "載っていない・人の確認（A1 なし（人の確認）・A2 なし（人の確認））");
+  expect("A cell: no attestation → 未確定（本文に変化あり・要再確認）", cA([true, false, false], [true, false, false], false, "other", false, false).text === `${RECHECK_TEXT}（A1 要再確認・A2 要再確認）` && cA([true, false, false], [true, false, false], false, "other", false, false).state === "unknown");
+  expect("A cell: one attested not listed, the other needs recheck → unknown with the mark", cA([true, false, true], [true, false, false], false, "other", false, false).text === `${RECHECK_TEXT}（A1 なし（人の確認）・A2 要再確認）`);
+  expect("A cell: fetch failures only → 未確定（取得失敗）", cA([false, false, false], [false, false, false], false, "other", false, false).text === "未確定（取得失敗）（A1 取得失敗・A2 取得失敗）");
+  expect("A cell: a row saying pass WITHOUT the attestation checks is unknown (whatever produced it)", columnA({ method: ATTR_METHODS.A, pass: true, instrument_error: null, checks: [{ label: "A1_page_fetched", ok: true }, { label: "A1_page_lists_sealed_repo", ok: true }, { label: "official_docs_list_sealed_repo", ok: true }] }).state === "unknown");
+  expect("A cell: pass=false without the not-listed attestation checks is unknown", columnA({ method: ATTR_METHODS.A, pass: false, instrument_error: null, checks: [{ label: "A1_page_fetched", ok: true }] }).state === "unknown");
+  expect("A cell: aggregate says listed but no page is attested listed → unknown", cA([true, false, false], [true, false, false], true, null, true, false).state === "unknown");
+  expect("A cell: aggregate says not listed but a page is not attested → unknown", cA([true, false, true], [true, false, false], false, null, false, true).state === "unknown");
+  expect("A cell: missing row / row without checks = unknown", columnA(undefined).state === "unknown" && columnA({ method: ATTR_METHODS.A, pass: false, instrument_error: "other", checks: [] }).text === "未確定（計器）");
+  const bObs = (pass: boolean, inst: string | null, c: Record<string, boolean>) => ({ method: ATTR_METHODS.B, pass, instrument_error: inst, checks: Object.entries({ catalog_item_observed: true, catalog_body_fields_fixed: true, catalog_item_present: true, catalog_item_attested_listed: false, catalog_item_attested_not_listed: false, catalog_item_needs_recheck: false, ...c }).map(([label, ok]) => ({ label, ok })) });
+  expect("B cell: attested listed → 正しい・人の確認", columnB(bObs(true, null, { catalog_item_attested_listed: true })).state === "correct" && columnB(bObs(true, null, { catalog_item_attested_listed: true })).text === "正しい・人の確認");
+  expect("B cell: attested not listed, item present → 誤り・人の確認（欠落）", columnB(bObs(false, null, { catalog_item_attested_not_listed: true })).text === "誤り・人の確認（欠落）");
+  expect("B cell: attested not listed, no item → 誤り・人の確認（項なし）", columnB(bObs(false, null, { catalog_item_present: false, catalog_item_attested_not_listed: true })).text === "誤り・人の確認（項なし）");
+  expect("B cell: no attestation → 未確定（本文に変化あり・要再確認）", columnB(bObs(false, "other", { catalog_item_needs_recheck: true })).text === RECHECK_TEXT && columnB(bObs(false, "other", { catalog_item_needs_recheck: true })).state === "unknown");
+  expect("B cell: unobservable → 未確定（観測できない）", columnB(bObs(false, "other", { catalog_item_observed: false })).text === "未確定（観測できない）");
+  expect("B cell: body fields not fixed in the taskpack → unknown", columnB(bObs(false, "other", { catalog_body_fields_fixed: false })).state === "unknown");
+  expect("B cell: pass WITHOUT the attestation check is unknown (whatever produced it)", columnB({ method: ATTR_METHODS.B, pass: true, instrument_error: null, checks: [{ label: "catalog_field_lists_sealed_repo:connection_guide.repository", ok: true }] }).state === "unknown");
+  expect("B cell: pass=false without the attestation check is unknown", columnB({ method: ATTR_METHODS.B, pass: false, instrument_error: null, checks: [] }).state === "unknown");
+  const cObs = (checks: Array<[string, boolean]>, inst: string | null = null) => ({ method: AGENT_METHOD, instrument_error: inst, checks: checks.map(([label, ok]) => ({ label, ok })) });
   expect("C cell: pass", columnC(cObs([["answer_region_in_form", true], ["repo_value_equals_sealed_repo", true], ["repo_value_is_not_none", true]])).state === "pass");
   expect("C cell: none", columnC(cObs([["answer_region_in_form", true], ["repo_value_equals_sealed_repo", false], ["repo_value_is_not_none", false]])).text === "外した（none）");
   expect("C cell: other URL", columnC(cObs([["answer_region_in_form", true], ["repo_value_equals_sealed_repo", false], ["repo_value_is_not_none", true]])).text === "外した（別 URL）");
   expect("C cell: format", columnC(cObs([["answer_region_in_form", false]])).state === "format");
   expect("C cell: instrument", columnC(cObs([], "provider_api")).state === "instrument");
-  expect("gtLabel A/B/classic", gtLabel({ method: ATTR_METHODS.A, pass: true }) === "A 公式情報: 載っている" && gtLabel({ method: ATTR_METHODS.B, pass: false, instrument_error: "other" }) === "B KanseiLINK: 未確定" && gtLabel({ method: ATTR_METHODS.A, pass: false, instrument_error: null, checks: [] }) === "A 公式情報: 未確定" && gtLabel({ method: ATTR_METHODS.B, pass: false, instrument_error: null, checks: [{ label: "catalog_item_not_listed_human_attested", ok: true }] }) === "B KanseiLINK: 誤り（人の確認）" && gtLabel({ method: "sealed_repo_vs_github_api", pass: false }) === "不一致");
+  expect("gtLabel carries the 要再確認 mark (README rows)", gtLabel(aObs([true, false, false], [true, false, false], false, "other", false, false)) === `A 公式情報: ${RECHECK_TEXT}（A1 要再確認・A2 要再確認）` && gtLabel(bObs(false, "other", { catalog_item_needs_recheck: true })) === `B KanseiLINK: ${RECHECK_TEXT}` && gtLabel(bObs(false, null, { catalog_item_attested_not_listed: true })) === "B KanseiLINK: 誤り・人の確認（欠落）" && gtLabel({ method: "sealed_repo_vs_github_api", pass: false }) === "不一致");
 }
 
-// ── Part A2: the source matcher (yardstick: blaming the other side must be right) ──
+// ── Part A2: the HINT reader (private, decides nothing; unchanged since 7e9a3e2) ──
 {
   const K = "github.com/fake-vendor/fake-official-mcp-server";
   const U0 = "https://github.com/fake-vendor/fake-official-mcp-server";
@@ -107,33 +124,102 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
   ] as const) expect(`A2 text ${want ? "(+)" : "(−)"} ${t.replace("fake-vendor/fake-official-mcp-server", "…")}`, sourceListsRepo(t, K, { html: true }) === want);
 }
 
+// ── Part A3: attribution-attest.mjs (bodies, targets, the attestation validator) ──
+const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8")).marker.expected_digest;
+{
+  // column B's body: the whole item, minus exactly _meta.attempt_id (string) and freshness.data_age_days (integer ≥ 0)
+  const item = (o: any = {}) => ({ service_id: "s", name: "N", mcp_status: "official", trust_score: 0.5, tags: ["x", "y"], connection_guide: null, freshness: { confidence: "medium", data_age_days: 3, last_refreshed: "2026-09-04 17:10:55" }, _meta: { source: "kansei-link", attempt_id: "a-1", kansei_link: { intent: "service_profile" } }, ...o });
+  const base = sha256Hex(catalogBody(item()));
+  const withMeta = (m: any) => item({ _meta: { ...item()._meta, ...m } });
+  const withFresh = (f: any) => item({ freshness: { ...item().freshness, ...f } });
+  expect("A3 body: a new attempt_id keeps the sha256 (no needless expiry)", sha256Hex(catalogBody(withMeta({ attempt_id: "b-2" }))) === base);
+  expect("A3 body: a new data_age_days keeps the sha256", sha256Hex(catalogBody(withFresh({ data_age_days: 4 }))) === base);
+  expect("A3 body: key order does not matter (canonical JSON)", sha256Hex(catalogBody(JSON.parse(JSON.stringify({ ...item(), service_id: "s" }).replace('"service_id":"s",', "")))) !== "" && catalogBody({ b: 1, a: { d: 1, c: 2 } }) === catalogBody({ a: { c: 2, d: 1 }, b: 1 }));
+  for (const [what, it] of [
+    ["_repository added (Codex ① case 1)", item({ _repository: "https://github.com/x/y" })],
+    ["_meta.repository added (case 2)", withMeta({ repository: "https://github.com/x/y" })],
+    ["freshness.repository added (case 3)", withFresh({ repository: "https://github.com/x/y" })],
+    ["freshness.confidence changed (case 4)", withFresh({ confidence: "https://github.com/x/y" })],
+    ["freshness.last_refreshed changed", withFresh({ last_refreshed: "2026-09-05 00:00:00" })],
+    ["_meta.source changed", withMeta({ source: "other" })],
+    ["a number changed (trust_score)", item({ trust_score: 0.6 })],
+    ["null became a value (connection_guide)", item({ connection_guide: { repository: "https://github.com/x/y" } })],
+    ["array order changed", item({ tags: ["y", "x"] })],
+    ["attempt_id of an unexpected type (object) stays in the body", withMeta({ attempt_id: { repository: "https://github.com/x/y" } })],
+    ["data_age_days of an unexpected type (string) stays in the body", withFresh({ data_age_days: "https://github.com/x/y" })],
+    ["data_age_days negative stays in the body", withFresh({ data_age_days: -1 })],
+    ["a new top-level key", item({ repository: "https://github.com/x/y" })],
+  ] as const) expect(`A3 body changes when: ${what}`, sha256Hex(catalogBody(it)) !== base);
+  expect("A3 body: the not-found payload has a body too", /^[0-9a-f]{64}$/.test(sha256Hex(catalogBody({ error: "Service 'x' not found." }))));
+  // targets fixed by the taskpack
+  const cfg = { official_docs: [{ id: "A1", url: "https://example.invalid/a1" }, { id: "A2", url: "https://example.invalid/a2" }], catalog: { display_api_url: "https://example.invalid/mcp", service_id: "svc", body_fields: B_BODY_FIELDS } };
+  expect("A3 target A1/A2 = the URL fixed in the taskpack", sourceTarget(cfg, "A1") === "https://example.invalid/a1" && sourceTarget(cfg, "A2") === "https://example.invalid/a2");
+  expect("A3 target B = catalog endpoint + service_id + field spec", sourceTarget(cfg, "B") === `kansei-catalog https://example.invalid/mcp service_id=svc fields=${B_BODY_FIELDS}`);
+  expect("A3 target of an unknown source = null", sourceTarget(cfg, "A9") === null);
+  // the validator
+  const sha = "c".repeat(64);
+  const ctx = { markerId: "M-994", expectedDigest: SEAL_DIGEST, sourceId: "B", target: sourceTarget(cfg, "B"), bodySha: sha };
+  const good = (o: any = {}) => ({ attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: SEAL_DIGEST, source_id: "B", target: ctx.target, body_sha256: sha, verdict: "not_listed", observer: "human:synapse-arrows", date: "2026-09-29", reason: "read the whole item; no link to the sealed repository", ...o });
+  expect("A3 valid: verdict not_listed", validateAttestation(good(), ctx) === null, String(validateAttestation(good(), ctx)));
+  expect("A3 valid: verdict listed", validateAttestation(good({ verdict: "listed", reason: "connection_guide names the repository" }), ctx) === null);
+  expect("A3 valid: observer with a space", validateAttestation(good({ observer: "human:Audit Fixture Reviewer" }), ctx) === null);
+  const bad: Array<[string, any, string]> = [
+    ["an extra key", good({ extra: "x" }), "keys"], ["_draft_instructions (unsigned draft)", good({ _draft_instructions: "sign" }), "keys"],
+    ["the v1 kind", good({ attestation: "kansei-attribution-not-listed/v1" }), "kind"], ["another marker", good({ marker_id: "M-004" }), "marker_id"],
+    ["another seal", good({ expected_digest: "f".repeat(64) }), "expected_digest"], ["another source", good({ source_id: "A1" }), "source_id"],
+    ["another body", good({ body_sha256: "d".repeat(64) }), "body_sha256"], ["verdict unknown", good({ verdict: "unknown" }), "verdict"], ["verdict Listed (case)", good({ verdict: "Listed" }), "verdict"],
+    ["observer not human", good({ observer: "claude" }), "observer"], ["observer agent:", good({ observer: "agent:test" }), "observer"], ["observer human: with nothing", good({ observer: "human:" }), "observer"], ["observer human: + space", good({ observer: "human: x" }), "observer"],
+    ["date 2026-02-30", good({ date: "2026-02-30" }), "date"], ["date YYYY-MM-DD", good({ date: "YYYY-MM-DD" }), "date"], ["reason over 200", good({ reason: "x".repeat(201) }), "reason"],
+    ["target: the service_id alone (Codex's form)", good({ target: "fake-subject" }), "target"], ["target: another service_id", good({ target: ctx.target.replace("service_id=svc", "service_id=other") }), "target"],
+    ["target: other fields", good({ target: ctx.target.replace("freshness.data_age_days", "freshness") }), "target"], ["target: trailing space", good({ target: `${ctx.target} ` }), "empty:target"],
+    ["value not a string (verdict null)", good({ verdict: null }), "empty:verdict"], ["empty reason", good({ reason: "" }), "empty:reason"], ["blank reason", good({ reason: "   " }), "empty:reason"],
+  ];
+  for (const k of ["attestation", "marker_id", "expected_digest", "source_id", "target", "body_sha256", "verdict", "observer", "date", "reason"]) {
+    const o = good(); delete (o as any)[k]; bad.push([`missing ${k}`, o, "keys"]);
+  }
+  for (const [ph, name] of [["TODO", "TODO"], ["todo", "todo"], ["TBD", "TBD"], ["<名前>", "<…>"], ["[name]", "[…]"], ["{name}", "{…}"]] as const) {
+    bad.push([`placeholder ${name} in observer`, good({ observer: `human:${ph}` }), "placeholder:observer"]);
+    bad.push([`placeholder ${name} in reason`, good({ reason: `${ph}` }), "placeholder:reason"]);
+    bad.push([`placeholder ${name} inside the reason`, good({ reason: `read it ${ph} later` }), "placeholder:reason"]);
+    bad.push([`placeholder ${name} as target`, good({ target: ph }), "placeholder:target"]);
+    bad.push([`placeholder ${name} as verdict`, good({ verdict: ph }), "placeholder:verdict"]);
+    bad.push([`placeholder ${name} as date`, good({ date: ph }), "placeholder:date"]);
+  }
+  bad.push(["a line break in the reason", good({ reason: "a\nb" }), "placeholder:reason"]);
+  for (const [why, a, code] of bad) { const got = validateAttestation(a, ctx); expect(`A3 invalid: ${why} → ${code}`, got === code, String(got)); }
+  expect("A3 a word merely containing todo (e.g. 'todos') is not a placeholder", validateAttestation(good({ reason: "todos los campos leídos; no repository link" }), ctx) === null);
+  // findAttestation / sourceState read at most one file, never throw
+  const d = mkdtempSync(join(tmpdir(), "att-unit-"));
+  writeFileSync(join(d, `M-994-B-${sha}.json`), JSON.stringify(good({ verdict: "listed", reason: "the item names the repository" })));
+  expect("A3 findAttestation: valid listed", JSON.stringify(findAttestation(d, ctx)) === JSON.stringify({ verdict: "listed", why: "valid" }));
+  expect("A3 sourceState: attested listed / recheck (other body) / unread", sourceState({ fetched: true, bodySha: sha, dir: d, ctx }).state === "listed" && sourceState({ fetched: true, bodySha: "e".repeat(64), dir: d, ctx }).state === "recheck" && sourceState({ fetched: false, bodySha: null, dir: d, ctx }).state === "unread");
+  writeFileSync(join(d, `M-994-B-${sha}.json`), "{not json");
+  expect("A3 findAttestation: unreadable file → recheck, no throw", sourceState({ fetched: true, bodySha: sha, dir: d, ctx }).state === "recheck" && findAttestation(d, ctx).why === "unreadable");
+  expect("A3 findAttestation: no dir / bad sha → no verdict", findAttestation("", ctx).verdict === null && findAttestation(d, { ...ctx, bodySha: "../x" }).why === "no_body");
+  rmSync(d, { recursive: true, force: true });
+}
+
 // ── Part B: end to end on loopback ───────────────────────────────────────
 const REPO = "https://github.com/fake-vendor/fake-official-mcp-server";
 const mode: Record<string, string> = { a1: "none", a2: "listed", catalog: "no_repo", gh: "ok" };
 const page = (m: string) => m === "listed" ? `<html><body><a href="${REPO}">公式 MCP</a></body></html>`
-  : m === "listed_fragment" ? `<html><body><a href="${REPO}#readme">公式 MCP</a></body></html>`
-  : m === "listed_tree" ? `<html><body><a href="${REPO}/tree/main">公式 MCP</a></body></html>`
-  : m === "listed_blob" ? `<html><body><a href="${REPO}/blob/main/README.md#setup">README</a></body></html>`
-  : m === "listed_amp" ? `<html><body><a href="${REPO}?tab=readme-ov-file&amp;utm_source=news">公式 MCP</a></body></html>`
-  : m === "listed_entities" ? `<html><body><a href="https:&#x2F;&#x2F;github.com&#x2F;fake-vendor&#x2F;fake-official-mcp-server">公式 MCP</a></body></html>`
   : m === "other_repo" ? `<html><body><a href="https://github.com/other/other">x</a></body></html>`
-  : m === "other_owner" ? `<html><body><a href="https://github.com/other-vendor/fake-official-mcp-server/tree/main">x</a></body></html>`
-  : m === "similar_host" ? `<html><body><a href="https://evilgithub.com/fake-vendor/fake-official-mcp-server">x</a> <a href="https://github.com.evil.example/fake-vendor/fake-official-mcp-server">y</a></body></html>`
-  : m === "dot_segments" ? `<html><body><a href="${REPO}/../../other/other">x</a> <a href="${REPO}/%2e%2e/%2E%2E/other/other">y</a></body></html>`
-  : m === "repo_prefix" ? `<html><body><a href="${REPO}-v2/tree/main">x</a></body></html>`
-  : m === "listed_http_www" ? `<html><body><a href="http://www.github.com/fake-vendor/fake-official-mcp-server">公式 MCP</a></body></html>`
-  : m === "listed_bare_text" ? `<html><body><p>リポジトリ: github.com/fake-vendor/fake-official-mcp-server</p></body></html>`
-  : m === "listed_protocol_relative" ? `<html><body><a href="//github.com/fake-vendor/fake-official-mcp-server/tree/main">公式 MCP</a></body></html>`
-  : m === "listed_port_443" ? `<html><body><a href="https://github.com:443/fake-vendor/fake-official-mcp-server">公式 MCP</a></body></html>`
-  : m === "other_port" ? `<html><body><a href="https://github.com:8443/fake-vendor/fake-official-mcp-server">x</a></body></html>`
-  : m === "url_in_url_bare" ? `<html><body>evil.example/?to=github.com/fake-vendor/fake-official-mcp-server and evil.example/?to=//github.com/fake-vendor/fake-official-mcp-server</body></html>`
-  : m === "gist_host" ? `<html><body><a href="https://gist.github.com/fake-vendor/fake-official-mcp-server">x</a></body></html>`
   : m === "dot_tail" ? `<html><body><a href="${REPO}/..">x</a></body></html>`
   : m === "nested_data" ? `<html><body><a href="data:text/plain,${REPO}">PAGE_CANARY_PRIVATE</a></body></html>`
   : m === "percent_names" ? `<html><body><a href="https://github.com/%66%61%6b%65-vendor/%66%61%6b%65-official-mcp-server">PAGE_CANARY_PRIVATE</a></body></html>`
   : m === "entity_hyphen" ? `<html><body><a href="https://github.com/fake&hyphen;vendor/fake-official-mcp-server">x</a></body></html>` : "<html><body>AI 活用</body></html>";
-// the fake catalog item (also used to compute the body a human attests for column B)
-const catalogItem = (id: string): any => ({ service_id: id, name: "Fake", mcp_endpoint: "https://<your-host>/mcp", mcp_status: "official", api_auth_method: "oauth2", freshness: { confidence: "medium", data_age_days: Math.floor(Math.random() * 99) }, _meta: { attempt_id: Math.random().toString(36) }, connection_guide: { steps: ["install"] } });
+// the fake catalog item; _meta.attempt_id and freshness.data_age_days move on every call, like the real ones
+const catalogItem = (id: string, m = mode.catalog): any => {
+  const item: any = { service_id: id, name: "Fake", mcp_endpoint: "https://<your-host>/mcp", mcp_status: "official", api_auth_method: "oauth2", freshness: { confidence: "medium", data_age_days: Math.floor(Math.random() * 99) }, _meta: { attempt_id: Math.random().toString(36) }, connection_guide: { steps: ["install"] } };
+  if (m === "repo_in_guide") item.connection_guide.repository = REPO;
+  if (m === "bracket_relative") item.connection_guide.repository = "[//github.com/fake-vendor/fake-official-mcp-server]";
+  if (m === "repo_in_meta") item._meta.repository = REPO;
+  if (m === "repo_in_freshness") item.freshness.repository = REPO;
+  if (m === "nested_data") item.description = `CATALOG_CANARY_PRIVATE data:text/plain,${REPO}`;
+  if (m === "percent_names") item.description = "CATALOG_CANARY_PRIVATE https://github.com/%66%61%6b%65-vendor/%66%61%6b%65-official-mcp-server";
+  return item;
+};
+const ABSENT = (id: string) => ({ error: `Service '${id}' not found. Use search_services to find valid service IDs.` });
 const server = createServer((req, res) => {
   let body = ""; req.on("data", (d) => (body += d)); req.on("end", () => {
     const u = req.url || "";
@@ -150,16 +236,8 @@ const server = createServer((req, res) => {
       res.writeHead(200, { "content-type": "text/event-stream" });
       const sse = (msg: any) => res.end(`event: message\ndata: ${JSON.stringify(msg)}\n\n`);
       if (mode.catalog === "rpc_error") return sse({ jsonrpc: "2.0", id: rpc.id, error: { code: -32603, message: "Internal error" } });
-      if (mode.catalog === "absent") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify({ error: `Service '${id}' not found. Use search_services to find valid service IDs.` }) }] } });
-      const item: any = catalogItem(id);
-      if (mode.catalog === "repo_in_guide") item.connection_guide.repository = REPO;
-      if (mode.catalog === "repo_bare") item.connection_guide.repository = REPO.replace("https://", "");
-      if (mode.catalog === "repo_tree") item.connection_guide.setup_url = `${REPO}/tree/main#install`;
-      if (mode.catalog === "repo_other_owner") item.connection_guide.setup_url = "https://github.com/other-vendor/fake-official-mcp-server";
-      if (mode.catalog === "bracket_relative") item.connection_guide.repository = "[//github.com/fake-vendor/fake-official-mcp-server]";
-      if (mode.catalog === "nested_data") item.description = `CATALOG_CANARY_PRIVATE data:text/plain,${REPO}`;
-      if (mode.catalog === "percent_names") item.description = "CATALOG_CANARY_PRIVATE https://github.com/%66%61%6b%65-vendor/%66%61%6b%65-official-mcp-server";
-      return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(item) }] } });
+      if (mode.catalog === "absent") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(ABSENT(id)) }] } });
+      return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(catalogItem(id)) }] } });
     }
     if (u === "/gh/repos/fake-vendor/fake-official-mcp-server") {
       if (mode.gh === "404") { res.writeHead(404, { "content-type": "application/json" }); return res.end("{}"); }
@@ -178,13 +256,14 @@ const tmp = mkdtempSync(join(tmpdir(), "fake-attr-"));
 const answersPath = join(tmp, "answers.json");
 writeFileSync(answersPath, JSON.stringify({ fake: `説明。\nREPO: ${REPO}\nAUTH: OAuth 2.0` }));
 const attDir = join(tmp, "attestations"); mkdirSync(attDir, { recursive: true });
-const env = { ...process.env, KANSEI_M994_SEALED_PATH: join(FIX, "M-994.sealed.json"), KANSEI_FAKE_LLM_ANSWERS_FILE: answersPath, KANSEI_FAKE_ATTR_BASE: "http://127.0.0.1:47336", KANSEI_FAKE_ATTESTATIONS_DIR: attDir };
-const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8")).marker.expected_digest;
+const BASE = "http://127.0.0.1:47336";
+const env = { ...process.env, KANSEI_M994_SEALED_PATH: join(FIX, "M-994.sealed.json"), KANSEI_FAKE_LLM_ANSWERS_FILE: answersPath, KANSEI_FAKE_ATTR_BASE: BASE, KANSEI_FAKE_ATTESTATIONS_DIR: attDir };
+const PACK_ATTR = JSON.parse(JSON.stringify(JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8")).marker.attribution).replaceAll("${ENV:KANSEI_FAKE_ATTR_BASE}", BASE));
 const pageSha = (m: string) => sha256Hex(Buffer.from(page(m), "utf8"));
 const bSha = (payload: any) => sha256Hex(catalogBody(payload));
 // write a (valid unless overridden) human attestation for one source and body
-function attest(sourceId: string, bodySha: string, over: Record<string, any> = {}, fileSha = bodySha) {
-  const a: any = { attestation: "kansei-attribution-not-listed/v1", marker_id: "M-994", expected_digest: SEAL_DIGEST, source_id: sourceId, target: sourceId === "B" ? "fake-catalog: fake-subject" : `http://127.0.0.1:47336/${sourceId.toLowerCase()}`, body_sha256: bodySha, verdict: "not_listed", observer: "human:Smoke Tester", date: "2026-09-29", reason: "read the whole page; no link to the sealed repository", ...over };
+function attest(sourceId: string, bodySha: string, verdict: "listed" | "not_listed", over: Record<string, any> = {}, fileSha = bodySha) {
+  const a: any = { attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: SEAL_DIGEST, source_id: sourceId, target: sourceTarget(PACK_ATTR, sourceId), body_sha256: bodySha, verdict, observer: "human:smoke-tester", date: "2026-09-29", reason: "read the whole body", ...over };
   for (const k of Object.keys(over)) if (over[k] === undefined) delete a[k];
   writeFileSync(join(attDir, `M-994-${sourceId}-${fileSha}.json`), JSON.stringify(a));
 }
@@ -195,151 +274,176 @@ async function run(extra: string[] = []) {
   const m = /evidence: (\S+?)\/ \(manifest/.exec(r.out);
   const bundle = m ? join(ROOT, m[1]) : null;
   const metrics = bundle && existsSync(join(bundle, "metrics.json")) ? JSON.parse(readFileSync(join(bundle, "metrics.json"), "utf-8")) : null;
+  const priv = bundle && existsSync(join(bundle, "environment.private.json")) ? JSON.parse(readFileSync(join(bundle, "environment.private.json"), "utf-8")) : { diagnostics: [] };
+  const pub = bundle ? ["metrics.json", "manifest.json", "harness.jsonl"].map((f) => readFileSync(join(bundle, f), "utf-8")).join("\n") : "";
   const rel = bundle ? bundle.slice(ROOT.length + 1).replaceAll("\\", "/") : "none";
   const full = (x: any) => ({ ...x, evidence_ref: `${rel}#sha256:${"a".repeat(64)}` });
   const by = (method: string) => (metrics?.readings || []).filter((x: any) => x.observed.method === method).map(full);
-  return { ...r, bundle, metrics, A: by(ATTR_METHODS.A)[0], B: by(ATTR_METHODS.B)[0], agent: by("llm_answer_rules_vs_sealed_expectation")[0], gt: by("sealed_repo_vs_github_api")[0] };
+  const diag = (id: string) => priv.diagnostics.find((d: any) => d.event === "attribution_source" && d.source_id === id);
+  return { ...r, bundle, metrics, priv, pub, diag, A: by(ATTR_METHODS.A)[0], B: by(ATTR_METHODS.B)[0], agent: by(AGENT_METHOD)[0], gt: by("sealed_repo_vs_github_api")[0] };
 }
 const ok = (o: any, label: string) => (o?.checks || []).find((c: any) => c.label === label)?.ok;
-// row encoding: pass = listed; instrument_error = unknown; otherwise not listed BY HUMAN ATTESTATION (§4-2)
+// row encoding: pass = listed; instrument_error = unknown; otherwise not listed — both only by human attestation (§4-2)
 const stateOf = (o: any) => (!o ? "missing" : o.pass ? "listed" : o.instrument_error ? "unknown" : "not_listed");
 // the judgement (規則 v0.1) of one loopback run, as the sheet would print it
-const judgeOf = (r: any) => attributionLines([r.A, r.B, r.agent, r.gt].filter(Boolean).map((x: any) => ({ ...x, outcome_id: x.observed.method === "llm_answer_rules_vs_sealed_expectation" ? 1 : null })))[0]?.judgement.code;
-let day1: any = null, renamedRun: any = null;
+const judgeOf = (r: any) => attributionLines([r.A, r.B, r.agent, r.gt].filter(Boolean).map((x: any) => ({ ...x, outcome_id: x.observed.method === AGENT_METHOD ? 1 : null })))[0]?.judgement.code;
+let day1: any = null, renamedRun: any = null, recheckRun: any = null;
 try {
   // (1) the real day-one shape: A1 without, A2 with, catalog item without the repo, repo unchanged
   {
-    const r = await run();
+    const r = await run(); recheckRun = r;
     expect("B1 exit 0", r.status === 0, r.out.slice(-500));
-    expect("B1 attribution line printed (B unknown: no link, no attestation)", /attribution: A official docs=listed B KanseiLINK catalog=instrument/.test(r.out), r.out.slice(-400));
-    expect("B1 A row: pass (A2), A1 false, A2 true", r.A?.observed.pass === true && ok(r.A?.observed, "A1_page_lists_sealed_repo") === false && ok(r.A?.observed, "A2_page_lists_sealed_repo") === true && r.A?.observed.instrument_error === null, JSON.stringify(r.A?.observed));
-    expect("B1 B row without an attestation: item present, no link → UNKNOWN (§4-2: the automatic reading never says not listed)", stateOf(r.B?.observed) === "unknown" && ok(r.B?.observed, "catalog_item_present") === true && ok(r.B?.observed, "catalog_item_not_listed_human_attested") === false, JSON.stringify(r.B?.observed));
-    expect("B1 judgement without an attestation = U2 (nobody is blamed)", judgeOf(r) === "U2", judgeOf(r));
-    const priv = JSON.parse(readFileSync(join(r.bundle!, "environment.private.json"), "utf-8"));
-    const bDiag = priv.diagnostics.find((d: any) => d.event === "attribution_source" && d.source_id === "B");
-    expect("B1 the private sidecar records B's body sha256 (what a human would attest)", bDiag?.body_sha256 === bSha(catalogItem("fake-subject")) && bDiag?.attestation === "none_for_this_body", JSON.stringify(bDiag));
-    // now a human attests B for exactly this body
-    attest("B", bSha(catalogItem("fake-subject")));
+    expect("B1 attribution line printed (no attestation: A and B unknown, 要再確認=A1,A2,B)", /attribution: A official docs=unknown B KanseiLINK catalog=unknown 要再確認=A1,A2,B/.test(r.out), r.out.slice(-400));
+    expect("B1 no attestation: A unknown even though A2 links the repo (the automatic reading decides nothing)", stateOf(r.A?.observed) === "unknown" && ok(r.A?.observed, "A2_needs_recheck") === true && ok(r.A?.observed, "A1_needs_recheck") === true && ok(r.A?.observed, "A2_attested_listed") === false, JSON.stringify(r.A?.observed));
+    expect("B1 no attestation: B unknown, needs recheck, item present", stateOf(r.B?.observed) === "unknown" && ok(r.B?.observed, "catalog_item_needs_recheck") === true && ok(r.B?.observed, "catalog_item_present") === true && ok(r.B?.observed, "catalog_body_fields_fixed") === true, JSON.stringify(r.B?.observed));
+    expect("B1 judgement without attestations = U1 (nobody is blamed, nobody is credited)", judgeOf(r) === "U1", judgeOf(r));
+    expect("B1 the private sidecar records each body sha256, 要再確認, and the hint", r.diag("A1")?.body_sha256 === pageSha("none") && r.diag("A2")?.body_sha256 === pageSha("listed") && r.diag("B")?.body_sha256 === bSha(catalogItem("fake-subject")) && [r.diag("A1"), r.diag("A2"), r.diag("B")].every((d: any) => d.needs_recheck === true && d.state === "recheck" && d.attestation === "none_for_this_body") && r.priv.diagnostics.some((d: any) => d.event === "attribution_needs_recheck" && JSON.stringify(d.sources) === '["A1","A2","B"]'), JSON.stringify(r.priv.diagnostics));
+    expect("B1 the private sidecar names each source's target (what a person attests)", r.diag("A1")?.target === `${BASE}/a1` && r.diag("B")?.target === sourceTarget(PACK_ATTR, "B"));
+    expect("B1 the hint stays private: A2 hint listed, A1 hint unknown, B hint unknown", r.diag("A2")?.hint?.state === "listed" && r.diag("A1")?.hint?.state === "unknown" && r.diag("B")?.hint?.state === "unknown" && /判断に使わない/.test(r.diag("B")?.hint?.note || ""), JSON.stringify([r.diag("A2")?.hint, r.diag("B")?.hint]));
+    expect("B1 no hint, no body sha256, no repository value in the public files", !/hint|手がかり|fake-official-mcp-server/.test(r.pub) && ![pageSha("none"), pageSha("listed"), bSha(catalogItem("fake-subject"))].some((s) => r.pub.includes(s)));
+    expect("B1 the public log marks 要再確認 by source id only", /"event":"attribution","column":"A","listed":false,"not_listed":false,"instrument":"other","needs_recheck":\["A1","A2"\]/.test(r.pub) && /"column":"B","listed":false,"not_listed":false,"instrument":"other","needs_recheck":true/.test(r.pub), r.pub.split("\n").filter((l) => l.includes("attribution")).join(" | "));
+    const rr = readmeRows(r.metrics.readings.map((x: any) => ({ ...x, _outcome: x.observed.method === AGENT_METHOD ? {} : null })));
+    expect("B1 README rows carry the 要再確認 mark for A and B", rr.gtRows.includes(`A 公式情報: ${RECHECK_TEXT}（A1 要再確認・A2 要再確認）`) && rr.gtRows.includes(`B KanseiLINK: ${RECHECK_TEXT}`), rr.gtRows);
+    // a person attests: A2 listed, B not listed (for exactly these bodies)
+    attest("A2", pageSha("listed"), "listed"); attest("B", bSha(catalogItem("fake-subject")), "not_listed");
     const ra = await run(); day1 = ra;
-    expect("B1 with a valid human attestation for today's body → B not listed (誤り・人の確認)", stateOf(ra.B?.observed) === "not_listed" && ok(ra.B?.observed, "catalog_item_not_listed_human_attested") === true && validateReading(ra.B, schema).length === 0, JSON.stringify(ra.B?.observed));
-    expect("B1 judgement with the attestation = #3 KanseiLINK 側の穴", judgeOf(ra) === "#3", judgeOf(ra));
-    expect("B1 the volatile fields (_meta, freshness) do not break the attestation (they are outside the body)", catalogBody(catalogItem("fake-subject")) === catalogBody(catalogItem("fake-subject")));
-    // an attestation that does not match exactly is ignored
+    expect("B1 attested A2 listed + B not listed → A listed, B not listed, judgement #3 KanseiLINK 側の穴", stateOf(ra.A?.observed) === "listed" && stateOf(ra.B?.observed) === "not_listed" && judgeOf(ra) === "#3" && [ra.A, ra.B].every((x: any) => validateReading(x, schema).length === 0), `${judgeOf(ra)} ${JSON.stringify([ra.A?.observed, ra.B?.observed])}`);
+    expect("B1 with A2 attested, A1 still needs recheck (marked, but A is listed)", ok(ra.A?.observed, "A1_needs_recheck") === true && /要再確認=A1\b/.test(ra.out) && !/要再確認=.*B/.test(ra.out), ra.out.slice(-300));
+    expect("B1 the volatile fields (_meta.attempt_id, freshness.data_age_days) move on every call yet the attestation holds", catalogItem("fake-subject")._meta.attempt_id !== catalogItem("fake-subject")._meta.attempt_id && bSha(catalogItem("fake-subject")) === bSha(catalogItem("fake-subject")));
+    // the person decides against the automatic reading, both ways
+    clearAtt(); attest("A1", pageSha("none"), "listed", { reason: "the page names the repository in an image caption" }); attest("A2", pageSha("listed"), "not_listed", { reason: "the link is to an unrelated mirror" }); attest("B", bSha(catalogItem("fake-subject")), "listed", { reason: "the item names the repository" });
+    const rh = await run();
+    expect("B1 a person's verdict wins over the hint both ways (A1 attested listed with hint unknown, A2 attested not listed with hint listed)", ok(rh.A?.observed, "A1_attested_listed") === true && ok(rh.A?.observed, "A2_attested_not_listed") === true && stateOf(rh.A?.observed) === "listed" && stateOf(rh.B?.observed) === "listed" && judgeOf(rh) === "#1" && rh.diag("A2")?.hint?.state === "listed", `${judgeOf(rh)} ${JSON.stringify(rh.A?.observed.checks)}`);
+    clearAtt(); attest("A1", pageSha("none"), "not_listed"); attest("A2", pageSha("listed"), "not_listed"); attest("B", bSha(catalogItem("fake-subject")), "not_listed");
+    const r7 = await run();
+    expect("B1 every source attested not listed → A not listed, B not listed, #7", stateOf(r7.A?.observed) === "not_listed" && ok(r7.A?.observed, "official_docs_attested_not_listed") === true && stateOf(r7.B?.observed) === "not_listed" && judgeOf(r7) === "#7", judgeOf(r7));
+    // an attestation that does not match exactly is ignored → 要再確認
+    const B0 = bSha(catalogItem("fake-subject"));
     for (const [why, over, fileSha] of [
       ["another body (file named for another sha)", {}, "0".repeat(64)],
       ["another seal", { expected_digest: "f".repeat(64) }, undefined],
       ["unsigned draft (extra _draft_instructions key)", { _draft_instructions: "sign me" }, undefined],
       ["placeholder observer", { observer: "human:<名前>" }, undefined],
+      ["observer human:TODO", { observer: "human:TODO" }, undefined],
+      ["reason TBD", { reason: "TBD" }, undefined],
+      ["reason [reason]", { reason: "[reason]" }, undefined],
+      ["target TODO", { target: "TODO" }, undefined],
+      ["target = the service_id alone", { target: "fake-subject" }, undefined],
       ["observer not human", { observer: "claude" }, undefined],
-      ["verdict other than not_listed", { verdict: "listed" }, undefined],
+      ["verdict unknown", { verdict: "unknown" }, undefined],
       ["missing reason", { reason: undefined }, undefined],
       ["placeholder date", { date: "YYYY-MM-DD" }, undefined],
       ["another source id", { source_id: "A1" }, undefined],
+      ["the v1 kind", { attestation: "kansei-attribution-not-listed/v1" }, undefined],
     ] as const) {
-      clearAtt(); attest("B", bSha(catalogItem("fake-subject")), over as any, (fileSha as any) ?? bSha(catalogItem("fake-subject")));
+      clearAtt(); attest("B", B0, "not_listed", over as any, (fileSha as any) ?? B0);
       const rx = await run();
-      expect(`B1 invalid attestation (${why}) is ignored → B unknown`, stateOf(rx.B?.observed) === "unknown", JSON.stringify(rx.B?.observed.checks));
+      expect(`B1 invalid attestation (${why}) is ignored → B unknown, 要再確認`, stateOf(rx.B?.observed) === "unknown" && ok(rx.B?.observed, "catalog_item_needs_recheck") === true && String(rx.diag("B")?.attestation).startsWith(fileSha ? "none_for_this_body" : "invalid:"), `${JSON.stringify(rx.B?.observed.checks)} ${rx.diag("B")?.attestation}`);
     }
     clearAtt();
     expect("B1 attribution rows are ground-truth side (model none, done, sealed_ method)", [r.A, r.B].every((x: any) => x?.target.model === "none" && x?.stage_reached === "done" && x?.observed.method.startsWith("sealed_")));
     expect("B1 attribution rows pass reading.v1", [r.A, r.B].every((x: any) => validateReading(x, schema).length === 0), JSON.stringify([r.A, r.B].map((x: any) => validateReading(x, schema))));
     expect("B1 ground truth consistent, no GT row, agent pass", r.agent?.observed.ground_truth_consistent === true && !r.gt && r.agent?.observed.pass === true);
     expect("B1 one agent reading + two attribution rows", r.metrics?.readings?.length === 3, String(r.metrics?.readings?.length));
-    expect("B1 manifest fingerprints attribution-rules and all six vendored decoder files", ["lib/attribution-rules.mjs", "vendor/entities-8.1.0/decode.js", "vendor/entities-8.1.0/decode-codepoint.js", "vendor/entities-8.1.0/generated/decode-data-html.js", "vendor/entities-8.1.0/generated/decode-data-xml.js", "vendor/entities-8.1.0/internal/bin-trie-flags.js", "vendor/entities-8.1.0/internal/decode-shared.js"].every((k) => /^[0-9a-f]{64}$/.test(JSON.parse(readFileSync(join(r.bundle!, "manifest.json"), "utf-8")).executor.libs[k] || "")));
-    const pub = ["metrics.json", "manifest.json", "harness.jsonl"].map((f) => readFileSync(join(r.bundle!, f), "utf-8")).join("\n");
-    expect("B1 no repository value in public files", !/fake-official-mcp-server/.test(pub));
+    expect("B1 manifest fingerprints attribution-attest, attribution-rules and all six vendored decoder files", ["lib/attribution-attest.mjs", "lib/attribution-rules.mjs", "vendor/entities-8.1.0/decode.js", "vendor/entities-8.1.0/decode-codepoint.js", "vendor/entities-8.1.0/generated/decode-data-html.js", "vendor/entities-8.1.0/generated/decode-data-xml.js", "vendor/entities-8.1.0/internal/bin-trie-flags.js", "vendor/entities-8.1.0/internal/decode-shared.js"].every((k) => /^[0-9a-f]{64}$/.test(JSON.parse(readFileSync(join(r.bundle!, "manifest.json"), "utf-8")).executor.libs[k] || "")));
+    expect("B1 no repository value in public files", !/fake-official-mcp-server/.test(r.pub));
   }
-  // (2) catalog names the repo in a field → B true, field NAME recorded
+  // (2) catalog variants
   {
     mode.catalog = "repo_in_guide";
     const r = await run();
-    expect("B2 B row pass, field name recorded", r.B?.observed.pass === true && ok(r.B?.observed, "catalog_field_lists_sealed_repo:connection_guide.repository") === true, JSON.stringify(r.B?.observed.checks));
+    expect("B2 catalog names the repo, no attestation → B unknown (hint listed, private, with the field name)", stateOf(r.B?.observed) === "unknown" && r.diag("B")?.hint?.state === "listed" && JSON.stringify(r.diag("B")?.hint?.fields) === '["connection_guide.repository"]' && !/connection_guide\.repository/.test(r.pub), JSON.stringify(r.diag("B")));
+    attest("B", bSha(catalogItem("fake-subject")), "listed");
+    const rl = await run();
+    expect("B2 catalog names the repo, attested listed → B correct", stateOf(rl.B?.observed) === "listed" && columnB(rl.B?.observed).text === "正しい・人の確認");
+    clearAtt();
     {
       const { readCatalogDisplay } = await import("../exec-harness/lib/marker-targets.mjs");
-      const d0 = await readCatalogDisplay("http://127.0.0.1:47336/mcp", "fake-subject");
-      const d1 = await readCatalogDisplay("http://127.0.0.1:47336/mcp", "fake-subject", 20000, { keepPayload: true });
+      const d0 = await readCatalogDisplay(`${BASE}/mcp`, "fake-subject");
+      const d1 = await readCatalogDisplay(`${BASE}/mcp`, "fake-subject", 20000, { keepPayload: true });
       const { payload, freshness: _f1, ...rest } = d1 as any; const { freshness: _f0, ...rest0 } = d0 as any; // the fake item's freshness moves on every call, like the real one
       expect("B2 keepPayload: default off returns no payload (M-002 unchanged), on returns it, other fields identical", !("payload" in d0) && typeof payload === "object" && JSON.stringify(rest) === JSON.stringify(rest0));
     }
-    mode.catalog = "repo_bare";
-    const r2 = await run();
-    expect("B2 (+) scheme-less github.com/owner/repo in the catalog → B true", r2.B?.observed.pass === true, JSON.stringify(r2.B?.observed.checks));
-    mode.catalog = "repo_tree";
-    const rtree = await run();
-    expect("B2 (+) catalog field with /tree/main#install below the repo → B true, field name recorded", rtree.B?.observed.pass === true && ok(rtree.B?.observed, "catalog_field_lists_sealed_repo:connection_guide.setup_url") === true, JSON.stringify(rtree.B?.observed.checks));
-    mode.catalog = "repo_other_owner";
-    const rown = await run();
-    expect("B2 (−) catalog field naming the repo under another owner → B unknown (name present, does not resolve), field name recorded", stateOf(rown.B?.observed) === "unknown" && ok(rown.B?.observed, "catalog_field_names_sealed_repo_unresolved:connection_guide.setup_url") === false, JSON.stringify(rown.B?.observed.checks));
+    // Codex 7e9a3e2 ①: a link added to a field that used to be excluded changes the body and expires the old "not listed"
+    mode.catalog = "no_repo";
+    const noRepoSha = bSha(catalogItem("fake-subject"));
+    attest("B", noRepoSha, "not_listed"); attest("A2", pageSha("listed"), "listed");
+    for (const m of ["repo_in_meta", "repo_in_freshness"]) {
+      mode.catalog = m;
+      const rx = await run();
+      expect(`B2 Codex ① ${m}: the body sha256 changes, the old "not listed" expires → B 未確定（要再確認）, U2, never #3`, stateOf(rx.B?.observed) === "unknown" && rx.diag("B")?.body_sha256 !== noRepoSha && judgeOf(rx) === "U2" && columnB(rx.B?.observed).text === RECHECK_TEXT, `${judgeOf(rx)} ${rx.diag("B")?.body_sha256}`);
+    }
+    clearAtt();
     mode.catalog = "bracket_relative";
+    attest("A2", pageSha("listed"), "listed"); attest("B", bSha(catalogItem("fake-subject")), "listed");
     const rbr = await run();
-    expect("B2 (+) Codex R4: catalog field [//github.com/owner/repo] → B listed, judgement #1", stateOf(rbr.B?.observed) === "listed" && judgeOf(rbr) === "#1", `${judgeOf(rbr)} ${JSON.stringify(rbr.B?.observed.checks)}`);
+    expect("B2 (+) Codex R4: catalog field [//github.com/owner/repo] attested listed by a person → B correct, judgement #1 (hint listed)", stateOf(rbr.B?.observed) === "listed" && judgeOf(rbr) === "#1" && rbr.diag("B")?.hint?.state === "listed", `${judgeOf(rbr)} ${JSON.stringify(rbr.B?.observed.checks)}`);
+    clearAtt();
     mode.catalog = "absent";
     const r3 = await run();
     expect("B2 catalog has no item, no attestation → B unknown, catalog_item_present false", stateOf(r3.B?.observed) === "unknown" && ok(r3.B?.observed, "catalog_item_present") === false, JSON.stringify(r3.B?.observed));
-    attest("B", bSha({ error: "Service 'fake-subject' not found. Use search_services to find valid service IDs." }));
+    attest("B", bSha(ABSENT("fake-subject")), "not_listed");
     const r3a = await run();
     expect("B2 catalog has no item, attested → B not listed (項なし)", stateOf(r3a.B?.observed) === "not_listed" && columnB(r3a.B?.observed).text === "誤り・人の確認（項なし）", JSON.stringify(r3a.B?.observed));
     clearAtt();
     mode.catalog = "rpc_error";
     const r4 = await run();
-    expect("B2 catalog unobservable → B instrument", r4.B?.observed.instrument_error === "other" && r4.B?.observed.pass === false && validateReading(r4.B, schema).length === 0);
+    expect("B2 catalog unobservable → B unknown (観測できない), not 要再確認", r4.B?.observed.instrument_error === "other" && r4.B?.observed.pass === false && ok(r4.B?.observed, "catalog_item_needs_recheck") === false && columnB(r4.B?.observed).text === "未確定（観測できない）" && validateReading(r4.B, schema).length === 0);
     mode.catalog = "no_repo";
+    // the taskpack must fix the body's fields; another spec (or none) → B unknown whatever is attested
+    {
+      const { TARGETS } = await import("../exec-harness/lib/marker-targets.mjs");
+      attest("B", bSha(catalogItem("fake-subject")), "not_listed");
+      const sealed = { repo: "github.com/fake-vendor/fake-official-mcp-server", owner: "fake-vendor", name: "fake-official-mcp-server" };
+      const call = (catalog: any) => TARGETS.llmAnswer.attribution({ MK: { attribution: { ...PACK_ATTR, attestations_dir: attDir, catalog } }, sealed, harnessLog: () => {}, attestationsDir: attDir, expectedDigest: SEAL_DIGEST, markerId: "M-994" });
+      const good = await call(PACK_ATTR.catalog);
+      const { body_fields: _drop, ...noFields } = PACK_ATTR.catalog;
+      const none = await call(noFields);
+      const other = await call({ ...PACK_ATTR.catalog, body_fields: "all" });
+      expect("B2 body_fields fixed as the rule says → the attestation applies (not listed)", stateOf(good[1]) === "not_listed");
+      expect("B2 body_fields missing or different in the taskpack → B unknown, catalog_body_fields_fixed false", [none[1], other[1]].every((x: any) => stateOf(x) === "unknown" && ok(x, "catalog_body_fields_fixed") === false));
+      clearAtt();
+    }
   }
   // (3) A variants
   {
     mode.a2 = "none";
-    const r = await run();
-    expect("B3 neither page links the repo, no attestation → A unknown (U1)", stateOf(r.A?.observed) === "unknown" && validateReading(r.A, schema).length === 0 && judgeOf(r) === "U1", `${judgeOf(r)} ${JSON.stringify(r.A?.observed.checks)}`);
-    attest("A1", pageSha("none"));
+    attest("A1", pageSha("none"), "not_listed");
     const rOne = await run();
-    expect("B3 only A1 attested (A2 not) → A still unknown", stateOf(rOne.A?.observed) === "unknown" && ok(rOne.A?.observed, "A1_page_not_listed_human_attested") === true && ok(rOne.A?.observed, "A2_page_not_listed_human_attested") === false);
-    attest("A2", pageSha("none"));
+    expect("B3 only A1 attested not listed (A2 not) → A still unknown, A2 要再確認", stateOf(rOne.A?.observed) === "unknown" && ok(rOne.A?.observed, "A1_attested_not_listed") === true && ok(rOne.A?.observed, "A2_needs_recheck") === true);
+    attest("A2", pageSha("none"), "not_listed");
     const rBoth = await run();
-    expect("B3 both pages attested for today's bodies → A not listed (人の確認)", stateOf(rBoth.A?.observed) === "not_listed" && ok(rBoth.A?.observed, "official_docs_not_listed_human_attested") === true && columnA(rBoth.A?.observed).text === "載っていない・人の確認（A1 なし（人の確認）・A2 なし（人の確認））", columnA(rBoth.A?.observed).text);
+    expect("B3 both pages attested not listed for today's bodies → A not listed (人の確認)", stateOf(rBoth.A?.observed) === "not_listed" && columnA(rBoth.A?.observed).text === "載っていない・人の確認（A1 なし（人の確認）・A2 なし（人の確認））", columnA(rBoth.A?.observed).text);
     mode.a2 = "other_repo";
     const rChanged = await run();
-    expect("B3 A2's body changed → its attestation no longer matches → A unknown again", stateOf(rChanged.A?.observed) === "unknown" && ok(rChanged.A?.observed, "A2_page_not_listed_human_attested") === false);
+    expect("B3 A2's body changed → its attestation no longer matches → A unknown again, A2 要再確認", stateOf(rChanged.A?.observed) === "unknown" && ok(rChanged.A?.observed, "A2_needs_recheck") === true);
     mode.a2 = "none"; clearAtt();
-    // Codex review of 185d63d, the fatal cases, three-valued
+    // Codex review of 185d63d, the fatal cases (B attested correct so that only A decides the judgement)
+    const attestB = () => attest("B", bSha(catalogItem("fake-subject")), "listed");
+    attestB();
     mode.a1 = "body_reset";
     const rbody = await run();
-    expect("B3 Codex R1: A1 HTTP 200 but the body is cut off → A1 not fetched, A unknown, judgement U1", stateOf(rbody.A?.observed) === "unknown" && ok(rbody.A?.observed, "A1_page_fetched") === false && rbody.status === 0 && judgeOf(rbody) === "U1", `${judgeOf(rbody)} ${JSON.stringify(rbody.A?.observed.checks)}`);
+    expect("B3 Codex R1: A1 HTTP 200 but the body is cut off → A1 not fetched (取得失敗), A unknown, judgement U1", stateOf(rbody.A?.observed) === "unknown" && ok(rbody.A?.observed, "A1_page_fetched") === false && ok(rbody.A?.observed, "A1_needs_recheck") === false && rbody.status === 0 && judgeOf(rbody) === "U1" && rbody.diag("A1")?.body_sha256 === null, `${judgeOf(rbody)} ${JSON.stringify(rbody.A?.observed.checks)}`);
     mode.a1 = "404";
     const r404 = await run();
     expect("B3 A1 HTTP 404 → A1 not fetched, A unknown", stateOf(r404.A?.observed) === "unknown" && ok(r404.A?.observed, "A1_page_fetched") === false);
     mode.a1 = "dot_tail";
     const rdot = await run();
-    expect("B3 Codex R2: a link ending in /.. is not resolvable and names the repo → A unknown, judgement U1", stateOf(rdot.A?.observed) === "unknown" && judgeOf(rdot) === "U1", `${judgeOf(rdot)} ${JSON.stringify(rdot.A?.observed.checks)}`);
+    expect("B3 Codex R2: a link ending in /.. (no attestation) → A unknown, judgement U1", stateOf(rdot.A?.observed) === "unknown" && judgeOf(rdot) === "U1", `${judgeOf(rdot)} ${JSON.stringify(rdot.A?.observed.checks)}`);
     mode.a1 = "entity_hyphen";
     const rhy = await run();
-    expect("B3 Codex R3: fake&hyphen;vendor decodes to U+2010 (another owner) and the repo name is present → A unknown, judgement U1", stateOf(rhy.A?.observed) === "unknown" && judgeOf(rhy) === "U1", `${judgeOf(rhy)} ${JSON.stringify(rhy.A?.observed.checks)}`);
-    mode.a1 = "none";
-    mode.a2 = "listed_fragment";
-    const rf = await run();
-    expect("B3 (+) a page linking with #readme lists the repo → A true", rf.A?.observed.pass === true, JSON.stringify(rf.A?.observed.checks));
-    mode.a2 = "listed_tree";
-    const rt = await run();
-    expect("B3 (+) a page linking to /tree/main lists the repo → A true", rt.A?.observed.pass === true);
-    for (const [m, want, why] of [["listed_blob", true, "(+) /blob/…#setup below the repo"], ["listed_amp", true, "(+) query written with &amp;"], ["listed_entities", true, "(+) href written with &#x2F;"], ["other_owner", false, "(−) same repo name under another owner"], ["similar_host", false, "(−) evilgithub.com / github.com.evil.example"], ["dot_segments", false, "(−) /../ or %2e%2e below the repo leads elsewhere"], ["repo_prefix", false, "(−) repo name with a suffix (-v2)"], ["listed_http_www", true, "(+) http://www.github.com"], ["listed_bare_text", true, "(+) scheme-less github.com/owner/repo in the text"], ["listed_protocol_relative", true, "(+) protocol-relative //github.com in the href"], ["listed_port_443", true, "(+) :443"], ["other_port", false, "(−) :8443"], ["url_in_url_bare", false, "(−) URL inside another URL (scheme-less)"], ["gist_host", false, "(−) gist.github.com is another host"]] as const) {
-      mode.a2 = m;
-      const rx = await run();
-      // three values: a negative whose page still NAMES the owner or repo is unknown (U1), never "not listed"
-      const wantState = want ? "listed" : "unknown";
-      expect(`B3 ${why} → A ${wantState}`, stateOf(rx.A?.observed) === wantState, JSON.stringify(rx.A?.observed.checks));
-    }
-    mode.a2 = "other_repo";
-    const ro = await run();
-    expect("B3 (−) a page naming another repo → A false", ro.A?.observed.pass === false);
-    mode.a1 = "500"; mode.a2 = "listed";
+    expect("B3 Codex R3: fake&hyphen;vendor (no attestation) → A unknown, judgement U1", stateOf(rhy.A?.observed) === "unknown" && judgeOf(rhy) === "U1", `${judgeOf(rhy)} ${JSON.stringify(rhy.A?.observed.checks)}`);
+    mode.a1 = "500"; mode.a2 = "listed"; attest("A2", pageSha("listed"), "listed");
     const r2 = await run();
-    expect("B3 A1 fails but A2 lists → A true (known), A1 fetched=false", r2.A?.observed.pass === true && r2.A?.observed.instrument_error === null && ok(r2.A?.observed, "A1_page_fetched") === false);
+    expect("B3 A1 fails but A2 is attested listed → A listed, A1 fetched=false", r2.A?.observed.pass === true && r2.A?.observed.instrument_error === null && ok(r2.A?.observed, "A1_page_fetched") === false);
     mode.a2 = "none";
     const r3 = await run();
-    expect("B3 A1 fails and A2 does not list → A instrument", r3.A?.observed.instrument_error === "other" && r3.A?.observed.pass === false && validateReading(r3.A, schema).length === 0);
-    mode.a1 = "none"; mode.a2 = "listed";
+    expect("B3 A1 fails and A2 has no attestation for its body → A unknown", r3.A?.observed.instrument_error === "other" && r3.A?.observed.pass === false && validateReading(r3.A, schema).length === 0);
+    mode.a1 = "none"; mode.a2 = "listed"; clearAtt();
   }
   // (4) rename detection
   {
+    attest("A2", pageSha("listed"), "listed"); attest("B", bSha(catalogItem("fake-subject")), "not_listed");
     mode.gh = "renamed";
     const r = await run(); renamedRun = r;
     expect("B4 renamed (full_name differs) → ground truth inconsistent, GT row written", r.agent?.observed.ground_truth_consistent === false && r.gt?.observed.pass === false && ok(r.gt?.observed, "sealed_repo_full_name_unchanged") === false, JSON.stringify(r.gt?.observed));
@@ -357,15 +461,14 @@ try {
     mode.gh = "case";
     const rc = await run();
     expect("B4 full_name differing only in ASCII case is the same repo → consistent", rc.agent?.observed.ground_truth_consistent === true && !rc.gt);
-    mode.gh = "ok";
+    mode.gh = "ok"; clearAtt();
   }
   // (6) Codex 8d905ee end-to-end: N1 (a URL inside a data: URL) and N2 (percent-encoded owner/repo) → A and B unknown, U1
   for (const [m, id] of [["nested_data", "e2e-nested-data"], ["percent_names", "e2e-percent-names"]] as const) {
     mode.a1 = m; mode.a2 = "none"; mode.catalog = m;
     const r = await run();
     expect(`B6 Codex 8d905ee ${id}: A unknown, B unknown, judgement U1`, stateOf(r.A?.observed) === "unknown" && stateOf(r.B?.observed) === "unknown" && judgeOf(r) === "U1", `${stateOf(r.A?.observed)} ${stateOf(r.B?.observed)} ${judgeOf(r)}`);
-    const pub = ["metrics.json", "manifest.json", "harness.jsonl"].map((f) => readFileSync(join(r.bundle!, f), "utf-8")).join("\n");
-    expect(`B6 Codex 8d905ee ${id}: no page/catalog/answer value in public files`, !/PAGE_CANARY_PRIVATE|CATALOG_CANARY_PRIVATE|fake-official-mcp-server|%66%61%6b%65/.test(pub));
+    expect(`B6 Codex 8d905ee ${id}: no page/catalog/answer value in public files`, !/PAGE_CANARY_PRIVATE|CATALOG_CANARY_PRIVATE|fake-official-mcp-server|%66%61%6b%65/.test(r.pub));
     expect(`B6 Codex 8d905ee ${id}: rows pass reading.v1`, [r.A, r.B, r.agent].every((x: any) => x && validateReading(x, schema).length === 0));
   }
   mode.a1 = "none"; mode.a2 = "listed"; mode.catalog = "no_repo";
@@ -378,34 +481,52 @@ try {
 
 // ── Part C: the sheet from Part B's readings ─────────────────────────────
 {
-  const toRow = (x: any) => ({ ...x, outcome_id: x.observed.method === "llm_answer_rules_vs_sealed_expectation" ? 1 : null, target_json: JSON.stringify(x.target), observed_json: JSON.stringify(x.observed) });
-  const rows = [day1, renamedRun].flatMap((r: any) => [r?.A, r?.B, r?.agent, r?.gt].filter(Boolean)).map(toRow).sort((a: any, b: any) => a.observed_at.localeCompare(b.observed_at));
+  const toRow = (x: any) => ({ ...x, outcome_id: x.observed.method === AGENT_METHOD ? 1 : null, target_json: JSON.stringify(x.target), observed_json: JSON.stringify(x.observed) });
+  const rows = [recheckRun, day1, renamedRun].flatMap((r: any) => [r?.A, r?.B, r?.agent, r?.gt].filter(Boolean)).map(toRow).sort((a: any, b: any) => a.observed_at.localeCompare(b.observed_at));
   const lines = attributionLines(rows);
-  expect("C1 two agent readings joined with their own run's A/B rows", lines.length === 2, String(lines.length));
-  expect("C1 day-one judgement = #3 KanseiLINK 側の穴", lines[0]?.judgement.code === "#3" && lines[0]?.a.text === "載っている（A1 未確定・A2 あり）" && lines[0]?.b.text === "誤り・人の確認（欠落）" && lines[0]?.c.text === "通過", JSON.stringify(lines[0]));
-  expect("C1 renamed run = 未確定（計器）, C not counted", lines[1]?.judgement.code === "U0" && /数えない/.test(lines[1]?.c.text || ""), JSON.stringify(lines[1]));
+  expect("C1 three agent readings joined with their own run's A/B rows", lines.length === 3, String(lines.length));
+  expect("C1 no-attestation run = U1 with the 要再確認 cells", lines[0]?.judgement.code === "U1" && lines[0]?.a.text === `${RECHECK_TEXT}（A1 要再確認・A2 要再確認）` && lines[0]?.b.text === RECHECK_TEXT, JSON.stringify(lines[0]));
+  expect("C1 attested run = #3 KanseiLINK 側の穴", lines[1]?.judgement.code === "#3" && lines[1]?.a.text === "載っている・人の確認（A1 要再確認・A2 あり（人の確認））" && lines[1]?.b.text === "誤り・人の確認（欠落）" && lines[1]?.c.text === "通過", JSON.stringify(lines[1]));
+  expect("C1 renamed run = 未確定（計器）, C not counted", lines[2]?.judgement.code === "U0" && /数えない/.test(lines[2]?.c.text || ""), JSON.stringify(lines[2]));
   const md = renderSheet(rows as any, { markerId: "M-994", now: new Date() });
   expect("C2 sheet has the three columns and the judgement label", md.includes("## 三列と判断（規則 v0.1・臓器1 発見）") && md.includes("| A 公式情報 | B KanseiLINK | C AI（REPO 行） | 判断（規則 v0.1） |"));
-  expect("C2 sheet row for day one", md.includes("| 載っている（A1 未確定・A2 あり） | 誤り・人の確認（欠落） | 通過 | #3 KanseiLINK 側の穴（AI は KanseiLINK 以外から到達） |"));
+  expect("C2 sheet explains that A/B come from people only", md.includes("A・B の状態は人の確認だけから取る（規則 v0.1 §4-2）"));
+  expect("C2 sheet row for the no-attestation run shows 要再確認", md.includes(`| ${RECHECK_TEXT}（A1 要再確認・A2 要再確認） | ${RECHECK_TEXT} | 通過 | 未確定（計器） |`));
+  expect("C2 sheet row for the attested run", md.includes("| 載っている・人の確認（A1 要再確認・A2 あり（人の確認）） | 誤り・人の確認（欠落） | 通過 | #3 KanseiLINK 側の穴（AI は KanseiLINK 以外から到達） |"));
   expect("C2 sheet row for the renamed run prints only 未確定（計器）", /通過（正解側のずれ・数えない） \| 未確定（計器） \|$/m.test(md));
   expect("C2 period tally by observer", md.includes("### 観測者ごとの集計（期間通し・判断（規則 v0.1））") && /\| harness→fake-model \| #3 KanseiLINK 側の穴（AI は KanseiLINK 以外から到達） \| 1 \|/.test(md));
-  expect("C2 ground-truth table labels the attribution rows", md.includes("| A 公式情報: 載っている |") && md.includes("| B KanseiLINK: 誤り（人の確認） |"));
-  expect("C2 no repository value in the sheet", !/fake-official-mcp-server/.test(md));
+  expect("C2 ground-truth table labels the attribution rows (with the 要再確認 mark)", md.includes("| A 公式情報: 載っている・人の確認（A1 要再確認・A2 あり（人の確認）） |") && md.includes("| B KanseiLINK: 誤り・人の確認（欠落） |") && md.includes(`| B KanseiLINK: ${RECHECK_TEXT} |`));
+  expect("C2 no repository value, hint or body sha256 in the sheet", !/fake-official-mcp-server|手がかり/.test(md) && !/[0-9a-f]{64}/.test(md.replace(/`[0-9a-f]{64}`/, "")));
   const plain = renderSheet(rows.filter((r: any) => r.outcome_id != null || r.observed.method === "sealed_repo_vs_github_api") as any, { markerId: "M-994" });
   expect("C3 no attribution rows → no attribution section", !plain.includes("三列と判断"));
 }
 
-// ── Part D: Codex's 110 independent cases (fixtures/attribution-cases.json) ──
+// ── Part D: Codex's 110 independent cases of 185d63d (fixtures/attribution-cases.json) ──
+// source_text / source_key / decoder are the HINT reader now (unchanged functions); truth tables and joins as before.
 {
   const fx = JSON.parse(readFileSync(join(FIX, "attribution-cases.json"), "utf-8"));
   const S = fx.sealed_fixture;
   expect("D0 110 cases, each with an expectation", fx.cases.length === 110 && fx.cases.every((c: any) => c.expect_state || c.expect_key === null || c.expect_text || c.expect_code || c.expect_codes || c.expect !== undefined));
   for (const c of fx.cases) {
-    if (c.kind === "source_text") { const got = classifySource(c.input.text, S, { html: c.input.html }).state; expect(`D ${c.id} → ${c.expect_state}`, got === c.expect_state, got); }
-    else if (c.kind === "source_key") expect(`D ${c.id} → no key`, sourceRepoKey(c.input.url) === c.expect_key);
+    if (c.kind === "source_text") { const got = classifySource(c.input.text, S, { html: c.input.html }).state; expect(`D ${c.id} (hint) → ${c.expect_state}`, got === c.expect_state, got); }
+    else if (c.kind === "source_key") expect(`D ${c.id} (hint) → no key`, sourceRepoKey(c.input.url) === c.expect_key);
     else if (c.kind === "decoder") expect(`D ${c.id} → WHATWG decoding`, decodeHtmlCharRefs(c.input.text) === c.expect_text);
     else if (c.kind === "truth_table") { const j = judgeAttribution(c.input); expect(`D ${c.id} → ${c.expect_code}`, j.code === c.expect_code, j.code); }
-    else if (c.kind === "bundle_join") { const got = attributionLines(c.input).map((l: any) => l.judgement.code); expect(`D ${c.id} → ${c.expect_codes.join(",")}`, JSON.stringify(got) === JSON.stringify(c.expect_codes), JSON.stringify(got)); }
+    else if (c.kind === "bundle_join") {
+      const got = attributionLines(c.input).map((l: any) => l.judgement.code); expect(`D ${c.id} → ${c.expect_codes.join(",")}`, JSON.stringify(got) === JSON.stringify(c.expect_codes), JSON.stringify(got));
+      if (c.expect_codes_attested) {
+        // the same rows with the human-attestation checks a run would carry (pass = attested listed, pass=false = attested not listed)
+        const withAtt = (r: any) => {
+          const o = r.observed; if (r.outcome_id != null || o.instrument_error) return r;
+          const extra = o.method === ATTR_METHODS.A
+            ? (o.pass ? [["A1_page_fetched", true], ["A1_attested_listed", true], ["official_docs_attested_listed", true]] : [["A1_page_fetched", true], ["A1_attested_not_listed", true], ["official_docs_attested_not_listed", true]])
+            : (o.pass ? [["catalog_item_observed", true], ["catalog_item_attested_listed", true]] : [["catalog_item_observed", true], ["catalog_item_present", true], ["catalog_item_attested_not_listed", true]]);
+          return { ...r, observed: { ...o, checks: [...o.checks, ...extra.map(([label, ok]) => ({ label, ok }))] } };
+        };
+        const got2 = attributionLines(c.input.map(withAtt)).map((l: any) => l.judgement.code);
+        expect(`D ${c.id} with attestation checks → ${c.expect_codes_attested.join(",")}`, JSON.stringify(got2) === JSON.stringify(c.expect_codes_attested), JSON.stringify(got2));
+      }
+    }
     else if (c.kind === "loopback_equivalent") { const named = c.smoke_case.startsWith("("); expect(`D ${c.id} replayed by "${c.smoke_case}"`, named || passed.some((l) => l.startsWith(c.smoke_case))); }
   }
 }
@@ -421,11 +542,12 @@ try {
   await new Promise<void>((r) => gh.listen(47338, "127.0.0.1", () => r()));
   const toState = (c: any) => c.state === "listed" ? "listed" : "unknown";
   const col = (x: string) => ({ state: x });
+  const emptyDir = mkdtempSync(join(tmpdir(), "att-none-"));
   try {
     for (const c of fx.cases) {
-      if (c.kind === "source_text") { const got = classifySource(c.input.text, c.input.sealed, { html: c.input.html }).state; expect(`E ${c.id} → ${c.expect}`, got === c.expect, got); }
-      else if (c.kind === "source_page") { const got = toState(classifySource(c.input.page, S, { html: true })); expect(`E ${c.id} → ${c.expect}`, got === c.expect, got); }
-      else if (c.kind === "source_catalog_field") { const got = toState(classifySource(c.input.description, S)); expect(`E ${c.id} → ${c.expect}`, got === c.expect, got); }
+      if (c.kind === "source_text") { const got = classifySource(c.input.text, c.input.sealed, { html: c.input.html }).state; expect(`E ${c.id} (hint) → ${c.expect}`, got === c.expect, got); }
+      else if (c.kind === "source_page") { const got = toState(classifySource(c.input.page, S, { html: true })); expect(`E ${c.id} (hint) → ${c.expect}`, got === c.expect, got); }
+      else if (c.kind === "source_catalog_field") { const got = toState(classifySource(c.input.description, S)); expect(`E ${c.id} (hint) → ${c.expect}`, got === c.expect, got); }
       else if (c.kind === "decoder") expect(`E ${c.id} → WHATWG decoding`, decodeHtmlCharRefs(c.input) === c.expect);
       else if (c.kind === "truth_table") { const i = c.input; const j = judgeAttribution({ a: col(i.a), b: col(i.b), c: col(i.c), gtConsistent: i.gt === undefined ? true : i.gt }); expect(`E ${c.id} → ${c.expect}`, j.code === c.expect, j.code); }
       else if (c.kind === "bundle_join") { const got = attributionLines(c.input).map((l: any) => l.judgement.code); expect(`E ${c.id} → ${c.expect}`, got.length === 1 && got[0] === c.expect, JSON.stringify(got)); }
@@ -435,8 +557,11 @@ try {
         expect(`E ${c.id} → consistent=${c.expect}`, t.consistent === c.expect, JSON.stringify(t.checks));
       }
       else if (c.kind === "judgement_from_sources") {
-        const a = toState(classifySource(c.input.page, S, { html: true })); const b = toState(classifySource(c.input.description, S));
-        const j = judgeAttribution({ a: col(a), b: col(b === "listed" ? "correct" : "unknown"), c: col("pass"), gtConsistent: true });
+        // §4-2 (7e9a3e2): the public state of each source comes from attestations only — none here → unknown
+        const ctx = (sourceId: string) => ({ markerId: "M-994", expectedDigest: SEAL_DIGEST, sourceId, target: "x" });
+        const a = sourceState({ fetched: true, bodySha: sha256Hex(Buffer.from(c.input.page, "utf8")), dir: emptyDir, ctx: ctx("A1") }).state;
+        const b = sourceState({ fetched: true, bodySha: sha256Hex(c.input.description), dir: emptyDir, ctx: ctx("B") }).state;
+        const j = judgeAttribution({ a: col(a === "listed" ? "listed" : a === "not_listed" ? "not_listed" : "unknown"), b: col(b === "listed" ? "correct" : b === "not_listed" ? "wrong" : "unknown"), c: col("pass"), gtConsistent: true });
         expect(`E ${c.id} → ${c.expect}`, j.code === c.expect, j.code);
       }
       else if (c.kind === "loopback_equivalent") {
@@ -445,7 +570,152 @@ try {
         expect(`E ${c.id} replayed by "${c.smoke_case}"`, ok2);
       }
     }
-  } finally { gh.close(); }
+  } finally { gh.close(); rmSync(emptyDir, { recursive: true, force: true }); }
+}
+
+// ── Part F: Codex's 94 independent cases of 7e9a3e2 (fixtures/attribution-cases-7e9a3e2.json) ──
+{
+  const { TARGETS } = await import("../exec-harness/lib/marker-targets.mjs");
+  const fx = JSON.parse(readFileSync(join(FIX, "attribution-cases-7e9a3e2.json"), "utf-8"));
+  const verbatim = JSON.parse(readFileSync(join(FIX, "evidence", "codex-7e9a3e2-independent-cases.json"), "utf-8"));
+  expect("F0 94 cases; ids, inputs and Codex's expectations equal the verbatim evidence", fx.cases.length === 94 && verbatim.cases.length === 94 && fx.cases.every((c: any, i: number) => c.id === verbatim.cases[i].id && JSON.stringify(c.input) === JSON.stringify(verbatim.cases[i].input) && JSON.stringify(c.codex_expected) === JSON.stringify(verbatim.cases[i].expected)));
+  expect("F0 every revised expectation says why", fx.cases.every((c: any) => c.expect !== undefined && (JSON.stringify(c.expect) === JSON.stringify(c.codex_expected) || typeof c.revised === "string" || c.kind === "token" || c.kind === "attestation")));
+  const byId = (id: string) => fx.cases.find((c: any) => c.id === id);
+  const sealed = { repo: "github.com/fake-vendor/fake-official-mcp-server", owner: "fake-vendor", name: "fake-official-mcp-server" };
+  const repo = REPO;
+  // Codex's loopback shape: /a1 and /a2 serve the same page, /mcp answers plain JSON, GitHub normal
+  let fpage = repo; let fpayload: any = null; let fgh = "normal";
+  const fserver = createServer((req, res) => {
+    const url = req.url || "";
+    if (url === "/a1" || url === "/a2") { res.writeHead(200, { "content-type": "text/html" }); return res.end(fpage); }
+    if (url === "/mcp") { req.resume(); res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, result: { content: [{ type: "text", text: JSON.stringify(fpayload) }] } })); }
+    if (url.startsWith("/gh/")) {
+      if (fgh === "timeout") return;
+      if (fgh === "missing") { res.writeHead(404); return res.end("{}"); }
+      const d = { private: fgh === "private", archived: fgh === "archived", full_name: fgh === "renamed" ? "fake-vendor/new-name" : fgh === "moved" ? "new-owner/fake-official-mcp-server" : "fake-vendor/fake-official-mcp-server" };
+      res.writeHead(200, { "content-type": "application/json" }); return res.end(JSON.stringify(d));
+    }
+    res.writeHead(404); res.end();
+  });
+  await new Promise<void>((r) => fserver.listen(47339, "127.0.0.1", () => r()));
+  const FB = "http://127.0.0.1:47339";
+  const fdir = mkdtempSync(join(tmpdir(), "codex-7e9a3e2-"));
+  const fatt = join(fdir, "attestations"); mkdirSync(fatt, { recursive: true });
+  const fans = join(fdir, "answers.json"); writeFileSync(fans, JSON.stringify({ fake: `ANSWER_VALUE_CANARY\nREPO: ${repo}\nAUTH: OAuth 2.0` }));
+  const fenv = { ...process.env, KANSEI_M994_SEALED_PATH: join(FIX, "M-994.sealed.json"), KANSEI_FAKE_LLM_ANSWERS_FILE: fans, KANSEI_FAKE_ATTR_BASE: FB, KANSEI_FAKE_ATTESTATIONS_DIR: fatt };
+  const fcfg = JSON.parse(JSON.stringify(JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8")).marker.attribution).replaceAll("${ENV:KANSEI_FAKE_ATTR_BASE}", FB));
+  const v2 = (source: string, bodySha: string, verdict: string, over: any = {}) => ({ attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: SEAL_DIGEST, source_id: source, target: sourceTarget(fcfg, source), body_sha256: bodySha, verdict, observer: "human:Audit Fixture Reviewer", date: "2026-09-29", reason: "Fixture reviewer inspected the complete source; no repository link.", ...over });
+  const put = (a: any) => writeFileSync(join(fatt, `${a.marker_id}-${a.source_id}-${a.body_sha256}.json`), JSON.stringify(a));
+  const clearF = () => { for (const f of readdirSync(fatt)) rmSync(join(fatt, f)); };
+  const pageShaF = () => sha256Hex(Buffer.from(fpage, "utf8"));
+  async function frun(id: string) {
+    const r = await spawnAsync(process.execPath, [join(ROOT, "exec-harness", "run-marker.mjs"), "fixtures/taskpack-m994-attribution.json", "--dry-run"], { cwd: ROOT, env: fenv });
+    const m = /evidence: (\S+?)\/ \(manifest/.exec(r.out);
+    const bundle = join(ROOT, m![1]); const rel = m![1];
+    const metrics = JSON.parse(readFileSync(join(bundle, "metrics.json"), "utf-8"));
+    const priv = JSON.parse(readFileSync(join(bundle, "environment.private.json"), "utf-8"));
+    const rows = metrics.readings.map((x: any) => ({ ...x, evidence_ref: `${rel}#sha256:${sha256Hex(readFileSync(join(bundle, "manifest.json")))}`, outcome_id: x.observed.method === AGENT_METHOD ? 1 : null }));
+    const A = rows.find((x: any) => x.observed.method === ATTR_METHODS.A).observed; const B = rows.find((x: any) => x.observed.method === ATTR_METHODS.B).observed;
+    const line = attributionLines(rows)[0]; const sheet = renderSheet(rows, { markerId: "M-994" });
+    const pub = ["metrics.json", "manifest.json", "harness.jsonl"].map((f) => readFileSync(join(bundle, f), "utf-8")).join("\n") + sheet;
+    const bDiag = priv.diagnostics.find((d: any) => d.event === "attribution_source" && d.source_id === "B");
+    return { status: r.status, A: stateOf(A), B: stateOf(B), judgement: line.judgement.code, bSha: bDiag?.body_sha256, hintB: bDiag?.hint?.state, schemaValid: rows.every(({ outcome_id, ...row }: any) => validateReading(row, schema).length === 0), leaked: /CATALOG_VALUE_CANARY|PAGE_VALUE_CANARY|ANSWER_VALUE_CANARY/.test(pub) };
+  }
+  const aux = (id: string, r: any) => {
+    const s = byId(`${id}-schema`), p = byId(`${id}-privacy`);
+    if (s) expect(`F ${s.id} → valid`, r.schemaValid === s.expect.valid);
+    if (p) expect(`F ${p.id} → not leaked`, r.leaked === p.expect.leaked);
+  };
+  const basePayload = () => ({ service_id: "fake-subject", name: "Fake", mcp_status: "official", freshness: { confidence: "medium", data_age_days: 1 }, _meta: { attempt_id: "one" }, description: "CATALOG_VALUE_CANARY" });
+  try {
+    for (const c of fx.cases) {
+      if (c.kind === "token") {
+        const emptyDir = fatt; clearF();
+        const st = sourceState({ fetched: true, bodySha: sha256Hex(Buffer.from(c.input.text, "utf8")), dir: emptyDir, ctx: { markerId: "M-994", expectedDigest: SEAL_DIGEST, sourceId: c.id.endsWith("-A") ? "A1" : "B", target: "x" } });
+        const pub = st.state === "listed" ? "listed" : st.state === "not_listed" ? "not_listed" : "unknown";
+        const hint = classifySource(c.input.text, sealed, { html: c.input.html }).state;
+        expect(`F ${c.id} → public ${c.expect.public}${c.expect.hint ? `, hint ${c.expect.hint}` : " (hint not asserted)"}`, pub === c.expect.public && (c.expect.hint === null || hint === c.expect.hint), `${pub} ${hint}`);
+      } else if (c.kind === "ground_truth") {
+        fgh = c.input.mode;
+        const t = await TARGETS.llmAnswer.groundTruth({ MK: { github_api_base: `${FB}/gh`, github_timeout_ms: 80 }, sealed, harnessLog: () => {} });
+        expect(`F ${c.id} → consistent=${c.expect.consistent}`, t.consistent === c.expect.consistent);
+        fgh = "normal";
+      } else if (c.kind === "truth_table") {
+        const i = c.input;
+        const j = "code" in c.expect && c.id.startsWith("truth-table-")
+          ? judgeAttribution({ a: { state: i.A }, b: { state: i.B === "listed" ? "correct" : "wrong" }, c: { state: i.C ? "pass" : "miss" }, gtConsistent: true })
+          : judgeAttribution({ a: { state: i.a }, b: { state: i.b }, c: { state: i.c }, gtConsistent: i.gt });
+        expect(`F ${c.id} → ${c.expect.code}`, j.code === c.expect.code, j.code);
+      } else if (c.kind === "bundle_join") {
+        const ar = { pass: true, method: ATTR_METHODS.A, checks: [], instrument_error: null }; const br = { ...ar, method: ATTR_METHODS.B }; const cr = { pass: true, method: AGENT_METHOD, checks: [{ label: "repo_value_equals_sealed_repo", ok: true }], ground_truth_consistent: true };
+        const verbatimJoin = attributionLines([{ outcome_id: null, evidence_ref: "run-one#sha256:a", observed: ar }, { outcome_id: null, evidence_ref: "run-one#sha256:a", observed: br }, { outcome_id: 1, evidence_ref: "run-two#sha256:b", observed: cr }] as any)[0].judgement.code;
+        // the same with fully attested A/B rows: still another run's rows → U1
+        const arA = { ...ar, checks: [{ label: "A1_page_fetched", ok: true }, { label: "A1_attested_listed", ok: true }, { label: "official_docs_attested_listed", ok: true }] }; const brA = { ...br, checks: [{ label: "catalog_item_observed", ok: true }, { label: "catalog_item_attested_listed", ok: true }] };
+        const attestedJoin = attributionLines([{ outcome_id: null, evidence_ref: "run-one#sha256:a", observed: arA }, { outcome_id: null, evidence_ref: "run-one#sha256:a", observed: brA }, { outcome_id: 1, evidence_ref: "run-two#sha256:b", observed: cr }] as any)[0].judgement.code;
+        expect(`F ${c.id} → ${c.expect.code} (verbatim rows and attested rows)`, verbatimJoin === c.expect.code && attestedJoin === c.expect.code, `${verbatimJoin} ${attestedJoin}`);
+      } else if (c.kind === "attestation") {
+        const baseline = byId("valid-baseline").input.valid_human_attestation;
+        const ctx = { markerId: "M-994", expectedDigest: SEAL_DIGEST, sourceId: "B", target: sourceTarget(fcfg, "B"), bodySha: baseline.body_sha256 };
+        const verbatimValid = validateAttestation(c.input.attestation, ctx) === null;
+        // rebase: apply Codex's change (the difference from its valid baseline) to a valid v2 attestation
+        const good = v2("B", baseline.body_sha256, "not_listed");
+        expect(`F ${c.id} (rebase baseline is valid)`, validateAttestation(good, ctx) === null);
+        const rebased: any = { ...good };
+        for (const k of Object.keys(baseline)) if (!(k in c.input.attestation)) delete rebased[k];
+        for (const [k, v] of Object.entries(c.input.attestation)) if (JSON.stringify(v) !== JSON.stringify((baseline as any)[k])) rebased[k] = v;
+        const rebasedWhy = validateAttestation(rebased, ctx);
+        expect(`F ${c.id} → verbatim invalid, rebased invalid (${rebasedWhy})`, verbatimValid === c.expect.verbatim_valid && (rebasedWhy === null) === c.expect.rebased_valid && rebasedWhy !== "kind", `${verbatimValid} ${rebasedWhy}`);
+      } else if (c.kind === "e2e") {
+        clearF(); fgh = "normal";
+        if (c.id === "e2e-numeric-scheme" || c.id === "e2e-nested-in-bare") {
+          fpage = c.input.page; fpayload = c.input.catalog;
+          const r = await frun(c.id);
+          expect(`F ${c.id} → A ${c.expect.A}, B ${c.expect.B}, ${c.expect.judgement}`, r.A === c.expect.A && r.B === c.expect.B && r.judgement === c.expect.judgement, JSON.stringify(r));
+          aux(c.id, r);
+        } else if (c.id === "valid-baseline") {
+          fpage = repo; fpayload = c.input.catalog;
+          put(v2("A1", pageShaF(), "listed", { reason: "Fixture reviewer: the page links the repository." }));
+          put(v2("B", sha256Hex(catalogBody(fpayload)), "not_listed"));
+          const r = await frun(c.id);
+          expect(`F ${c.id} → A ${c.expect.A}, B ${c.expect.B}, ${c.expect.judgement}`, r.A === c.expect.A && r.B === c.expect.B && r.judgement === c.expect.judgement, JSON.stringify(r));
+          aux(c.id, r);
+        } else if (c.id.startsWith("excluded-field-")) {
+          const n = ["_repository", "_meta.repository", "freshness.repository", "freshness.confidence"].indexOf(c.id.slice("excluded-field-".length)) + 1;
+          fpage = repo; fpayload = c.input.catalog;
+          const prior = byId("valid-baseline").input.valid_human_attestation;
+          put(v2("A1", pageShaF(), "listed", { reason: "Fixture reviewer: the page links the repository." }));
+          put(v2("B", prior.body_sha256, "not_listed")); // the prior "not listed" of the baseline body, now in the v2 form
+          const r = await frun(c.id);
+          expect(`F ${c.id} → A ${c.expect.A}, B ${c.expect.B}, ${c.expect.judgement}, body changed, hint B ${c.expect.hint_B} (never #3)`, r.A === c.expect.A && r.B === c.expect.B && r.judgement === c.expect.judgement && (r.bSha !== prior.body_sha256) === c.expect.body_changed && r.hintB === c.expect.hint_B, JSON.stringify(r));
+          aux(`excluded-${n}`, r);
+        } else if (c.id === "included-link") {
+          fpage = repo; fpayload = c.input.catalog;
+          put(v2("A1", pageShaF(), "listed", { reason: "Fixture reviewer: the page links the repository." }));
+          const r = await frun(c.id);
+          put(v2("B", sha256Hex(catalogBody(fpayload)), "listed", { reason: "Fixture reviewer: the item names the repository." }));
+          const r2 = await frun(`${c.id}-attested`);
+          expect(`F ${c.id} → without attestation B ${c.expect.B} ${c.expect.judgement} (hint ${c.expect.hint_B}); attested listed → ${c.expect.with_listed_attestation}`, r.B === c.expect.B && r.judgement === c.expect.judgement && r.hintB === c.expect.hint_B && r2.judgement === c.expect.with_listed_attestation, `${JSON.stringify(r)} ${JSON.stringify(r2)}`);
+          aux(c.id, r);
+        } else if (c.id === "changed-body") {
+          fpage = repo; fpayload = c.input.catalog;
+          const prior = byId("valid-baseline").input.valid_human_attestation;
+          put(v2("A1", pageShaF(), "listed", { reason: "Fixture reviewer: the page links the repository." }));
+          put(v2("B", prior.body_sha256, "not_listed"));
+          const r = await frun(c.id);
+          expect(`F ${c.id} → B ${c.expect.B}, ${c.expect.judgement}`, r.B === c.expect.B && r.judgement === c.expect.judgement, JSON.stringify(r));
+          aux(c.id, r);
+        } else if (c.id === "placeholder-e2e") {
+          fpage = "PAGE_VALUE_CANARY"; fpayload = basePayload();
+          for (const s of ["A1", "A2", "B"]) put(v2(s, s === "B" ? sha256Hex(catalogBody(fpayload)) : pageShaF(), "not_listed", { observer: "human:TODO", reason: "TODO", target: "TODO" }));
+          const r = await frun("placeholder");
+          expect(`F ${c.id} → A ${c.expect.A}, B ${c.expect.B}, ${c.expect.judgement}`, r.A === c.expect.A && r.B === c.expect.B && r.judgement === c.expect.judgement, JSON.stringify(r));
+          aux("placeholder", r);
+        } else expect(`F ${c.id} has a replay`, false);
+      }
+    }
+  } finally { fserver.close(); rmSync(fdir, { recursive: true, force: true }); }
+  const replayed = passed.filter((l) => l.startsWith("F ")).length;
+  expect("F every one of the 94 cases was asserted", fx.cases.every((c: any) => passed.some((l) => l.startsWith(`F ${c.id} `)) || failures > 0), String(replayed));
 }
 
 console.log(failures === 0 ? "\nmarker attribution smoke: ALL PASS" : `\nmarker attribution smoke: ${failures} FAILED`);

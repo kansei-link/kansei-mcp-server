@@ -88,7 +88,7 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
     lines.push('');
     lines.push(`## 三列と判断（${RULES_LABEL}・臓器1 発見）`);
     lines.push('');
-    lines.push(`A・B は正解側の行（ハーネスが公開ページと KanseiLINK のカタログを読むだけ）、C は AI の読みの REPO 行。「判断（${RULES_LABEL}）」は founder-ops/ATTRIBUTION-Rules-v0_2026-09-28.md §2 の真理表による解釈で、台帳の事実ではない。正解側がずれた日（改名・移動・アーカイブ）は判断を載せず、AI の読みを外したと数えない。自動の読みは「載っている」か「未確定」だけで、「載っていない」「誤り」（会社側・KanseiLINK 側の穴）は、その日の本文の sha256 に結びつけた人の確認がある時だけ「人の確認」と札を付けて出す（本文が変われば確認は失効）。`);
+    lines.push(`A・B は正解側の行（ハーネスが公開ページと KanseiLINK のカタログを読むだけ）、C は AI の読みの REPO 行。「判断（${RULES_LABEL}）」は founder-ops/ATTRIBUTION-Rules-v0_2026-09-28.md §2 の真理表による解釈で、台帳の事実ではない。正解側がずれた日（改名・移動・アーカイブ）は判断を載せず、AI の読みを外したと数えない。A・B の状態は人の確認だけから取る（規則 v0.1 §4-2）。計器はその日の本文の sha256 を取って変化を検知するだけで、本文に一致する人の確認（載っている／載っていない）がある時だけ「人の確認」と札を付けて出す。一致する確認が無い出典は「未確定（本文に変化あり・要再確認）」（本文が変われば確認は失効）。`);
     lines.push('');
     lines.push(`| 日付 | 観測者 | A 公式情報 | B KanseiLINK | C AI（REPO 行） | 判断（${RULES_LABEL}） |`);
     lines.push('|---|---|---|---|---|---|');

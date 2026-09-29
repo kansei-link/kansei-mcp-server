@@ -1,19 +1,16 @@
 /**
- * ATTRIBUTION-Rules v0.1 — reading the sealed repository in a SOURCE (columns A and B).
- * Loaded ONLY by the M-004 attribution step (marker-targets.mjs, dynamic import), so a broken
- * decoder or source reader never stops a marker that does not use it. The display and judgement
- * functions live in ./attribution-labels.mjs (no imports) and are re-exported here for callers.
- *
- * §4-2 (Michie 2026-09-29, after Codex review of 8d905ee): the AUTOMATIC reading returns only
- * "listed" or "unknown". "Not listed" — a judgement that blames the company or KanseiLINK — is given
- * only by a HUMAN attestation bound to the sha256 of the exact body that was read that day
- * (evidence/attestations/<marker>-<source>-<body sha256>.json). When the body changes, the
- * attestation no longer matches and the source is unknown again.
+ * ATTRIBUTION-Rules v0.1 — the AUTOMATIC reading of a source (columns A and B), kept only as a
+ * private HINT. §4-2 (Michie 2026-09-29, after Codex review of 7e9a3e2): columns A and B are decided
+ * by human attestations bound to the sha256 of the body read that run (./attribution-attest.mjs); the
+ * instrument only detects change. Nothing this module returns reaches a public row, a judgement or the
+ * sheet: marker-targets.mjs writes it to environment.private.json as 「手がかり」 and nowhere else. It
+ * is known to be fallible (Codex 7e9a3e2 ③④: a URL after "data:123/", or inside a scheme-less outer
+ * URL, still reads as listed here) — which is why it decides nothing.
+ * Loaded ONLY by the M-004 attribution step (dynamic import, inside try/catch), so a broken decoder or
+ * source reader never stops a marker and never changes a row.
  */
 export * from './attribution-labels.mjs';
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { createHash } from 'node:crypto';
+export * from './attribution-attest.mjs';
 import { REPO_HOSTS } from './llm-answer-rules.mjs';
 import { decodeHTML } from '../vendor/entities-8.1.0/decode.js';
 
@@ -100,9 +97,8 @@ function residualNearHost(s) {
 }
 
 /**
- * The AUTOMATIC reading of one source: 'listed' or 'unknown' — never 'not_listed' (§4-2).
+ * HINT only (private sidecar): 'listed' or 'unknown' — never 'not_listed', and never a row's state.
  * sealed = { repo: 'host/owner/repo', owner, name }; opts.html decodes HTML character references once.
- * The reason is a diagnostic only (why the source is unknown); it never changes the state.
  */
 export function classifySource(text, sealed, opts = {}) {
   const s = opts.html ? decodeHtmlCharRefs(text) : String(text ?? '');
@@ -119,12 +115,7 @@ export function sourceListsRepo(text, sealedKey, opts = {}) {
   return sourceUrlTokens(s).some((t) => sourceRepoKey(t.raw) === sealedKey);
 }
 
-/* ---------- the "body" a human attests (and the automatic reading reads) ---------- */
-export const sha256Hex = (bytes) => createHash('sha256').update(bytes).digest('hex');
-
-/** Column B's body: every string leaf of the catalog item with its path, sorted, EXCLUDING the
- *  top-level keys that start with "_" (per-request metadata such as _meta.attempt_id) and
- *  "freshness" (dates that move every day). Neither can name a repository. */
+/** String leaves of a catalog item with their paths (hint only: which field names the repository). */
 export function catalogStringLeaves(payload) {
   const leaves = [];
   const walk = (v, path) => {
@@ -132,53 +123,6 @@ export function catalogStringLeaves(payload) {
     else if (Array.isArray(v)) v.forEach((x) => walk(x, `${path}[]`));
     else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k);
   };
-  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-    for (const [k, v] of Object.entries(payload)) if (!k.startsWith('_') && k !== 'freshness') walk(v, k);
-  }
-  return leaves.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
-}
-export function catalogBody(payload) { return JSON.stringify(catalogStringLeaves(payload)); }
-
-/* ---------- human attestations (§4-2) ----------
- * File: <attestations dir>/<marker_id>-<source_id>-<body sha256>.json, exactly these keys:
- *   attestation   "kansei-attribution-not-listed/v1"
- *   marker_id     e.g. "M-004"            (must equal the run's marker)
- *   expected_digest  the seal's sha256     (binds the attestation to the sealed repository)
- *   source_id     "A1" | "A2" | "B" …     (must equal the source being read)
- *   target        the URL or the catalog item/field that was read (text)
- *   body_sha256   sha256 of the body read that day (must equal today's body)
- *   verdict       "not_listed"
- *   observer      "human:<name>"
- *   date          "YYYY-MM-DD"
- *   reason        one line
- * Anything else (a missing or extra key, a placeholder, another seal, another body) is ignored and
- * the source stays unknown. Unsigned drafts carry "_draft_instructions" and are therefore invalid. */
-export const ATTESTATION_KIND = 'kansei-attribution-not-listed/v1';
-const ATTESTATION_KEYS = ['attestation', 'body_sha256', 'date', 'expected_digest', 'marker_id', 'observer', 'reason', 'source_id', 'target', 'verdict'];
-export function attestationPath(dir, markerId, sourceId, bodySha) { return join(dir, `${markerId}-${sourceId}-${bodySha}.json`); }
-export function validateAttestation(a, { markerId, expectedDigest, sourceId, bodySha }) {
-  if (!a || typeof a !== 'object' || Array.isArray(a)) return 'not_an_object';
-  const keys = Object.keys(a).sort();
-  if (keys.length !== ATTESTATION_KEYS.length || keys.some((k, i) => k !== ATTESTATION_KEYS[i])) return 'keys';
-  if (a.attestation !== ATTESTATION_KIND) return 'kind';
-  if (a.marker_id !== markerId) return 'marker_id';
-  if (a.expected_digest !== expectedDigest) return 'expected_digest';
-  if (a.source_id !== sourceId) return 'source_id';
-  if (!/^[0-9a-f]{64}$/.test(String(a.body_sha256)) || a.body_sha256 !== bodySha) return 'body_sha256';
-  if (a.verdict !== 'not_listed') return 'verdict';
-  if (typeof a.observer !== 'string' || !/^human:[^\s<>{}][^<>{}\r\n]{0,59}$/.test(a.observer)) return 'observer';
-  if (typeof a.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(a.date) || Number.isNaN(Date.parse(`${a.date}T00:00:00Z`))) return 'date';
-  if (typeof a.target !== 'string' || !a.target.trim() || /[\r\n<>]/.test(a.target)) return 'target';
-  if (typeof a.reason !== 'string' || !a.reason.trim() || a.reason.length > 200 || /[\r\n<>{}]/.test(a.reason)) return 'reason';
-  return null;
-}
-/** { attested: boolean, why } — reads at most one file, never throws. */
-export function findAttestation(dir, ctx) {
-  try {
-    if (!dir) return { attested: false, why: 'no_dir' };
-    const p = attestationPath(dir, ctx.markerId, ctx.sourceId, ctx.bodySha);
-    if (!existsSync(p)) return { attested: false, why: 'none_for_this_body' };
-    const bad = validateAttestation(JSON.parse(readFileSync(p, 'utf8')), ctx);
-    return bad ? { attested: false, why: `invalid:${bad}` } : { attested: true, why: 'valid' };
-  } catch (e) { return { attested: false, why: 'unreadable' }; }
+  walk(payload, '');
+  return leaves;
 }

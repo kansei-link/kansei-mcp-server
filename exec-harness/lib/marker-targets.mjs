@@ -17,8 +17,9 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { askLlm } from './llm-ask.mjs';
 import { AUTH_RULE, ANSWER_FORMAT, judgeLlmAnswer } from './llm-answer-rules.mjs';
-// attribution-rules.mjs (and the vendored HTML decoder behind it) is NOT imported here: it is loaded
-// with a dynamic import inside llmAnswer.attribution only, so M-001 / M-002 / M-003 never depend on it.
+// attribution-attest.mjs and attribution-rules.mjs (with the vendored HTML decoder behind it) are NOT
+// imported here: they are loaded with dynamic imports inside llmAnswer.attribution only, so M-001 /
+// M-002 / M-003 never depend on them (and the hint reader, attribution-rules.mjs, never decides a row).
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const DEAD = new Set(['gone', 'dns_fail', 'connection_refused']);
@@ -276,88 +277,90 @@ const llmAnswer = {
     ] };
   },
   /**
-   * Attribution columns A and B (ATTRIBUTION-Rules v0.1 §1, §2-1, §4-2). Ground-truth side rows,
-   * written once per run; they read only (public pages, the public catalog) and never touch the
-   * subject. Values stay in memory; rows carry booleans and field NAMES only.
-   * §4-2 (Michie 2026-09-29): the automatic reading is "listed" or "unknown" only. A source is
-   * "not listed" only when a valid HUMAN attestation exists for the sha256 of the exact body read
-   * this run (evidence/attestations/<marker>-<source>-<sha>.json); a changed body expires it.
-   * Row encoding: pass = listed; instrument_error 'other' = unknown; pass=false with
-   * instrument_error=null = not listed BY HUMAN ATTESTATION (check *_not_listed_human_attested).
-   *   A (sealed_repo_vs_official_docs): listed if A1 or A2 is listed; not listed only if EVERY page
-   *     is attested not listed for today's body; otherwise unknown. A page counts as read only after
-   *     HTTP 200 and the whole body received before the timeout; its body = the raw bytes.
-   *   B (sealed_repo_vs_kansei_catalog): listed if some field of the catalog item resolves to the
-   *     key (M-002's reader, read only); not listed only with an attestation for today's body
-   *     (catalogBody: string leaves without the top-level "_*" keys and "freshness"); otherwise unknown.
+   * Attribution columns A and B (ATTRIBUTION-Rules v0.1 §1, §2-1, §4-2). Ground-truth side rows, written
+   * once per run; they read only (public pages, the public catalog) and never touch the subject.
+   * §4-2 (Michie 2026-09-29, after Codex review of 7e9a3e2): the instrument only DETECTS CHANGE. For each
+   * source fixed in the taskpack (A1, A2 = official pages, B = the KanseiLINK catalog item) it reads the
+   * body and takes its sha256 (A: the raw bytes after HTTP 200 and complete receipt; B: catalogBody =
+   * the whole item minus _meta.attempt_id and freshness.data_age_days). The source's state comes ONLY
+   * from a valid human attestation of exactly that body (evidence/attestations/<marker>-<source>-<sha>.json,
+   * verdict listed or not_listed); without one the source is 未確定（本文に変化あり・要再確認）.
+   * The automatic reading (attribution-rules.mjs classifySource) is loaded in a try/catch and written
+   * to the private sidecar as a hint; it never changes a row.
+   * Row encoding: pass = listed (by attestation); instrument_error 'other' = unknown;
+   * pass=false with instrument_error=null = not listed (by attestation). Checks carry booleans only:
+   *   A: <id>_page_fetched, <id>_attested_listed, <id>_attested_not_listed, <id>_needs_recheck,
+   *      official_docs_attested_listed (some page), official_docs_attested_not_listed (every page).
+   *   B: catalog_item_observed, catalog_body_fields_fixed, catalog_item_present,
+   *      catalog_item_attested_listed, catalog_item_attested_not_listed, catalog_item_needs_recheck.
    */
   async attribution({ MK, sealed, harnessLog, attestationsDir, expectedDigest, markerId }) {
     const cfg = MK.attribution;
     if (!cfg) return [];
-    // First and only place the source readers are loaded. If they cannot be loaded, this throws and
-    // marker-generic writes both attribution rows as instrument errors (U1/U2); the agent readings of
-    // the run are unaffected, and no other marker ever reaches this line.
-    const { classifySource, catalogStringLeaves, catalogBody, sha256Hex, findAttestation } = await import('./attribution-rules.mjs');
+    // First and only place these parts are loaded. If attribution-attest.mjs cannot be loaded this throws
+    // and marker-generic writes both rows as instrument errors (U1/U2); the agent readings are unaffected.
+    const { catalogBody, sha256Hex, sourceTarget, sourceState, B_BODY_FIELDS } = await import('./attribution-attest.mjs');
+    // The hint reader is optional: when it cannot be loaded, the rows are exactly the same.
+    let hints = null;
+    try { hints = await import('./attribution-rules.mjs'); } catch { hints = null; }
+    const HINT_NOTE = '手がかり（自動の読み・誤りうる・判断に使わない）';
+    const hint = (fn) => { if (!hints) return { state: null, reason: 'hint_reader_unavailable', note: HINT_NOTE }; try { return { ...fn(hints), note: HINT_NOTE }; } catch { return { state: null, reason: 'hint_failed', note: HINT_NOTE }; } };
     const dir = (typeof cfg.attestations_dir === 'string' && cfg.attestations_dir.trim()) ? cfg.attestations_dir : attestationsDir;
-    const rows = []; const diagnostics = [];
+    const ctxOf = (sourceId) => ({ markerId, expectedDigest, sourceId, target: sourceTarget(cfg, sourceId) });
+    const rows = []; const diagnostics = []; const recheck = [];
 
     // A: official documentation pages fixed in the taskpack
     const pages = Array.isArray(cfg.official_docs) ? cfg.official_docs : [];
     const aChecks = []; const states = [];
     for (const p of pages) {
-      let fetched = false, state = 'unknown', attested = false;
+      let fetched = false, bodySha = null, h = null;
       const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000);
       try {
         const r = await fetch(p.url, { headers: { 'user-agent': 'kansei-marker-harness/0.4' }, signal: c.signal });
         if (r.status === 200) {
           const bytes = Buffer.from(await r.arrayBuffer()); fetched = true; // the whole body, received
-          state = classifySource(bytes.toString('utf8'), sealed, { html: true }).state;
-          if (state !== 'listed') {
-            const bodySha = sha256Hex(bytes);
-            const f = findAttestation(dir, { markerId, expectedDigest, sourceId: p.id, bodySha });
-            attested = f.attested; if (attested) state = 'not_listed';
-            diagnostics.push({ event: 'attribution_source', source_id: p.id, body_sha256: bodySha, attestation: f.why });
-          }
+          bodySha = sha256Hex(bytes);
+          h = hint((m) => { const x = m.classifySource(bytes.toString('utf8'), sealed, { html: true }); return { state: x.state, reason: x.reason }; });
         } else await r.body?.cancel().catch(() => {});
-      } catch { fetched = false; state = 'unknown'; } finally { clearTimeout(t); }
-      states.push(state);
-      aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_page_lists_sealed_repo`, ok: state === 'listed' }, { label: `${p.id}_page_not_listed_human_attested`, ok: attested });
+      } catch { fetched = false; bodySha = null; } finally { clearTimeout(t); }
+      const ctx = ctxOf(p.id);
+      const st = sourceState({ fetched, bodySha, dir, ctx });
+      states.push(st.state);
+      if (st.state === 'recheck') recheck.push(p.id);
+      aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_attested_listed`, ok: st.state === 'listed' }, { label: `${p.id}_attested_not_listed`, ok: st.state === 'not_listed' }, { label: `${p.id}_needs_recheck`, ok: st.state === 'recheck' });
+      diagnostics.push({ event: 'attribution_source', source_id: p.id, target: ctx.target, body_sha256: bodySha, state: st.state, attestation: st.why, needs_recheck: st.state === 'recheck', hint: h });
     }
     const aListed = states.includes('listed');
     const aNotListed = !aListed && states.length > 0 && states.every((x) => x === 'not_listed');
     const aInstrument = aListed || aNotListed ? null : 'other';
-    aChecks.push({ label: 'official_docs_list_sealed_repo', ok: aListed }, { label: 'official_docs_not_listed_human_attested', ok: aNotListed });
-    rows.push({ method: 'sealed_repo_vs_official_docs', claim: 'the official documentation pages fixed in the taskpack list the sealed MCP repository', pass: aListed, instrument_error: aInstrument, checks: aChecks });
-    harnessLog({ event: 'attribution', column: 'A', listed: aListed, attested: aNotListed, instrument: aInstrument });
+    aChecks.push({ label: 'official_docs_attested_listed', ok: aListed }, { label: 'official_docs_attested_not_listed', ok: aNotListed });
+    rows.push({ method: 'sealed_repo_vs_official_docs', claim: 'the official documentation pages fixed in the taskpack list the sealed MCP repository (attested by a person for the body read this run)', pass: aListed, instrument_error: aInstrument, checks: aChecks });
+    harnessLog({ event: 'attribution', column: 'A', listed: aListed, not_listed: aNotListed, instrument: aInstrument, needs_recheck: [...recheck] });
 
     // B: KanseiLINK's own public catalog item (M-002 reader, keepPayload in memory only)
+    const fieldsFixed = cfg.catalog?.body_fields === B_BODY_FIELDS;
     const d = await readCatalogDisplay(cfg.catalog?.display_api_url, cfg.catalog?.service_id, 20000, { keepPayload: true });
-    const bChecks = [{ label: 'catalog_item_observed', ok: Boolean(d.reachable && d.valid) }];
-    let bListed = false, bAttested = false;
-    if (d.reachable && d.valid) {
+    const observed = Boolean(d.reachable && d.valid);
+    const bChecks = [{ label: 'catalog_item_observed', ok: observed }, { label: 'catalog_body_fields_fixed', ok: fieldsFixed }];
+    let bState = 'unread', bSha = null, bWhy = observed ? 'body_fields_not_fixed_in_taskpack' : 'not_observed', bHint = null;
+    if (observed) {
       bChecks.push({ label: 'catalog_item_present', ok: Boolean(d.found) });
-      const fields = [], unresolved = [];
-      for (const [path, value] of catalogStringLeaves(d.payload)) {
-        const st = classifySource(value, sealed);
-        if (st.state === 'listed') fields.push(path); else if (st.reason === 'name_present_not_resolvable') unresolved.push(path);
-      }
-      bListed = fields.length > 0;
-      // field NAMES only (never values); anything that is not a plain field path is recorded without its name
-      const name = (f) => (/^[A-Za-z0-9_.[\]()]{1,80}$/.test(f) ? f : '(unnamed)');
-      for (const f of [...new Set(fields)]) bChecks.push({ label: `catalog_field_lists_sealed_repo:${name(f)}`, ok: true });
-      for (const f of [...new Set(unresolved)]) bChecks.push({ label: `catalog_field_names_sealed_repo_unresolved:${name(f)}`, ok: false });
-      if (!bListed) {
-        const bodySha = sha256Hex(catalogBody(d.payload));
-        const f = findAttestation(dir, { markerId, expectedDigest, sourceId: 'B', bodySha });
-        bAttested = f.attested;
-        diagnostics.push({ event: 'attribution_source', source_id: 'B', body_sha256: bodySha, attestation: f.why });
-      }
+      bSha = sha256Hex(catalogBody(d.payload));
+      if (fieldsFixed) { const st = sourceState({ fetched: true, bodySha: bSha, dir, ctx: ctxOf('B') }); bState = st.state; bWhy = st.why; }
+      bHint = hint((m) => {
+        const fields = m.catalogStringLeaves(d.payload).filter(([, v]) => m.classifySource(v, sealed).state === 'listed').map(([path]) => path);
+        return { state: fields.length ? 'listed' : 'unknown', reason: fields.length ? 'some_field_resolves' : 'no_field_resolves', fields };
+      });
     }
-    const bInstrument = bListed || bAttested ? null : 'other';
-    bChecks.push({ label: 'kansei_catalog_lists_sealed_repo', ok: bListed }, { label: 'catalog_item_not_listed_human_attested', ok: bAttested });
-    rows.push({ method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository in some field', pass: bListed, instrument_error: bInstrument, checks: bChecks });
-    harnessLog({ event: 'attribution', column: 'B', listed: bListed, attested: bAttested, instrument: bInstrument });
+    if (bState === 'recheck') recheck.push('B');
+    bChecks.push({ label: 'catalog_item_attested_listed', ok: bState === 'listed' }, { label: 'catalog_item_attested_not_listed', ok: bState === 'not_listed' }, { label: 'catalog_item_needs_recheck', ok: bState === 'recheck' });
+    diagnostics.push({ event: 'attribution_source', source_id: 'B', target: sourceTarget(cfg, 'B'), body_sha256: bSha, state: bState, attestation: bWhy, needs_recheck: bState === 'recheck', hint: bHint });
+    const bInstrument = bState === 'listed' || bState === 'not_listed' ? null : 'other';
+    rows.push({ method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository (attested by a person for the body read this run)', pass: bState === 'listed', instrument_error: bInstrument, checks: bChecks });
+    harnessLog({ event: 'attribution', column: 'B', listed: bState === 'listed', not_listed: bState === 'not_listed', instrument: bInstrument, needs_recheck: bState === 'recheck' });
+    if (recheck.length) diagnostics.push({ event: 'attribution_needs_recheck', sources: [...recheck], note: '本文に変化あり・要再確認: 当日の本文 sha256 に一致する人の確認がない（evidence/attestations/README.md）' });
     rows.diagnostics = diagnostics; // private sidecar only (environment.private.json)
+    rows.needsRecheck = recheck;
     return rows;
   },
   observers({ MK }) { return (MK.providers || ['openai', 'gemini', 'perplexity', 'claude']).map((p) => ({ id: 'kansei_harness', label: p, provider: p, model: null })); },

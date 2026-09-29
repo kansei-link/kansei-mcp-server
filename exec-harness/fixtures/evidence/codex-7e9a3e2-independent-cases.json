@@ -1,0 +1,1735 @@
+{
+  "commit": "7e9a3e25e7d299cc5ef3eb873865f1dd8d94e650",
+  "cases": [
+    {
+      "id": "token-plain-B",
+      "input": {
+        "text": "https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "listed"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-plain-A",
+      "input": {
+        "text": "https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "listed"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-other-host-B",
+      "input": {
+        "text": "https://gitlab.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-other-host-A",
+      "input": {
+        "text": "https://gitlab.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-other-owner-B",
+      "input": {
+        "text": "https://github.com/other-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-other-owner-A",
+      "input": {
+        "text": "https://github.com/other-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-other-repo-B",
+      "input": {
+        "text": "https://github.com/fake-vendor/fake-official-mcp-server-other",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-other-repo-A",
+      "input": {
+        "text": "https://github.com/fake-vendor/fake-official-mcp-server-other",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-percent-owner-B",
+      "input": {
+        "text": "https://github.com/%66ake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-percent-owner-A",
+      "input": {
+        "text": "https://github.com/%66ake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-data-basic-B",
+      "input": {
+        "text": "data:text/plain,https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-data-basic-A",
+      "input": {
+        "text": "data:text/plain,https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-mailto-basic-B",
+      "input": {
+        "text": "mailto:a@example.invalid?body=https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-mailto-basic-A",
+      "input": {
+        "text": "mailto:a@example.invalid?body=https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-data-numeric-B",
+      "input": {
+        "text": "data:123/https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": false
+    },
+    {
+      "id": "token-data-numeric-A",
+      "input": {
+        "text": "data:123/https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": false
+    },
+    {
+      "id": "token-urn-numeric-B",
+      "input": {
+        "text": "urn:123/https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": false
+    },
+    {
+      "id": "token-urn-numeric-A",
+      "input": {
+        "text": "urn:123/https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": false
+    },
+    {
+      "id": "token-data-numeric-bare-B",
+      "input": {
+        "text": "data:123/github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-data-numeric-bare-A",
+      "input": {
+        "text": "data:123/github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-bare-outer-url-B",
+      "input": {
+        "text": "evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": false
+    },
+    {
+      "id": "token-bare-outer-url-A",
+      "input": {
+        "text": "evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": false
+    },
+    {
+      "id": "token-relative-outer-url-B",
+      "input": {
+        "text": "//evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": false
+    },
+    {
+      "id": "token-relative-outer-url-A",
+      "input": {
+        "text": "//evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": false
+    },
+    {
+      "id": "token-http-outer-url-B",
+      "input": {
+        "text": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-http-outer-url-A",
+      "input": {
+        "text": "https://evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-port-443-B",
+      "input": {
+        "text": "https://github.com:443/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "listed"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-port-443-A",
+      "input": {
+        "text": "https://github.com:443/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "listed"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-port-8443-B",
+      "input": {
+        "text": "https://github.com:8443/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-port-8443-A",
+      "input": {
+        "text": "https://github.com:8443/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "unknown"
+      },
+      "actual": {
+        "state": "unknown"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-opaque-space-B",
+      "input": {
+        "text": "data:text/plain,x https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": false,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "listed"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": true
+    },
+    {
+      "id": "token-opaque-space-A",
+      "input": {
+        "text": "data:text/plain,x https://github.com/fake-vendor/fake-official-mcp-server",
+        "html": true,
+        "human_attestation": false
+      },
+      "expected": {
+        "state": "listed"
+      },
+      "actual": {
+        "state": "listed"
+      },
+      "conforms": true
+    },
+    {
+      "id": "ground-truth-normal",
+      "input": {
+        "mode": "normal",
+        "loopback": true
+      },
+      "expected": {
+        "consistent": true
+      },
+      "actual": {
+        "consistent": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "ground-truth-renamed",
+      "input": {
+        "mode": "renamed",
+        "loopback": true
+      },
+      "expected": {
+        "consistent": false
+      },
+      "actual": {
+        "consistent": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "ground-truth-moved",
+      "input": {
+        "mode": "moved",
+        "loopback": true
+      },
+      "expected": {
+        "consistent": false
+      },
+      "actual": {
+        "consistent": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "ground-truth-archived",
+      "input": {
+        "mode": "archived",
+        "loopback": true
+      },
+      "expected": {
+        "consistent": false
+      },
+      "actual": {
+        "consistent": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "ground-truth-private",
+      "input": {
+        "mode": "private",
+        "loopback": true
+      },
+      "expected": {
+        "consistent": false
+      },
+      "actual": {
+        "consistent": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "ground-truth-missing",
+      "input": {
+        "mode": "missing",
+        "loopback": true
+      },
+      "expected": {
+        "consistent": false
+      },
+      "actual": {
+        "consistent": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "ground-truth-timeout",
+      "input": {
+        "mode": "timeout",
+        "loopback": true
+      },
+      "expected": {
+        "consistent": false
+      },
+      "actual": {
+        "consistent": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "e2e-numeric-scheme-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131438-01M3NNYB19D13K2WF5FRQWRA7B"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "e2e-numeric-scheme-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "e2e-numeric-scheme",
+      "input": {
+        "page": "data:123/https://github.com/fake-vendor/fake-official-mcp-server",
+        "catalog": {
+          "service_id": "fake-subject",
+          "name": "Fake",
+          "mcp_status": "official",
+          "freshness": {
+            "confidence": "medium",
+            "data_age_days": 1
+          },
+          "_meta": {
+            "attempt_id": "one"
+          },
+          "description": "data:123/https://github.com/fake-vendor/fake-official-mcp-server"
+        },
+        "human_attestation": false
+      },
+      "expected": {
+        "A": "unknown",
+        "B": "unknown",
+        "judgement": "U1"
+      },
+      "actual": {
+        "A": "listed",
+        "B": "listed",
+        "judgement": "#1"
+      },
+      "conforms": false
+    },
+    {
+      "id": "e2e-nested-in-bare-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131439-01M3NNYCB6H2152ZPKZDN6TV1K"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "e2e-nested-in-bare-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "e2e-nested-in-bare",
+      "input": {
+        "page": "evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server",
+        "catalog": {
+          "service_id": "fake-subject",
+          "name": "Fake",
+          "mcp_status": "official",
+          "freshness": {
+            "confidence": "medium",
+            "data_age_days": 1
+          },
+          "_meta": {
+            "attempt_id": "one"
+          },
+          "description": "evil.example/?to=https://github.com/fake-vendor/fake-official-mcp-server"
+        },
+        "human_attestation": false
+      },
+      "expected": {
+        "A": "unknown",
+        "B": "unknown",
+        "judgement": "U1"
+      },
+      "actual": {
+        "A": "listed",
+        "B": "listed",
+        "judgement": "#1"
+      },
+      "conforms": false
+    },
+    {
+      "id": "valid-baseline-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131440-01M3NNYD9ZVJM0F0XWQPX26Z7W"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "valid-baseline-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "valid-baseline",
+      "input": {
+        "catalog": {
+          "service_id": "fake-subject",
+          "name": "Fake",
+          "mcp_status": "official",
+          "freshness": {
+            "confidence": "medium",
+            "data_age_days": 1
+          },
+          "_meta": {
+            "attempt_id": "one"
+          },
+          "description": "CATALOG_VALUE_CANARY"
+        },
+        "valid_human_attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        }
+      },
+      "expected": {
+        "A": "listed",
+        "B": "not_listed",
+        "judgement": "#3"
+      },
+      "actual": {
+        "A": "listed",
+        "B": "not_listed",
+        "judgement": "#3"
+      },
+      "conforms": true
+    },
+    {
+      "id": "excluded-1-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131441-01M3NNYE88AV7AZNAT38491S5H"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "excluded-1-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "excluded-field-_repository",
+      "input": {
+        "catalog": {
+          "service_id": "fake-subject",
+          "name": "Fake",
+          "mcp_status": "official",
+          "freshness": {
+            "confidence": "medium",
+            "data_age_days": 1
+          },
+          "_meta": {
+            "attempt_id": "one"
+          },
+          "description": "CATALOG_VALUE_CANARY",
+          "_repository": "https://github.com/fake-vendor/fake-official-mcp-server"
+        },
+        "prior_human_attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        },
+        "current_body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+        "unchanged_digest": true
+      },
+      "expected": {
+        "A": "listed",
+        "B": "listed",
+        "judgement": "#1"
+      },
+      "actual": {
+        "A": "listed",
+        "B": "not_listed",
+        "judgement": "#3"
+      },
+      "conforms": false
+    },
+    {
+      "id": "excluded-2-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131442-01M3NNYF4PT3HWPK23HQJPD51G"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "excluded-2-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "excluded-field-_meta.repository",
+      "input": {
+        "catalog": {
+          "service_id": "fake-subject",
+          "name": "Fake",
+          "mcp_status": "official",
+          "freshness": {
+            "confidence": "medium",
+            "data_age_days": 1
+          },
+          "_meta": {
+            "attempt_id": "one",
+            "repository": "https://github.com/fake-vendor/fake-official-mcp-server"
+          },
+          "description": "CATALOG_VALUE_CANARY"
+        },
+        "prior_human_attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        },
+        "current_body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+        "unchanged_digest": true
+      },
+      "expected": {
+        "A": "listed",
+        "B": "listed",
+        "judgement": "#1"
+      },
+      "actual": {
+        "A": "listed",
+        "B": "not_listed",
+        "judgement": "#3"
+      },
+      "conforms": false
+    },
+    {
+      "id": "excluded-3-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131443-01M3NNYG0R8H6NBBMN5A2586QK"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "excluded-3-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "excluded-field-freshness.repository",
+      "input": {
+        "catalog": {
+          "service_id": "fake-subject",
+          "name": "Fake",
+          "mcp_status": "official",
+          "freshness": {
+            "confidence": "medium",
+            "data_age_days": 1,
+            "repository": "https://github.com/fake-vendor/fake-official-mcp-server"
+          },
+          "_meta": {
+            "attempt_id": "one"
+          },
+          "description": "CATALOG_VALUE_CANARY"
+        },
+        "prior_human_attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        },
+        "current_body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+        "unchanged_digest": true
+      },
+      "expected": {
+        "A": "listed",
+        "B": "listed",
+        "judgement": "#1"
+      },
+      "actual": {
+        "A": "listed",
+        "B": "not_listed",
+        "judgement": "#3"
+      },
+      "conforms": false
+    },
+    {
+      "id": "excluded-4-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131444-01M3NNYGWX0BNC8Y2NZGDCQQG5"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "excluded-4-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "excluded-field-freshness.confidence",
+      "input": {
+        "catalog": {
+          "service_id": "fake-subject",
+          "name": "Fake",
+          "mcp_status": "official",
+          "freshness": {
+            "confidence": "https://github.com/fake-vendor/fake-official-mcp-server",
+            "data_age_days": 1
+          },
+          "_meta": {
+            "attempt_id": "one"
+          },
+          "description": "CATALOG_VALUE_CANARY"
+        },
+        "prior_human_attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        },
+        "current_body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+        "unchanged_digest": true
+      },
+      "expected": {
+        "A": "listed",
+        "B": "listed",
+        "judgement": "#1"
+      },
+      "actual": {
+        "A": "listed",
+        "B": "not_listed",
+        "judgement": "#3"
+      },
+      "conforms": false
+    },
+    {
+      "id": "included-link-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131445-01M3NNYHSAY1TKHJBZ24GCS64P"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "included-link-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "included-link",
+      "input": {
+        "catalog": {
+          "service_id": "fake-subject",
+          "name": "Fake",
+          "mcp_status": "official",
+          "freshness": {
+            "confidence": "medium",
+            "data_age_days": 1
+          },
+          "_meta": {
+            "attempt_id": "one"
+          },
+          "description": "CATALOG_VALUE_CANARY",
+          "repository": "https://github.com/fake-vendor/fake-official-mcp-server"
+        }
+      },
+      "expected": {
+        "B": "listed",
+        "judgement": "#1"
+      },
+      "actual": {
+        "B": "listed",
+        "judgement": "#1"
+      },
+      "conforms": true
+    },
+    {
+      "id": "changed-body-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131445-01M3NNYJQDCP1P4EA2F1D4FFHK"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "changed-body-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "changed-body",
+      "input": {
+        "catalog": {
+          "service_id": "fake-subject",
+          "name": "Fake",
+          "mcp_status": "official",
+          "freshness": {
+            "confidence": "medium",
+            "data_age_days": 1
+          },
+          "_meta": {
+            "attempt_id": "one"
+          },
+          "description": "changed body"
+        },
+        "prior_human_attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        }
+      },
+      "expected": {
+        "B": "unknown",
+        "judgement": "U2"
+      },
+      "actual": {
+        "B": "unknown",
+        "judgement": "U2"
+      },
+      "conforms": true
+    },
+    {
+      "id": "attestation-extra",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link.",
+          "extra": true
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "attestation-missing",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29"
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "attestation-seal",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "attestation-body",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "attestation-source",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "A1",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "attestation-non-human",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "agent:test",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "attestation-unsigned-draft",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:Audit Fixture Reviewer",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link.",
+          "_draft_instructions": "fill this"
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "attestation-angle-placeholder",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:<name>",
+          "date": "2026-09-29",
+          "reason": "Fixture reviewer inspected the complete source; no repository link."
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "attestation-todo-placeholder",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "TODO",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:TODO",
+          "date": "2026-09-29",
+          "reason": "TODO"
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": false
+    },
+    {
+      "id": "attestation-tbd-placeholder",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:TBD",
+          "date": "2026-09-29",
+          "reason": "TBD"
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": false
+    },
+    {
+      "id": "attestation-bracket-placeholder",
+      "input": {
+        "attestation": {
+          "attestation": "kansei-attribution-not-listed/v1",
+          "marker_id": "M-994",
+          "expected_digest": "24154140080fe72a0c3c5a4f73b253fea0d4939cf4d1d2aa5ab791404ffe1155",
+          "source_id": "B",
+          "target": "fake-subject",
+          "body_sha256": "40b5af3e9d875947d2874975287ecafa53939963c5789a8d1f1d3a00f0f8ff37",
+          "verdict": "not_listed",
+          "observer": "human:[name]",
+          "date": "2026-09-29",
+          "reason": "[reason]"
+        }
+      },
+      "expected": {
+        "valid": false
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": false
+    },
+    {
+      "id": "placeholder-schema",
+      "input": {
+        "bundle": "evidence/_dryrun/2026-09-29/marker-m-994/131446-01M3NNYKKTST9V50H50P2SCFPG"
+      },
+      "expected": {
+        "valid": true
+      },
+      "actual": {
+        "valid": true
+      },
+      "conforms": true
+    },
+    {
+      "id": "placeholder-privacy",
+      "input": {
+        "canaries": [
+          "CATALOG_VALUE_CANARY",
+          "PAGE_VALUE_CANARY",
+          "ANSWER_VALUE_CANARY"
+        ]
+      },
+      "expected": {
+        "leaked": false
+      },
+      "actual": {
+        "leaked": false
+      },
+      "conforms": true
+    },
+    {
+      "id": "placeholder-e2e",
+      "input": {
+        "observer": "human:TODO",
+        "reason": "TODO",
+        "target": "TODO",
+        "human_attestation": "invalid placeholder, not a completed confirmation"
+      },
+      "expected": {
+        "A": "unknown",
+        "B": "unknown",
+        "judgement": "U1"
+      },
+      "actual": {
+        "A": "not_listed",
+        "B": "not_listed",
+        "judgement": "#7"
+      },
+      "conforms": false
+    },
+    {
+      "id": "truth-table-#8",
+      "input": {
+        "A": "not_listed",
+        "B": "not_listed",
+        "C": false,
+        "human_attestation": "negative source states assumed to have valid confirmation"
+      },
+      "expected": {
+        "code": "#8"
+      },
+      "actual": {
+        "code": "#8"
+      },
+      "conforms": true
+    },
+    {
+      "id": "truth-table-#7",
+      "input": {
+        "A": "not_listed",
+        "B": "not_listed",
+        "C": true,
+        "human_attestation": "negative source states assumed to have valid confirmation"
+      },
+      "expected": {
+        "code": "#7"
+      },
+      "actual": {
+        "code": "#7"
+      },
+      "conforms": true
+    },
+    {
+      "id": "truth-table-#6",
+      "input": {
+        "A": "not_listed",
+        "B": "listed",
+        "C": false,
+        "human_attestation": "negative source states assumed to have valid confirmation"
+      },
+      "expected": {
+        "code": "#6"
+      },
+      "actual": {
+        "code": "#6"
+      },
+      "conforms": true
+    },
+    {
+      "id": "truth-table-#5",
+      "input": {
+        "A": "not_listed",
+        "B": "listed",
+        "C": true,
+        "human_attestation": "negative source states assumed to have valid confirmation"
+      },
+      "expected": {
+        "code": "#5"
+      },
+      "actual": {
+        "code": "#5"
+      },
+      "conforms": true
+    },
+    {
+      "id": "truth-table-#4",
+      "input": {
+        "A": "listed",
+        "B": "not_listed",
+        "C": false,
+        "human_attestation": "negative source states assumed to have valid confirmation"
+      },
+      "expected": {
+        "code": "#4"
+      },
+      "actual": {
+        "code": "#4"
+      },
+      "conforms": true
+    },
+    {
+      "id": "truth-table-#3",
+      "input": {
+        "A": "listed",
+        "B": "not_listed",
+        "C": true,
+        "human_attestation": "negative source states assumed to have valid confirmation"
+      },
+      "expected": {
+        "code": "#3"
+      },
+      "actual": {
+        "code": "#3"
+      },
+      "conforms": true
+    },
+    {
+      "id": "truth-table-#2",
+      "input": {
+        "A": "listed",
+        "B": "listed",
+        "C": false,
+        "human_attestation": "negative source states assumed to have valid confirmation"
+      },
+      "expected": {
+        "code": "#2"
+      },
+      "actual": {
+        "code": "#2"
+      },
+      "conforms": true
+    },
+    {
+      "id": "truth-table-#1",
+      "input": {
+        "A": "listed",
+        "B": "listed",
+        "C": true,
+        "human_attestation": "negative source states assumed to have valid confirmation"
+      },
+      "expected": {
+        "code": "#1"
+      },
+      "actual": {
+        "code": "#1"
+      },
+      "conforms": true
+    },
+    {
+      "id": "precedence-U0",
+      "input": {
+        "a": "unknown",
+        "b": "unknown",
+        "c": "instrument",
+        "gt": false
+      },
+      "expected": {
+        "code": "U0"
+      },
+      "actual": {
+        "code": "U0"
+      },
+      "conforms": true
+    },
+    {
+      "id": "precedence-U1",
+      "input": {
+        "a": "unknown",
+        "b": "correct",
+        "c": "pass",
+        "gt": true
+      },
+      "expected": {
+        "code": "U1"
+      },
+      "actual": {
+        "code": "U1"
+      },
+      "conforms": true
+    },
+    {
+      "id": "precedence-U2",
+      "input": {
+        "a": "listed",
+        "b": "unknown",
+        "c": "pass",
+        "gt": true
+      },
+      "expected": {
+        "code": "U2"
+      },
+      "actual": {
+        "code": "U2"
+      },
+      "conforms": true
+    },
+    {
+      "id": "precedence-U3",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "format",
+        "gt": true
+      },
+      "expected": {
+        "code": "U3"
+      },
+      "actual": {
+        "code": "U3"
+      },
+      "conforms": true
+    },
+    {
+      "id": "precedence-U4",
+      "input": {
+        "a": "listed",
+        "b": "correct",
+        "c": "instrument",
+        "gt": true
+      },
+      "expected": {
+        "code": "U4"
+      },
+      "actual": {
+        "code": "U4"
+      },
+      "conforms": true
+    },
+    {
+      "id": "bundle-isolation",
+      "input": {
+        "A_B_bundle": "run-one",
+        "C_bundle": "run-two"
+      },
+      "expected": {
+        "code": "U1"
+      },
+      "actual": {
+        "code": "U1"
+      },
+      "conforms": true
+    }
+  ]
+}
