@@ -19,6 +19,9 @@
  * Part D/E: Codex's earlier independent cases (110 of 185d63d, 93 of 8d905ee) — hint cases replayed on the
  *          hint reader, judgement and ground-truth cases as before, loopback cases by smoke label.
  * Part F:  Codex's 94 independent cases of 7e9a3e2 (fixtures/attribution-cases-7e9a3e2.json).
+ * Part G:  Codex's 112 independent cases of 5758e0a (fixtures/attribution-cases-5758e0a.json) — Codex's runner ported:
+ *          in-process attribution and runGenericMarker on loopback; the allow-list policy (observers.json, verdict,
+ *          date not after today; reason a note that decides nothing).
  * No network beyond loopback, no real seal, no DB.
  */
 import { spawn } from "node:child_process";
@@ -26,7 +29,7 @@ import { createServer } from "node:http";
 import { readFileSync, writeFileSync, mkdtempSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
-import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, AGENT_METHOD, RECHECK_TEXT, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs, classifySource, catalogBody, sha256Hex, validateAttestation, findAttestation, sourceState, sourceTarget, ATTESTATION_KIND, B_BODY_FIELDS } from "../exec-harness/lib/attribution-rules.mjs";
+import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, AGENT_METHOD, RECHECK_TEXT, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs, classifySource, catalogBody, sha256Hex, validateAttestation, findAttestation, sourceState, sourceTarget, ATTESTATION_KIND, B_BODY_FIELDS, reasonCautions, loadObservers, localToday } from "../exec-harness/lib/attribution-rules.mjs";
 import { renderSheet } from "../exec-harness/render-reading-sheet.mjs";
 import { validateReading, loadReadingSchema } from "../exec-harness/lib/reading.mjs";
 import { readmeRows } from "../exec-harness/lib/marker-persist.mjs";
@@ -156,46 +159,75 @@ const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution
   expect("A3 target A1/A2 = the URL fixed in the taskpack", sourceTarget(cfg, "A1") === "https://example.invalid/a1" && sourceTarget(cfg, "A2") === "https://example.invalid/a2");
   expect("A3 target B = catalog endpoint + service_id + field spec", sourceTarget(cfg, "B") === `kansei-catalog https://example.invalid/mcp service_id=svc fields=${B_BODY_FIELDS}`);
   expect("A3 target of an unknown source = null", sourceTarget(cfg, "A9") === null);
-  // the validator
+  // the validator (allow-lists, Codex review of 5758e0a): deciding fields are bound to allowed values; reason is a note
   const sha = "c".repeat(64);
-  const ctx = { markerId: "M-994", expectedDigest: SEAL_DIGEST, sourceId: "B", target: sourceTarget(cfg, "B"), bodySha: sha };
+  const ctx = { markerId: "M-994", expectedDigest: SEAL_DIGEST, sourceId: "B", target: sourceTarget(cfg, "B"), bodySha: sha, observers: ["human:synapse-arrows"], today: "2026-09-29" };
   const good = (o: any = {}) => ({ attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: SEAL_DIGEST, source_id: "B", target: ctx.target, body_sha256: sha, verdict: "not_listed", observer: "human:synapse-arrows", date: "2026-09-29", reason: "read the whole item; no link to the sealed repository", ...o });
+  const ch = (n: number) => String.fromCharCode(n);
   expect("A3 valid: verdict not_listed", validateAttestation(good(), ctx) === null, String(validateAttestation(good(), ctx)));
   expect("A3 valid: verdict listed", validateAttestation(good({ verdict: "listed", reason: "connection_guide names the repository" }), ctx) === null);
-  expect("A3 valid: observer with a space", validateAttestation(good({ observer: "human:Audit Fixture Reviewer" }), ctx) === null);
-  const bad: Array<[string, any, string]> = [
+  expect("A3 valid: date earlier than today", validateAttestation(good({ date: "2026-09-28" }), ctx) === null);
+  expect("A3 valid: an observer listed in observers.json (with a space)", validateAttestation(good({ observer: "human:Audit Fixture Reviewer" }), { ...ctx, observers: ["human:synapse-arrows", "human:Audit Fixture Reviewer"] }) === null);
+  // reason is a note: its words never decide, they only raise a private caution
+  for (const r of ["TODO", "todo", "TBD", "TODOreview", "reviewTODO", "TBDpending", "reviewTBD", "<名前>", "[name]", "{name}", " Pending ", "read it TODO later", "todos los campos leídos"]) {
+    const why = validateAttestation(good({ reason: r }), ctx);
+    expect(`A3 valid: reason ${JSON.stringify(r)} is only a note (does not decide)`, why === null, String(why));
+  }
+  expect("A3 reasonCautions: TODOreview / TBD / <…> / […] / {…} → reason_looks_unfinished; a plain note → none", ["TODOreview", "reviewTBD", "<x>", "[x]", "{x}"].every((r) => JSON.stringify(reasonCautions({ reason: r })) === '["reason_looks_unfinished"]') && reasonCautions({ reason: "read the whole page" }).length === 0);
+  const bad: Array<[string, any, string, any?]> = [
     ["an extra key", good({ extra: "x" }), "keys"], ["_draft_instructions (unsigned draft)", good({ _draft_instructions: "sign" }), "keys"],
     ["the v1 kind", good({ attestation: "kansei-attribution-not-listed/v1" }), "kind"], ["another marker", good({ marker_id: "M-004" }), "marker_id"],
     ["another seal", good({ expected_digest: "f".repeat(64) }), "expected_digest"], ["another source", good({ source_id: "A1" }), "source_id"],
-    ["another body", good({ body_sha256: "d".repeat(64) }), "body_sha256"], ["verdict unknown", good({ verdict: "unknown" }), "verdict"], ["verdict Listed (case)", good({ verdict: "Listed" }), "verdict"],
-    ["observer not human", good({ observer: "claude" }), "observer"], ["observer agent:", good({ observer: "agent:test" }), "observer"], ["observer human: with nothing", good({ observer: "human:" }), "observer"], ["observer human: + space", good({ observer: "human: x" }), "observer"],
-    ["date 2026-02-30", good({ date: "2026-02-30" }), "date"], ["date YYYY-MM-DD", good({ date: "YYYY-MM-DD" }), "date"], ["reason over 200", good({ reason: "x".repeat(201) }), "reason"],
-    ["target: the service_id alone (Codex's form)", good({ target: "fake-subject" }), "target"], ["target: another service_id", good({ target: ctx.target.replace("service_id=svc", "service_id=other") }), "target"],
-    ["target: other fields", good({ target: ctx.target.replace("freshness.data_age_days", "freshness") }), "target"], ["target: trailing space", good({ target: `${ctx.target} ` }), "empty:target"],
-    ["value not a string (verdict null)", good({ verdict: null }), "empty:verdict"], ["empty reason", good({ reason: "" }), "empty:reason"], ["blank reason", good({ reason: "   " }), "empty:reason"],
+    ["another body", good({ body_sha256: "d".repeat(64) }), "body_sha256"],
+    ["verdict unknown", good({ verdict: "unknown" }), "verdict"], ["verdict Listed (case)", good({ verdict: "Listed" }), "verdict"], ["verdict TODO", good({ verdict: "TODO" }), "verdict"], ["verdict empty", good({ verdict: "" }), "verdict"],
+    ["observer not in observers.json (human:someone-else)", good({ observer: "human:someone-else" }), "observer"], ["observer human:TODO", good({ observer: "human:TODO" }), "observer"], ["observer human:<名前>", good({ observer: "human:<名前>" }), "observer"],
+    ["observer claude", good({ observer: "claude" }), "observer"], ["observer agent:test", good({ observer: "agent:test" }), "observer"], ["observer with a trailing space", good({ observer: "human:synapse-arrows " }), "observer"], ["observer in another case", good({ observer: "human:Synapse-Arrows" }), "observer"],
+    ["observers.json empty → nobody", good(), "observer", { observers: [] }], ["observers.json missing → nobody", good(), "observer", { observers: undefined }],
+    ["date 2026-02-30", good({ date: "2026-02-30" }), "date"], ["date 2026-13-01 (no exception)", good({ date: "2026-13-01" }), "date"], ["date YYYY-MM-DD", good({ date: "YYYY-MM-DD" }), "date"], ["date TODO", good({ date: "TODO" }), "date"], ["date 2026-9-29", good({ date: "2026-9-29" }), "date"],
+    ["date after today", good({ date: "2026-09-30" }), "date_after_today"], ["today unknown", good(), "date_after_today", { today: undefined }],
+    ["reason empty", good({ reason: "" }), "reason"], ["reason blank", good({ reason: "   " }), "reason"], ["reason over 200", good({ reason: "x".repeat(201) }), "reason"],
+    ["reason with LF", good({ reason: "a\nb" }), "reason"], ["reason with CR", good({ reason: "a\rb" }), "reason"], ["reason with TAB", good({ reason: "a\tb" }), "reason"], ["reason with NUL", good({ reason: `a${ch(0)}b` }), "reason"],
+    ["reason with DEL", good({ reason: `a${ch(0x7f)}b` }), "reason"], ["reason with U+0085", good({ reason: `a${ch(0x85)}b` }), "reason"], ["reason with U+2028", good({ reason: `a${ch(0x2028)}b` }), "reason"], ["reason with U+2029", good({ reason: `a${ch(0x2029)}b` }), "reason"],
+    ["target: the service_id alone", good({ target: "fake-subject" }), "target"], ["target TODO", good({ target: "TODO" }), "target"], ["target: another service_id", good({ target: ctx.target.replace("service_id=svc", "service_id=other") }), "target"],
+    ["target: other fields", good({ target: ctx.target.replace("freshness.data_age_days", "freshness") }), "target"], ["target: trailing space", good({ target: `${ctx.target} ` }), "target"],
+    ["verdict null (not a string)", good({ verdict: null }), "not_a_string:verdict"], ["reason a number", good({ reason: 1 }), "not_a_string:reason"],
   ];
   for (const k of ["attestation", "marker_id", "expected_digest", "source_id", "target", "body_sha256", "verdict", "observer", "date", "reason"]) {
     const o = good(); delete (o as any)[k]; bad.push([`missing ${k}`, o, "keys"]);
   }
-  for (const [ph, name] of [["TODO", "TODO"], ["todo", "todo"], ["TBD", "TBD"], ["<名前>", "<…>"], ["[name]", "[…]"], ["{name}", "{…}"]] as const) {
-    bad.push([`placeholder ${name} in observer`, good({ observer: `human:${ph}` }), "placeholder:observer"]);
-    bad.push([`placeholder ${name} in reason`, good({ reason: `${ph}` }), "placeholder:reason"]);
-    bad.push([`placeholder ${name} inside the reason`, good({ reason: `read it ${ph} later` }), "placeholder:reason"]);
-    bad.push([`placeholder ${name} as target`, good({ target: ph }), "placeholder:target"]);
-    bad.push([`placeholder ${name} as verdict`, good({ verdict: ph }), "placeholder:verdict"]);
-    bad.push([`placeholder ${name} as date`, good({ date: ph }), "placeholder:date"]);
+  // the draft form: no verdict (a person writes it in) and the draft mark
+  const { verdict: _v, ...noVerdict } = good();
+  bad.push(["draft form: no verdict + _draft_instructions", { ...noVerdict, _draft_instructions: "sign" }, "keys"], ["draft form: no verdict", noVerdict, "keys"]);
+  for (const [why, a, code, over] of bad) { const got = validateAttestation(a, { ...ctx, ...(over || {}) }); expect(`A3 invalid: ${why} → ${code}`, got === code, String(got)); }
+  // observers.json: exact list of "human:…" strings, else nobody
+  const od = mkdtempSync(join(tmpdir(), "att-observers-"));
+  expect("A3 loadObservers: no file → []", loadObservers(od).length === 0 && loadObservers("").length === 0);
+  for (const [content, want] of [['["human:synapse-arrows"]', ["human:synapse-arrows"]], ["[]", []], ['["agent:x"]', []], ['["human:a", 1]', []], ['{"human:a":true}', []], ['"human:a"', []], ["not json", []], ['["human:Audit Fixture Reviewer"]', ["human:Audit Fixture Reviewer"]], ['["human: leading"]', []], ['["human:trailing "]', []], ['["human:"]', []], ['["human:a\\tb"]', []]] as const) {
+    writeFileSync(join(od, "observers.json"), content);
+    expect(`A3 loadObservers(${content}) → ${JSON.stringify(want)}`, JSON.stringify(loadObservers(od)) === JSON.stringify(want));
   }
-  bad.push(["a line break in the reason", good({ reason: "a\nb" }), "placeholder:reason"]);
-  for (const [why, a, code] of bad) { const got = validateAttestation(a, ctx); expect(`A3 invalid: ${why} → ${code}`, got === code, String(got)); }
-  expect("A3 a word merely containing todo (e.g. 'todos') is not a placeholder", validateAttestation(good({ reason: "todos los campos leídos; no repository link" }), ctx) === null);
-  // findAttestation / sourceState read at most one file, never throw
+  rmSync(od, { recursive: true, force: true });
+  expect("A3 the repository's observers.json is exactly [\"human:synapse-arrows\"]", JSON.stringify(loadObservers(join(ROOT, "evidence", "attestations"))) === '["human:synapse-arrows"]');
+  expect("A3 localToday is the local calendar date", localToday(new Date(2026, 8, 29, 0, 30)) === "2026-09-29" && localToday(new Date(2026, 0, 1, 23, 59)) === "2026-01-01");
+  // findAttestation / sourceState read at most two files (observers.json + one attestation), never throw
   const d = mkdtempSync(join(tmpdir(), "att-unit-"));
+  writeFileSync(join(d, "observers.json"), '["human:synapse-arrows"]');
+  const { observers: _o, today: _t, ...ctxFile } = ctx; // findAttestation reads observers.json and today itself
   writeFileSync(join(d, `M-994-B-${sha}.json`), JSON.stringify(good({ verdict: "listed", reason: "the item names the repository" })));
-  expect("A3 findAttestation: valid listed", JSON.stringify(findAttestation(d, ctx)) === JSON.stringify({ verdict: "listed", why: "valid" }));
-  expect("A3 sourceState: attested listed / recheck (other body) / unread", sourceState({ fetched: true, bodySha: sha, dir: d, ctx }).state === "listed" && sourceState({ fetched: true, bodySha: "e".repeat(64), dir: d, ctx }).state === "recheck" && sourceState({ fetched: false, bodySha: null, dir: d, ctx }).state === "unread");
+  expect("A3 findAttestation: valid listed (observers.json read from the directory)", JSON.stringify(findAttestation(d, ctxFile)) === JSON.stringify({ verdict: "listed", why: "valid", cautions: [] }), JSON.stringify(findAttestation(d, ctxFile)));
+  writeFileSync(join(d, `M-994-B-${sha}.json`), JSON.stringify(good({ verdict: "listed", reason: "TODOreview" })));
+  expect("A3 findAttestation: an unfinished-looking note is valid with a caution", JSON.stringify(findAttestation(d, ctxFile)) === JSON.stringify({ verdict: "listed", why: "valid", cautions: ["reason_looks_unfinished"] }));
+  writeFileSync(join(d, `M-994-B-${sha}.json`), JSON.stringify(good({ date: "2026-13-01" })));
+  expect("A3 findAttestation: 2026-13-01 → invalid:date (not unreadable)", findAttestation(d, ctxFile).why === "invalid:date");
+  writeFileSync(join(d, `M-994-B-${sha}.json`), JSON.stringify(good({ date: "2999-01-01" })));
+  expect("A3 findAttestation: a date after today → invalid:date_after_today", findAttestation(d, ctxFile).why === "invalid:date_after_today");
+  writeFileSync(join(d, `M-994-B-${sha}.json`), JSON.stringify(good({ verdict: "listed" })));
+  expect("A3 sourceState: attested listed / recheck (other body) / unread", sourceState({ fetched: true, bodySha: sha, dir: d, ctx: ctxFile }).state === "listed" && sourceState({ fetched: true, bodySha: "e".repeat(64), dir: d, ctx: ctxFile }).state === "recheck" && sourceState({ fetched: false, bodySha: null, dir: d, ctx: ctxFile }).state === "unread");
+  rmSync(join(d, "observers.json"));
+  expect("A3 findAttestation: observers.json removed → invalid:observer (nobody may sign)", findAttestation(d, ctxFile).why === "invalid:observer");
   writeFileSync(join(d, `M-994-B-${sha}.json`), "{not json");
-  expect("A3 findAttestation: unreadable file → recheck, no throw", sourceState({ fetched: true, bodySha: sha, dir: d, ctx }).state === "recheck" && findAttestation(d, ctx).why === "unreadable");
-  expect("A3 findAttestation: no dir / bad sha → no verdict", findAttestation("", ctx).verdict === null && findAttestation(d, { ...ctx, bodySha: "../x" }).why === "no_body");
+  expect("A3 findAttestation: unreadable file → recheck, no throw", sourceState({ fetched: true, bodySha: sha, dir: d, ctx: ctxFile }).state === "recheck" && findAttestation(d, ctxFile).why === "unreadable");
+  expect("A3 findAttestation: no dir / bad sha → no verdict", findAttestation("", ctxFile).verdict === null && findAttestation(d, { ...ctxFile, bodySha: "../x" }).why === "no_body");
   rmSync(d, { recursive: true, force: true });
 }
 
@@ -256,6 +288,7 @@ const tmp = mkdtempSync(join(tmpdir(), "fake-attr-"));
 const answersPath = join(tmp, "answers.json");
 writeFileSync(answersPath, JSON.stringify({ fake: `説明。\nREPO: ${REPO}\nAUTH: OAuth 2.0` }));
 const attDir = join(tmp, "attestations"); mkdirSync(attDir, { recursive: true });
+writeFileSync(join(attDir, "observers.json"), JSON.stringify(["human:smoke-tester"])); // the fixture's allow-list of observers
 const BASE = "http://127.0.0.1:47336";
 const env = { ...process.env, KANSEI_M994_SEALED_PATH: join(FIX, "M-994.sealed.json"), KANSEI_FAKE_LLM_ANSWERS_FILE: answersPath, KANSEI_FAKE_ATTR_BASE: BASE, KANSEI_FAKE_ATTESTATIONS_DIR: attDir };
 const PACK_ATTR = JSON.parse(JSON.stringify(JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8")).marker.attribution).replaceAll("${ENV:KANSEI_FAKE_ATTR_BASE}", BASE));
@@ -267,7 +300,7 @@ function attest(sourceId: string, bodySha: string, verdict: "listed" | "not_list
   for (const k of Object.keys(over)) if (over[k] === undefined) delete a[k];
   writeFileSync(join(attDir, `M-994-${sourceId}-${fileSha}.json`), JSON.stringify(a));
 }
-const clearAtt = () => { for (const f of readdirSync(attDir)) rmSync(join(attDir, f)); };
+const clearAtt = () => { for (const f of readdirSync(attDir)) if (f !== "observers.json") rmSync(join(attDir, f)); };
 const schema = loadReadingSchema();
 async function run(extra: string[] = []) {
   const r = await spawnAsync(process.execPath, [join(ROOT, "exec-harness", "run-marker.mjs"), "fixtures/taskpack-m994-attribution.json", "--dry-run", ...extra], { cwd: ROOT, env });
@@ -325,12 +358,15 @@ try {
       ["unsigned draft (extra _draft_instructions key)", { _draft_instructions: "sign me" }, undefined],
       ["placeholder observer", { observer: "human:<名前>" }, undefined],
       ["observer human:TODO", { observer: "human:TODO" }, undefined],
-      ["reason TBD", { reason: "TBD" }, undefined],
-      ["reason [reason]", { reason: "[reason]" }, undefined],
+      ["observer not in observers.json", { observer: "human:someone-else" }, undefined],
+      ["date after today", { date: "2999-01-01" }, undefined],
+      ["reason with U+2028", { reason: `a${String.fromCharCode(0x2028)}b` }, undefined],
+      ["draft form (no verdict, draft mark)", { verdict: undefined, _draft_instructions: "sign" }, undefined],
       ["target TODO", { target: "TODO" }, undefined],
       ["target = the service_id alone", { target: "fake-subject" }, undefined],
       ["observer not human", { observer: "claude" }, undefined],
       ["verdict unknown", { verdict: "unknown" }, undefined],
+      ["verdict TODO", { verdict: "TODO" }, undefined],
       ["missing reason", { reason: undefined }, undefined],
       ["placeholder date", { date: "YYYY-MM-DD" }, undefined],
       ["another source id", { source_id: "A1" }, undefined],
@@ -339,6 +375,11 @@ try {
       clearAtt(); attest("B", B0, "not_listed", over as any, (fileSha as any) ?? B0);
       const rx = await run();
       expect(`B1 invalid attestation (${why}) is ignored → B unknown, 要再確認`, stateOf(rx.B?.observed) === "unknown" && ok(rx.B?.observed, "catalog_item_needs_recheck") === true && String(rx.diag("B")?.attestation).startsWith(fileSha ? "none_for_this_body" : "invalid:"), `${JSON.stringify(rx.B?.observed.checks)} ${rx.diag("B")?.attestation}`);
+    }
+    for (const note of ["TBD", "[reason]", "TODOreview"]) {
+      clearAtt(); attest("B", B0, "not_listed", { reason: note });
+      const rn = await run();
+      expect(`B1 reason ${JSON.stringify(note)} is only a note: the person's verdict stands (B not listed) and the private sidecar carries a caution`, stateOf(rn.B?.observed) === "not_listed" && JSON.stringify(rn.diag("B")?.attestation_cautions) === '["reason_looks_unfinished"]' && !/reason_looks_unfinished/.test(rn.pub), JSON.stringify(rn.diag("B")));
     }
     clearAtt();
     expect("B1 attribution rows are ground-truth side (model none, done, sealed_ method)", [r.A, r.B].every((x: any) => x?.target.model === "none" && x?.stage_reached === "done" && x?.observed.method.startsWith("sealed_")));
@@ -601,12 +642,13 @@ try {
   const FB = "http://127.0.0.1:47339";
   const fdir = mkdtempSync(join(tmpdir(), "codex-7e9a3e2-"));
   const fatt = join(fdir, "attestations"); mkdirSync(fatt, { recursive: true });
+  writeFileSync(join(fatt, "observers.json"), JSON.stringify(["human:Audit Fixture Reviewer"]));
   const fans = join(fdir, "answers.json"); writeFileSync(fans, JSON.stringify({ fake: `ANSWER_VALUE_CANARY\nREPO: ${repo}\nAUTH: OAuth 2.0` }));
   const fenv = { ...process.env, KANSEI_M994_SEALED_PATH: join(FIX, "M-994.sealed.json"), KANSEI_FAKE_LLM_ANSWERS_FILE: fans, KANSEI_FAKE_ATTR_BASE: FB, KANSEI_FAKE_ATTESTATIONS_DIR: fatt };
   const fcfg = JSON.parse(JSON.stringify(JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8")).marker.attribution).replaceAll("${ENV:KANSEI_FAKE_ATTR_BASE}", FB));
   const v2 = (source: string, bodySha: string, verdict: string, over: any = {}) => ({ attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: SEAL_DIGEST, source_id: source, target: sourceTarget(fcfg, source), body_sha256: bodySha, verdict, observer: "human:Audit Fixture Reviewer", date: "2026-09-29", reason: "Fixture reviewer inspected the complete source; no repository link.", ...over });
   const put = (a: any) => writeFileSync(join(fatt, `${a.marker_id}-${a.source_id}-${a.body_sha256}.json`), JSON.stringify(a));
-  const clearF = () => { for (const f of readdirSync(fatt)) rmSync(join(fatt, f)); };
+  const clearF = () => { for (const f of readdirSync(fatt)) if (f !== "observers.json") rmSync(join(fatt, f)); };
   const pageShaF = () => sha256Hex(Buffer.from(fpage, "utf8"));
   async function frun(id: string) {
     const r = await spawnAsync(process.execPath, [join(ROOT, "exec-harness", "run-marker.mjs"), "fixtures/taskpack-m994-attribution.json", "--dry-run"], { cwd: ROOT, env: fenv });
@@ -655,7 +697,7 @@ try {
         expect(`F ${c.id} → ${c.expect.code} (verbatim rows and attested rows)`, verbatimJoin === c.expect.code && attestedJoin === c.expect.code, `${verbatimJoin} ${attestedJoin}`);
       } else if (c.kind === "attestation") {
         const baseline = byId("valid-baseline").input.valid_human_attestation;
-        const ctx = { markerId: "M-994", expectedDigest: SEAL_DIGEST, sourceId: "B", target: sourceTarget(fcfg, "B"), bodySha: baseline.body_sha256 };
+        const ctx = { markerId: "M-994", expectedDigest: SEAL_DIGEST, sourceId: "B", target: sourceTarget(fcfg, "B"), bodySha: baseline.body_sha256, observers: ["human:Audit Fixture Reviewer"], today: "2026-09-29" };
         const verbatimValid = validateAttestation(c.input.attestation, ctx) === null;
         // rebase: apply Codex's change (the difference from its valid baseline) to a valid v2 attestation
         const good = v2("B", baseline.body_sha256, "not_listed");
@@ -716,6 +758,131 @@ try {
   } finally { fserver.close(); rmSync(fdir, { recursive: true, force: true }); }
   const replayed = passed.filter((l) => l.startsWith("F ")).length;
   expect("F every one of the 94 cases was asserted", fx.cases.every((c: any) => passed.some((l) => l.startsWith(`F ${c.id} `)) || failures > 0), String(replayed));
+}
+
+// ── Part G: Codex's 112 independent cases of 5758e0a (fixtures/attribution-cases-5758e0a.json) ──
+// Codex's runner (outputs/reproduction/work/independent.mjs) ported: in-process attribution on a loopback
+// server and one in-process runGenericMarker; observer human:offline-review is in the fixture's observers.json.
+{
+  const fx = JSON.parse(readFileSync(join(FIX, "attribution-cases-5758e0a.json"), "utf-8"));
+  const verbatim = JSON.parse(readFileSync(join(FIX, "evidence", "codex-5758e0a-independent-cases.json"), "utf-8"));
+  expect("G0 112 cases; ids, inputs and Codex's expectations equal the verbatim evidence", fx.cases.length === 112 && verbatim.cases.length === 112 && fx.cases.every((c: any, i: number) => c.id === verbatim.cases[i].id && JSON.stringify(c.input) === JSON.stringify(verbatim.cases[i].input) && JSON.stringify(c.codex_expected) === JSON.stringify(verbatim.cases[i].expected)));
+  expect("G0 every expectation that differs from Codex's says why", fx.cases.every((c: any) => JSON.stringify(c.expect) === JSON.stringify(c.codex_expected) || typeof c.revised === "string"));
+  const { TARGETS } = await import("../exec-harness/lib/marker-targets.mjs");
+  const { runGenericMarker } = await import("../exec-harness/lib/marker-generic.mjs");
+  const gout = mkdtempSync(join(tmpdir(), "codex-5758e0a-"));
+  const attdir = join(gout, "attestations");
+  const packPath = join(FIX, "taskpack-m994-attribution.json");
+  const pack = JSON.parse(readFileSync(packPath, "utf-8"));
+  const sealBytes = readFileSync(join(FIX, "M-994.sealed.json"));
+  const sealJson = JSON.parse(sealBytes.toString("utf-8")), digest = sha256Hex(sealBytes);
+  const sealed = TARGETS.llmAnswer.parseSealed(sealJson);
+  const link = sealJson.expected.official_mcp_repo_url;
+  const baseItem = (): any => ({ service_id: "fake-subject", mcp_status: "official", freshness: { confidence: "medium", data_age_days: 0 }, _meta: { attempt_id: "run-one" }, description: "CATALOG_PRIVATE_CANARY" });
+  let item = baseItem(), a1 = "PAGE_PRIVATE_CANARY one", a2 = "PAGE_PRIVATE_CANARY two", httpStatus = 200;
+  let gh: any = { full_name: `${sealed.owner}/${sealed.name}`, private: false, archived: false }, ghMode = "normal";
+  const gserver = createServer((req, res) => {
+    if (req.url === "/a1" || req.url === "/a2") { res.writeHead(httpStatus); return res.end(req.url === "/a1" ? a1 : a2); }
+    if (req.url === "/mcp") { req.resume(); return res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, result: { content: [{ type: "text", text: JSON.stringify(item) }] } })); }
+    if ((req.url || "").startsWith("/gh/")) { if (ghMode === "timeout") return; res.writeHead(ghMode === "404" ? 404 : 200); return res.end(JSON.stringify(gh)); }
+    res.writeHead(404); res.end();
+  });
+  await new Promise<void>((r) => gserver.listen(0, "127.0.0.1", () => r()));
+  const base = `http://127.0.0.1:${(gserver.address() as any).port}`;
+  const cfg = { official_docs: [{ id: "A1", url: `${base}/a1` }, { id: "A2", url: `${base}/a2` }], catalog: { display_api_url: `${base}/mcp`, service_id: "fake-subject", body_fields: B_BODY_FIELDS }, attestations_dir: attdir };
+  const MK = { ...pack.marker, attribution: cfg, github_api_base: `${base}/gh`, github_timeout_ms: 80 };
+  const OBS = "human:offline-review";
+  const actual = new Map<string, any>();
+  const put2 = (id: string, v: any) => actual.set(id, v);
+  const stateB = (b: any) => (({ correct: "listed", wrong: "not_listed", unknown: "unknown" }) as any)[b.state];
+  const resetAtt = () => { rmSync(attdir, { recursive: true, force: true }); mkdirSync(attdir, { recursive: true }); writeFileSync(join(attdir, "observers.json"), JSON.stringify([OBS])); };
+  function attestG(source: string, verdict: string, patch: any = {}) {
+    const body = source === "A1" ? a1 : source === "A2" ? a2 : catalogBody(item);
+    const bodySha = sha256Hex(body);
+    const a = { attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: digest, source_id: source, target: sourceTarget(cfg, source), body_sha256: bodySha, verdict, observer: OBS, date: "2026-09-29", reason: "Read the complete synthetic source and confirmed the verdict.", ...patch };
+    for (const k of Object.keys(patch)) if (patch[k] === undefined) delete (a as any)[k];
+    writeFileSync(join(attdir, `M-994-${source}-${bodySha}.json`), JSON.stringify(a));
+    return a;
+  }
+  async function columns() {
+    const rows: any = await TARGETS.llmAnswer.attribution({ MK, sealed, harnessLog: () => {}, attestationsDir: attdir, expectedDigest: digest, markerId: "M-994" });
+    return { rows, a: columnA(rows[0]), b: columnB(rows[1]), diag: rows.diagnostics as any[] };
+  }
+  try {
+    for (const verdict of ["listed", "not_listed"]) {
+      resetAtt(); const a = attestG("B", verdict);
+      const ctx = { markerId: "M-994", sourceId: "B", expectedDigest: digest, bodySha: a.body_sha256, target: a.target, observers: [OBS], today: "2026-09-29" };
+      put2(`validator-valid-${verdict}`, validateAttestation(a, ctx));
+      const mutations: Record<string, any> = { extra: { extra: "x" }, marker: { marker_id: "M-995" }, seal: { expected_digest: "b".repeat(64) }, body: { body_sha256: "c".repeat(64) }, source: { source_id: "A1" }, target: { target: `${base}/elsewhere` }, observer: { observer: "agent:review" }, draft: { _draft_instructions: "unsigned" }, kind: { attestation: "kansei-attribution-attestation/v1" }, date: { date: "2026-02-30" }, empty: { reason: "" }, whitespace: { reason: " Pending " }, todo: { reason: "TODO" }, tbd: { reason: "TBD" }, angle: { reason: "<fill>" }, square: { reason: "[fill]" }, curly: { reason: "{fill}" }, lf: { reason: "First\nsecond" } };
+      for (const [name, patch] of Object.entries(mutations)) put2(`validator-${verdict}-${name}`, validateAttestation({ ...a, ...patch }, ctx) !== null);
+      for (const key of Object.keys(a)) { const b: any = { ...a }; delete b[key]; put2(`validator-${verdict}-missing-${key}`, validateAttestation(b, ctx) !== null); }
+      for (const reason of ["TODOreview", "reviewTODO", "TBDpending", "reviewTBD", `first${String.fromCharCode(0x2028)}second`, `first${String.fromCharCode(0x2029)}second`]) put2(`validator-${verdict}-placeholder-${JSON.stringify(reason)}`, validateAttestation({ ...a, reason }, ctx) !== null);
+    }
+    resetAtt(); let r = await columns(); put2("no-attestations", { A: r.a.state, B: stateB(r.b) });
+    const oldA1 = a1, oldA2 = a2;
+    a1 = `data:123/${link}`; a2 = `outer.invalid/?next=${link}`; item.connection_guide = a1;
+    r = await columns(); put2("known-fallible-hints-isolated", { A: r.a.state, B: stateB(r.b) });
+    a1 = oldA1; a2 = oldA2; item = baseItem();
+    resetAtt(); attestG("A1", "not_listed"); attestG("A2", "not_listed"); a2 += " changed"; r = await columns(); put2("A-one-page-body-changed", r.a.state); a2 = oldA2;
+    resetAtt(); attestG("A1", "listed"); attestG("A2", "listed"); httpStatus = 503; r = await columns(); put2("A-fetch-failure-with-old-attestations", r.a.state); httpStatus = 200;
+    resetAtt(); attestG("B", "not_listed", { date: "2026-13-01" }); r = await columns(); put2("invalid-date-production-fails-closed", stateB(r.b));
+    expect("G invalid-date-production-fails-closed: the sidecar says invalid:date (P3, not unreadable)", r.diag.find((d: any) => d.source_id === "B")?.attestation === "invalid:date", JSON.stringify(r.diag.find((d: any) => d.source_id === "B")));
+    for (const av of ["listed", "not_listed"]) for (const bv of ["listed", "not_listed"]) for (const pass of [true, false]) {
+      resetAtt(); attestG("A1", av); attestG("A2", av); attestG("B", bv); r = await columns();
+      const code = `#${1 + (av === "not_listed" ? 4 : 0) + (bv === "not_listed" ? 2 : 0) + (pass ? 0 : 1)}`;
+      put2(`truth-table-${code}`, { A: r.a.state, B: stateB(r.b), code: judgeAttribution({ a: r.a, b: r.b, c: { state: pass ? "pass" : "miss" }, gtConsistent: true }).code });
+    }
+    const good = r;
+    for (const [id, changes] of [["U0", { gtConsistent: false }], ["U1", { a: { state: "unknown" } }], ["U2", { b: { state: "unknown" } }], ["U3", { c: { state: "format" } }], ["U4", { c: { state: "instrument" } }]] as const) put2(id, judgeAttribution({ a: good.a, b: good.b, c: { state: "pass" }, gtConsistent: true, ...(changes as any) }).code);
+    for (const [id, mutate] of Object.entries({ metadata_repository: (x: any) => (x._meta.repository = link), freshness_repository: (x: any) => (x.freshness.repository = link), new_root: (x: any) => (x._repository = link), ordered_array: (x: any) => (x.links = [link, false]), attempt_object: (x: any) => (x._meta.attempt_id = { repository: link }), age_string: (x: any) => (x.freshness.data_age_days = link), age_negative: (x: any) => (x.freshness.data_age_days = -1), age_fraction: (x: any) => (x.freshness.data_age_days = 0.5) })) {
+      item = baseItem(); resetAtt(); attestG("B", "not_listed"); mutate(item); r = await columns(); put2(`catalog-invalidates-${id}`, stateB(r.b));
+    }
+    item = baseItem(); resetAtt(); attestG("B", "not_listed"); item._meta.attempt_id = "run-two"; item.freshness.data_age_days = 123; r = await columns(); put2("catalog-two-volatile-leaves", stateB(r.b));
+    put2("canonical-key-order", catalogBody({ z: 1, a: 2 }) === catalogBody({ a: 2, z: 1 }));
+    put2("canonical-array-order", catalogBody([1, 2]) !== catalogBody([2, 1]));
+    for (const name of ["rename", "move", "archive", "private", "404", "timeout"]) {
+      gh = { full_name: `${sealed.owner}/${sealed.name}`, private: false, archived: false }; ghMode = "normal";
+      if (name === "rename") gh.full_name = `${sealed.owner}/renamed`; if (name === "move") gh.full_name = `moved/${sealed.name}`;
+      if (name === "archive") gh.archived = true; if (name === "private") gh.private = true; if (["404", "timeout"].includes(name)) ghMode = name;
+      const truth = await TARGETS.llmAnswer.groundTruth({ MK, sealed, harnessLog: () => {} }); put2(`ground-truth-${name}`, truth.consistent);
+    }
+    ghMode = "normal"; gh = { full_name: `${sealed.owner}/${sealed.name}`, private: false, archived: false };
+    for (const verdict of ["listed", "not_listed"]) {
+      item = baseItem(); resetAtt(); for (const s of ["A1", "A2", "B"]) attestG(s, verdict, { reason: "TODOreview" });
+      r = await columns(); put2(`N1-loopback-${verdict}`, { A: r.a.state, B: stateB(r.b) });
+      expect(`G N1-loopback-${verdict}: the sidecar carries reason_looks_unfinished for A1, A2 and B`, ["A1", "A2", "B"].every((s) => JSON.stringify(r.diag.find((d: any) => d.source_id === s)?.attestation_cautions) === '["reason_looks_unfinished"]'));
+      // the unfinished DRAFT form this case was guarding: no verdict + the draft mark → nothing is decided
+      resetAtt(); for (const s of ["A1", "A2", "B"]) attestG(s, verdict, { verdict: undefined, _draft_instructions: "sign after reading", reason: "TODOreview" });
+      const rd = await columns();
+      expect(`G draft form (no verdict, draft mark) for A1, A2, B → A unknown, B unknown, U1`, rd.a.state === "unknown" && stateB(rd.b) === "unknown" && judgeAttribution({ a: rd.a, b: rd.b, c: { state: "pass" }, gtConsistent: true }).code === "U1");
+    }
+    // the public judgement through runGenericMarker (not_listed attestations with the note "TODOreview")
+    item = baseItem(); resetAtt(); for (const s of ["A1", "A2", "B"]) attestG(s, "not_listed", { reason: "TODOreview" });
+    const fakeAnswers = join(gout, "answers.json"); writeFileSync(fakeAnswers, JSON.stringify({ fake: `ANSWER_PRIVATE_CANARY\nREPO: ${link}\nAUTH: OAuth 2.0` }));
+    const prevAnswers = process.env.KANSEI_FAKE_LLM_ANSWERS_FILE; process.env.KANSEI_FAKE_LLM_ANSWERS_FILE = fakeAnswers;
+    let runG: any;
+    try {
+      runG = await runGenericMarker({ target: TARGETS.llmAnswer, PACK: { ...pack, marker: MK }, MK, packPath, ROOT: gout, KANSEI_ROOT: gout, flags: { dry: true, executor: "scripted", maxReadings: 20, lang: "en" }, sealedCommon: { json: sealJson, digest, commitSha: "0".repeat(40), remoteBranches: ["origin/smoke"], sealedAt: sealJson.sealed_at, expiresAt: sealJson.expires_at, expired: false }, db: null, libDir: join(ROOT, "exec-harness", "lib"), VERSION: "smoke", HARNESS_VERSION: "0.4+smoke", OBSERVER: "kansei_harness@smoke" });
+    } finally { if (prevAnswers === undefined) delete process.env.KANSEI_FAKE_LLM_ANSWERS_FILE; else process.env.KANSEI_FAKE_LLM_ANSWERS_FILE = prevAnswers; }
+    const gschema = loadReadingSchema(); put2("reading-schema", runG.readings.flatMap(({ _outcome, ...x }: any) => validateReading(x, gschema)));
+    const renderRows = runG.readings.map((x: any, i: number) => ({ ...x, outcome_id: x._outcome ? i + 1 : null }));
+    const glines = attributionLines(renderRows); const gsheet = renderSheet(renderRows, { markerId: "M-994" });
+    put2("N1-public-judgement", { A: glines[0].a.state, B: stateB(glines[0].b), code: glines[0].judgement.code });
+    const otherRun = renderRows.map((x: any) => (x.outcome_id ? { ...x, evidence_ref: `other-run#sha256:${"d".repeat(64)}` } : x));
+    put2("cross-run-join", attributionLines(otherRun)[0].judgement.code);
+    const gbundle = join(gout, runG.bundleRel);
+    const publicText = ["metrics.json", "manifest.json", "harness.jsonl"].map((f) => readFileSync(join(gbundle, f), "utf-8")).join("\n") + gsheet;
+    const sidecar = JSON.parse(readFileSync(join(gbundle, "environment.private.json"), "utf-8"));
+    const bodyShas = sidecar.diagnostics.filter((d: any) => d.event === "attribution_source").map((d: any) => d.body_sha256);
+    put2("public-non-leakage", ["PAGE_PRIVATE_CANARY", "CATALOG_PRIVATE_CANARY", "ANSWER_PRIVATE_CANARY", ...bodyShas].some((x) => publicText.includes(x)));
+    put2("sidecar-hints-present", sidecar.diagnostics.some((d: any) => d.event === "attribution_source" && d.hint));
+    expect("G the caution stays private (no reason_looks_unfinished and no reason text in the public files or the sheet)", !/reason_looks_unfinished|TODOreview/.test(publicText));
+  } finally { gserver.closeAllConnections(); await new Promise<void>((r) => gserver.close(() => r())); rmSync(gout, { recursive: true, force: true }); }
+  for (const c of fx.cases) {
+    const got = actual.get(c.id);
+    expect(`G ${c.id} → ${JSON.stringify(c.expect)}${c.revised ? " (revised)" : ""}`, actual.has(c.id) && JSON.stringify(got) === JSON.stringify(c.expect), JSON.stringify(got));
+  }
+  expect("G every one of the 112 cases was replayed", fx.cases.every((c: any) => actual.has(c.id)) && actual.size === 112, String(actual.size));
 }
 
 console.log(failures === 0 ? "\nmarker attribution smoke: ALL PASS" : `\nmarker attribution smoke: ${failures} FAILED`);

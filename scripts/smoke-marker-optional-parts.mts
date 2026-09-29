@@ -97,6 +97,7 @@ const A1_BODY = "<html><body>AI 活用</body></html>";
 const A2_BODY = `<html><body><a href="${REPO}">公式 MCP</a></body></html>`;
 const B_ITEM = (id: string) => ({ service_id: id, name: "Fake", mcp_status: "official", freshness: { confidence: "medium" }, connection_guide: { steps: ["install"] } });
 const attDir = join(root, "evidence", "attestations"); mkdirSync(attDir, { recursive: true });
+writeFileSync(join(attDir, "observers.json"), JSON.stringify(["human:smoke-fixture"])); // the copy's allow-list of observers
 for (const [source, body, verdict] of [["A1", A1_BODY, "not_listed"], ["A2", A2_BODY, "listed"], ["B", catalogBody(B_ITEM("fake-subject")), "not_listed"]] as const) {
   const sha = sha256Hex(Buffer.from(body, "utf8"));
   writeFileSync(join(attDir, `M-994-${source}-${sha}.json`), JSON.stringify({ attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: PACK994.marker.expected_digest, source_id: source, target: sourceTarget(attCfg, source), body_sha256: sha, verdict, observer: "human:smoke-fixture", date: "2026-09-29", reason: "fixture: the whole loopback body was read" }));

@@ -58,33 +58,70 @@ export function sourceTarget(cfg, sourceId) {
 }
 
 /* ---------- human attestations ----------
- * File: <attestations dir>/<marker_id>-<source_id>-<body sha256>.json with EXACTLY these keys:
- *   attestation      "kansei-attribution-attestation/v2"
- *   marker_id        the run's marker (e.g. "M-004")
- *   expected_digest  the seal's sha256 (binds the file to the sealed repository)
- *   source_id        "A1" | "A2" | "B" (the source being read)
- *   target           sourceTarget(taskpack attribution, source_id), character for character
- *   body_sha256      sha256 of the body read that run
- *   verdict          "listed" | "not_listed"
- *   observer         "human:<name>" (e.g. "human:synapse-arrows")
- *   date             "YYYY-MM-DD", a real calendar date
- *   reason           one line: what was read and what was (or was not) there
- * Every value must be a non-empty string without a placeholder: TODO, TBD, anything in <…> or […]
- * (any of < > [ ] { }), a line break. Anything else makes the file invalid and the source stays
- * 未確定（本文に変化あり・要再確認）. */
+ * File: <attestations dir>/<marker_id>-<source_id>-<body sha256>.json with EXACTLY these keys, every
+ * value a string. Codex review of 5758e0a (Michie 2026-09-29): the fields that DECIDE are bound to
+ * ALLOW-LISTS or computed values — never screened by a list of forbidden words.
+ *   attestation      = "kansei-attribution-attestation/v2"
+ *   marker_id        = the run's marker (e.g. "M-004")
+ *   expected_digest  = the seal's sha256 (binds the file to the sealed repository)
+ *   source_id        = "A1" | "A2" | "B" (the source being read)
+ *   target           = sourceTarget(taskpack attribution, source_id), character for character
+ *   body_sha256      = sha256 of the body read that run
+ *   verdict          ∈ {"listed", "not_listed"}
+ *   observer         ∈ <attestations dir>/observers.json (a JSON array of strings, exact match;
+ *                      today ["human:synapse-arrows"]). Each entry is "human:" + a name with no leading
+ *                      or trailing space and no control character. No list, an unreadable or empty list,
+ *                      or any malformed entry → no observer is accepted.
+ *   date             a real calendar date "YYYY-MM-DD", not after today (local date)
+ *   reason           a NOTE that decides nothing: non-empty after trimming, at most 200 characters, no
+ *                    control character and no line/paragraph separator (C0, DEL, C1 incl. U+0085,
+ *                    U+2028, U+2029). Its words do not affect validity; words that look unfinished
+ *                    (TODO, TBD, <…>, […], {…}) are reported to the private sidecar as a caution only.
+ * Anything else makes the file invalid and the source stays 未確定（本文に変化あり・要再確認）.
+ * Drafts carry no verdict (a person writes it in) and carry _draft_instructions; either makes them invalid. */
 export const ATTESTATION_KIND = 'kansei-attribution-attestation/v2';
 export const VERDICTS = Object.freeze(['listed', 'not_listed']);
+export const OBSERVERS_FILE = 'observers.json';
+export const REASON_MAX = 200;
 const ATTESTATION_KEYS = ['attestation', 'body_sha256', 'date', 'expected_digest', 'marker_id', 'observer', 'reason', 'source_id', 'target', 'verdict'];
-const PLACEHOLDER = /(^|[^A-Za-z])(TODO|TBD)([^A-Za-z]|$)|[<>[\]{}\r\n\t\u0000-\u001f]/i;
+const REASON_FORBIDDEN_CHARS = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+const REASON_CAUTION = /TODO|TBD|<[^>]*>|\[[^\]]*\]|\{[^}]*\}/i;
 export function attestationPath(dir, markerId, sourceId, bodySha) { return join(dir, `${markerId}-${sourceId}-${bodySha}.json`); }
 
-/** null when valid, otherwise the first reason it is not. ctx = { markerId, expectedDigest, sourceId, target, bodySha }. */
+/** The accepted observers of an attestations directory (observers.json), or [] — never throws. */
+export function loadObservers(dir) {
+  try {
+    if (!dir) return [];
+    const list = JSON.parse(readFileSync(join(dir, OBSERVERS_FILE), 'utf8'));
+    // each entry: "human:" + a name with no leading/trailing space and no control character
+    const ok = (o) => typeof o === 'string' && o.startsWith('human:') && o.length > 6 && o.slice(6) === o.slice(6).trim() && !REASON_FORBIDDEN_CHARS.test(o);
+    if (!Array.isArray(list) || !list.length || !list.every(ok)) return [];
+    return [...list];
+  } catch { return []; }
+}
+
+/** Today's local calendar date as YYYY-MM-DD (not toISOString: that is UTC and is yesterday before 09:00 JST). */
+export function localToday(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+/** A real calendar date "YYYY-MM-DD" (checked without throwing). */
+function isCalendarDate(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const t = Date.parse(`${s}T00:00:00Z`);
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === s;
+}
+
+/**
+ * null when valid, otherwise the first reason it is not.
+ * ctx = { markerId, expectedDigest, sourceId, target, bodySha, observers: string[], today: 'YYYY-MM-DD' }.
+ */
 export function validateAttestation(a, ctx) {
   if (!isPlain(a)) return 'not_an_object';
   const keys = Object.keys(a).sort();
   if (keys.length !== ATTESTATION_KEYS.length || keys.some((k, i) => k !== ATTESTATION_KEYS[i])) return 'keys';
-  for (const k of ATTESTATION_KEYS) if (typeof a[k] !== 'string' || !a[k].trim() || a[k] !== a[k].trim()) return `empty:${k}`;
-  for (const k of ATTESTATION_KEYS) if (PLACEHOLDER.test(a[k])) return `placeholder:${k}`;
+  for (const k of ATTESTATION_KEYS) if (typeof a[k] !== 'string') return `not_a_string:${k}`;
+  // the deciding fields: exact values
   if (a.attestation !== ATTESTATION_KIND) return 'kind';
   if (a.marker_id !== ctx.markerId) return 'marker_id';
   if (!/^[0-9a-f]{64}$/.test(a.expected_digest) || a.expected_digest !== ctx.expectedDigest) return 'expected_digest';
@@ -92,24 +129,31 @@ export function validateAttestation(a, ctx) {
   if (typeof ctx.target !== 'string' || !ctx.target || a.target !== ctx.target) return 'target';
   if (!/^[0-9a-f]{64}$/.test(a.body_sha256) || a.body_sha256 !== ctx.bodySha) return 'body_sha256';
   if (!VERDICTS.includes(a.verdict)) return 'verdict';
-  if (!/^human:[A-Za-z0-9][A-Za-z0-9._ -]{0,58}[A-Za-z0-9]$|^human:[A-Za-z0-9]$/.test(a.observer)) return 'observer';
-  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(a.date);
-  if (!d || new Date(`${a.date}T00:00:00Z`).toISOString().slice(0, 10) !== a.date) return 'date';
-  if (a.reason.length > 200) return 'reason';
+  if (!Array.isArray(ctx.observers) || !ctx.observers.includes(a.observer)) return 'observer';
+  if (!isCalendarDate(a.date)) return 'date';
+  if (typeof ctx.today !== 'string' || !isCalendarDate(ctx.today) || a.date > ctx.today) return 'date_after_today';
+  // the note: shape only
+  if (!a.reason.trim() || a.reason.length > REASON_MAX || REASON_FORBIDDEN_CHARS.test(a.reason)) return 'reason';
   return null;
 }
 
-/** { verdict: 'listed' | 'not_listed' | null, why } — reads at most one file, never throws. */
+/** Cautions about a VALID attestation's note (private sidecar only; never change validity). */
+export function reasonCautions(a) {
+  return typeof a?.reason === 'string' && REASON_CAUTION.test(a.reason) ? ['reason_looks_unfinished'] : [];
+}
+
+/** { verdict: 'listed' | 'not_listed' | null, why, cautions } — reads at most two files, never throws. */
 export function findAttestation(dir, ctx) {
   try {
-    if (!dir) return { verdict: null, why: 'no_dir' };
-    if (!/^[0-9a-f]{64}$/.test(String(ctx.bodySha))) return { verdict: null, why: 'no_body' };
+    if (!dir) return { verdict: null, why: 'no_dir', cautions: [] };
+    if (!/^[0-9a-f]{64}$/.test(String(ctx.bodySha))) return { verdict: null, why: 'no_body', cautions: [] };
     const p = attestationPath(dir, ctx.markerId, ctx.sourceId, ctx.bodySha);
-    if (!existsSync(p)) return { verdict: null, why: 'none_for_this_body' };
+    if (!existsSync(p)) return { verdict: null, why: 'none_for_this_body', cautions: [] };
     const a = JSON.parse(readFileSync(p, 'utf8'));
-    const bad = validateAttestation(a, ctx);
-    return bad ? { verdict: null, why: `invalid:${bad}` } : { verdict: a.verdict, why: 'valid' };
-  } catch { return { verdict: null, why: 'unreadable' }; }
+    const full = { observers: loadObservers(dir), today: localToday(), ...ctx };
+    const bad = validateAttestation(a, full);
+    return bad ? { verdict: null, why: `invalid:${bad}`, cautions: [] } : { verdict: a.verdict, why: 'valid', cautions: reasonCautions(a) };
+  } catch { return { verdict: null, why: 'unreadable', cautions: [] }; }
 }
 
 /**
@@ -118,7 +162,7 @@ export function findAttestation(dir, ctx) {
  * (未確定（本文に変化あり・要再確認）); 'unread' = the body could not be read (未確定（取得失敗）).
  */
 export function sourceState({ fetched, bodySha, dir, ctx }) {
-  if (!fetched) return { state: 'unread', why: 'not_fetched' };
+  if (!fetched) return { state: 'unread', why: 'not_fetched', cautions: [] };
   const f = findAttestation(dir, { ...ctx, bodySha });
-  return f.verdict ? { state: f.verdict, why: f.why } : { state: 'recheck', why: f.why };
+  return f.verdict ? { state: f.verdict, why: f.why, cautions: f.cautions } : { state: 'recheck', why: f.why, cautions: [] };
 }

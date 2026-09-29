@@ -284,7 +284,8 @@ const llmAnswer = {
    * body and takes its sha256 (A: the raw bytes after HTTP 200 and complete receipt; B: catalogBody =
    * the whole item minus _meta.attempt_id and freshness.data_age_days). The source's state comes ONLY
    * from a valid human attestation of exactly that body (evidence/attestations/<marker>-<source>-<sha>.json,
-   * verdict listed or not_listed); without one the source is 未確定（本文に変化あり・要再確認）.
+   * verdict listed or not_listed; observer in observers.json; attribution-attest.mjs validateAttestation); without
+   * one the source is 未確定（本文に変化あり・要再確認）. A note (reason) that looks unfinished is a private caution only.
    * The automatic reading (attribution-rules.mjs classifySource) is loaded in a try/catch and written
    * to the private sidecar as a hint; it never changes a row.
    * Row encoding: pass = listed (by attestation); instrument_error 'other' = unknown;
@@ -328,7 +329,7 @@ const llmAnswer = {
       states.push(st.state);
       if (st.state === 'recheck') recheck.push(p.id);
       aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_attested_listed`, ok: st.state === 'listed' }, { label: `${p.id}_attested_not_listed`, ok: st.state === 'not_listed' }, { label: `${p.id}_needs_recheck`, ok: st.state === 'recheck' });
-      diagnostics.push({ event: 'attribution_source', source_id: p.id, target: ctx.target, body_sha256: bodySha, state: st.state, attestation: st.why, needs_recheck: st.state === 'recheck', hint: h });
+      diagnostics.push({ event: 'attribution_source', source_id: p.id, target: ctx.target, body_sha256: bodySha, state: st.state, attestation: st.why, attestation_cautions: st.cautions, needs_recheck: st.state === 'recheck', hint: h });
     }
     const aListed = states.includes('listed');
     const aNotListed = !aListed && states.length > 0 && states.every((x) => x === 'not_listed');
@@ -342,11 +343,11 @@ const llmAnswer = {
     const d = await readCatalogDisplay(cfg.catalog?.display_api_url, cfg.catalog?.service_id, 20000, { keepPayload: true });
     const observed = Boolean(d.reachable && d.valid);
     const bChecks = [{ label: 'catalog_item_observed', ok: observed }, { label: 'catalog_body_fields_fixed', ok: fieldsFixed }];
-    let bState = 'unread', bSha = null, bWhy = observed ? 'body_fields_not_fixed_in_taskpack' : 'not_observed', bHint = null;
+    let bState = 'unread', bSha = null, bWhy = observed ? 'body_fields_not_fixed_in_taskpack' : 'not_observed', bCautions = [], bHint = null;
     if (observed) {
       bChecks.push({ label: 'catalog_item_present', ok: Boolean(d.found) });
       bSha = sha256Hex(catalogBody(d.payload));
-      if (fieldsFixed) { const st = sourceState({ fetched: true, bodySha: bSha, dir, ctx: ctxOf('B') }); bState = st.state; bWhy = st.why; }
+      if (fieldsFixed) { const st = sourceState({ fetched: true, bodySha: bSha, dir, ctx: ctxOf('B') }); bState = st.state; bWhy = st.why; bCautions = st.cautions; }
       bHint = hint((m) => {
         const fields = m.catalogStringLeaves(d.payload).filter(([, v]) => m.classifySource(v, sealed).state === 'listed').map(([path]) => path);
         return { state: fields.length ? 'listed' : 'unknown', reason: fields.length ? 'some_field_resolves' : 'no_field_resolves', fields };
@@ -354,7 +355,7 @@ const llmAnswer = {
     }
     if (bState === 'recheck') recheck.push('B');
     bChecks.push({ label: 'catalog_item_attested_listed', ok: bState === 'listed' }, { label: 'catalog_item_attested_not_listed', ok: bState === 'not_listed' }, { label: 'catalog_item_needs_recheck', ok: bState === 'recheck' });
-    diagnostics.push({ event: 'attribution_source', source_id: 'B', target: sourceTarget(cfg, 'B'), body_sha256: bSha, state: bState, attestation: bWhy, needs_recheck: bState === 'recheck', hint: bHint });
+    diagnostics.push({ event: 'attribution_source', source_id: 'B', target: sourceTarget(cfg, 'B'), body_sha256: bSha, state: bState, attestation: bWhy, attestation_cautions: bCautions, needs_recheck: bState === 'recheck', hint: bHint });
     const bInstrument = bState === 'listed' || bState === 'not_listed' ? null : 'other';
     rows.push({ method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository (attested by a person for the body read this run)', pass: bState === 'listed', instrument_error: bInstrument, checks: bChecks });
     harnessLog({ event: 'attribution', column: 'B', listed: bState === 'listed', not_listed: bState === 'not_listed', instrument: bInstrument, needs_recheck: bState === 'recheck' });
