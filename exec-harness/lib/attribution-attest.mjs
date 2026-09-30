@@ -18,16 +18,21 @@ export const sha256Hex = (bytes) => createHash('sha256').update(bytes).digest('h
 
 /* ---------- column B's body ----------
  * The WHOLE catalog item (every key, every leaf, strings or not, arrays in their order) as canonical JSON
- * (object keys sorted), minus exactly two leaves that change on their own:
- *   _meta.attempt_id        a new id on every call   — excluded only while it is a string
- *   freshness.data_age_days grows by one every day   — excluded only while it is a non-negative integer
- * A leaf of an unexpected type stays in the body (so it changes the sha256). Nothing else is excluded:
- * a new key anywhere (_repository, _meta.repository, freshness.repository, …) changes the body and so
- * expires every attestation of the old body (Codex 7e9a3e2 fatal ①). */
-export const B_BODY_FIELDS = 'all_except:_meta.attempt_id,freshness.data_age_days';
+ * (object keys sorted), minus exactly two leaves that change on their own — and only while their value
+ * matches the grammar of the value that changes on its own (Codex 1391a31 R1: a leaf is excluded by its
+ * exact grammar, never by its type, so a value that could carry a link stays in the body):
+ *   _meta.attempt_id        a new id on every call (src/tools/lookup.ts: randomUUID()) — excluded only while
+ *                           it is an RFC 4122 UUID in lower case, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+ *   freshness.data_age_days grows by one every day — excluded only while it is an integer from 0 to 100000
+ * Any other value (upper case, a URL, empty, another shape, a negative or huge number) stays in the body,
+ * so the sha256 changes and every attestation of the old body expires. Nothing else is excluded: a new
+ * key anywhere (_repository, _meta.repository, freshness.repository, …) changes the body (Codex 7e9a3e2 ①). */
+export const B_BODY_FIELDS = 'all_except:_meta.attempt_id(rfc4122-uuid-lowercase),freshness.data_age_days(int 0..100000)';
+export const UUID_LOWER = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const DATA_AGE_DAYS_MAX = 100000;
 const VOLATILE = [
-  { path: ['_meta', 'attempt_id'], ok: (v) => typeof v === 'string' },
-  { path: ['freshness', 'data_age_days'], ok: (v) => Number.isInteger(v) && v >= 0 },
+  { path: ['_meta', 'attempt_id'], ok: (v) => typeof v === 'string' && UUID_LOWER.test(v) },
+  { path: ['freshness', 'data_age_days'], ok: (v) => Number.isInteger(v) && v >= 0 && v <= DATA_AGE_DAYS_MAX },
 ];
 const isPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 function canonical(v) {

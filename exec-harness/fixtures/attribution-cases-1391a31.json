@@ -1,0 +1,2834 @@
+{
+ "note": "Regression cases after the Codex review of 1391a31 (88 cases; byte for byte in evidence/codex-1391a31-independent-cases.json; id, input and codex_expected copied verbatim). Codex's R1: _meta.attempt_id was excluded from column B's body whenever it was a string, so a link placed there did not change the body sha256 and an old attestation stayed valid. Fixed (Michie 2026-09-30): a volatile leaf is outside the body only while its value has the exact grammar of a value that changes on its own (attempt_id: RFC 4122 UUID in lower case; data_age_days: integer 0..100000); anything else stays in the body. Every expectation here is Codex's own (no revision needed: the four non-conforming cases become conforming). Replayed by Part H of scripts/smoke-marker-attribution.mts, which ports Codex's runner (in-process attribution and runGenericMarker on a loopback server; observer human:Independent fixture in the fixture's observers.json; Codex's non-UUID attempt ids kept as written, so they are part of the body). All values invented.",
+ "commit": "1391a313ae62e0fa0a8b790558fd158bd5dbe7dc",
+ "cases": [
+  {
+   "id": "unsigned-body-containing-link",
+   "input": {
+    "page": "https://github.com/audit-fixture/repo",
+    "catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY",
+     "repository": "https://github.com/audit-fixture/repo"
+    },
+    "valid_human_attestations": []
+   },
+   "codex_expected": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   }
+  },
+  {
+   "id": "hint-quarantine-1",
+   "input": {
+    "page": "data:123/https://github.com/audit-fixture/repo",
+    "catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY",
+     "repository": "data:123/https://github.com/audit-fixture/repo"
+    },
+    "valid_human_attestations": []
+   },
+   "codex_expected": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   }
+  },
+  {
+   "id": "hint-quarantine-2",
+   "input": {
+    "page": "wrapper.invalid/path/https://github.com/audit-fixture/repo",
+    "catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY",
+     "repository": "wrapper.invalid/path/https://github.com/audit-fixture/repo"
+    },
+    "valid_human_attestations": []
+   },
+   "codex_expected": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   }
+  },
+  {
+   "id": "hint-quarantine-3",
+   "input": {
+    "page": "https://wrapper.invalid/?next=https://github.com/audit-fixture/repo",
+    "catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY",
+     "repository": "https://wrapper.invalid/?next=https://github.com/audit-fixture/repo"
+    },
+    "valid_human_attestations": []
+   },
+   "codex_expected": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   }
+  },
+  {
+   "id": "hint-quarantine-4",
+   "input": {
+    "page": "<a href=\"https:&#00000047;&#00000047;github.com/audit-fixture/repo\">link</a>",
+    "catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY",
+     "repository": "<a href=\"https:&#00000047;&#00000047;github.com/audit-fixture/repo\">link</a>"
+    },
+    "valid_human_attestations": []
+   },
+   "codex_expected": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "unknown",
+    "B": "unknown",
+    "judgement": "U1"
+   }
+  },
+  {
+   "id": "invalid-catalog-5",
+   "input": {
+    "catalog": {
+     "code": "not_found",
+     "service_id": "someone-else"
+    },
+    "valid_human_attestations": []
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "invalid-catalog-6",
+   "input": {
+    "catalog": {
+     "code": "not_found",
+     "service_id": "audit-fixture",
+     "mcp_status": "official"
+    },
+    "valid_human_attestations": []
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "invalid-catalog-7",
+   "input": {
+    "catalog": {
+     "service_id": "audit-fixture"
+    },
+    "valid_human_attestations": []
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "invalid-catalog-8",
+   "input": {
+    "catalog": null,
+    "valid_human_attestations": []
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "table-listed-listed-true",
+   "input": {
+    "valid_human_attestations": [
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A1",
+      "target": "http://127.0.0.1:61707/a1",
+      "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+      "verdict": "listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A2",
+      "target": "http://127.0.0.1:61707/a2",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "B",
+      "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+      "body_sha256": "06ff340c5cf139b4b184cb87c09faa1b5813ce953e02790178891e7a44f3f25e",
+      "verdict": "listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     }
+    ],
+    "v2_target_matches": true,
+    "C": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "listed",
+    "judgement": "#1"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "listed",
+    "judgement": "#1"
+   }
+  },
+  {
+   "id": "table-listed-listed-false",
+   "input": {
+    "valid_human_attestations": [
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A1",
+      "target": "http://127.0.0.1:61707/a1",
+      "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+      "verdict": "listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A2",
+      "target": "http://127.0.0.1:61707/a2",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "B",
+      "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+      "body_sha256": "06ff340c5cf139b4b184cb87c09faa1b5813ce953e02790178891e7a44f3f25e",
+      "verdict": "listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     }
+    ],
+    "v2_target_matches": true,
+    "C": false
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "listed",
+    "judgement": "#2"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "listed",
+    "judgement": "#2"
+   }
+  },
+  {
+   "id": "table-listed-not_listed-true",
+   "input": {
+    "valid_human_attestations": [
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A1",
+      "target": "http://127.0.0.1:61707/a1",
+      "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+      "verdict": "listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A2",
+      "target": "http://127.0.0.1:61707/a2",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "B",
+      "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+      "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     }
+    ],
+    "v2_target_matches": true,
+    "C": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#3"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#3"
+   }
+  },
+  {
+   "id": "table-listed-not_listed-false",
+   "input": {
+    "valid_human_attestations": [
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A1",
+      "target": "http://127.0.0.1:61707/a1",
+      "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+      "verdict": "listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A2",
+      "target": "http://127.0.0.1:61707/a2",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "B",
+      "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+      "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     }
+    ],
+    "v2_target_matches": true,
+    "C": false
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#4"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#4"
+   }
+  },
+  {
+   "id": "table-not_listed-listed-true",
+   "input": {
+    "valid_human_attestations": [
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A1",
+      "target": "http://127.0.0.1:61707/a1",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A2",
+      "target": "http://127.0.0.1:61707/a2",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "B",
+      "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+      "body_sha256": "06ff340c5cf139b4b184cb87c09faa1b5813ce953e02790178891e7a44f3f25e",
+      "verdict": "listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     }
+    ],
+    "v2_target_matches": true,
+    "C": true
+   },
+   "codex_expected": {
+    "A": "not_listed",
+    "B": "listed",
+    "judgement": "#5"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "not_listed",
+    "B": "listed",
+    "judgement": "#5"
+   }
+  },
+  {
+   "id": "table-not_listed-listed-false",
+   "input": {
+    "valid_human_attestations": [
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A1",
+      "target": "http://127.0.0.1:61707/a1",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A2",
+      "target": "http://127.0.0.1:61707/a2",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "B",
+      "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+      "body_sha256": "06ff340c5cf139b4b184cb87c09faa1b5813ce953e02790178891e7a44f3f25e",
+      "verdict": "listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     }
+    ],
+    "v2_target_matches": true,
+    "C": false
+   },
+   "codex_expected": {
+    "A": "not_listed",
+    "B": "listed",
+    "judgement": "#6"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "not_listed",
+    "B": "listed",
+    "judgement": "#6"
+   }
+  },
+  {
+   "id": "table-not_listed-not_listed-true",
+   "input": {
+    "valid_human_attestations": [
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A1",
+      "target": "http://127.0.0.1:61707/a1",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A2",
+      "target": "http://127.0.0.1:61707/a2",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "B",
+      "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+      "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     }
+    ],
+    "v2_target_matches": true,
+    "C": true
+   },
+   "codex_expected": {
+    "A": "not_listed",
+    "B": "not_listed",
+    "judgement": "#7"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "not_listed",
+    "B": "not_listed",
+    "judgement": "#7"
+   }
+  },
+  {
+   "id": "table-not_listed-not_listed-false",
+   "input": {
+    "valid_human_attestations": [
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A1",
+      "target": "http://127.0.0.1:61707/a1",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "A2",
+      "target": "http://127.0.0.1:61707/a2",
+      "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     },
+     {
+      "attestation": "kansei-attribution-attestation/v2",
+      "marker_id": "M-994",
+      "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+      "source_id": "B",
+      "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+      "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+      "verdict": "not_listed",
+      "observer": "human:Independent fixture",
+      "date": "2026-09-30",
+      "reason": "Fixture human reviewed the complete current body."
+     }
+    ],
+    "v2_target_matches": true,
+    "C": false
+   },
+   "codex_expected": {
+    "A": "not_listed",
+    "B": "not_listed",
+    "judgement": "#8"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "not_listed",
+    "B": "not_listed",
+    "judgement": "#8"
+   }
+  },
+  {
+   "id": "verdict-TODO",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "TODOlisted",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "verdict-case",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "LISTED",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "unknown-observer",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Unlisted",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "kind-v1",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v1",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "future",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "9999-01-01",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "month-13",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-13-01",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "non-leap",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2025-02-29",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "day-overflow",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-04-31",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "wrong-target",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "http://127.0.0.1:61707/other",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "wrong-marker",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-993",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "wrong-source",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "wrong-digest",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "wrong-body",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "draft-instructions",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body.",
+     "_draft_instructions": "review"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "extra-key",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body.",
+     "extra": "x"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "reason-empty",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": " "
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "reason-201",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "reason-LF",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "read\nbody"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "reason-CR",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "read\rbody"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "reason-TAB",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "read\tbody"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "reason-DEL",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "readbody"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "reason-NEL",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "readbody"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "reason-LS",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "read body"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "reason-PS",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "read body"
+    },
+    "observer_allowlist": [
+     "human:Independent fixture"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-attestation",
+   "input": {
+    "attestation": {
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-marker_id",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-expected_digest",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-source_id",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-target",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-body_sha256",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-verdict",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-observer",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-date",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "reason": "Fixture human reviewed the complete current body."
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "missing-reason",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30"
+    }
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "observer-list-51",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observers": null
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "observer-list-52",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observers": []
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "observer-list-53",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observers": [
+     "human:Independent fixture",
+     5
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "observer-list-54",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observers": [
+     "human:Independent fixture",
+     "human: "
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "observer-list-55",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observers": [
+     "human:Independent fixture",
+     "human:x y"
+    ]
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "observer-list-56",
+   "input": {
+    "attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "observers": {}
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "note-TODOreview",
+   "input": {
+    "valid_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "TODOreview"
+    },
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "B": "not_listed",
+    "caution": true,
+    "public_caution": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "not_listed",
+    "caution": true,
+    "public_caution": false
+   }
+  },
+  {
+   "id": "note-reviewTODO",
+   "input": {
+    "valid_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "reviewTODO"
+    },
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "B": "not_listed",
+    "caution": true,
+    "public_caution": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "not_listed",
+    "caution": true,
+    "public_caution": false
+   }
+  },
+  {
+   "id": "note-TBDpending",
+   "input": {
+    "valid_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "TBDpending"
+    },
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "B": "not_listed",
+    "caution": true,
+    "public_caution": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "not_listed",
+    "caution": true,
+    "public_caution": false
+   }
+  },
+  {
+   "id": "note-reviewTBD",
+   "input": {
+    "valid_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "reviewTBD"
+    },
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "B": "not_listed",
+    "caution": true,
+    "public_caution": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "not_listed",
+    "caution": true,
+    "public_caution": false
+   }
+  },
+  {
+   "id": "note-xxxxxxxxxxxxxxx",
+   "input": {
+    "valid_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "B": "not_listed",
+    "caution": false,
+    "public_caution": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "not_listed",
+    "caution": false,
+    "public_caution": false
+   }
+  },
+  {
+   "id": "link-added-_repository",
+   "input": {
+    "before": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "after": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY",
+     "_repository": "https://github.com/audit-fixture/repo"
+    },
+    "old_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_body_has_new_attestation": false
+   },
+   "codex_expected": {
+    "B": "unknown",
+    "body_changed": true
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown",
+    "body_changed": true
+   }
+  },
+  {
+   "id": "link-added-_meta.repository",
+   "input": {
+    "before": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "after": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one",
+      "repository": "https://github.com/audit-fixture/repo"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "old_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_body_has_new_attestation": false
+   },
+   "codex_expected": {
+    "B": "unknown",
+    "body_changed": true
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown",
+    "body_changed": true
+   }
+  },
+  {
+   "id": "link-added-freshness.repository",
+   "input": {
+    "before": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "after": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2,
+      "repository": "https://github.com/audit-fixture/repo"
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "old_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_body_has_new_attestation": false
+   },
+   "codex_expected": {
+    "B": "unknown",
+    "body_changed": true
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown",
+    "body_changed": true
+   }
+  },
+  {
+   "id": "link-added-freshness.confidence",
+   "input": {
+    "before": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "after": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "https://github.com/audit-fixture/repo",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "old_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_body_has_new_attestation": false
+   },
+   "codex_expected": {
+    "B": "unknown",
+    "body_changed": true
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown",
+    "body_changed": true
+   }
+  },
+  {
+   "id": "link-added-_meta.attempt_id",
+   "input": {
+    "before": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "after": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "https://github.com/audit-fixture/repo"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "old_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_body_has_new_attestation": false
+   },
+   "codex_expected": {
+    "B": "unknown",
+    "body_changed": true
+   },
+   "codex_conforms": false,
+   "expect": {
+    "B": "unknown",
+    "body_changed": true
+   }
+  },
+  {
+   "id": "link-removed-attempt-id",
+   "input": {
+    "old_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-two"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_body_has_new_attestation": false
+   },
+   "codex_expected": {
+    "B": "unknown",
+    "body_changed": true
+   },
+   "codex_conforms": false,
+   "expect": {
+    "B": "unknown",
+    "body_changed": true
+   }
+  },
+  {
+   "id": "ground-truth-normal",
+   "input": {
+    "mode": "normal"
+   },
+   "codex_expected": {
+    "consistent": true
+   },
+   "codex_conforms": true,
+   "expect": {
+    "consistent": true
+   }
+  },
+  {
+   "id": "ground-truth-renamed",
+   "input": {
+    "mode": "renamed"
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-moved",
+   "input": {
+    "mode": "moved"
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-redirect",
+   "input": {
+    "mode": "redirect"
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-archived",
+   "input": {
+    "mode": "archived"
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-private",
+   "input": {
+    "mode": "private"
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-missing",
+   "input": {
+    "mode": "missing"
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "ground-truth-timeout",
+   "input": {
+    "mode": "timeout"
+   },
+   "codex_expected": {
+    "consistent": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "consistent": false
+   }
+  },
+  {
+   "id": "body-change-A1",
+   "input": {
+    "old_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "http://127.0.0.1:61707/a1",
+     "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_body_has_new_attestation": false
+   },
+   "codex_expected": {
+    "A": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "unknown"
+   }
+  },
+  {
+   "id": "body-change-A2",
+   "input": {
+    "old_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A2",
+     "target": "http://127.0.0.1:61707/a2",
+     "body_sha256": "32ceca0d9451b89774d5279f94d0787a6be379970657ab46910d79c2f65e9c13",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_body_has_new_attestation": false
+   },
+   "codex_expected": {
+    "A": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "unknown"
+   }
+  },
+  {
+   "id": "body-change-B",
+   "input": {
+    "old_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_body_has_new_attestation": false
+   },
+   "codex_expected": {
+    "B": "unknown"
+   },
+   "codex_conforms": true,
+   "expect": {
+    "B": "unknown"
+   }
+  },
+  {
+   "id": "bundle-unsigned",
+   "input": {
+    "valid_A_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "http://127.0.0.1:61707/a1",
+     "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "B_attestation": null,
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_B_attestation_valid": false,
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "schema_valid": true,
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "schema_valid": true,
+    "leaked": false
+   }
+  },
+  {
+   "id": "bundle-valid-not-listed",
+   "input": {
+    "valid_A_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "http://127.0.0.1:61707/a1",
+     "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "B_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_B_attestation_valid": true,
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#3",
+    "schema_valid": true,
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#3",
+    "schema_valid": true,
+    "leaked": false
+   }
+  },
+  {
+   "id": "bundle-stale-negative-link-added",
+   "input": {
+    "valid_A_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "http://127.0.0.1:61707/a1",
+     "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "B_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "https://github.com/audit-fixture/repo"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_B_attestation_valid": false,
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "schema_valid": true,
+    "leaked": false
+   },
+   "codex_conforms": false,
+   "expect": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "schema_valid": true,
+    "leaked": false
+   }
+  },
+  {
+   "id": "bundle-stale-positive-link-removed",
+   "input": {
+    "valid_A_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "http://127.0.0.1:61707/a1",
+     "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "B_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-new"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_B_attestation_valid": false,
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "schema_valid": true,
+    "leaked": false
+   },
+   "codex_conforms": false,
+   "expect": {
+    "A": "listed",
+    "B": "unknown",
+    "judgement": "U2",
+    "schema_valid": true,
+    "leaked": false
+   }
+  },
+  {
+   "id": "bundle-reason-caution",
+   "input": {
+    "valid_A_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "http://127.0.0.1:61707/a1",
+     "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "B_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "TODOreview"
+    },
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_B_attestation_valid": true,
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#3",
+    "schema_valid": true,
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "#3",
+    "schema_valid": true,
+    "leaked": false
+   }
+  },
+  {
+   "id": "bundle-repo-moved",
+   "input": {
+    "valid_A_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "http://127.0.0.1:61707/a1",
+     "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "B_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_B_attestation_valid": true,
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "U0",
+    "schema_valid": true,
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "U0",
+    "schema_valid": true,
+    "leaked": false
+   }
+  },
+  {
+   "id": "bundle-no-A-attestation",
+   "input": {
+    "valid_A_human_attestation": null,
+    "B_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_B_attestation_valid": true,
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "A": "unknown",
+    "B": "not_listed",
+    "judgement": "U1",
+    "schema_valid": true,
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "unknown",
+    "B": "not_listed",
+    "judgement": "U1",
+    "schema_valid": true,
+    "leaked": false
+   }
+  },
+  {
+   "id": "bundle-agent-format",
+   "input": {
+    "valid_A_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "http://127.0.0.1:61707/a1",
+     "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "B_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_B_attestation_valid": true,
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "U3",
+    "schema_valid": true,
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "U3",
+    "schema_valid": true,
+    "leaked": false
+   }
+  },
+  {
+   "id": "bundle-agent-instrument",
+   "input": {
+    "valid_A_human_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "A1",
+     "target": "http://127.0.0.1:61707/a1",
+     "body_sha256": "820d6ec5d03a31e2bf9142622032b0e928c2fcb44799f83f62ffddbe72a1469a",
+     "verdict": "listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "B_attestation": {
+     "attestation": "kansei-attribution-attestation/v2",
+     "marker_id": "M-994",
+     "expected_digest": "b59f605a74f72be2da994514c7fc80e199fb179a675fdd0df9ffd1670f7ee522",
+     "source_id": "B",
+     "target": "kansei-catalog http://127.0.0.1:61707/mcp service_id=audit-fixture fields=all_except:_meta.attempt_id,freshness.data_age_days",
+     "body_sha256": "371a8f53922999e3fd703b6543a3ff8ee29ab9a75ba9370224c192bbeab3eca1",
+     "verdict": "not_listed",
+     "observer": "human:Independent fixture",
+     "date": "2026-09-30",
+     "reason": "Fixture human reviewed the complete current body."
+    },
+    "current_catalog": {
+     "service_id": "audit-fixture",
+     "mcp_status": "official",
+     "freshness": {
+      "confidence": "medium",
+      "data_age_days": 2
+     },
+     "_meta": {
+      "attempt_id": "attempt-one"
+     },
+     "description": "CATALOG_PRIVATE_CANARY"
+    },
+    "current_B_attestation_valid": true,
+    "v2_target_matches": true
+   },
+   "codex_expected": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "U4",
+    "schema_valid": true,
+    "leaked": false
+   },
+   "codex_conforms": true,
+   "expect": {
+    "A": "listed",
+    "B": "not_listed",
+    "judgement": "U4",
+    "schema_valid": true,
+    "leaked": false
+   }
+  }
+ ]
+}

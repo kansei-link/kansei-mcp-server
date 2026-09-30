@@ -14,6 +14,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { validateReading, loadReadingSchema, newUlid, isoWithOffset } from "../exec-harness/lib/reading.mjs";
 import { selectTarget } from "../exec-harness/lib/marker-targets.mjs";
+import { B_BODY_FIELDS } from "../exec-harness/lib/attribution-attest.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const PACKS_DIR = join(ROOT, "exec-harness", "taskpacks");
@@ -51,7 +52,7 @@ for (const { rel, pack } of packs) {
     const at = MK.attribution || {};
     expect(`${tag}: attribution A1/A2 fixed exactly`, JSON.stringify((at.official_docs || []).map((p: any) => [p.id, p.url])) === JSON.stringify([["A1", "https://www.atled.jp/agileworks/functions/ai-use/"], ["A2", "https://www.atled.jp/news/20260727_01/"]]), JSON.stringify(at.official_docs));
     expect(`${tag}: attribution B reads the production catalog item agile-works`, at.catalog?.service_id === "agile-works" && at.catalog?.display_api_url === "https://kansei-link-mcp-production.up.railway.app/mcp");
-    expect(`${tag}: attribution B body fields fixed (the whole item minus _meta.attempt_id and freshness.data_age_days, §4-2)`, at.catalog?.body_fields === "all_except:_meta.attempt_id,freshness.data_age_days");
+    expect(`${tag}: attribution B body fields fixed to the harness constant (the whole item minus the two volatile leaves by their exact grammar, §4-2 / Codex 1391a31 R1)`, at.catalog?.body_fields === B_BODY_FIELDS && B_BODY_FIELDS === "all_except:_meta.attempt_id(rfc4122-uuid-lowercase),freshness.data_age_days(int 0..100000)");
     expect(`${tag}: rename detection on (verify_repo_via_github not false, default GitHub API)`, MK.verify_repo_via_github !== false && !MK.github_api_base);
     for (const [method, pass, inst] of [["sealed_repo_vs_official_docs", true, null], ["sealed_repo_vs_official_docs", false, null], ["sealed_repo_vs_official_docs", false, "other"], ["sealed_repo_vs_kansei_catalog", true, null], ["sealed_repo_vs_kansei_catalog", false, null], ["sealed_repo_vs_kansei_catalog", false, "other"]] as const) {
       const row = { reading_id: newUlid(), claim: "attribution column", marker_id: MK.marker_id, expected_digest: "0".repeat(64), target: { service_id: pack.service_id, model: "none", harness_version: "run-marker@0.4.0+0000000" }, stage_reached: "done", stage_stopped: null, observed: { pass, method, checks: [{ label: "A1_attested_listed", ok: pass }], ground_truth_consistent: true, instrument_error: inst }, evidence_ref: `evidence/x/m-004#sha256:${"a".repeat(64)}`, observer: "kansei_harness@run-marker@0.4.0", kind: "synthetic", observed_at: isoWithOffset(new Date()), supersedes: null };

@@ -19,12 +19,16 @@
  * Part D/E: Codex's earlier independent cases (110 of 185d63d, 93 of 8d905ee) — hint cases replayed on the
  *          hint reader, judgement and ground-truth cases as before, loopback cases by smoke label.
  * Part F:  Codex's 94 independent cases of 7e9a3e2 (fixtures/attribution-cases-7e9a3e2.json).
+ * Part H:  Codex's 88 independent cases of 1391a31 (fixtures/attribution-cases-1391a31.json) — Codex's runner ported;
+ *          R1: a volatile leaf is outside the body only while its value has the exact grammar (lower-case UUID,
+ *          integer 0..100000); a URL, an upper-case UUID or an odd number in it changes the body.
  * Part G:  Codex's 112 independent cases of 5758e0a (fixtures/attribution-cases-5758e0a.json) — Codex's runner ported:
  *          in-process attribution and runGenericMarker on loopback; the allow-list policy (observers.json, verdict,
  *          date not after today; reason a note that decides nothing).
  * No network beyond loopback, no real seal, no DB.
  */
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { readFileSync, writeFileSync, mkdtempSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
@@ -131,11 +135,13 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
 const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8")).marker.expected_digest;
 {
   // column B's body: the whole item, minus exactly _meta.attempt_id (string) and freshness.data_age_days (integer ≥ 0)
-  const item = (o: any = {}) => ({ service_id: "s", name: "N", mcp_status: "official", trust_score: 0.5, tags: ["x", "y"], connection_guide: null, freshness: { confidence: "medium", data_age_days: 3, last_refreshed: "2026-09-04 17:10:55" }, _meta: { source: "kansei-link", attempt_id: "a-1", kansei_link: { intent: "service_profile" } }, ...o });
+  const item = (o: any = {}) => ({ service_id: "s", name: "N", mcp_status: "official", trust_score: 0.5, tags: ["x", "y"], connection_guide: null, freshness: { confidence: "medium", data_age_days: 3, last_refreshed: "2026-09-04 17:10:55" }, _meta: { source: "kansei-link", attempt_id: "0901886c-9053-494f-af18-a38d280f63ab", kansei_link: { intent: "service_profile" } }, ...o });
+  const UUID2 = "11111111-2222-4333-8444-555555555555";
   const base = sha256Hex(catalogBody(item()));
   const withMeta = (m: any) => item({ _meta: { ...item()._meta, ...m } });
   const withFresh = (f: any) => item({ freshness: { ...item().freshness, ...f } });
-  expect("A3 body: a new attempt_id keeps the sha256 (no needless expiry)", sha256Hex(catalogBody(withMeta({ attempt_id: "b-2" }))) === base);
+  expect("A3 body: a new lower-case UUID attempt_id keeps the sha256 (no needless expiry)", sha256Hex(catalogBody(withMeta({ attempt_id: UUID2 }))) === base);
+  expect("A3 body: data_age_days 0 and 100000 keep the sha256", sha256Hex(catalogBody(withFresh({ data_age_days: 0 }))) === base && sha256Hex(catalogBody(withFresh({ data_age_days: 100000 }))) === base);
   expect("A3 body: a new data_age_days keeps the sha256", sha256Hex(catalogBody(withFresh({ data_age_days: 4 }))) === base);
   expect("A3 body: key order does not matter (canonical JSON)", sha256Hex(catalogBody(JSON.parse(JSON.stringify({ ...item(), service_id: "s" }).replace('"service_id":"s",', "")))) !== "" && catalogBody({ b: 1, a: { d: 1, c: 2 } }) === catalogBody({ a: { c: 2, d: 1 }, b: 1 }));
   for (const [what, it] of [
@@ -149,6 +155,13 @@ const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution
     ["null became a value (connection_guide)", item({ connection_guide: { repository: "https://github.com/x/y" } })],
     ["array order changed", item({ tags: ["y", "x"] })],
     ["attempt_id of an unexpected type (object) stays in the body", withMeta({ attempt_id: { repository: "https://github.com/x/y" } })],
+    ["Codex 1391a31 R1: attempt_id that is a URL stays in the body", withMeta({ attempt_id: "https://github.com/x/y" })],
+    ["Codex 1391a31 R1: attempt_id in UPPER case stays in the body", withMeta({ attempt_id: "0901886C-9053-494F-AF18-A38D280F63AB" })],
+    ["Codex 1391a31 R1: attempt_id that is not a UUID (attempt-one) stays in the body", withMeta({ attempt_id: "attempt-one" })],
+    ["Codex 1391a31 R1: empty attempt_id stays in the body", withMeta({ attempt_id: "" })],
+    ["Codex 1391a31 R1: a UUID with a trailing character stays in the body", withMeta({ attempt_id: `${UUID2}x` })],
+    ["Codex 1391a31 R1: data_age_days 100001 stays in the body", withFresh({ data_age_days: 100001 })],
+    ["Codex 1391a31 R1: data_age_days 1e9 stays in the body", withFresh({ data_age_days: 1000000000 })],
     ["data_age_days of an unexpected type (string) stays in the body", withFresh({ data_age_days: "https://github.com/x/y" })],
     ["data_age_days negative stays in the body", withFresh({ data_age_days: -1 })],
     ["a new top-level key", item({ repository: "https://github.com/x/y" })],
@@ -158,6 +171,7 @@ const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution
   const cfg = { official_docs: [{ id: "A1", url: "https://example.invalid/a1" }, { id: "A2", url: "https://example.invalid/a2" }], catalog: { display_api_url: "https://example.invalid/mcp", service_id: "svc", body_fields: B_BODY_FIELDS } };
   expect("A3 target A1/A2 = the URL fixed in the taskpack", sourceTarget(cfg, "A1") === "https://example.invalid/a1" && sourceTarget(cfg, "A2") === "https://example.invalid/a2");
   expect("A3 target B = catalog endpoint + service_id + field spec", sourceTarget(cfg, "B") === `kansei-catalog https://example.invalid/mcp service_id=svc fields=${B_BODY_FIELDS}`);
+  expect("A3 the field spec names the exclusion grammar (Codex 1391a31 R1)", B_BODY_FIELDS === "all_except:_meta.attempt_id(rfc4122-uuid-lowercase),freshness.data_age_days(int 0..100000)");
   expect("A3 target of an unknown source = null", sourceTarget(cfg, "A9") === null);
   // the validator (allow-lists, Codex review of 5758e0a): deciding fields are bound to allowed values; reason is a note
   const sha = "c".repeat(64);
@@ -242,7 +256,11 @@ const page = (m: string) => m === "listed" ? `<html><body><a href="${REPO}">公�
   : m === "entity_hyphen" ? `<html><body><a href="https://github.com/fake&hyphen;vendor/fake-official-mcp-server">x</a></body></html>` : "<html><body>AI 活用</body></html>";
 // the fake catalog item; _meta.attempt_id and freshness.data_age_days move on every call, like the real ones
 const catalogItem = (id: string, m = mode.catalog): any => {
-  const item: any = { service_id: id, name: "Fake", mcp_endpoint: "https://<your-host>/mcp", mcp_status: "official", api_auth_method: "oauth2", freshness: { confidence: "medium", data_age_days: Math.floor(Math.random() * 99) }, _meta: { attempt_id: Math.random().toString(36) }, connection_guide: { steps: ["install"] } };
+  const item: any = { service_id: id, name: "Fake", mcp_endpoint: "https://<your-host>/mcp", mcp_status: "official", api_auth_method: "oauth2", freshness: { confidence: "medium", data_age_days: Math.floor(Math.random() * 99) }, _meta: { attempt_id: randomUUID() }, connection_guide: { steps: ["install"] } };
+  if (m === "attempt_url") item._meta.attempt_id = REPO;
+  if (m === "attempt_upper") item._meta.attempt_id = "0901886C-9053-494F-AF18-A38D280F63AB";
+  if (m === "age_negative") item.freshness.data_age_days = -1;
+  if (m === "age_huge") item.freshness.data_age_days = 1000000000;
   if (m === "repo_in_guide") item.connection_guide.repository = REPO;
   if (m === "bracket_relative") item.connection_guide.repository = "[//github.com/fake-vendor/fake-official-mcp-server]";
   if (m === "repo_in_meta") item._meta.repository = REPO;
@@ -414,6 +432,17 @@ try {
       const rx = await run();
       expect(`B2 Codex ① ${m}: the body sha256 changes, the old "not listed" expires → B 未確定（要再確認）, U2, never #3`, stateOf(rx.B?.observed) === "unknown" && rx.diag("B")?.body_sha256 !== noRepoSha && judgeOf(rx) === "U2" && columnB(rx.B?.observed).text === RECHECK_TEXT, `${judgeOf(rx)} ${rx.diag("B")?.body_sha256}`);
     }
+    // Codex 1391a31 R1 (Michie 2026-09-30): only the exact grammar of a self-changing value is outside the body
+    for (const [why, from, to] of [["(a) attempt_id UUID → a URL to the sealed repo", "no_repo", "attempt_url"], ["(b) attempt_id URL → a UUID", "attempt_url", "no_repo"], ["(c) attempt_id UUID → UPPER-case UUID", "no_repo", "attempt_upper"], ["(d) data_age_days → negative", "no_repo", "age_negative"], ["(d') data_age_days → huge", "no_repo", "age_huge"]] as const) {
+      clearAtt(); mode.catalog = from;
+      const before = bSha(catalogItem("fake-subject", from));
+      attest("B", before, "not_listed"); attest("A2", pageSha("listed"), "listed");
+      mode.catalog = to;
+      const rx = await run();
+      expect(`B2 Codex 1391a31 R1 ${why}: body sha256 changes, the attestation is not found, B unknown, U2`, rx.diag("B")?.body_sha256 !== before && rx.diag("B")?.attestation === "none_for_this_body" && stateOf(rx.B?.observed) === "unknown" && judgeOf(rx) === "U2", `${judgeOf(rx)} ${rx.diag("B")?.attestation}`);
+    }
+    clearAtt(); mode.catalog = "no_repo";
+    expect("B2 a fresh lower-case UUID attempt_id on every call does not change the body (the real catalog)", bSha(catalogItem("fake-subject")) === bSha(catalogItem("fake-subject")) && catalogItem("fake-subject")._meta.attempt_id !== catalogItem("fake-subject")._meta.attempt_id);
     clearAtt();
     mode.catalog = "bracket_relative";
     attest("A2", pageSha("listed"), "listed"); attest("B", bSha(catalogItem("fake-subject")), "listed");
@@ -838,6 +867,9 @@ try {
       item = baseItem(); resetAtt(); attestG("B", "not_listed"); mutate(item); r = await columns(); put2(`catalog-invalidates-${id}`, stateB(r.b));
     }
     item = baseItem(); resetAtt(); attestG("B", "not_listed"); item._meta.attempt_id = "run-two"; item.freshness.data_age_days = 123; r = await columns(); put2("catalog-two-volatile-leaves", stateB(r.b));
+    // the same with real-shaped ids (lower-case UUIDs): the attestation holds
+    item = { ...baseItem(), _meta: { attempt_id: "0901886c-9053-494f-af18-a38d280f63ab" } }; resetAtt(); attestG("B", "not_listed"); item._meta.attempt_id = "11111111-2222-4333-8444-555555555555"; item.freshness.data_age_days = 123; r = await columns();
+    expect("G catalog-two-volatile-leaves with lower-case UUID attempt ids → the attestation holds (not_listed)", stateB(r.b) === "not_listed", stateB(r.b));
     put2("canonical-key-order", catalogBody({ z: 1, a: 2 }) === catalogBody({ a: 2, z: 1 }));
     put2("canonical-array-order", catalogBody([1, 2]) !== catalogBody([2, 1]));
     for (const name of ["rename", "move", "archive", "private", "404", "timeout"]) {
@@ -883,6 +915,134 @@ try {
     expect(`G ${c.id} → ${JSON.stringify(c.expect)}${c.revised ? " (revised)" : ""}`, actual.has(c.id) && JSON.stringify(got) === JSON.stringify(c.expect), JSON.stringify(got));
   }
   expect("G every one of the 112 cases was replayed", fx.cases.every((c: any) => actual.has(c.id)) && actual.size === 112, String(actual.size));
+}
+
+// ── Part H: Codex's 88 independent cases of 1391a31 (fixtures/attribution-cases-1391a31.json) ──
+// Codex's runner (outputs/audit-evidence-1391a31.zip work/independent-audit.mjs) ported: in-process attribution on a
+// loopback server, observer "human:Independent fixture" in the fixture's observers.json, non-UUID attempt ids as Codex wrote them.
+{
+  const fx = JSON.parse(readFileSync(join(FIX, "attribution-cases-1391a31.json"), "utf-8"));
+  const verbatim = JSON.parse(readFileSync(join(FIX, "evidence", "codex-1391a31-independent-cases.json"), "utf-8"));
+  expect("H0 88 cases; ids, inputs and Codex's expectations equal the verbatim evidence", fx.cases.length === 88 && verbatim.cases.length === 88 && fx.cases.every((c: any, i: number) => c.id === verbatim.cases[i].id && JSON.stringify(c.input) === JSON.stringify(verbatim.cases[i].input) && JSON.stringify(c.codex_expected) === JSON.stringify(verbatim.cases[i].expected)));
+  expect("H0 every expectation that differs from Codex's says why", fx.cases.every((c: any) => JSON.stringify(c.expect) === JSON.stringify(c.codex_expected) || typeof c.revised === "string"));
+  const { TARGETS } = await import("../exec-harness/lib/marker-targets.mjs");
+  const { runGenericMarker } = await import("../exec-harness/lib/marker-generic.mjs");
+  const { readmeRows } = await import("../exec-harness/lib/marker-persist.mjs");
+  const work = mkdtempSync(join(tmpdir(), "codex-1391a31-"));
+  const hdir = join(work, "attestations"); mkdirSync(hdir, { recursive: true });
+  const actual = new Map<string, any>();
+  const add = (id: string, v: any) => actual.set(id, v);
+  const repo = "https://github.com/audit-fixture/repo";
+  const sealedH = { repo: "github.com/audit-fixture/repo", owner: "audit-fixture", name: "repo" };
+  const sealJsonH = { expected: { official_mcp_repo_url: repo } };
+  const digestH = sha256Hex(JSON.stringify(sealJsonH));
+  const baseItemH = (): any => ({ service_id: "audit-fixture", mcp_status: "official", freshness: { confidence: "medium", data_age_days: 2 }, _meta: { attempt_id: "attempt-one" }, description: "CATALOG_PRIVATE_CANARY" });
+  let pagesH: any, payloadH: any, ghH: string, pageStatus: number, rpcError: boolean;
+  const OBS_H = "human:Independent fixture";
+  const resetH = () => { pagesH = { A1: "PAGE_PRIVATE_CANARY no link", A2: "PAGE_PRIVATE_CANARY no link" }; payloadH = baseItemH(); ghH = "normal"; pageStatus = 200; rpcError = false; for (const f of readdirSync(hdir)) rmSync(join(hdir, f)); writeFileSync(join(hdir, "observers.json"), JSON.stringify([OBS_H])); };
+  const hserver = createServer((req, res) => {
+    req.resume(); const u = req.url || "";
+    if (u === "/a1" || u === "/a2") { res.writeHead(pageStatus); return res.end(pagesH[u === "/a1" ? "A1" : "A2"]); }
+    if (u === "/mcp") { res.setHeader("content-type", "application/json"); return res.end(JSON.stringify(rpcError ? { jsonrpc: "2.0", id: 1, error: { code: -1, message: "failure" } } : { jsonrpc: "2.0", id: 1, result: { content: [{ type: "text", text: JSON.stringify(payloadH) }] } })); }
+    if (u.startsWith("/gh/")) {
+      if (ghH === "timeout") return;
+      if (ghH === "missing") { res.writeHead(404); return res.end("{}"); }
+      if (ghH === "redirect" && !u.endsWith("/new")) { res.writeHead(301, { location: "/gh/new" }); return res.end(); }
+      res.setHeader("content-type", "application/json");
+      return res.end(JSON.stringify({ full_name: ghH === "renamed" || ghH === "redirect" ? "audit-fixture/new" : ghH === "moved" ? "other/repo" : "audit-fixture/repo", private: ghH === "private", archived: ghH === "archived" }));
+    }
+    res.writeHead(404); res.end();
+  });
+  await new Promise<void>((r) => hserver.listen(0, "127.0.0.1", () => r()));
+  const baseH = `http://127.0.0.1:${(hserver.address() as any).port}`;
+  const cfgH = { official_docs: [{ id: "A1", url: `${baseH}/a1` }, { id: "A2", url: `${baseH}/a2` }], catalog: { display_api_url: `${baseH}/mcp`, service_id: "audit-fixture", body_fields: B_BODY_FIELDS }, attestations_dir: hdir };
+  const MKH: any = { marker_id: "M-994", kind_of_truth: "llm_answer", claim: "Independent loopback attribution audit", providers: ["fake"], github_api_base: `${baseH}/gh`, github_timeout_ms: 40, verify_repo_via_github: true, attribution: cfgH };
+  const attH = (source: string, verdict: string, over: any = {}) => ({ attestation: ATTESTATION_KIND, marker_id: MKH.marker_id, expected_digest: digestH, source_id: source, target: sourceTarget(cfgH, source), body_sha256: sha256Hex(source === "B" ? catalogBody(payloadH) : pagesH[source]), verdict, observer: OBS_H, date: localToday(), reason: "Fixture human reviewed the complete current body.", ...over });
+  const putH = (a: any, source = a.source_id, body = a.body_sha256) => writeFileSync(join(hdir, `${MKH.marker_id}-${source}-${body}.json`), JSON.stringify(a));
+  const normB = (b: any) => (b.state === "correct" ? "listed" : b.state === "wrong" ? "not_listed" : "unknown");
+  async function readH() {
+    const events: any[] = [];
+    const rows: any = await TARGETS.llmAnswer.attribution({ MK: MKH, sealed: sealedH, harnessLog: (e: any) => events.push(e), attestationsDir: hdir, expectedDigest: digestH, markerId: MKH.marker_id });
+    const a = columnA(rows[0]), b = columnB(rows[1]);
+    return { A: a.state, B: normB(b), judgement: judgeAttribution({ a, b, c: { state: "pass" }, gtConsistent: true }).code, rows, events };
+  }
+  const pick = (o: any, keys: string[]) => Object.fromEntries(keys.map((k) => [k, o[k]]));
+  try {
+    resetH(); pagesH.A1 = repo; payloadH.repository = repo;
+    add("unsigned-body-containing-link", pick(await readH(), ["A", "B", "judgement"]));
+    let n = 1;
+    for (const text of [`data:123/${repo}`, `wrapper.invalid/path/${repo}`, `https://wrapper.invalid/?next=${repo}`, `<a href="https:&#00000047;&#00000047;github.com/audit-fixture/repo">link</a>`]) {
+      resetH(); pagesH.A1 = text; pagesH.A2 = text; payloadH.repository = text;
+      add(`hint-quarantine-${n++}`, pick(await readH(), ["A", "B", "judgement"]));
+    }
+    n = 5;
+    for (const bad of [{ code: "not_found", service_id: "someone-else" }, { code: "not_found", service_id: "audit-fixture", mcp_status: "official" }, { service_id: "audit-fixture" }, null]) {
+      resetH(); payloadH = bad; add(`invalid-catalog-${n++}`, pick(await readH(), ["B"]));
+    }
+    for (const av of ["listed", "not_listed"]) for (const bv of ["listed", "not_listed"]) {
+      resetH(); if (av === "listed") pagesH.A1 = repo; if (bv === "listed") payloadH.repository = repo;
+      [attH("A1", av), attH("A2", "not_listed"), attH("B", bv)].forEach((a) => putH(a));
+      const rr = await readH();
+      for (const pass of [true, false]) add(`table-${av}-${bv}-${pass}`, { A: rr.A, B: rr.B, judgement: judgeAttribution({ a: columnA(rr.rows[0]), b: columnB(rr.rows[1]), c: { state: pass ? "pass" : "miss" }, gtConsistent: true }).code });
+    }
+    const LS = String.fromCharCode(0x2028), PS = String.fromCharCode(0x2029);
+    for (const [id, over] of [["verdict-TODO", { verdict: "TODOlisted" }], ["verdict-case", { verdict: "LISTED" }], ["unknown-observer", { observer: "human:Unlisted" }], ["kind-v1", { attestation: "kansei-attribution-attestation/v1" }], ["future", { date: "9999-01-01" }], ["month-13", { date: "2026-13-01" }], ["non-leap", { date: "2025-02-29" }], ["day-overflow", { date: "2026-04-31" }], ["wrong-target", { target: `${baseH}/other` }], ["wrong-marker", { marker_id: "M-993" }], ["wrong-source", { source_id: "A1" }], ["wrong-digest", { expected_digest: "0".repeat(64) }], ["wrong-body", { body_sha256: "0".repeat(64) }], ["draft-instructions", { _draft_instructions: "review" }], ["extra-key", { extra: "x" }], ["reason-empty", { reason: " " }], ["reason-201", { reason: "x".repeat(201) }], ["reason-LF", { reason: "read\nbody" }], ["reason-CR", { reason: "read\rbody" }], ["reason-TAB", { reason: "read\tbody" }], ["reason-DEL", { reason: `read${String.fromCharCode(0x7f)}body` }], ["reason-NEL", { reason: `read${String.fromCharCode(0x85)}body` }], ["reason-LS", { reason: `read${LS}body` }], ["reason-PS", { reason: `read${PS}body` }]] as const) {
+      resetH(); const a = attH("B", "not_listed", over as any); putH(a, "B", sha256Hex(catalogBody(payloadH))); add(id, pick(await readH(), ["B"]));
+    }
+    for (const key of Object.keys(attH("B", "not_listed"))) { resetH(); const a: any = attH("B", "not_listed"); delete a[key]; putH(a, "B", sha256Hex(catalogBody(payloadH))); add(`missing-${key}`, pick(await readH(), ["B"])); }
+    n = 51;
+    for (const observers of [null, [], [OBS_H, 5], [OBS_H, "human: "], [OBS_H, `human:x${LS}y`], {}]) {
+      resetH(); const a = attH("B", "not_listed"); putH(a);
+      if (observers === null) rmSync(join(hdir, "observers.json")); else writeFileSync(join(hdir, "observers.json"), JSON.stringify(observers));
+      add(`observer-list-${n++}`, pick(await readH(), ["B"]));
+    }
+    for (const reason of ["TODOreview", "reviewTODO", "TBDpending", "reviewTBD", "x".repeat(200)]) {
+      resetH(); const a = attH("B", "not_listed", { reason }); putH(a);
+      const rr = await readH(); const d = rr.rows.diagnostics.find((x: any) => x.source_id === "B");
+      add(`note-${reason.slice(0, 15)}`, { B: rr.B, caution: d.attestation_cautions.includes("reason_looks_unfinished"), public_caution: JSON.stringify([rr.rows, rr.events]).includes("reason_looks_unfinished") });
+    }
+    for (const path of ["_repository", "_meta.repository", "freshness.repository", "freshness.confidence", "_meta.attempt_id"]) {
+      resetH(); const a = attH("B", "not_listed"); putH(a); const parts = path.split(".");
+      if (parts.length === 1) payloadH[path] = repo; else payloadH[parts[0]][parts[1]] = repo;
+      const rr = await readH(); add(`link-added-${path}`, { B: rr.B, body_changed: sha256Hex(catalogBody(payloadH)) !== a.body_sha256 });
+    }
+    resetH(); payloadH._meta.attempt_id = repo; const oldListed = attH("B", "listed"); putH(oldListed); payloadH._meta.attempt_id = "attempt-two";
+    { const rr = await readH(); add("link-removed-attempt-id", { B: rr.B, body_changed: sha256Hex(catalogBody(payloadH)) !== oldListed.body_sha256 }); }
+    for (const mode of ["normal", "renamed", "moved", "redirect", "archived", "private", "missing", "timeout"]) {
+      resetH(); ghH = mode; const t = await TARGETS.llmAnswer.groundTruth({ MK: MKH, sealed: sealedH, harnessLog: () => {} }); add(`ground-truth-${mode}`, { consistent: t.consistent });
+    }
+    for (const id of ["A1", "A2", "B"]) {
+      resetH(); const a = attH(id, "not_listed"); putH(a); if (id === "B") payloadH.description += " changed"; else pagesH[id] += " changed";
+      const rr = await readH(); add(`body-change-${id}`, id === "B" ? { B: rr.B } : { A: rr.A });
+    }
+    const schemaH = loadReadingSchema();
+    for (const mode of ["unsigned", "valid-not-listed", "stale-negative-link-added", "stale-positive-link-removed", "reason-caution", "repo-moved", "no-A-attestation", "agent-format", "agent-instrument"]) {
+      resetH();
+      pagesH.A1 = repo; putH(attH("A1", "listed")); putH(attH("A2", "not_listed"));
+      if (mode === "stale-positive-link-removed") payloadH._meta.attempt_id = repo;
+      if (mode !== "unsigned") putH(attH("B", mode === "stale-positive-link-removed" ? "listed" : "not_listed", mode === "reason-caution" ? { reason: "TODOreview" } : {}));
+      if (mode === "stale-negative-link-added") payloadH._meta.attempt_id = repo;
+      if (mode === "stale-positive-link-removed") payloadH._meta.attempt_id = "attempt-new";
+      if (mode === "repo-moved") ghH = "moved";
+      if (mode === "no-A-attestation") for (const f of readdirSync(hdir)) if (f.includes("-A1-") || f.includes("-A2-")) rmSync(join(hdir, f));
+      const PACK = { id: "independent-loopback-audit", version: 1, service_id: "audit-fixture", marker: MKH, budgets: { timeout_s: 5 }, goal_prompt: { ja: "fixture" } };
+      const packPath = join(work, "pack.json"); writeFileSync(packPath, JSON.stringify(PACK));
+      const target = { ...TARGETS.llmAnswer, observe: async () => ({ text: mode === "agent-format" ? "malformed answer" : `ANSWER_PRIVATE_CANARY\nREPO: ${repo}\nAUTH: OAuth 2.0`, error: mode === "agent-instrument" ? "fixture provider failure" : null, model: "fixture-model" }) };
+      const rg: any = await runGenericMarker({ target, PACK, MK: MKH, packPath, ROOT: work, KANSEI_ROOT: work, flags: { dry: true, executor: "scripted", maxReadings: 50, lang: "ja" }, sealedCommon: { json: sealJsonH, digest: digestH, commitSha: "fixture", remoteBranches: [], sealedAt: "2026-01-01", expiresAt: "2099-01-01", expired: false }, db: null, libDir: join(ROOT, "exec-harness", "lib"), VERSION: "0.0.0", HARNESS_VERSION: "smoke+1391a31", OBSERVER: "kansei_harness@independent" });
+      const bundle = join(work, rg.bundleRel); const rows = rg.readings.map(({ _outcome, ...x }: any) => ({ ...x, outcome_id: _outcome ? 1 : null }));
+      const line = attributionLines(rows)[0]; const sheet = renderSheet(rows, { markerId: MKH.marker_id });
+      const pub = ["metrics.json", "manifest.json", "harness.jsonl"].map((f) => readFileSync(join(bundle, f), "utf-8")).join("\n") + sheet + readmeRows(rg.readings).gtRows;
+      const priv = JSON.parse(readFileSync(join(bundle, "environment.private.json"), "utf-8"));
+      const bodyShas = priv.diagnostics.filter((x: any) => x.event === "attribution_source").map((x: any) => x.body_sha256).filter(Boolean);
+      add(`bundle-${mode}`, { A: line.a.state, B: normB(line.b), judgement: line.judgement.code, schema_valid: rg.readings.every(({ _outcome, ...x }: any) => validateReading(x, schemaH).length === 0), leaked: /PAGE_PRIVATE_CANARY|CATALOG_PRIVATE_CANARY|ANSWER_PRIVATE_CANARY|reason_looks_unfinished|body_sha256/.test(pub) || bodyShas.some((x: string) => pub.includes(x)) });
+    }
+  } finally { hserver.closeAllConnections(); await new Promise<void>((r) => hserver.close(() => r())); rmSync(work, { recursive: true, force: true }); }
+  for (const c of fx.cases) {
+    const got = actual.get(c.id);
+    const okH = actual.has(c.id) && Object.entries(c.expect).every(([k, v]) => JSON.stringify(got?.[k]) === JSON.stringify(v));
+    expect(`H ${c.id} → ${JSON.stringify(c.expect)}${c.revised ? " (revised)" : ""}`, okH, JSON.stringify(got));
+  }
+  expect("H every one of the 88 cases was replayed", fx.cases.every((c: any) => actual.has(c.id)) && actual.size === 88, String(actual.size));
 }
 
 console.log(failures === 0 ? "\nmarker attribution smoke: ALL PASS" : `\nmarker attribution smoke: ${failures} FAILED`);
