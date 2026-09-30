@@ -20,6 +20,19 @@ import { assertExclusive } from './llm-answer-rules.mjs';
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const fileSha = (p) => sha256(readFileSync(p));
 
+/* What a provider REPORTS about itself is not trusted to be public (Codex fe0d132 R8: a fake provider's
+ * model "https://…/ANSWER" reached metrics.json, manifest.json and the sheet). Only a reported value in the
+ * closed grammar below is written to a public file; otherwise the public files carry the taskpack's own
+ * value for the observer (or the provider's name) and the reported value goes to the private sidecar.
+ * The taskpack's own value is written as it is (it is ours: M-002's display label, for example). */
+export const PUBLIC_MODEL = /^[a-z0-9][a-z0-9.\-]{0,63}$/;
+export const PUBLIC_CLI_VERSION = /^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,6}$/;
+/** { model, withheld } — model = what public files show; withheld = the reported value that was kept private (or null). */
+export function publicModel(reported, configured) {
+  if (typeof reported === 'string' && PUBLIC_MODEL.test(reported)) return { model: reported, withheld: null };
+  return { model: configured || 'none', withheld: reported === undefined || reported === null || reported === '' ? null : reported };
+}
+
 export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSEI_ROOT, flags, sealedCommon, db, libDir, VERSION, HARNESS_VERSION, OBSERVER }) {
   const t0 = new Date();
   const MKr = resolveEnvRefs(MK);
@@ -121,11 +134,16 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     if (v.private) privateEnvironment.diagnostics.push(v.private); // e.g. M-006: the traces and the artifact, never public
     log({ role: 'harness', event: 'assert', stage_reached: v.reached, stage_stopped: v.stopped, pass: v.pass, checks: v.checks, false_completion: v.falseCompletion, instrument_error: v.instrument, error, metrics: { elapsed_ms: elapsed } });
 
-    const observerStr = observer.id === 'kansei_harness' ? OBSERVER : `${observer.id}@${obs.cliVersion || 'unknown'}`;
-    const model = obs.model || observer.model || observer.provider || 'none';
+    // reported by the provider / the CLI: public only in the closed grammar (R8); the rest stays in the private sidecar
+    const pm = publicModel(obs.model, observer.model || observer.provider || 'none');
+    const cliVersion = typeof obs.cliVersion === 'string' && PUBLIC_CLI_VERSION.test(obs.cliVersion) ? obs.cliVersion : null;
+    const withheld = { ...(pm.withheld !== null ? { reported_model: String(pm.withheld).slice(0, 300) } : {}), ...(obs.cliVersion != null && cliVersion === null ? { reported_cli_version: String(obs.cliVersion).slice(0, 300) } : {}) };
+    if (Object.keys(withheld).length) privateEnvironment.diagnostics.push({ event: 'provider_reported_value_withheld', observer: observer.label, ...withheld });
+    const observerStr = observer.id === 'kansei_harness' ? OBSERVER : `${observer.id}@${cliVersion || 'unknown'}`;
+    const model = pm.model;
     const reading = {
       reading_id: newUlid(), claim: MK.claim, marker_id: MK.marker_id, expected_digest: sealedCommon.digest,
-      target: { service_id: PACK.service_id, model, harness_version: HARNESS_VERSION, ...(observer.setup ? { setup: { ...observer.setup, cli_version: obs.cliVersion || null } } : {}) },
+      target: { service_id: PACK.service_id, model, harness_version: HARNESS_VERSION, ...(observer.setup ? { setup: { ...observer.setup, cli_version: cliVersion } } : {}) },
       stage_reached: v.reached, stage_stopped: v.stopped,
       observed: { pass: v.pass, method: target.method, checks: v.checks, false_completion: v.falseCompletion, ground_truth_consistent: gtConsistent, instrument_error: v.instrument, trap_armed: false, undetermined: Boolean(v.undetermined) },
       evidence_ref: `${bundleRel}#sha256:PENDING`, observer: observerStr, kind: 'synthetic', observed_at: observedAt, supersedes: flags.supersedes || null,
@@ -138,6 +156,8 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
   }
 
   // ---- bundle ----
+  let childEnvNames = null;
+  if (typeof target.childEnvNames === 'function') { try { childEnvNames = await target.childEnvNames({ MK: MKr }); } catch { childEnvNames = null; } }
   const libs = {};
   for (const f of ['marker-sealed.mjs', 'marker-generic.mjs', 'marker-targets.mjs', 'marker-persist.mjs', 'llm-ask.mjs', 'llm-answer-rules.mjs', 'attribution-labels.mjs', 'reading.mjs', 'marker-bundle.mjs', 'marker-store.mjs']) libs[`lib/${f}`] = fileSha(join(libDir, f));
   // Optional parts (the M-004 attribution parts: attribution-attest.mjs, the hint reader attribution-rules.mjs and the six vendored decoder
@@ -156,7 +176,9 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },
     executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(join(libDir, '..', 'run-marker.mjs')), libs, git_head: HARNESS_VERSION.split('+')[1] },
     marker: { marker_id: MK.marker_id, kind: 'synthetic', kind_of_truth: MK.kind_of_truth, observation: MK.observation || null, expected_digest: sealedCommon.digest, commitment_file: MK.commitment_file, commitment_commit: sealedCommon.commitSha, commitment_remote_branches: sealedCommon.remoteBranches, sealed_at: sealedCommon.sealedAt, expires_at: sealedCommon.expiresAt, expired_at_run: sealedCommon.expired, ground_truth_consistent: gtConsistent },
-    environment: { node: process.version, executor: flags.executor, dry_run: flags.dry, max_readings: flags.maxReadings, allow_expired: flags.allowExpired, observers: observers.map((o) => o.label), display_api_url: MKr.display_api_url || null, fetch_check_dir: MKr.fetch_check_dir || null, providers: MKr.providers || null },
+    environment: { node: process.version, executor: flags.executor, dry_run: flags.dry, max_readings: flags.maxReadings, allow_expired: flags.allowExpired, observers: observers.map((o) => o.label), display_api_url: MKr.display_api_url || null, fetch_check_dir: MKr.fetch_check_dir || null, providers: MKr.providers || null,
+      // names only: the environment variables an agent CLI child may get (natural_task with an agent_cli configuration)
+      ...(childEnvNames ? { child_env_names: childEnvNames } : {}) },
     // (D) the size of the guidance: for llm_answer the prompt ends with a fixed two-line answer
     // format that lists the AUTH options — recorded so the reading can be discounted accordingly.
     prompt_guidance: target.promptGuidance ? target.promptGuidance({ MK: MKr, flags }) : null,

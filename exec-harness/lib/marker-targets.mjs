@@ -430,7 +430,10 @@ const naturalTask = {
     const configs = Array.isArray(MK.configs) ? MK.configs : [];
     const variants = Object.keys(MK.prompt_variants || {});
     const out = [];
-    for (const c of configs) for (const v of variants) out.push({ id: 'kansei_harness', label: `${c.id}.${v}`, provider: c.provider, model: null, config: c, variant: v, setup: { config_id: c.id, kind: c.kind, provider: c.provider, tools: [...(c.tools || [])], prompt_variant: v, fetch_meaning: c.fetch_meaning, cli_version: null } });
+    // model = the taskpack's own value for the configuration (options.model, or "preset-<preset>"): what the public files
+    // show when the model a provider reports is not in the public grammar (marker-generic publicModel)
+    const configured = (c) => (typeof c.options?.model === 'string' ? c.options.model : typeof c.options?.preset === 'string' ? `preset-${c.options.preset}` : null);
+    for (const c of configs) for (const v of variants) out.push({ id: 'kansei_harness', label: `${c.id}.${v}`, provider: c.provider, model: configured(c), config: c, variant: v, setup: { config_id: c.id, kind: c.kind, provider: c.provider, tools: [...(c.tools || [])], prompt_variant: v, fetch_meaning: c.fetch_meaning, cli_version: null } });
     return out;
   },
   async observe({ PACK, MK, observer, flags, log }) {
@@ -440,24 +443,40 @@ const naturalTask = {
     const question = variant[lang]; // the natural request alone: no answer format, no options
     const cfg = { ...(CONFIG_DEFAULTS[observer.provider] || {}), ...(observer.config.options || {}) };
     const a = await runNaturalTask({ provider: observer.provider }, question, { label: observer.label, cfg });
-    log({ role: 'assistant', provider: observer.provider, model: a.model, error: a.error || null, raw: a.raw ?? null, files: a.files || [], usage: a.usage || null, cli_version: a.cli_version || null });
-    if (a.error) return { error: a.error, model: a.model, cliVersion: a.cli_version || null };
+    // private (transcript.jsonl): the raw response and the work files; a failed agent run keeps its events here too
+    log({ role: 'assistant', provider: observer.provider, model: a.model, error: a.error || null, error_class: a.error_class || null, raw: a.raw ?? a.raw_private ?? null, files: a.files || [], usage: a.usage || null, cli_version: a.cli_version || null });
+    if (a.error) return { error: a.error, errorClass: a.error_class || null, model: a.model, cliVersion: a.cli_version || null };
     // an agent CLI must have run isolated (system/init: only the allowed tools, no MCP server, no plugin)
     const isolation = observer.setup?.kind === 'agent_cli' ? claudeCodeIsolation(a.raw?.response ?? a.raw, observer.config.tools || cfg.tools || []) : null;
     return { raw: a.raw, files: a.files || [], model: a.model, cliVersion: a.cli_version || null, isolation, usage: a.usage || null };
   },
   async judge({ obs, sealed, observer }) {
     const R = await import('./natural-task-rules.mjs');
-    if (obs?.error) return { reached: 'discover', stopped: 'discover', pass: false, falseCompletion: false, undetermined: false, instrument: 'provider_api', checks: [{ label: 'provider_answered', ok: false }] };
+    // a provider error, a timeout, a failed agent run: the instrument, in its class; nothing of the run is graded
+    const CLASSES = ['provider_api', 'timeout', 'budget', 'other'];
+    if (obs?.error) return { reached: 'discover', stopped: 'discover', pass: false, falseCompletion: false, undetermined: false, instrument: CLASSES.includes(obs.errorClass) ? obs.errorClass : 'provider_api', checks: [{ label: 'provider_answered', ok: false }] };
     const provider = observer?.provider;
-    const traces = provider === 'openai' ? R.tracesOpenAI(obs.raw) : provider === 'anthropic' ? R.tracesAnthropic(obs.raw) : provider === 'perplexity' ? R.tracesPerplexity(obs.raw) : provider === 'claude-code' ? R.tracesClaudeCode(obs.raw) : provider === 'fake' ? R[obs.raw?._traces_as || 'tracesOpenAI'](obs.raw?.response ?? obs.raw) : { shape_ok: false, tools_used: false, candidates: [], fetched: [], fetched_readable: false, cited: [], cited_readable: false, text: '' };
-    const art = R.extractArtifact({ text: traces.text, files: obs.files || [] });
+    const READERS = { openai: 'tracesOpenAI', anthropic: 'tracesAnthropic', perplexity: 'tracesPerplexity', 'claude-code': 'tracesClaudeCode' };
+    // fake (smoke only): the fixture names which documented shape it plays; an unknown name is a refused response
+    const reader = provider === 'fake' ? (Object.hasOwn(R.TRACE_READERS, obs.raw?._traces_as ?? 'tracesOpenAI') ? obs.raw?._traces_as ?? 'tracesOpenAI' : null) : READERS[provider] ?? null;
+    const traces = reader ? R.TRACE_READERS[reader](provider === 'fake' ? obs.raw?.response ?? obs.raw : obs.raw) : { shape_ok: false, instrument: 'other', tools_used: false, candidates: [], fetched: [], fetched_readable: false, cited: [], cited_readable: false, text: '', unknown_types: [] };
+    // an agent run that was not isolated, or a refused / failed response: the work files are not graded either
+    const gradable = traces.shape_ok && !traces.instrument && !(obs.isolation && !obs.isolation.ok);
+    const art = gradable ? R.extractArtifact({ text: traces.text, files: obs.files || [] }) : { state: 'none', artifact: null, sources: [] };
     const v = R.judgeNaturalTask({ traces, art, sealedKey: sealed.repo });
     if (obs.isolation && !obs.isolation.ok) { v.instrument = 'other'; v.pass = false; v.falseCompletion = false; v.undetermined = false; v.reached = 'discover'; v.stopped = 'discover'; }
     v.checks.push({ label: 'agent_environment_isolated', ok: obs.isolation ? obs.isolation.ok : true });
-    // what a person may look at later: the traces and the artifact, private only (environment.private.json)
-    v.private = { event: 'natural_task_traces', observer: observer?.label, candidates: traces.candidates, fetched: traces.fetched, cited: traces.cited, artifact: art.state === 'one' ? art.artifact : null, artifact_state: art.state, artifact_sources: art.sources, artifact_form: v.artifact_form, isolation: obs.isolation, usage: obs.usage || null };
+    // what a person may look at later, in the run's two PRIVATE files (never public): environment.private.json gets the
+    // traces, the artifact and the type names of the items that were skipped; <observer>/transcript.jsonl gets the raw
+    // response and the work files (observe's log above)
+    v.private = { event: 'natural_task_traces', observer: observer?.label, candidates: traces.candidates, fetched: traces.fetched, cited: traces.cited, unknown_types: traces.unknown_types || [], artifact: art.state === 'one' ? art.artifact : null, artifact_state: art.state, artifact_sources: art.sources, artifact_form: v.artifact_form, isolation: obs.isolation, usage: obs.usage || null };
     return v;
+  },
+  /** (R4 P2) the names — never the values — of the environment variables an agent CLI child may get. */
+  async childEnvNames({ MK }) {
+    if (!(Array.isArray(MK.configs) ? MK.configs : []).some((c) => c.kind === 'agent_cli')) return null;
+    const { CLAUDE_CODE_ENV_INHERIT, CLAUDE_CODE_ENV_SET } = await import('./natural-task.mjs');
+    return { inherited_when_set: [...CLAUDE_CODE_ENV_INHERIT], set_by_harness: ['CLAUDE_CONFIG_DIR', ...Object.keys(CLAUDE_CODE_ENV_SET)] };
   },
   promptGuidance() {
     return { form: 'natural_request', lines: 0, auth_options_listed: [], format_text: null, leaks_expected_repo_url: false, leaks_expected_auth_method: false, note: 'the request is the only text the model sees; no answer format, no option list' };

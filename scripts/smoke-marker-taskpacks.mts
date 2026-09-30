@@ -95,9 +95,11 @@ for (const { rel, pack } of packs) {
   expect("M-006: no gemini configuration; not_measured says why", !(m6?.configs || []).some((c: any) => /gemini/i.test(JSON.stringify(c))) && /Gemini/.test(m6?.not_measured || "") && /terms/.test(m6?.not_measured || ""));
   expect("M-006: models fixed (gpt-5.5 dated, claude-opus-5-5, perplexity preset fast)", m6?.configs?.[0]?.options?.model === "gpt-5.5-2026-04-23" && m6?.configs?.[1]?.options?.model === "claude-opus-5-5" && m6?.configs?.[2]?.options?.preset === "fast" && m6?.configs?.[3]?.options?.model === "claude-opus-5-5");
   expect("M-006: two prompt variants, natural wording, no answer format", Object.keys(m6?.prompt_variants || {}).join() === "N1,N2" && !/REPO:|AUTH:/.test(JSON.stringify(m6?.prompt_variants)) && m6?.answer_format === "none");
+  expect("M-006: the note says what the rules do now: closed shape first, citations from structured fields only (no [n] markers), credential slots in their own place, per-configuration counts, the two private places", /CLOSED SHAPE FIRST/.test(m6?.note || "") && /The \[n\] markers of a Perplexity answer are NOT read/.test(m6?.note || "") && !/\[digits\] markers of the answer mapped/.test(m6?.note || "") && /IN THEIR OWN PLACE/.test(m6?.note || "") && /per configuration/.test(m6?.note || "") && /transcript\.jsonl/.test(m6?.note || "") && !/environment\.private\.json only/.test(m6?.note || ""));
+  expect("M-006: the commitment line is read with a whitespace after the digest (a sealed file is recognised as sealed)", ("a".repeat(64) + "  M-006.sealed.json\n").match(/^([0-9a-f]{64})\s/m)?.[1] === "a".repeat(64) && !("a".repeat(64) + "  M-006.sealed.json\n").match(/^([0-9a-f]{64})s/m));
   expect("M-006: Anthropic tools are the base versions", JSON.stringify(m6?.configs?.[1]?.tools) === JSON.stringify(["web_search_20250305", "web_fetch_20250910"]));
   const commit = join(ROOT, "evidence", "commitments", "M-006.sha256");
-  const committed = existsSync(commit) ? (readFileSync(commit, "utf-8").match(/^([0-9a-f]{64})s/m) || [])[1] : null;
+  const committed = existsSync(commit) ? (readFileSync(commit, "utf-8").match(/^([0-9a-f]{64})\s/m) || [])[1] : null;
   expect("M-006: seal pending (no commitment yet, expected_digest is the PENDING mark) or sealed (expected_digest equals the commitment)", committed ? m6?.expected_digest === committed : m6?.expected_digest === "PENDING_SEAL_BY_MICHIE", String(m6?.expected_digest));
 }
 

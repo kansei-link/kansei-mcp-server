@@ -10,7 +10,9 @@
  *   2. one row per reading: date / observer / stage reached / stage stopped / verdict /
  *      false completion / ground-truth consistency / evidence digest
  *   3. three numbers: days stopped per stage, false-completion count, last observation
- *      (or 「不明」 when older than 24h)
+ *      (or 「不明」 when older than 24h). For a marker whose readings name their setup (M-006) the stops,
+ *      false completions and undetermined readings are counted PER CONFIGURATION (config id + prompt
+ *      variant + what a fetch means) and no figure is summed across configurations.
  * Never: ranks, scores, comparisons with other vendors, tenant values, counts, amounts.
  * The renderer only reads; it writes nothing to the DB.
  */
@@ -72,6 +74,7 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
   lines.push(`- 描画: ${now.toISOString()}（この表は台帳から機械的に描く。序列・得点・他ベンダーとの並置・対象の生値は載せない）`);
   if (naturalTask) {
     lines.push('- 構成: 観測者の欄は「構成/課題文の変種→模型」。構成ごとに「取得」の意味が違う（OpenAI＝模型が開いたページ、Anthropic＝提供者のサーバーが取った本文、Perplexity＝fetch_url に頼んだ URL、Claude Code＝手元が取って要約した物）ので、構成の行は混ぜて数えない。');
+    lines.push('- 引用: 提供者の応答の構造化された欄だけを読む（OpenAI と Perplexity＝output_text の annotations の url_citation、Anthropic＝text の citations）。本文の [n] の印や本文中の URL は読まない。Claude Code と、annotations の欄が無い応答は「跡なし」。');
     lines.push('- Gemini の検索ありは提供者の規約により測っていない（道具を使わない Gemini の行は M-004 の二行形式＝記憶の基準線にある）。');
   }
   lines.push('');
@@ -110,14 +113,35 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
     for (const [k, n] of [...tally.entries()].sort()) { const [o, j] = k.split('\u0000'); lines.push(`| ${o} | ${j} | ${n} |`); }
   }
   lines.push('');
-  lines.push('## 三つの数字');
-  lines.push('');
-  lines.push('| 臓器 | 止まった日数 |');
-  lines.push('|---|---|');
-  for (const s of STAGES) lines.push(`| ${STAGE_JA[s]} | ${stopDays[s].size} |`);
-  lines.push('');
-  lines.push(`- 偽の完了: ${falseCompletions} 回`);
-  lines.push(`- 未判定（規則が通しも落としもできなかった読み）: ${agent.filter((r) => r.observed.undetermined).length} 回`);
+  if (naturalTask) {
+    // Codex fe0d132 R7: a fetch means something else in each configuration, so stops, false completions and
+    // undetermined readings are counted per configuration (config id + prompt variant + fetch meaning). No total.
+    const groupOf = (r) => (r.target.setup ? `${r.target.setup.config_id}/${r.target.setup.prompt_variant}（取得＝${r.target.setup.fetch_meaning}）` : '（構成の記録なし）');
+    const groups = new Map();
+    for (const r of agent) { const k = groupOf(r); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); }
+    lines.push('## 構成ごとの数字');
+    lines.push('');
+    lines.push('構成（構成の id／課題文の変種／取得の意味）ごとに数える。「取得」の意味が構成ごとに違うので、構成をまたいで足した数は出さない。');
+    lines.push('');
+    lines.push(`| 構成 | ${STAGES.map((s) => `${STAGE_JA[s]}で止まった日数`).join(' | ')} | 偽の完了 | 未判定 |`);
+    lines.push(`|---|${STAGES.map(() => '---').join('|')}|---|---|`);
+    for (const [k, rs] of [...groups.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) {
+      const days = (s) => new Set(rs.filter((r) => r.stage_stopped === s).map((r) => r.observed_at.slice(0, 10))).size;
+      lines.push(`| ${k} | ${STAGES.map(days).join(' | ')} | ${rs.filter((r) => r.observed.false_completion).length} 回 | ${rs.filter((r) => r.observed.undetermined).length} 回 |`);
+    }
+    if (!groups.size) lines.push(`| — | ${STAGES.map(() => '—').join(' | ')} | — | — |`);
+    lines.push('');
+    lines.push('- 未判定＝規則が通しも落としもできなかった読み。');
+  } else {
+    lines.push('## 三つの数字');
+    lines.push('');
+    lines.push('| 臓器 | 止まった日数 |');
+    lines.push('|---|---|');
+    for (const s of STAGES) lines.push(`| ${STAGE_JA[s]} | ${stopDays[s].size} |`);
+    lines.push('');
+    lines.push(`- 偽の完了: ${falseCompletions} 回`);
+    lines.push(`- 未判定（規則が通しも落としもできなかった読み）: ${agent.filter((r) => r.observed.undetermined).length} 回`);
+  }
   lines.push(`- 計器の最終観測: ${lastText}${last && ageH > 24 ? `（最後の読みから ${Math.floor(ageH)} 時間・24 時間を超えたため「不明」）` : ''}`);
   lines.push('');
   const md = lines.join('\n') + '\n';

@@ -1,0 +1,2715 @@
+{
+ "note": "Regression cases after the Codex review of fe0d132 (M-006, the natural-task reading; 55 cases; byte for byte in evidence/codex-fe0d132-independent-cases.json — its commit field names the reviewed tree 544808b, the reviewed diff is 1391a31..fe0d132; id, input and codex_expected copied verbatim). 35 conformed; the 20 that did not are Codex's R1–R8 and one observation, all of one kind: an input outside the expected shape was accepted as empty or undetermined. Fixed (Michie 2026-09-30) by checking the closed shape before reading: credential slots in their own place (R1), wrong credentials in every place of the entry (R2), the Claude Code result and exit code first (R3), exactly one init with its three arrays and exactly the allowed tools (R4), no reading of [n] markers in a Perplexity answer (R5), every item of output[] / content[] typed and the read ones checked field by field (R6), the sheet counted per configuration (R7), a provider-reported model public only in a closed grammar (R8), an Anthropic web_fetch request counted without its result block. Every expectation here is Codex's own (no revision). Replayed by Part F of scripts/smoke-marker-natural-task.mts, which ports Codex's runner (outputs/reproduce-audit.mjs: the rules in process, then run-marker --dry-run with the M-993 fixture seal and the fake provider). The inputs carry the reviewer's paths as they were. All values invented.",
+ "commit_reviewed": "fe0d132 (tree 544808b84a39e2b36a9e17c4f7f17823b97615fa, diff 1391a31..fe0d132)",
+ "cases": [
+  {
+   "id": "baseline-P2",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+       "type": "open_page",
+       "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+      }
+     },
+     {
+      "type": "message",
+      "id": "msg_1",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": true,
+   "codex_conforms": true,
+   "expect": true
+  },
+  {
+   "id": "F2-url-1",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+       "type": "open_page",
+       "url": "https://evil.invalid/https://github.com/fake-vendor/fake-official-mcp-server"
+      }
+     },
+     {
+      "type": "message",
+      "id": "msg_1",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": true,
+   "expect": false
+  },
+  {
+   "id": "F2-url-2",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+       "type": "open_page",
+       "url": "https://github.com/other/fake-official-mcp-server"
+      }
+     },
+     {
+      "type": "message",
+      "id": "msg_1",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": true,
+   "expect": false
+  },
+  {
+   "id": "F2-url-3",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+       "type": "open_page",
+       "url": "https://github.com/fake-vendor/other"
+      }
+     },
+     {
+      "type": "message",
+      "id": "msg_1",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": true,
+   "expect": false
+  },
+  {
+   "id": "F2-url-4",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+       "type": "open_page",
+       "url": "https://evil.invalid/?url=https://github.com/fake-vendor/fake-official-mcp-server"
+      }
+     },
+     {
+      "type": "message",
+      "id": "msg_1",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": true,
+   "expect": false
+  },
+  {
+   "id": "F2-url-5",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+       "type": "open_page",
+       "url": "https://github.com.evil.invalid/fake-vendor/fake-official-mcp-server"
+      }
+     },
+     {
+      "type": "message",
+      "id": "msg_1",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": true,
+   "expect": false
+  },
+  {
+   "id": "F2-candidate-text-only",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "action": {
+       "type": "search",
+       "sources": [
+        {
+         "type": "url",
+         "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+        }
+       ]
+      }
+     },
+     {
+      "type": "message",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "https://github.com/fake-vendor/fake-official-mcp-server```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": true,
+   "expect": false
+  },
+  {
+   "id": "F2-marker-[web:2]",
+   "input": {
+    "output": [
+     {
+      "type": "search_results",
+      "results": [
+       {
+        "id": 2,
+        "url": "https://github.com/fake-vendor/fake-official-mcp-server",
+        "title": "fixture"
+       }
+      ]
+     },
+     {
+      "type": "message",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "[web:2] ```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```"
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": true,
+   "expect": false
+  },
+  {
+   "id": "F2-marker-[9]",
+   "input": {
+    "output": [
+     {
+      "type": "search_results",
+      "results": [
+       {
+        "id": 2,
+        "url": "https://github.com/fake-vendor/fake-official-mcp-server",
+        "title": "fixture"
+       }
+      ]
+     },
+     {
+      "type": "message",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "[9] ```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```"
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": true,
+   "expect": false
+  },
+  {
+   "id": "F2-marker-[[2]]",
+   "input": {
+    "output": [
+     {
+      "type": "search_results",
+      "results": [
+       {
+        "id": 2,
+        "url": "https://github.com/fake-vendor/fake-official-mcp-server",
+        "title": "fixture"
+       }
+      ]
+     },
+     {
+      "type": "message",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "[[2]] ```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```"
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": false,
+   "expect": false
+  },
+  {
+   "id": "F2-marker-[web:[2]]",
+   "input": {
+    "output": [
+     {
+      "type": "search_results",
+      "results": [
+       {
+        "id": 2,
+        "url": "https://github.com/fake-vendor/fake-official-mcp-server",
+        "title": "fixture"
+       }
+      ]
+     },
+     {
+      "type": "message",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "[web:[2]] ```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```"
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": false,
+   "codex_conforms": false,
+   "expect": false
+  },
+  {
+   "id": "F3-P2-header-instead-of-env",
+   "input": {
+    "mcpServers": {
+     "aw": {
+      "command": "node",
+      "args": [
+       "/test/aw-app/dist/custom/admin/server.js",
+       "--header",
+       "ACCESS_TOKEN: t",
+       "--header",
+       "SYSTEM_URL: u"
+      ]
+     }
+    }
+   },
+   "codex_expected": {
+    "auth_correct": false,
+    "pass": false
+   },
+   "codex_conforms": false,
+   "expect": {
+    "auth_correct": false,
+    "pass": false
+   }
+  },
+  {
+   "id": "F3-P3-env-instead-of-header",
+   "input": {
+    "mcpServers": {
+     "aw": {
+      "command": "npx",
+      "args": [
+       "mcp-remote",
+       "https://host.invalid/mcp"
+      ],
+      "env": {
+       "x-access-token": "t",
+       "x-system-url": "u"
+      }
+     }
+    }
+   },
+   "codex_expected": {
+    "auth_correct": false,
+    "pass": false
+   },
+   "codex_conforms": false,
+   "expect": {
+    "auth_correct": false,
+    "pass": false
+   }
+  },
+  {
+   "id": "F3-Basic-env",
+   "input": {
+    "mcpServers": {
+     "aw": {
+      "command": "node",
+      "args": [
+       "/test/aw-app/dist/custom/admin/server.js"
+      ],
+      "env": {
+       "ACCESS_TOKEN": "TOKEN_CANARY",
+       "SYSTEM_URL": "https://system.invalid",
+       "Authorization": "Basic Zm9vOmJhcg=="
+      }
+     }
+    }
+   },
+   "codex_expected": {
+    "wrong_auth_field": true,
+    "pass": false
+   },
+   "codex_conforms": false,
+   "expect": {
+    "wrong_auth_field": true,
+    "pass": false
+   }
+  },
+  {
+   "id": "F3-artifact-none",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+       "type": "open_page",
+       "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+      }
+     },
+     {
+      "type": "message",
+      "id": "msg_1",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "none",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": true,
+   "codex_conforms": true,
+   "expect": true
+  },
+  {
+   "id": "F3-artifact-many",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+       "type": "open_page",
+       "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+      }
+     },
+     {
+      "type": "message",
+      "id": "msg_1",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n``````json\n{\"mcpServers\":{\"aw\":{\"command\":\"npx\",\"args\":[\"mcp-remote\",\"https://host.invalid/mcp\"],\"env\":{\"x-access-token\":\"t\",\"x-system-url\":\"u\"}}}}\n```",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": true,
+   "codex_conforms": true,
+   "expect": true
+  },
+  {
+   "id": "F3-artifact-jsonc",
+   "input": {
+    "output": [
+     {
+      "type": "web_search_call",
+      "id": "ws_1",
+      "status": "completed",
+      "action": {
+       "type": "open_page",
+       "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+      }
+     },
+     {
+      "type": "message",
+      "id": "msg_1",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+       {
+        "type": "output_text",
+        "text": "```json\n{\"mcpServers\":{/*x*/}}\n```",
+        "annotations": []
+       }
+      ]
+     }
+    ]
+   },
+   "codex_expected": true,
+   "codex_conforms": true,
+   "expect": true
+  },
+  {
+   "id": "F5-oa-wrong-item",
+   "input": {
+    "output": [
+     42
+    ]
+   },
+   "codex_expected": "other",
+   "codex_conforms": false,
+   "expect": "other"
+  },
+  {
+   "id": "F5-an-wrong-block",
+   "input": {
+    "content": [
+     42
+    ]
+   },
+   "codex_expected": "other",
+   "codex_conforms": false,
+   "expect": "other"
+  },
+  {
+   "id": "F5-pp-wrong-item",
+   "input": {
+    "output": [
+     42
+    ]
+   },
+   "codex_expected": "other",
+   "codex_conforms": false,
+   "expect": "other"
+  },
+  {
+   "id": "F5-claude-error",
+   "input": [
+    {
+     "type": "system",
+     "subtype": "init",
+     "tools": [
+      "WebSearch",
+      "WebFetch",
+      "Write"
+     ],
+     "mcp_servers": [],
+     "plugins": []
+    },
+    {
+     "type": "assistant",
+     "message": {
+      "content": [
+       {
+        "type": "tool_use",
+        "id": "tool_1",
+        "name": "WebFetch",
+        "input": {
+         "url": "https://github.com/fake-vendor/fake-official-mcp-server",
+         "prompt": "fetch"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "result",
+     "subtype": "error_during_execution",
+     "is_error": true,
+     "errors": [
+      "provider overloaded"
+     ]
+    }
+   ],
+   "codex_expected": "provider_api",
+   "codex_conforms": false,
+   "expect": "provider_api"
+  },
+  {
+   "id": "F7-init-fields-missing",
+   "input": [
+    {
+     "type": "system",
+     "subtype": "init"
+    },
+    {
+     "type": "assistant",
+     "message": {
+      "content": [
+       {
+        "type": "tool_use",
+        "id": "tool_1",
+        "name": "WebFetch",
+        "input": {
+         "url": "https://github.com/fake-vendor/fake-official-mcp-server",
+         "prompt": "fetch"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "result",
+     "subtype": "success",
+     "is_error": false,
+     "result": "```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```"
+    }
+   ],
+   "codex_expected": false,
+   "codex_conforms": false,
+   "expect": false
+  },
+  {
+   "id": "F7-second-init-not-isolated",
+   "input": [
+    {
+     "type": "system",
+     "subtype": "init",
+     "tools": [
+      "WebSearch",
+      "WebFetch",
+      "Write"
+     ],
+     "mcp_servers": [],
+     "plugins": []
+    },
+    {
+     "type": "system",
+     "subtype": "init",
+     "tools": [
+      "WebSearch",
+      "WebFetch",
+      "Write",
+      "Bash"
+     ],
+     "mcp_servers": [
+      {
+       "name": "unexpected"
+      }
+     ],
+     "plugins": []
+    },
+    {
+     "type": "assistant",
+     "message": {
+      "content": [
+       {
+        "type": "tool_use",
+        "id": "tool_1",
+        "name": "WebFetch",
+        "input": {
+         "url": "https://github.com/fake-vendor/fake-official-mcp-server",
+         "prompt": "fetch"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "type": "result",
+     "subtype": "success",
+     "result": "```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```"
+    }
+   ],
+   "codex_expected": false,
+   "codex_conforms": false,
+   "expect": false
+  },
+  {
+   "id": "observation-Anthropic-request-no-result",
+   "input": {
+    "content": [
+     {
+      "type": "server_tool_use",
+      "id": "f1",
+      "name": "web_fetch",
+      "input": {
+       "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+      }
+     },
+     {
+      "type": "text",
+      "text": "```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```"
+     }
+    ]
+   },
+   "codex_expected": true,
+   "codex_conforms": false,
+   "expect": true
+  },
+  {
+   "id": "F6-reexport-identity",
+   "input": null,
+   "codex_expected": true,
+   "codex_conforms": true,
+   "expect": true
+  },
+  {
+   "id": "E2E-exit",
+   "input": [
+    "C:\\Users\\HP\\Documents\\Codex\\2026-09-30\\files-pasted-by-the-user-kanseilink-3\\kl-review-544808b\\exec-harness\\run-marker.mjs",
+    "fixtures/taskpack-m993-natural.json",
+    "--dry-run"
+   ],
+   "codex_expected": 0,
+   "codex_conforms": true,
+   "expect": 0
+  },
+  {
+   "id": "F1-exclusive-openai.N1",
+   "input": {
+    "pass": true,
+    "method": "natural_task_traces_vs_sealed_repo",
+    "checks": [
+     {
+      "label": "response_shape_as_documented",
+      "ok": true
+     },
+     {
+      "label": "tools_used",
+      "ok": true
+     },
+     {
+      "label": "trace_fetched_readable",
+      "ok": true
+     },
+     {
+      "label": "trace_cited_readable",
+      "ok": true
+     },
+     {
+      "label": "fetched_sealed_repo",
+      "ok": true
+     },
+     {
+      "label": "cited_sealed_repo",
+      "ok": false
+     },
+     {
+      "label": "candidate_only_sealed",
+      "ok": false
+     },
+     {
+      "label": "artifact_single",
+      "ok": true
+     },
+     {
+      "label": "artifact_parsed",
+      "ok": true
+     },
+     {
+      "label": "artifact_points_official",
+      "ok": true
+     },
+     {
+      "label": "artifact_auth_correct",
+      "ok": true
+     },
+     {
+      "label": "artifact_wrong_auth_field",
+      "ok": false
+     },
+     {
+      "label": "reached_without_trace",
+      "ok": false
+     },
+     {
+      "label": "agent_environment_isolated",
+      "ok": true
+     }
+    ],
+    "false_completion": false,
+    "ground_truth_consistent": true,
+    "instrument_error": null,
+    "trap_armed": false,
+    "undetermined": false
+   },
+   "codex_expected": 1,
+   "codex_conforms": true,
+   "expect": 1
+  },
+  {
+   "id": "F1-schema-openai.N1",
+   "input": {
+    "reading_id": "01M3RABH6G14NR1VGE3N73NEBM",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b",
+     "setup": {
+      "config_id": "openai",
+      "kind": "api_tools",
+      "provider": "fake",
+      "tools": [
+       "web_search"
+      ],
+      "prompt_variant": "N1",
+      "fetch_meaning": "fake",
+      "cli_version": null
+     }
+    },
+    "stage_reached": "done",
+    "stage_stopped": null,
+    "observed": {
+     "pass": true,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "response_shape_as_documented",
+       "ok": true
+      },
+      {
+       "label": "tools_used",
+       "ok": true
+      },
+      {
+       "label": "trace_fetched_readable",
+       "ok": true
+      },
+      {
+       "label": "trace_cited_readable",
+       "ok": true
+      },
+      {
+       "label": "fetched_sealed_repo",
+       "ok": true
+      },
+      {
+       "label": "cited_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "candidate_only_sealed",
+       "ok": false
+      },
+      {
+       "label": "artifact_single",
+       "ok": true
+      },
+      {
+       "label": "artifact_parsed",
+       "ok": true
+      },
+      {
+       "label": "artifact_points_official",
+       "ok": true
+      },
+      {
+       "label": "artifact_auth_correct",
+       "ok": true
+      },
+      {
+       "label": "artifact_wrong_auth_field",
+       "ok": false
+      },
+      {
+       "label": "reached_without_trace",
+       "ok": false
+      },
+      {
+       "label": "agent_environment_isolated",
+       "ok": true
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": null,
+     "trap_armed": false,
+     "undetermined": false
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": [],
+   "codex_conforms": true,
+   "expect": []
+  },
+  {
+   "id": "E2E-openai.N1",
+   "input": {
+    "raw": {
+     "_traces_as": "tracesOpenAI",
+     "response": {
+      "output": [
+       {
+        "type": "web_search_call",
+        "id": "ws_1",
+        "status": "completed",
+        "action": {
+         "type": "open_page",
+         "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+        }
+       },
+       {
+        "type": "message",
+        "id": "msg_1",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+         {
+          "type": "output_text",
+          "text": "```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\",\"--header\",\"ACCESS_TOKEN: t\",\"--header\",\"SYSTEM_URL: u\"]}}}\n```",
+          "annotations": []
+         }
+        ]
+       }
+      ]
+     }
+    }
+   },
+   "codex_expected": "undetermined",
+   "codex_conforms": false,
+   "expect": "undetermined"
+  },
+  {
+   "id": "F1-exclusive-openai.N2",
+   "input": {
+    "pass": false,
+    "method": "natural_task_traces_vs_sealed_repo",
+    "checks": [
+     {
+      "label": "response_shape_as_documented",
+      "ok": true
+     },
+     {
+      "label": "tools_used",
+      "ok": false
+     },
+     {
+      "label": "trace_fetched_readable",
+      "ok": true
+     },
+     {
+      "label": "trace_cited_readable",
+      "ok": true
+     },
+     {
+      "label": "fetched_sealed_repo",
+      "ok": false
+     },
+     {
+      "label": "cited_sealed_repo",
+      "ok": false
+     },
+     {
+      "label": "candidate_only_sealed",
+      "ok": false
+     },
+     {
+      "label": "artifact_single",
+      "ok": false
+     },
+     {
+      "label": "artifact_parsed",
+      "ok": false
+     },
+     {
+      "label": "artifact_points_official",
+      "ok": false
+     },
+     {
+      "label": "artifact_auth_correct",
+      "ok": false
+     },
+     {
+      "label": "artifact_wrong_auth_field",
+      "ok": false
+     },
+     {
+      "label": "reached_without_trace",
+      "ok": false
+     },
+     {
+      "label": "agent_environment_isolated",
+      "ok": true
+     }
+    ],
+    "false_completion": false,
+    "ground_truth_consistent": true,
+    "instrument_error": null,
+    "trap_armed": false,
+    "undetermined": true
+   },
+   "codex_expected": 1,
+   "codex_conforms": true,
+   "expect": 1
+  },
+  {
+   "id": "F1-schema-openai.N2",
+   "input": {
+    "reading_id": "01M3RABH6NGH0B4CXXS241QWVK",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b",
+     "setup": {
+      "config_id": "openai",
+      "kind": "api_tools",
+      "provider": "fake",
+      "tools": [
+       "web_search"
+      ],
+      "prompt_variant": "N2",
+      "fetch_meaning": "fake",
+      "cli_version": null
+     }
+    },
+    "stage_reached": "discover",
+    "stage_stopped": "discover",
+    "observed": {
+     "pass": false,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "response_shape_as_documented",
+       "ok": true
+      },
+      {
+       "label": "tools_used",
+       "ok": false
+      },
+      {
+       "label": "trace_fetched_readable",
+       "ok": true
+      },
+      {
+       "label": "trace_cited_readable",
+       "ok": true
+      },
+      {
+       "label": "fetched_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "cited_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "candidate_only_sealed",
+       "ok": false
+      },
+      {
+       "label": "artifact_single",
+       "ok": false
+      },
+      {
+       "label": "artifact_parsed",
+       "ok": false
+      },
+      {
+       "label": "artifact_points_official",
+       "ok": false
+      },
+      {
+       "label": "artifact_auth_correct",
+       "ok": false
+      },
+      {
+       "label": "artifact_wrong_auth_field",
+       "ok": false
+      },
+      {
+       "label": "reached_without_trace",
+       "ok": false
+      },
+      {
+       "label": "agent_environment_isolated",
+       "ok": true
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": null,
+     "trap_armed": false,
+     "undetermined": true
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": [],
+   "codex_conforms": true,
+   "expect": []
+  },
+  {
+   "id": "E2E-openai.N2",
+   "input": {
+    "raw": {
+     "_traces_as": "tracesOpenAI",
+     "response": {
+      "output": [
+       42
+      ]
+     }
+    }
+   },
+   "codex_expected": "other",
+   "codex_conforms": false,
+   "expect": "other"
+  },
+  {
+   "id": "F1-exclusive-anthropic.N1",
+   "input": {
+    "pass": true,
+    "method": "natural_task_traces_vs_sealed_repo",
+    "checks": [
+     {
+      "label": "response_shape_as_documented",
+      "ok": true
+     },
+     {
+      "label": "tools_used",
+      "ok": true
+     },
+     {
+      "label": "trace_fetched_readable",
+      "ok": true
+     },
+     {
+      "label": "trace_cited_readable",
+      "ok": true
+     },
+     {
+      "label": "fetched_sealed_repo",
+      "ok": true
+     },
+     {
+      "label": "cited_sealed_repo",
+      "ok": false
+     },
+     {
+      "label": "candidate_only_sealed",
+      "ok": false
+     },
+     {
+      "label": "artifact_single",
+      "ok": true
+     },
+     {
+      "label": "artifact_parsed",
+      "ok": true
+     },
+     {
+      "label": "artifact_points_official",
+      "ok": true
+     },
+     {
+      "label": "artifact_auth_correct",
+      "ok": true
+     },
+     {
+      "label": "artifact_wrong_auth_field",
+      "ok": false
+     },
+     {
+      "label": "reached_without_trace",
+      "ok": false
+     },
+     {
+      "label": "agent_environment_isolated",
+      "ok": true
+     }
+    ],
+    "false_completion": false,
+    "ground_truth_consistent": true,
+    "instrument_error": null,
+    "trap_armed": false,
+    "undetermined": false
+   },
+   "codex_expected": 1,
+   "codex_conforms": true,
+   "expect": 1
+  },
+  {
+   "id": "F1-schema-anthropic.N1",
+   "input": {
+    "reading_id": "01M3RABH6ZGQ5WFZ0A2WDCW8K9",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b",
+     "setup": {
+      "config_id": "anthropic",
+      "kind": "api_tools",
+      "provider": "fake",
+      "tools": [
+       "web_search_20250305",
+       "web_fetch_20250910"
+      ],
+      "prompt_variant": "N1",
+      "fetch_meaning": "fake",
+      "cli_version": null
+     }
+    },
+    "stage_reached": "done",
+    "stage_stopped": null,
+    "observed": {
+     "pass": true,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "response_shape_as_documented",
+       "ok": true
+      },
+      {
+       "label": "tools_used",
+       "ok": true
+      },
+      {
+       "label": "trace_fetched_readable",
+       "ok": true
+      },
+      {
+       "label": "trace_cited_readable",
+       "ok": true
+      },
+      {
+       "label": "fetched_sealed_repo",
+       "ok": true
+      },
+      {
+       "label": "cited_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "candidate_only_sealed",
+       "ok": false
+      },
+      {
+       "label": "artifact_single",
+       "ok": true
+      },
+      {
+       "label": "artifact_parsed",
+       "ok": true
+      },
+      {
+       "label": "artifact_points_official",
+       "ok": true
+      },
+      {
+       "label": "artifact_auth_correct",
+       "ok": true
+      },
+      {
+       "label": "artifact_wrong_auth_field",
+       "ok": false
+      },
+      {
+       "label": "reached_without_trace",
+       "ok": false
+      },
+      {
+       "label": "agent_environment_isolated",
+       "ok": true
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": null,
+     "trap_armed": false,
+     "undetermined": false
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": [],
+   "codex_conforms": true,
+   "expect": []
+  },
+  {
+   "id": "E2E-anthropic.N1",
+   "input": {
+    "raw": {
+     "_traces_as": "tracesAnthropic",
+     "response": {
+      "content": [
+       {
+        "type": "server_tool_use",
+        "id": "f",
+        "name": "web_fetch",
+        "input": {
+         "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+        }
+       },
+       {
+        "type": "web_fetch_tool_result",
+        "tool_use_id": "f",
+        "content": {
+         "type": "web_fetch_result",
+         "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+        }
+       },
+       {
+        "type": "text",
+        "text": "```json\n{\"mcpServers\":{\"aw\":{\"command\":\"npx\",\"args\":[\"mcp-remote\",\"https://host.invalid/mcp\"],\"env\":{\"x-access-token\":\"t\",\"x-system-url\":\"u\"}}}}\n```"
+       }
+      ]
+     }
+    }
+   },
+   "codex_expected": "undetermined",
+   "codex_conforms": false,
+   "expect": "undetermined"
+  },
+  {
+   "id": "F1-exclusive-anthropic.N2",
+   "input": {
+    "pass": false,
+    "method": "natural_task_traces_vs_sealed_repo",
+    "checks": [
+     {
+      "label": "provider_answered",
+      "ok": false
+     }
+    ],
+    "false_completion": false,
+    "ground_truth_consistent": true,
+    "instrument_error": "provider_api",
+    "trap_armed": false,
+    "undetermined": false
+   },
+   "codex_expected": 1,
+   "codex_conforms": true,
+   "expect": 1
+  },
+  {
+   "id": "F1-schema-anthropic.N2",
+   "input": {
+    "reading_id": "01M3RABH783AHJ03ZN2YJAHVAF",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b",
+     "setup": {
+      "config_id": "anthropic",
+      "kind": "api_tools",
+      "provider": "fake",
+      "tools": [
+       "web_search_20250305",
+       "web_fetch_20250910"
+      ],
+      "prompt_variant": "N2",
+      "fetch_meaning": "fake",
+      "cli_version": null
+     }
+    },
+    "stage_reached": "discover",
+    "stage_stopped": "discover",
+    "observed": {
+     "pass": false,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "provider_answered",
+       "ok": false
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": "provider_api",
+     "trap_armed": false,
+     "undetermined": false
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": [],
+   "codex_conforms": true,
+   "expect": []
+  },
+  {
+   "id": "E2E-anthropic.N2",
+   "input": {
+    "error": "PROVIDER_ERROR_CANARY"
+   },
+   "codex_expected": "provider_api",
+   "codex_conforms": true,
+   "expect": "provider_api"
+  },
+  {
+   "id": "F1-exclusive-perplexity.N1",
+   "input": {
+    "pass": true,
+    "method": "natural_task_traces_vs_sealed_repo",
+    "checks": [
+     {
+      "label": "response_shape_as_documented",
+      "ok": true
+     },
+     {
+      "label": "tools_used",
+      "ok": true
+     },
+     {
+      "label": "trace_fetched_readable",
+      "ok": true
+     },
+     {
+      "label": "trace_cited_readable",
+      "ok": true
+     },
+     {
+      "label": "fetched_sealed_repo",
+      "ok": false
+     },
+     {
+      "label": "cited_sealed_repo",
+      "ok": true
+     },
+     {
+      "label": "candidate_only_sealed",
+      "ok": false
+     },
+     {
+      "label": "artifact_single",
+      "ok": true
+     },
+     {
+      "label": "artifact_parsed",
+      "ok": true
+     },
+     {
+      "label": "artifact_points_official",
+      "ok": true
+     },
+     {
+      "label": "artifact_auth_correct",
+      "ok": true
+     },
+     {
+      "label": "artifact_wrong_auth_field",
+      "ok": false
+     },
+     {
+      "label": "reached_without_trace",
+      "ok": false
+     },
+     {
+      "label": "agent_environment_isolated",
+      "ok": true
+     }
+    ],
+    "false_completion": false,
+    "ground_truth_consistent": true,
+    "instrument_error": null,
+    "trap_armed": false,
+    "undetermined": false
+   },
+   "codex_expected": 1,
+   "codex_conforms": true,
+   "expect": 1
+  },
+  {
+   "id": "F1-schema-perplexity.N1",
+   "input": {
+    "reading_id": "01M3RABH7F3T26QA242QJ05CT3",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b",
+     "setup": {
+      "config_id": "perplexity",
+      "kind": "api_tools",
+      "provider": "fake",
+      "tools": [
+       "web_search",
+       "fetch_url"
+      ],
+      "prompt_variant": "N1",
+      "fetch_meaning": "fake",
+      "cli_version": null
+     }
+    },
+    "stage_reached": "done",
+    "stage_stopped": null,
+    "observed": {
+     "pass": true,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "response_shape_as_documented",
+       "ok": true
+      },
+      {
+       "label": "tools_used",
+       "ok": true
+      },
+      {
+       "label": "trace_fetched_readable",
+       "ok": true
+      },
+      {
+       "label": "trace_cited_readable",
+       "ok": true
+      },
+      {
+       "label": "fetched_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "cited_sealed_repo",
+       "ok": true
+      },
+      {
+       "label": "candidate_only_sealed",
+       "ok": false
+      },
+      {
+       "label": "artifact_single",
+       "ok": true
+      },
+      {
+       "label": "artifact_parsed",
+       "ok": true
+      },
+      {
+       "label": "artifact_points_official",
+       "ok": true
+      },
+      {
+       "label": "artifact_auth_correct",
+       "ok": true
+      },
+      {
+       "label": "artifact_wrong_auth_field",
+       "ok": false
+      },
+      {
+       "label": "reached_without_trace",
+       "ok": false
+      },
+      {
+       "label": "agent_environment_isolated",
+       "ok": true
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": null,
+     "trap_armed": false,
+     "undetermined": false
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": [],
+   "codex_conforms": true,
+   "expect": []
+  },
+  {
+   "id": "E2E-perplexity.N1",
+   "input": {
+    "raw": {
+     "_traces_as": "tracesPerplexity",
+     "response": {
+      "output": [
+       {
+        "type": "search_results",
+        "results": [
+         {
+          "id": 2,
+          "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+         }
+        ]
+       },
+       {
+        "type": "message",
+        "content": [
+         {
+          "type": "output_text",
+          "text": "[[2]] ```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```"
+         }
+        ]
+       }
+      ]
+     }
+    }
+   },
+   "codex_expected": "undetermined",
+   "codex_conforms": false,
+   "expect": "undetermined"
+  },
+  {
+   "id": "F1-exclusive-perplexity.N2",
+   "input": {
+    "pass": false,
+    "method": "natural_task_traces_vs_sealed_repo",
+    "checks": [
+     {
+      "label": "response_shape_as_documented",
+      "ok": true
+     },
+     {
+      "label": "tools_used",
+      "ok": false
+     },
+     {
+      "label": "trace_fetched_readable",
+      "ok": true
+     },
+     {
+      "label": "trace_cited_readable",
+      "ok": true
+     },
+     {
+      "label": "fetched_sealed_repo",
+      "ok": false
+     },
+     {
+      "label": "cited_sealed_repo",
+      "ok": false
+     },
+     {
+      "label": "candidate_only_sealed",
+      "ok": false
+     },
+     {
+      "label": "artifact_single",
+      "ok": false
+     },
+     {
+      "label": "artifact_parsed",
+      "ok": false
+     },
+     {
+      "label": "artifact_points_official",
+      "ok": false
+     },
+     {
+      "label": "artifact_auth_correct",
+      "ok": false
+     },
+     {
+      "label": "artifact_wrong_auth_field",
+      "ok": false
+     },
+     {
+      "label": "reached_without_trace",
+      "ok": false
+     },
+     {
+      "label": "agent_environment_isolated",
+      "ok": true
+     }
+    ],
+    "false_completion": false,
+    "ground_truth_consistent": true,
+    "instrument_error": null,
+    "trap_armed": false,
+    "undetermined": true
+   },
+   "codex_expected": 1,
+   "codex_conforms": true,
+   "expect": 1
+  },
+  {
+   "id": "F1-schema-perplexity.N2",
+   "input": {
+    "reading_id": "01M3RABH7NA4QQZGMCZESX2VP6",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b",
+     "setup": {
+      "config_id": "perplexity",
+      "kind": "api_tools",
+      "provider": "fake",
+      "tools": [
+       "web_search",
+       "fetch_url"
+      ],
+      "prompt_variant": "N2",
+      "fetch_meaning": "fake",
+      "cli_version": null
+     }
+    },
+    "stage_reached": "discover",
+    "stage_stopped": "discover",
+    "observed": {
+     "pass": false,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "response_shape_as_documented",
+       "ok": true
+      },
+      {
+       "label": "tools_used",
+       "ok": false
+      },
+      {
+       "label": "trace_fetched_readable",
+       "ok": true
+      },
+      {
+       "label": "trace_cited_readable",
+       "ok": true
+      },
+      {
+       "label": "fetched_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "cited_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "candidate_only_sealed",
+       "ok": false
+      },
+      {
+       "label": "artifact_single",
+       "ok": false
+      },
+      {
+       "label": "artifact_parsed",
+       "ok": false
+      },
+      {
+       "label": "artifact_points_official",
+       "ok": false
+      },
+      {
+       "label": "artifact_auth_correct",
+       "ok": false
+      },
+      {
+       "label": "artifact_wrong_auth_field",
+       "ok": false
+      },
+      {
+       "label": "reached_without_trace",
+       "ok": false
+      },
+      {
+       "label": "agent_environment_isolated",
+       "ok": true
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": null,
+     "trap_armed": false,
+     "undetermined": true
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": [],
+   "codex_conforms": true,
+   "expect": []
+  },
+  {
+   "id": "E2E-perplexity.N2",
+   "input": {
+    "raw": {
+     "_traces_as": "tracesPerplexity",
+     "response": {
+      "output": []
+     }
+    }
+   },
+   "codex_expected": "undetermined",
+   "codex_conforms": true,
+   "expect": "undetermined"
+  },
+  {
+   "id": "F1-exclusive-claude-code.N1",
+   "input": {
+    "pass": true,
+    "method": "natural_task_traces_vs_sealed_repo",
+    "checks": [
+     {
+      "label": "response_shape_as_documented",
+      "ok": true
+     },
+     {
+      "label": "tools_used",
+      "ok": true
+     },
+     {
+      "label": "trace_fetched_readable",
+      "ok": true
+     },
+     {
+      "label": "trace_cited_readable",
+      "ok": false
+     },
+     {
+      "label": "fetched_sealed_repo",
+      "ok": true
+     },
+     {
+      "label": "cited_sealed_repo",
+      "ok": false
+     },
+     {
+      "label": "candidate_only_sealed",
+      "ok": false
+     },
+     {
+      "label": "artifact_single",
+      "ok": true
+     },
+     {
+      "label": "artifact_parsed",
+      "ok": true
+     },
+     {
+      "label": "artifact_points_official",
+      "ok": true
+     },
+     {
+      "label": "artifact_auth_correct",
+      "ok": true
+     },
+     {
+      "label": "artifact_wrong_auth_field",
+      "ok": false
+     },
+     {
+      "label": "reached_without_trace",
+      "ok": false
+     },
+     {
+      "label": "agent_environment_isolated",
+      "ok": true
+     }
+    ],
+    "false_completion": false,
+    "ground_truth_consistent": true,
+    "instrument_error": null,
+    "trap_armed": false,
+    "undetermined": false
+   },
+   "codex_expected": 1,
+   "codex_conforms": true,
+   "expect": 1
+  },
+  {
+   "id": "F1-schema-claude-code.N1",
+   "input": {
+    "reading_id": "01M3RABH7WASENQ8JVHKDBKVB9",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b",
+     "setup": {
+      "config_id": "claude-code",
+      "kind": "agent_cli",
+      "provider": "fake",
+      "tools": [
+       "WebSearch",
+       "WebFetch",
+       "Write"
+      ],
+      "prompt_variant": "N1",
+      "fetch_meaning": "fake",
+      "cli_version": null
+     }
+    },
+    "stage_reached": "done",
+    "stage_stopped": null,
+    "observed": {
+     "pass": true,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "response_shape_as_documented",
+       "ok": true
+      },
+      {
+       "label": "tools_used",
+       "ok": true
+      },
+      {
+       "label": "trace_fetched_readable",
+       "ok": true
+      },
+      {
+       "label": "trace_cited_readable",
+       "ok": false
+      },
+      {
+       "label": "fetched_sealed_repo",
+       "ok": true
+      },
+      {
+       "label": "cited_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "candidate_only_sealed",
+       "ok": false
+      },
+      {
+       "label": "artifact_single",
+       "ok": true
+      },
+      {
+       "label": "artifact_parsed",
+       "ok": true
+      },
+      {
+       "label": "artifact_points_official",
+       "ok": true
+      },
+      {
+       "label": "artifact_auth_correct",
+       "ok": true
+      },
+      {
+       "label": "artifact_wrong_auth_field",
+       "ok": false
+      },
+      {
+       "label": "reached_without_trace",
+       "ok": false
+      },
+      {
+       "label": "agent_environment_isolated",
+       "ok": true
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": null,
+     "trap_armed": false,
+     "undetermined": false
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": [],
+   "codex_conforms": true,
+   "expect": []
+  },
+  {
+   "id": "E2E-claude-code.N1",
+   "input": {
+    "raw": {
+     "_traces_as": "tracesClaudeCode",
+     "response": [
+      {
+       "type": "system",
+       "subtype": "init",
+       "tools": [
+        "WebSearch",
+        "WebFetch",
+        "Write"
+       ],
+       "mcp_servers": [],
+       "plugins": []
+      },
+      {
+       "type": "assistant",
+       "message": {
+        "content": [
+         {
+          "type": "tool_use",
+          "id": "tool_1",
+          "name": "WebFetch",
+          "input": {
+           "url": "https://github.com/fake-vendor/fake-official-mcp-server",
+           "prompt": "fetch"
+          }
+         }
+        ]
+       }
+      },
+      {
+       "type": "result",
+       "subtype": "error_during_execution",
+       "is_error": true,
+       "errors": [
+        "provider overloaded"
+       ]
+      }
+     ]
+    },
+    "files": [
+     {
+      "name": "config.json",
+      "content": "{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}"
+     }
+    ]
+   },
+   "codex_expected": "provider_api",
+   "codex_conforms": false,
+   "expect": "provider_api"
+  },
+  {
+   "id": "F1-exclusive-claude-code.N2",
+   "input": {
+    "pass": true,
+    "method": "natural_task_traces_vs_sealed_repo",
+    "checks": [
+     {
+      "label": "response_shape_as_documented",
+      "ok": true
+     },
+     {
+      "label": "tools_used",
+      "ok": true
+     },
+     {
+      "label": "trace_fetched_readable",
+      "ok": true
+     },
+     {
+      "label": "trace_cited_readable",
+      "ok": false
+     },
+     {
+      "label": "fetched_sealed_repo",
+      "ok": true
+     },
+     {
+      "label": "cited_sealed_repo",
+      "ok": false
+     },
+     {
+      "label": "candidate_only_sealed",
+      "ok": false
+     },
+     {
+      "label": "artifact_single",
+      "ok": true
+     },
+     {
+      "label": "artifact_parsed",
+      "ok": true
+     },
+     {
+      "label": "artifact_points_official",
+      "ok": true
+     },
+     {
+      "label": "artifact_auth_correct",
+      "ok": true
+     },
+     {
+      "label": "artifact_wrong_auth_field",
+      "ok": false
+     },
+     {
+      "label": "reached_without_trace",
+      "ok": false
+     },
+     {
+      "label": "agent_environment_isolated",
+      "ok": true
+     }
+    ],
+    "false_completion": false,
+    "ground_truth_consistent": true,
+    "instrument_error": null,
+    "trap_armed": false,
+    "undetermined": false
+   },
+   "codex_expected": 1,
+   "codex_conforms": true,
+   "expect": 1
+  },
+  {
+   "id": "F1-schema-claude-code.N2",
+   "input": {
+    "reading_id": "01M3RABH82DRMEEYNF81GW5E1T",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b",
+     "setup": {
+      "config_id": "claude-code",
+      "kind": "agent_cli",
+      "provider": "fake",
+      "tools": [
+       "WebSearch",
+       "WebFetch",
+       "Write"
+      ],
+      "prompt_variant": "N2",
+      "fetch_meaning": "fake",
+      "cli_version": null
+     }
+    },
+    "stage_reached": "done",
+    "stage_stopped": null,
+    "observed": {
+     "pass": true,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "response_shape_as_documented",
+       "ok": true
+      },
+      {
+       "label": "tools_used",
+       "ok": true
+      },
+      {
+       "label": "trace_fetched_readable",
+       "ok": true
+      },
+      {
+       "label": "trace_cited_readable",
+       "ok": false
+      },
+      {
+       "label": "fetched_sealed_repo",
+       "ok": true
+      },
+      {
+       "label": "cited_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "candidate_only_sealed",
+       "ok": false
+      },
+      {
+       "label": "artifact_single",
+       "ok": true
+      },
+      {
+       "label": "artifact_parsed",
+       "ok": true
+      },
+      {
+       "label": "artifact_points_official",
+       "ok": true
+      },
+      {
+       "label": "artifact_auth_correct",
+       "ok": true
+      },
+      {
+       "label": "artifact_wrong_auth_field",
+       "ok": false
+      },
+      {
+       "label": "reached_without_trace",
+       "ok": false
+      },
+      {
+       "label": "agent_environment_isolated",
+       "ok": true
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": null,
+     "trap_armed": false,
+     "undetermined": false
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": [],
+   "codex_conforms": true,
+   "expect": []
+  },
+  {
+   "id": "E2E-claude-code.N2",
+   "input": {
+    "raw": {
+     "_traces_as": "tracesClaudeCode",
+     "response": [
+      {
+       "type": "system",
+       "subtype": "init"
+      },
+      {
+       "type": "assistant",
+       "message": {
+        "content": [
+         {
+          "type": "tool_use",
+          "id": "tool_1",
+          "name": "WebFetch",
+          "input": {
+           "url": "https://github.com/fake-vendor/fake-official-mcp-server",
+           "prompt": "fetch"
+          }
+         }
+        ]
+       }
+      },
+      {
+       "type": "result",
+       "subtype": "success",
+       "is_error": false,
+       "result": "```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```"
+      }
+     ]
+    }
+   },
+   "codex_expected": "other",
+   "codex_conforms": false,
+   "expect": "other"
+  },
+  {
+   "id": "F1-missing-setup",
+   "input": {
+    "reading_id": "01M3RABH6G14NR1VGE3N73NEBM",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b"
+    },
+    "stage_reached": "done",
+    "stage_stopped": null,
+    "observed": {
+     "pass": true,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "response_shape_as_documented",
+       "ok": true
+      },
+      {
+       "label": "tools_used",
+       "ok": true
+      },
+      {
+       "label": "trace_fetched_readable",
+       "ok": true
+      },
+      {
+       "label": "trace_cited_readable",
+       "ok": true
+      },
+      {
+       "label": "fetched_sealed_repo",
+       "ok": true
+      },
+      {
+       "label": "cited_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "candidate_only_sealed",
+       "ok": false
+      },
+      {
+       "label": "artifact_single",
+       "ok": true
+      },
+      {
+       "label": "artifact_parsed",
+       "ok": true
+      },
+      {
+       "label": "artifact_points_official",
+       "ok": true
+      },
+      {
+       "label": "artifact_auth_correct",
+       "ok": true
+      },
+      {
+       "label": "artifact_wrong_auth_field",
+       "ok": false
+      },
+      {
+       "label": "reached_without_trace",
+       "ok": false
+      },
+      {
+       "label": "agent_environment_isolated",
+       "ok": true
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": null,
+     "trap_armed": false,
+     "undetermined": false
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": true,
+   "codex_conforms": true,
+   "expect": true
+  },
+  {
+   "id": "F1-extra-setup-key",
+   "input": {
+    "reading_id": "01M3RABH6G14NR1VGE3N73NEBM",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "marker_id": "M-993",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "target": {
+     "service_id": "kansei-link",
+     "model": "fake-model",
+     "harness_version": "run-marker@0.4.0+544808b",
+     "setup": {
+      "config_id": "openai",
+      "kind": "api_tools",
+      "provider": "fake",
+      "tools": [
+       "web_search"
+      ],
+      "prompt_variant": "N1",
+      "fetch_meaning": "fake",
+      "cli_version": null,
+      "extra": true
+     }
+    },
+    "stage_reached": "done",
+    "stage_stopped": null,
+    "observed": {
+     "pass": true,
+     "method": "natural_task_traces_vs_sealed_repo",
+     "checks": [
+      {
+       "label": "response_shape_as_documented",
+       "ok": true
+      },
+      {
+       "label": "tools_used",
+       "ok": true
+      },
+      {
+       "label": "trace_fetched_readable",
+       "ok": true
+      },
+      {
+       "label": "trace_cited_readable",
+       "ok": true
+      },
+      {
+       "label": "fetched_sealed_repo",
+       "ok": true
+      },
+      {
+       "label": "cited_sealed_repo",
+       "ok": false
+      },
+      {
+       "label": "candidate_only_sealed",
+       "ok": false
+      },
+      {
+       "label": "artifact_single",
+       "ok": true
+      },
+      {
+       "label": "artifact_parsed",
+       "ok": true
+      },
+      {
+       "label": "artifact_points_official",
+       "ok": true
+      },
+      {
+       "label": "artifact_auth_correct",
+       "ok": true
+      },
+      {
+       "label": "artifact_wrong_auth_field",
+       "ok": false
+      },
+      {
+       "label": "reached_without_trace",
+       "ok": false
+      },
+      {
+       "label": "agent_environment_isolated",
+       "ok": true
+      }
+     ],
+     "false_completion": false,
+     "ground_truth_consistent": true,
+     "instrument_error": null,
+     "trap_armed": false,
+     "undetermined": false
+    },
+    "observer": "kansei_harness@run-marker@0.4.0",
+    "kind": "synthetic",
+    "observed_at": "2026-09-30T13:49:50+09:00",
+    "supersedes": null,
+    "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   },
+   "codex_expected": true,
+   "codex_conforms": true,
+   "expect": true
+  },
+  {
+   "id": "F4-canaries",
+   "input": {
+    "bundle": "evidence/_dryrun/2026-09-30/marker-m-993/134950-01M3RABH5W7V2DWF4K91806TFK"
+   },
+   "codex_expected": false,
+   "codex_conforms": true,
+   "expect": false
+  },
+  {
+   "id": "F8-cross-configuration-aggregate",
+   "input": [
+    {
+     "reading_id": "01M3RABH6G14NR1VGE3N73NEBM",
+     "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+     "marker_id": "M-993",
+     "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+     "target": {
+      "service_id": "kansei-link",
+      "model": "fake-model",
+      "harness_version": "run-marker@0.4.0+544808b",
+      "setup": {
+       "config_id": "openai",
+       "kind": "api_tools",
+       "provider": "fake",
+       "tools": [
+        "web_search"
+       ],
+       "prompt_variant": "N1",
+       "fetch_meaning": "model_opened_page",
+       "cli_version": null
+      }
+     },
+     "stage_reached": "understand",
+     "stage_stopped": "understand",
+     "observed": {
+      "pass": false,
+      "method": "natural_task_traces_vs_sealed_repo",
+      "checks": [
+       {
+        "label": "response_shape_as_documented",
+        "ok": true
+       },
+       {
+        "label": "tools_used",
+        "ok": true
+       },
+       {
+        "label": "trace_fetched_readable",
+        "ok": true
+       },
+       {
+        "label": "trace_cited_readable",
+        "ok": true
+       },
+       {
+        "label": "fetched_sealed_repo",
+        "ok": true
+       },
+       {
+        "label": "cited_sealed_repo",
+        "ok": false
+       },
+       {
+        "label": "candidate_only_sealed",
+        "ok": false
+       },
+       {
+        "label": "artifact_single",
+        "ok": true
+       },
+       {
+        "label": "artifact_parsed",
+        "ok": true
+       },
+       {
+        "label": "artifact_points_official",
+        "ok": true
+       },
+       {
+        "label": "artifact_auth_correct",
+        "ok": true
+       },
+       {
+        "label": "artifact_wrong_auth_field",
+        "ok": false
+       },
+       {
+        "label": "reached_without_trace",
+        "ok": false
+       },
+       {
+        "label": "agent_environment_isolated",
+        "ok": true
+       }
+      ],
+      "false_completion": true,
+      "ground_truth_consistent": true,
+      "instrument_error": null,
+      "trap_armed": false,
+      "undetermined": false
+     },
+     "observer": "kansei_harness@run-marker@0.4.0",
+     "kind": "synthetic",
+     "observed_at": "2026-09-30T13:49:50+09:00",
+     "supersedes": null,
+     "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "outcome_id": 1
+    },
+    {
+     "reading_id": "01M3RABH6NGH0B4CXXS241QWVK",
+     "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+     "marker_id": "M-993",
+     "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+     "target": {
+      "service_id": "kansei-link",
+      "model": "fake-model",
+      "harness_version": "run-marker@0.4.0+544808b",
+      "setup": {
+       "config_id": "anthropic",
+       "kind": "api_tools",
+       "provider": "fake",
+       "tools": [
+        "web_search_20250305",
+        "web_fetch_20250910"
+       ],
+       "prompt_variant": "N1",
+       "fetch_meaning": "provider_server_fetched",
+       "cli_version": null
+      }
+     },
+     "stage_reached": "understand",
+     "stage_stopped": "understand",
+     "observed": {
+      "pass": false,
+      "method": "natural_task_traces_vs_sealed_repo",
+      "checks": [
+       {
+        "label": "response_shape_as_documented",
+        "ok": true
+       },
+       {
+        "label": "tools_used",
+        "ok": false
+       },
+       {
+        "label": "trace_fetched_readable",
+        "ok": true
+       },
+       {
+        "label": "trace_cited_readable",
+        "ok": true
+       },
+       {
+        "label": "fetched_sealed_repo",
+        "ok": false
+       },
+       {
+        "label": "cited_sealed_repo",
+        "ok": false
+       },
+       {
+        "label": "candidate_only_sealed",
+        "ok": false
+       },
+       {
+        "label": "artifact_single",
+        "ok": false
+       },
+       {
+        "label": "artifact_parsed",
+        "ok": false
+       },
+       {
+        "label": "artifact_points_official",
+        "ok": false
+       },
+       {
+        "label": "artifact_auth_correct",
+        "ok": false
+       },
+       {
+        "label": "artifact_wrong_auth_field",
+        "ok": false
+       },
+       {
+        "label": "reached_without_trace",
+        "ok": false
+       },
+       {
+        "label": "agent_environment_isolated",
+        "ok": true
+       }
+      ],
+      "false_completion": true,
+      "ground_truth_consistent": true,
+      "instrument_error": null,
+      "trap_armed": false,
+      "undetermined": false
+     },
+     "observer": "kansei_harness@run-marker@0.4.0",
+     "kind": "synthetic",
+     "observed_at": "2026-09-30T13:49:50+09:00",
+     "supersedes": null,
+     "evidence_ref": "e#sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "outcome_id": 2
+    }
+   ],
+   "codex_expected": false,
+   "codex_conforms": false,
+   "expect": false
+  },
+  {
+   "id": "F4-provider-model-url-public",
+   "input": {
+    "openai.N1": {
+     "raw": {
+      "_traces_as": "tracesOpenAI",
+      "response": {
+       "output": [
+        {
+         "type": "web_search_call",
+         "id": "ws_1",
+         "status": "completed",
+         "action": {
+          "type": "open_page",
+          "url": "https://github.com/fake-vendor/fake-official-mcp-server"
+         }
+        },
+        {
+         "type": "message",
+         "id": "msg_1",
+         "role": "assistant",
+         "status": "completed",
+         "content": [
+          {
+           "type": "output_text",
+           "text": "```json\n{\"mcpServers\":{\"aw\":{\"command\":\"node\",\"args\":[\"/test/aw-app/dist/custom/admin/server.js\"],\"env\":{\"ACCESS_TOKEN\":\"TOKEN_CANARY\",\"SYSTEM_URL\":\"https://system.invalid\"}}}}\n```",
+           "annotations": []
+          }
+         ]
+        }
+       ]
+      }
+     },
+     "model": "https://leak.invalid/ANSWER_CANARY"
+    }
+   },
+   "codex_expected": [],
+   "codex_conforms": false,
+   "expect": []
+  }
+ ]
+}
