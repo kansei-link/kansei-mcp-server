@@ -121,6 +121,7 @@
 | `http_probe` / `catalog_display`（M-002） | 封印の各エンドポイントへ MCP initialize を POST。gone(404/410)・dns_fail・connection_refused を死亡と数える。1 件でも生き返れば正解側の別行（`sealed_expectation_vs_harness_http_probe`・pass=false） | 公開カタログ（本番 MCP `tools/call lookup detail`・読むだけ）の表示トークン＝`mcp_status`＋（freshness.confidence が high なら `updated`） | `kansei_harness@…`（観測者はハーネス） | カタログ API に届かない → discover（計器）。どれか 1 件でも禁止トークン（verified/updated/確認済み/更新済み）→ **understand・pass=false・false_completion=true**（自分の状態の誤認）。カタログにその service が無い → 誤認ではないので通過。全件通過 → done |
 | `http_probe` / `fetch_check_summary`（M-003） | 封印の各 URL を直接取得し本文 sha256 を封印と照合。不一致＝ページが変わった＝正解側の別行（エージェントの失敗ではない） | 既存 fetch-check の `<日付>.json`（fetched/denied/unclear/error）を観測者ごとに読む。当日分が無い観測者は行を立てない | `claude-code@<CLI版>` / `codex@<CLI版>`（観測したのはエージェント自身）。`target.model` は要約の agents | error → 計器。wiki ページが denied／欠落 → discover。unclear → understand。wiki ページ全部 fetched → done（対照ページは check にだけ残す） |
 | `llm_answer`（M-004＝発見と理解。接続・完遂は M-005） | 封印のリポジトリが GitHub API で公開・未アーカイブか。消えれば正解側の別行（`sealed_repo_vs_github_api`） | 公開 LLM 4 社（openai/gemini/perplexity/claude）へ課題文だけを 1 問 1 答（検索ツールなし・7/29 と同じ）。モデル 1 つにつき 1 行 | `kansei_harness@…`、`target.model`＝プロバイダが返したモデル名 | 封印のリポジトリ URL（大小文字・`.git`・`#` 無視・別パスは不可）を含む → discover 通過。`OAuth 2.0`/`OAuth2` を肯定 → understand 通過＝**done**（この色素の主張は発見と理解までなので、その二つが通れば done）。URL なし → discover で停止、「公式 MCP は未確認／存在しない」と断言していれば false_completion。URL ありで Basic／API キーと断言 → understand で停止＋false_completion。認証に触れない → understand で停止（false_completion なし）。プロバイダ API の失敗 → 計器 provider_api |
+| `natural_task`（M-006＝自然な仕事・発見と理解。2026-09-30） | M-004 と同じ（封印のリポジトリが GitHub API で公開・未アーカイブか。`sealed_repo_vs_github_api`）。封印は同じ公式リポジトリ URL を **M-006 として別の salt で封印し直した物**（指紋が違うので M-004 の台帳と混ざらない） | 利用者が頼む形の課題文だけ（回答形式も選択肢も見せない）を、提供者自身の検索・取得の道具を有効にして一回頼む。構成＝`marker.configs`（openai＝Responses API web_search・gpt-5.5 日付固定・所在地 JP／anthropic＝Messages API web_search_20250305＋web_fetch_20250910・claude-opus-5-5／perplexity＝Agent API preset fast・web_search＋fetch_url／claude-code＝`claude -p` を隔離して・claude-opus-5-5）× 課題文の変種（N1 MCP を名指す・N2 名指さない）。構成×変種ごとに 1 行、`target.setup`（reading.v1.1）に構成を明記 | `kansei_harness@…`（setup が構成を持つ） | **二つの閉じた跡だけ**（`lib/natural-task-rules.mjs`）。発見＝応答の構造化された欄（取得＝模型が開いた／提供者が取った／fetch_url に頼んだ／CLI が取った URL、引用＝提供者の引用欄。Perplexity は本文の `[数字]` の印を API が返した検索結果の id に写す）の URL を一つずつ丸ごと `sourceRepoKey` に渡し、封印に解ければ通過。候補（検索結果に出ただけ）は記録するが数えない。本文や回答文から URL を探すことはしない。理解＝成果物（JSON.parse が通り最上位に `mcpServers` を持つコードブロックか作業フォルダのファイルがちょうど一つ）が公式 README の二つの形（P2 入口パス＋env ACCESS_TOKEN/SYSTEM_URL・P3 npx mcp-remote＋ヘッダ x-access-token/x-system-url）のどれかを指し認証の欄が正しければ done。Basic／API キー風の欄＝偽の完了。成果物なし・複数・解析不能＝未判定。道具を一度も呼ばなかった＝未判定。応答の形が文書と違う＝計器。取得した URL と成果物は private sidecar だけ、公開の行は真偽だけ。**Gemini の検索ありは提供者の規約により測らない**（二行形式の道具なし Gemini は M-004 に残る） |
 
 **M-004 の封印はリポジトリ URL だけ。** 理解段階の期待値（認証方式 `OAuth 2.0`）と誤方式トークン（`Basic`・`APIキー`・`API key`）は**判定規則の定数**（`lib/marker-targets.mjs` の `AUTH_RULE`）であって封印値ではない。封印に `auth_method` 等が書かれていても読まない（規則が封印の中に隠れないようにするため・Codex 審査 2 の P2/D）。マーカー ID は述語の `^M-[0-9]{3,}$` に従う（`M-004a` は不可。旧 M-004a は M-004 に改名、将来の接続・完遂は M-005）。
 
@@ -150,11 +151,17 @@
 - 偽の fixtures（M-994/995/996）・偽プロバイダ `fake`・`${ENV:…}` 置換は test-only＝非 dry-run を exit 5 で拒否。スモーク: `scripts/smoke-marker-{http-probe,fetch-check,llm-answer}.mts`。
 - 罠（`--arm-trap`）は `mcp_direct_read` だけ。一般化した対象では `trap_armed=false` 固定。
 
+- **reading.v1.1（2026-09-30・M-006）**: `target.setup`（`config_id`・`kind` api_tools/agent_cli・`provider`・`tools`・`prompt_variant`・`fetch_meaning`・`cli_version`）を任意項目として追加。method `natural_task_traces_vs_sealed_repo` の行では必須（`validateReading` の横断規則）。既存の行は変えずに有効。表の描画は setup を持つ行を「構成/変種→模型」で観測者として分け、構成の行を混ぜて数えない（構成ごとに「取得」の意味が違う）。
+- **M-006 の隔離（agent_cli）**: Claude Code は空の `CLAUDE_CONFIG_DIR`・`--safe-mode`・`--strict-mcp-config` に空の MCP・`--tools WebSearch,WebFetch,Write`・`--permission-mode dontAsk`・`--no-session-persistence`・API キーだけで起動し、`system/init` の tools／mcp_servers／plugins が想定どおりでなければその行は計器エラー（`agent_environment_isolated=false`）。
+- **M-004 の二行形式は記憶の基準線として残す（Michie 2026-09-29）**: 道具なし。Perplexity（sonar は常に検索する）を外して openai／gemini／claude の三行、週一回。
+
 ### 読みの表（`exec-harness/render-reading-sheet.mjs <marker_id>`）
 
 台帳の有効行（supersedes に指されていない）から `founder-ops/research/Marker-<ID>_<日付>/SHEET.md` を描く。載せるのは主張・指紋・期間・観測者、一日一行（日付／観測者／到達／止まった臓器／判定／偽の完了／正解側の整合／証拠の指紋）、三つの数字（臓器別の停止日数・偽の完了の回数・計器の最終観測＝24h 超なら「不明」）。序列・得点・他ベンダーとの並置・対象の生値は載せない（禁止語と 8 桁以上の数字列を描画時に自己検査し、あれば描かずに落ちる）。スモーク: `scripts/smoke-render-sheet.mts`。
 
 ## 7. 変更履歴
+
+- 2026-09-30 v1.1: `target.setup` を追加（M-006 の構成の明記）。`observed.method` に `natural_task_traces_vs_sealed_repo` を追加。§6 に `natural_task`（M-006）の行。M-004 は providers から perplexity を外し週一へ（記憶の基準線）。
 
 - 2026-09-25 v1（追記）: 対象の一般化（§6）。`observer` パターンにエージェント CLI 形式を追加、`observed.method` に対象別の 5 値を追加。M-001 の経路・列・タスクは不変。
 

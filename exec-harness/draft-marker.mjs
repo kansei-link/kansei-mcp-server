@@ -8,6 +8,7 @@
  *   node exec-harness/draft-marker.mjs M-002 [--top 500] [--keep 10]   # probe catalog endpoints; append today's result to candidates
  *   node exec-harness/draft-marker.mjs M-003                            # fetch the 3 agent-wiki pages; record body sha256
  *   node exec-harness/draft-marker.mjs M-004                           # re-confirm the official repo via GitHub API
+ *   node exec-harness/draft-marker.mjs M-006                           # same repository, sealed again as M-006 (natural task); README forms recorded
  *
  * Re-running on later days APPENDS to the candidates' probe history (M-002) or
  * refreshes the fetched digests (M-003/M-004) while keeping earlier snapshots.
@@ -23,7 +24,7 @@ const ROOT = join(__dir, '..');
 const args = process.argv.slice(2);
 const marker = args.find((a) => !a.startsWith('--'));
 const flag = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
-if (!marker) { console.error('usage: node exec-harness/draft-marker.mjs M-002|M-003|M-004'); process.exit(1); }
+if (!marker) { console.error('usage: node exec-harness/draft-marker.mjs M-002|M-003|M-004|M-006'); process.exit(1); }
 if (existsSync(join(ROOT, '.env'))) for (const line of readFileSync(join(ROOT, '.env'), 'utf8').split(/\r?\n/)) { const m = line.match(/^([A-Z0-9_]+)=(.*)$/); if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim(); }
 
 const SEALED_DIR = process.env.KANSEI_SEALED_DIR || 'C:/Users/HP/kansei-sealed';
@@ -102,6 +103,32 @@ async function draftM004() {
   save(draft);
 }
 
-const fn = { 'M-002': draftM002, 'M-003': draftM003, 'M-004': draftM004 }[marker];
+async function draftM006() {
+  // M-006 = the natural-task reading of the SAME official repository as M-004, sealed again under its own
+  // id and salt (a different fingerprint, so the two ledgers never mix). The seal holds the URL only; the
+  // official server forms are rule constants (lib/natural-task-rules.mjs OFFICIAL_FORMS) taken from the
+  // README, whose sha256 is recorded here and in the taskpack's official_forms_basis.
+  const owner = 'atled-workflow', name = 'agileworks-mcp-server';
+  const h = { accept: 'application/vnd.github+json', 'user-agent': 'kansei-marker-draft/0.4' };
+  const r = await fetch(`https://api.github.com/repos/${owner}/${name}`, { headers: h });
+  const d = await r.json();
+  const readme = await fetch(`https://api.github.com/repos/${owner}/${name}/readme`, { headers: { ...h, accept: 'application/vnd.github.raw+json' } });
+  const text = readme.ok ? await readme.text() : '';
+  const { createHash } = await import('node:crypto');
+  const readmeSha = text ? createHash('sha256').update(text).digest('hex') : null;
+  const forms = { P2_entry_path: /aw-app\/dist\/custom\/admin\/server\.js/.test(text), P2_env: /SYSTEM_URL/.test(text) && /ACCESS_TOKEN/.test(text), P3_mcp_remote: /mcp-remote/.test(text), P3_headers: /x-system-url/.test(text) && /x-access-token/.test(text) };
+  let draft = load() || { marker_id: 'M-006', purpose: 'natural-task reading (proposal 2026-09-29 §1–§4, §10): the official MCP repository URL only, sealed again as M-006 with its own salt. Public information only; no contact with the vendor.', history: [] };
+  Object.assign(draft, {
+    official_mcp_repo_url: `https://github.com/${owner}/${name}`,
+    github_api: { http: r.status, exists: r.ok, private: d.private ?? null, archived: d.archived ?? null, pushed_at: d.pushed_at ?? null, default_branch: d.default_branch ?? null },
+    not_sealed_note: { official_forms_rule_constants: 'lib/natural-task-rules.mjs OFFICIAL_FORMS (P2 local entry path + env ACCESS_TOKEN/SYSTEM_URL; P3 npx mcp-remote <host>/mcp + headers x-system-url/x-access-token)', readme_sha256_today: readmeSha, readme_states_forms: forms, npm_package: 'none published (2026-09-29)' },
+  });
+  draft.history.push({ date: today, exists: r.ok, pushed_at: d.pushed_at ?? null, readme_sha256: readmeSha });
+  draft.instructions_for_michie = 'Create M-006.json with marker_id M-006, expected.official_mcp_repo_url = the URL above (nothing else), a NEW salt (so the fingerprint differs from M-004), sealed_at / expires_at; then sha256 → evidence/commitments/M-006.sha256 and the taskpack expected_digest (agileworks-m006-natural-task.v1.json, currently PENDING_SEAL_BY_MICHIE). Do not touch M-004.json.';
+  console.log(`  repo exists=${r.ok} private=${d.private} pushed_at=${d.pushed_at} readme_sha256=${readmeSha ? readmeSha.slice(0, 12) : 'n/a'}… forms=${JSON.stringify(forms)}`);
+  save(draft);
+}
+
+const fn = { 'M-002': draftM002, 'M-003': draftM003, 'M-004': draftM004, 'M-006': draftM006 }[marker];
 if (!fn) { console.error(`unknown marker ${marker}`); process.exit(1); }
 fn().catch((e) => { console.error('DRAFT ERROR:', e); process.exit(1); });

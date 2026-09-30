@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "id": "fixture-m993-fake-natural-task",
+  "version": 1,
+  "service_id": "kansei-link",
+  "category": "fixture",
+  "task_type": "marker",
+  "evidence_tier_target": "E2",
+  "risk": "R0",
+  "marker": {
+    "marker_id": "M-993",
+    "kind": "synthetic",
+    "kind_of_truth": "natural_task",
+    "claim": "FIXTURE: fake marker for scripts smoke (natural_task: traces and artifact)",
+    "commitment_file": "exec-harness/fixtures/M-993.sha256",
+    "expected_digest": "aff1b755831fa20896780cab34931218d42eee98fe90769fea4e540f6ea6a374",
+    "sealed_path_env": "KANSEI_M993_SEALED_PATH",
+    "max_readings": 40,
+    "note": "Fixture. Never run outside --dry-run. Fake provider only (KANSEI_FAKE_NATURAL_FILE); GitHub check off.",
+    "verify_repo_via_github": false,
+    "configs": [
+      { "id": "openai", "kind": "api_tools", "provider": "fake", "tools": ["web_search"], "fetch_meaning": "fake", "options": {} },
+      { "id": "anthropic", "kind": "api_tools", "provider": "fake", "tools": ["web_search_20250305", "web_fetch_20250910"], "fetch_meaning": "fake", "options": {} },
+      { "id": "perplexity", "kind": "api_tools", "provider": "fake", "tools": ["web_search", "fetch_url"], "fetch_meaning": "fake", "options": {} },
+      { "id": "claude-code", "kind": "agent_cli", "provider": "fake", "tools": ["WebSearch", "WebFetch", "Write"], "fetch_meaning": "fake", "options": {} }
+    ],
+    "prompt_variants": {
+      "N1": { "ja": "（偽の課題文 N1）偽ベンダーを AI から使えるようにしたい。設定ファイルを作って。", "en": "(fake N1)" },
+      "N2": { "ja": "（偽の課題文 N2）承認フローを AI から自動化したい。", "en": "(fake N2)" }
+    }
+  },
+  "goal_prompt": {
+    "ja": "（偽の課題文 N1）偽ベンダーを AI から使えるようにしたい。設定ファイルを作って。",
+    "en": "(fake N1)"
+  },
+  "preflight": [],
+  "preconditions": [],
+  "scripted_steps": [],
+  "agentic": { "models": [] },
+  "cleanup": { "required": false, "steps": [] },
+  "budgets": { "max_steps": 1, "max_tokens": 1200, "timeout_s": 60 },
+  "publication": { "publishable": false, "provenance": "synthetic", "note": "fixture" }
+}

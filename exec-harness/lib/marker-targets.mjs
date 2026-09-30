@@ -395,13 +395,67 @@ const llmAnswer = {
   },
 };
 
+/* ================= natural_task (M-006: a natural request, the provider's own tools, two closed traces) ================= */
+/**
+ * Rules: ./natural-task-rules.mjs (traces per configuration, the artifact, the judgement). Callers:
+ * ./natural-task.mjs (loaded here by dynamic import only, so no other marker depends on it).
+ * Seal = the official repository URL (as M-004; parseSealed shared). Ground truth = the repository is
+ * still where the seal says (llmAnswer.groundTruth). One reading per configuration × prompt variant:
+ * the observer label is "<config id>.<variant>" and target.setup names the configuration
+ * (reading.v1.1). No format is appended to the prompt and no options are shown.
+ */
+const naturalTask = {
+  method: 'natural_task_traces_vs_sealed_repo',
+  gtMethod: 'sealed_repo_vs_github_api',
+  gtClaim: 'sealed official MCP repository still exists and is public on GitHub',
+  parseSealed(json) { return llmAnswer.parseSealed(json); },
+  groundTruth(args) { return llmAnswer.groundTruth(args); },
+  observers({ MK }) {
+    const configs = Array.isArray(MK.configs) ? MK.configs : [];
+    const variants = Object.keys(MK.prompt_variants || {});
+    const out = [];
+    for (const c of configs) for (const v of variants) out.push({ id: 'kansei_harness', label: `${c.id}.${v}`, provider: c.provider, model: null, config: c, variant: v, setup: { config_id: c.id, kind: c.kind, provider: c.provider, tools: [...(c.tools || [])], prompt_variant: v, fetch_meaning: c.fetch_meaning, cli_version: null } });
+    return out;
+  },
+  async observe({ PACK, MK, observer, flags, log }) {
+    const { runNaturalTask, claudeCodeIsolation, CONFIG_DEFAULTS } = await import('./natural-task.mjs');
+    const variant = MK.prompt_variants[observer.variant];
+    const lang = variant?.[flags.lang] ? flags.lang : 'ja';
+    const question = variant[lang]; // the natural request alone: no answer format, no options
+    const cfg = { ...(CONFIG_DEFAULTS[observer.provider] || {}), ...(observer.config.options || {}) };
+    const a = await runNaturalTask({ provider: observer.provider }, question, { label: observer.label, cfg });
+    log({ role: 'assistant', provider: observer.provider, model: a.model, error: a.error || null, raw: a.raw ?? null, files: a.files || [], usage: a.usage || null, cli_version: a.cli_version || null });
+    if (a.error) return { error: a.error, model: a.model, cliVersion: a.cli_version || null };
+    // an agent CLI must have run isolated (system/init: only the allowed tools, no MCP server, no plugin)
+    const isolation = observer.setup?.kind === 'agent_cli' ? claudeCodeIsolation(a.raw?.response ?? a.raw, observer.config.tools || cfg.tools || []) : null;
+    return { raw: a.raw, files: a.files || [], model: a.model, cliVersion: a.cli_version || null, isolation, usage: a.usage || null };
+  },
+  async judge({ obs, sealed, observer }) {
+    const R = await import('./natural-task-rules.mjs');
+    if (obs?.error) return { reached: 'discover', stopped: 'discover', pass: false, falseCompletion: false, undetermined: false, instrument: 'provider_api', checks: [{ label: 'provider_answered', ok: false }] };
+    const provider = observer?.provider;
+    const traces = provider === 'openai' ? R.tracesOpenAI(obs.raw) : provider === 'anthropic' ? R.tracesAnthropic(obs.raw) : provider === 'perplexity' ? R.tracesPerplexity(obs.raw) : provider === 'claude-code' ? R.tracesClaudeCode(obs.raw) : provider === 'fake' ? R[obs.raw?._traces_as || 'tracesOpenAI'](obs.raw?.response ?? obs.raw) : { shape_ok: false, tools_used: false, candidates: [], fetched: [], fetched_readable: false, cited: [], cited_readable: false, text: '' };
+    const art = R.extractArtifact({ text: traces.text, files: obs.files || [] });
+    const v = R.judgeNaturalTask({ traces, art, sealedKey: sealed.repo });
+    if (obs.isolation && !obs.isolation.ok) { v.instrument = 'other'; v.pass = false; v.falseCompletion = false; v.undetermined = false; v.reached = 'discover'; v.stopped = 'discover'; }
+    v.checks.push({ label: 'agent_environment_isolated', ok: obs.isolation ? obs.isolation.ok : true });
+    // what a person may look at later: the traces and the artifact, private only (environment.private.json)
+    v.private = { event: 'natural_task_traces', observer: observer?.label, candidates: traces.candidates, fetched: traces.fetched, cited: traces.cited, artifact: art.state === 'one' ? art.artifact : null, artifact_state: art.state, artifact_sources: art.sources, artifact_form: v.artifact_form, isolation: obs.isolation, usage: obs.usage || null };
+    return v;
+  },
+  promptGuidance() {
+    return { form: 'natural_request', lines: 0, auth_options_listed: [], format_text: null, leaks_expected_repo_url: false, leaks_expected_auth_method: false, note: 'the request is the only text the model sees; no answer format, no option list' };
+  },
+};
+
 export function selectTarget(MK) {
   const kind = MK.kind_of_truth || 'mcp_direct_read';
   if (kind === 'mcp_direct_read') return null; // handled in run-marker.mjs (freee/M-001)
   if (kind === 'http_probe' && MK.observation === 'catalog_display') return catalogDisplay;
   if (kind === 'http_probe' && MK.observation === 'fetch_check_summary') return fetchCheck;
   if (kind === 'llm_answer') return llmAnswer;
+  if (kind === 'natural_task') return naturalTask;
   throw new Error(`unsupported kind_of_truth/observation: ${kind}/${MK.observation ?? '-'}`);
 }
 
-export const TARGETS = { catalogDisplay, fetchCheck, llmAnswer };
+export const TARGETS = { catalogDisplay, fetchCheck, llmAnswer, naturalTask };

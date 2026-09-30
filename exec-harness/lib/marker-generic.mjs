@@ -115,16 +115,17 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     const elapsed = Date.now() - started;
     const observedAt = isoWithOffset(new Date());
 
-    const v = truth && !error ? target.judge({ obs, sealed, truth, MK: MKr })
+    const v = truth && !error ? await target.judge({ obs, sealed, truth, MK: MKr, observer })
       : { reached: 'discover', stopped: 'discover', pass: false, checks: [], falseCompletion: false, instrument: instrumentBefore || (/timeout_s/.test(String(error)) ? 'timeout' : 'other') };
     if (error && !v.instrument) v.instrument = 'other';
+    if (v.private) privateEnvironment.diagnostics.push(v.private); // e.g. M-006: the traces and the artifact, never public
     log({ role: 'harness', event: 'assert', stage_reached: v.reached, stage_stopped: v.stopped, pass: v.pass, checks: v.checks, false_completion: v.falseCompletion, instrument_error: v.instrument, error, metrics: { elapsed_ms: elapsed } });
 
     const observerStr = observer.id === 'kansei_harness' ? OBSERVER : `${observer.id}@${obs.cliVersion || 'unknown'}`;
     const model = obs.model || observer.model || observer.provider || 'none';
     const reading = {
       reading_id: newUlid(), claim: MK.claim, marker_id: MK.marker_id, expected_digest: sealedCommon.digest,
-      target: { service_id: PACK.service_id, model, harness_version: HARNESS_VERSION },
+      target: { service_id: PACK.service_id, model, harness_version: HARNESS_VERSION, ...(observer.setup ? { setup: { ...observer.setup, cli_version: obs.cliVersion || null } } : {}) },
       stage_reached: v.reached, stage_stopped: v.stopped,
       observed: { pass: v.pass, method: target.method, checks: v.checks, false_completion: v.falseCompletion, ground_truth_consistent: gtConsistent, instrument_error: v.instrument, trap_armed: false, undetermined: Boolean(v.undetermined) },
       evidence_ref: `${bundleRel}#sha256:PENDING`, observer: observerStr, kind: 'synthetic', observed_at: observedAt, supersedes: flags.supersedes || null,
@@ -139,14 +140,15 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
   // ---- bundle ----
   const libs = {};
   for (const f of ['marker-sealed.mjs', 'marker-generic.mjs', 'marker-targets.mjs', 'marker-persist.mjs', 'llm-ask.mjs', 'llm-answer-rules.mjs', 'attribution-labels.mjs', 'reading.mjs', 'marker-bundle.mjs', 'marker-store.mjs']) libs[`lib/${f}`] = fileSha(join(libDir, f));
-  // Optional parts (the M-004 attribution parts: attribution-attest.mjs, the hint reader attribution-rules.mjs and the six vendored decoder files).
+  // Optional parts (the M-004 attribution parts: attribution-attest.mjs, the hint reader attribution-rules.mjs and the six vendored decoder
+  // files; the M-006 parts: repo-key.mjs, natural-task.mjs, natural-task-rules.mjs).
   // Codex 8d905ee N3: ANY failure while reading an optional part (absent, EACCES, a directory, …) is
   // caught and recorded as null — it must never stop the reading or the bundle.
   const optionalSha = (rel) => {
     try { return fileSha(join(libDir, '..', rel)); }
     catch (e) { privateEnvironment.diagnostics.push({ event: 'optional_part_unreadable', part: rel, code: String(e?.code || 'error') }); return null; }
   };
-  for (const rel of ['lib/attribution-attest.mjs', 'lib/attribution-rules.mjs', ...['decode.js', 'decode-codepoint.js', 'generated/decode-data-html.js', 'generated/decode-data-xml.js', 'internal/bin-trie-flags.js', 'internal/decode-shared.js'].map((f) => `vendor/entities-8.1.0/${f}`)]) libs[rel] = optionalSha(rel);
+  for (const rel of ['lib/attribution-attest.mjs', 'lib/attribution-rules.mjs', 'lib/repo-key.mjs', 'lib/natural-task.mjs', 'lib/natural-task-rules.mjs', ...['decode.js', 'decode-codepoint.js', 'generated/decode-data-html.js', 'generated/decode-data-xml.js', 'internal/bin-trie-flags.js', 'internal/decode-shared.js'].map((f) => `vendor/entities-8.1.0/${f}`)]) libs[rel] = optionalSha(rel);
   // written after the fingerprints, so an unreadable optional part is recorded in the private sidecar
   writeFileSync(join(bundleDir, 'environment.private.json'), JSON.stringify(privateEnvironment, null, 1));
   const manifest = {

@@ -48,6 +48,7 @@ const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: n
   const rel = [...seen].map((f) => relative(SRC, f).replaceAll("\\", "/"));
   expect("1 static graph of run-marker / render-reading-sheet / draft-marker never reaches attribution-rules.mjs", !rel.some((r) => r.endsWith("attribution-rules.mjs")), rel.join(", "));
   expect("1 static graph never reaches attribution-attest.mjs", !rel.some((r) => r.endsWith("attribution-attest.mjs")));
+  expect("1 static graph never reaches the M-006 parts (natural-task.mjs, natural-task-rules.mjs, repo-key.mjs)", !rel.some((r) => /(natural-task(-rules)?|repo-key)\.mjs$/.test(r)), rel.join(", "));
   expect("1 static graph never reaches exec-harness/vendor/", !rel.some((r) => r.startsWith("exec-harness/vendor/")));
   expect("1 attribution-labels.mjs is in the graph (marker-persist, renderer) and has no imports", rel.includes("exec-harness/lib/attribution-labels.mjs") && !/^\s*import\s/m.test(readFileSync(join(SRC, "exec-harness/lib/attribution-labels.mjs"), "utf-8")));
   const mt = readFileSync(join(SRC, "exec-harness/lib/marker-targets.mjs"), "utf-8");

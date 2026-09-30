@@ -18,7 +18,6 @@
     "providers": [
       "openai",
       "gemini",
-      "perplexity",
       "claude"
     ],
     "verify_repo_via_github": true,
@@ -47,7 +46,11 @@
     "report_readme": "founder-ops/research/Marker-M004_2026-09-25/README.md",
     "max_readings": 28,
     "note": "M-004 covers discover + understand only (connect + execute will be M-005). No contact with the vendor: the harness only asks public LLMs (one plain turn) and checks the sealed repository's existence through the public GitHub API. THE SEAL HOLDS ONLY THE OFFICIAL MCP REPOSITORY URL. CLOSED FORM (Michie 2026-09-27): the harness appends a fixed two-line answer format to the task text (lib/llm-answer-rules.mjs ANSWER_FORMAT) — REPO: <one URL or none> / AUTH: <OAuth 2.0 | Basic | API key | unknown> — and the judge reads ONLY the answer region = the last two non-empty physical lines, which must be REPO then AUTH (form checked before content; anything before them, including code quotes that look like the two lines, is never judged); the explanation is kept in transcript.jsonl as evidence and never judged. Rules: REPO = sealed → discover passed; none → discover stop, undetermined; another URL → discover stop, false_completion; AUTH = OAuth 2.0 → done; Basic/API key → understand stop, false_completion; unknown → understand stop, undetermined; a missing line, wrong order, text after the pair, an empty value, a value outside the form or several URLs → format_violation (checked before any content, so it wins over REPO content) = undetermined on the agent's side (not an instrument error). Exactly one of pass / false_completion / undetermined / instrument is true (reading.v1 oneOf + assertExclusive). The expected method (OAuth 2.0) and the wrong tokens are rule constants (AUTH_RULE), not sealed values. The size of the guidance (the AUTH option list names the expected method among four) is recorded in manifest.prompt_guidance so the reading can be discounted.",
-    "answer_format": "two_lines_REPO_AUTH"
+    "answer_format": "two_lines_REPO_AUTH",
+    "schedule": {
+      "cadence": "weekly (Monday 10:35) from 2026-10 — Michie 2026-09-29: the two-line form stays as the memory baseline (no tools; Perplexity removed because sonar always searches, so its row mixed memory and retrieval); the natural-task reading is M-006",
+      "previous": "daily 10:35 with four providers until 2026-09-29"
+    }
   },
   "goal_prompt": {
     "ja": "AgileWorks（株式会社エイトレッド）を AI エージェントから操作したい。公式の MCP サーバーの有無と所在、Web API の認証方式を特定し、根拠の URL を添えて報告せよ。",
@@ -64,7 +67,6 @@
     "models": [
       "openai",
       "gemini",
-      "perplexity",
       "claude"
     ],
     "runs_per_day": 1,

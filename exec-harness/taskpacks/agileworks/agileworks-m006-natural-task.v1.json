@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "id": "agileworks-m006-natural-task",
+  "version": 1,
+  "service_id": "agile-works",
+  "category": "workflow",
+  "task_type": "marker",
+  "evidence_tier_target": "E2",
+  "risk": "R0",
+  "marker": {
+    "marker_id": "M-006",
+    "kind": "synthetic",
+    "kind_of_truth": "natural_task",
+    "claim": "利用者が自然な言葉で頼んだ時、AI エージェントは道具を使って AgileWorks（エイトレッド）の公式 MCP の所在に辿り着き、公式サーバーを指す設定ファイルを作れる",
+    "commitment_file": "evidence/commitments/M-006.sha256",
+    "expected_digest": "PENDING_SEAL_BY_MICHIE",
+    "sealed_path_env": "KANSEI_M006_SEALED_PATH",
+    "verify_repo_via_github": true,
+    "max_readings": 140,
+    "configs": [
+      { "id": "openai", "kind": "api_tools", "provider": "openai", "tools": ["web_search"], "fetch_meaning": "model_opened_page", "cadence": "3/day", "options": { "model": "gpt-5.5-2026-04-23" } },
+      { "id": "anthropic", "kind": "api_tools", "provider": "anthropic", "tools": ["web_search_20250305", "web_fetch_20250910"], "fetch_meaning": "provider_server_fetched", "cadence": "3/day", "options": { "model": "claude-opus-5-5" } },
+      { "id": "perplexity", "kind": "api_tools", "provider": "perplexity", "tools": ["web_search", "fetch_url"], "fetch_meaning": "fetch_url_requested", "cadence": "3/day", "options": { "preset": "fast" } },
+      { "id": "claude-code", "kind": "agent_cli", "provider": "claude-code", "tools": ["WebSearch", "WebFetch", "Write"], "fetch_meaning": "local_fetch_summarised", "cadence": "1/day", "options": { "model": "claude-opus-5-5" } }
+    ],
+    "prompt_variants": {
+      "N1": {
+        "ja": "AgileWorks を AI エージェントから使えるようにしたい。Claude Desktop で動く MCP クライアントの設定ファイルを作って。",
+        "en": "I want to use AgileWorks from an AI agent. Write the configuration file for an MCP client running in Claude Desktop."
+      },
+      "N2": {
+        "ja": "承認フローを AI から自動化したい、AgileWorks で。",
+        "en": "I want to automate approval workflows from an AI, with AgileWorks."
+      }
+    },
+    "schedule": { "api_tools": ["09:20", "14:20", "21:20"], "agent_cli": ["09:20"], "note": "informational; the Task Scheduler entries pass --observers <labels> (config id . variant) so that the three daily runs cover the api_tools configurations and only the first also runs claude-code" },
+    "official_forms_basis": {
+      "readme_url": "https://github.com/atled-workflow/agileworks-mcp-server#readme",
+      "read_on": "2026-09-29",
+      "forms": "lib/natural-task-rules.mjs OFFICIAL_FORMS — P2 local: node <…>/aw-app/dist/custom/admin/server.js with env ACCESS_TOKEN and SYSTEM_URL; P3 remote: npx mcp-remote <own host>/mcp with headers (or query) x-system-url and x-access-token",
+      "npm_package": "none published (checked 2026-09-29: agileworks-mcp-server, agileworks-mcp, @atled/…, @atled-workflow/… all 404; the internal package name orval-agileworks-mcp is not on npm), so package names are never used as evidence"
+    },
+    "not_measured": "Gemini with Google Search grounding: the Gemini API terms (2026-04-28) forbid collecting or analysing the grounding links programmatically, so no configuration uses it. The tool-less Gemini reading of the two-line form (M-004) is the memory baseline and remains.",
+    "report_readme": "founder-ops/research/Marker-M006_2026-09-30/README.md",
+    "note": "M-006 = the natural-task reading of the same seal as M-004 (the official MCP repository URL; sealed again as M-006 with its own fingerprint). No format is appended to the request and no options are shown. Judgement from two closed traces only (lib/natural-task-rules.mjs): DISCOVER = a URL in the structured fetched or cited fields of the provider's response resolves to the sealed repository (sourceRepoKey on each whole URL; a page body or an answer text is never scanned; candidates that only appeared in search results are recorded, never counted; Perplexity's citations are the [digits] markers of the answer mapped to the ids of the search results the API returned). UNDERSTAND = exactly one parseable artifact (a fenced code block or a work-directory file that JSON.parse accepts with a top-level mcpServers object) that points at the official server in one of the README's two forms with the official credential slots; a Basic / API-key style credential name is a false completion; no single artifact = undetermined. Exactly one of pass / false_completion / undetermined / instrument is true. The traces (URLs) and the artifact go to environment.private.json only; public rows carry booleans. Rows of different setups are never mixed in a table.",
+    "answer_format": "none"
+  },
+  "goal_prompt": {
+    "ja": "AgileWorks を AI エージェントから使えるようにしたい。Claude Desktop で動く MCP クライアントの設定ファイルを作って。",
+    "en": "I want to use AgileWorks from an AI agent. Write the configuration file for an MCP client running in Claude Desktop."
+  },
+  "preflight": [],
+  "preconditions": [
+    "Sealed file holds the official MCP repository URL only, sealed as M-006 (draft: exec-harness/draft-marker.mjs M-006; the seal itself and the commitment are Michie's)",
+    "API keys for OpenAI, Anthropic and Perplexity in .env (git-ignored); Claude Code runs with ANTHROPIC_API_KEY (no subscription), isolated (empty CLAUDE_CONFIG_DIR, --safe-mode, no MCP, tools WebSearch/WebFetch/Write)",
+    "Every configuration's response shape is checked against the documented one; an unexpected shape is an instrument error, never a judgement"
+  ],
+  "scripted_steps": [],
+  "agentic": {
+    "models": ["openai", "anthropic", "perplexity", "claude-code"],
+    "runs_per_day": 3,
+    "temperature": "provider default"
+  },
+  "cleanup": {
+    "required": false,
+    "steps": []
+  },
+  "budgets": {
+    "max_steps": 25,
+    "max_tokens": 4000,
+    "timeout_s": 600
+  },
+  "publication": {
+    "publishable": false,
+    "provenance": "synthetic",
+    "note": "Sealed-marker readings are synthetic; outcomes rows use provenance='synthetic' and never enter publishable_outcomes. No ranking, no score, no vendor comparison."
+  }
+}

@@ -16,6 +16,7 @@ export function testOnlyReasons({ args, env, executor, pack, packPath, sealedPat
   if ([packPath, sealedPath, commitmentPath].some(isFixturePath) || /fixture/i.test(`${pack.id} ${pack.marker?.claim}`)) reasons.push('fixture');
   // Generic kinds: a fake LLM provider or environment-substituted endpoints are test machinery too.
   if ((pack.marker?.providers || []).includes('fake') || Object.hasOwn(env, 'KANSEI_FAKE_LLM_ANSWERS_FILE')) reasons.push('fake_provider');
+  if ((pack.marker?.configs || []).some((c) => c?.provider === 'fake') || Object.hasOwn(env, 'KANSEI_FAKE_NATURAL_FILE')) reasons.push('fake_provider');
   if (/\$\{ENV:/.test(JSON.stringify(pack.marker || {}))) reasons.push('env_substitution');
   // A copied fixture seal is still a fixture, regardless of its new filename.
   const fixtureDigests = new Set(readdirSync(fixturesDir).filter((f) => f.endsWith('.sealed.json')).map((f) => sha256(readFileSync(join(fixturesDir, f)))));

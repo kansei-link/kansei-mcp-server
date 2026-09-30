@@ -46,7 +46,10 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
   const digest = rows[0]?.expected_digest || '—';
   const dates = rows.map((r) => r.observed_at.slice(0, 10));
   const period = rows.length ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '—';
-  const observerOf = (r) => (r.observer.startsWith('kansei_harness') ? (r.target.model && r.target.model !== 'none' ? `harness→${r.target.model}` : 'harness') : `${r.observer}${r.target.model && r.target.model !== 'none' ? `（${r.target.model}）` : ''}`);
+  // v1.1: a reading that names its setup (M-006) is shown per configuration × prompt variant; rows of different setups are never mixed
+  const setupOf = (r) => (r.target.setup ? `${r.target.setup.config_id}/${r.target.setup.prompt_variant}${r.target.setup.kind === 'agent_cli' ? '（CLI）' : ''}→${r.target.model}` : null);
+  const observerOf = (r) => setupOf(r) || (r.observer.startsWith('kansei_harness') ? (r.target.model && r.target.model !== 'none' ? `harness→${r.target.model}` : 'harness') : `${r.observer}${r.target.model && r.target.model !== 'none' ? `（${r.target.model}）` : ''}`);
+  const naturalTask = agent.some((r) => r.observed.method === 'natural_task_traces_vs_sealed_repo');
   const observers = [...new Set(agent.map(observerOf))];
   const verdict = (r) => r.observed.instrument_error ? `計器:${r.observed.instrument_error}` : r.observed.pass ? 'pass' : 'fail';
   const gtOf = (r) => r.observed.ground_truth_consistent === true ? '一致' : r.observed.ground_truth_consistent === false ? '不一致' : '—';
@@ -67,6 +70,10 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
   lines.push(`- 期間: ${period}（有効行 ${agent.length}・正解側の行 ${gt.length}）`);
   lines.push(`- 観測者: ${observers.length ? observers.join('、') : '—'}`);
   lines.push(`- 描画: ${now.toISOString()}（この表は台帳から機械的に描く。序列・得点・他ベンダーとの並置・対象の生値は載せない）`);
+  if (naturalTask) {
+    lines.push('- 構成: 観測者の欄は「構成/課題文の変種→模型」。構成ごとに「取得」の意味が違う（OpenAI＝模型が開いたページ、Anthropic＝提供者のサーバーが取った本文、Perplexity＝fetch_url に頼んだ URL、Claude Code＝手元が取って要約した物）ので、構成の行は混ぜて数えない。');
+    lines.push('- Gemini の検索ありは提供者の規約により測っていない（道具を使わない Gemini の行は M-004 の二行形式＝記憶の基準線にある）。');
+  }
   lines.push('');
   lines.push('## 一日一行');
   lines.push('');

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kansei-link.com/schemas/reading.v1.schema.json",
-  "title": "KanseiLINK reading predicate v1",
-  "description": "One append-only line recording what was tried, what happened, at which stage it stopped, and where the evidence is. Values under test (tenant identifiers, counts, amounts) are never stored here; only pass/fail, stage, and digests.",
+  "title": "KanseiLINK reading predicate v1.1",
+  "description": "One append-only line recording what was tried, what happened, at which stage it stopped, and where the evidence is. Values under test (tenant identifiers, counts, amounts) are never stored here; only pass/fail, stage, and digests. v1.1 (2026-09-30): target.setup — the configuration that produced the reading (api_tools / agent_cli, provider, tools, prompt variant, what a fetch means) — optional, required for method natural_task_traces_vs_sealed_repo (M-006); readings without it stay valid.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -49,7 +49,22 @@
       "properties": {
         "service_id": { "type": "string", "minLength": 1 },
         "model": { "type": "string", "description": "Provider-reported model id, or 'none' for harness-only readings.", "minLength": 1 },
-        "harness_version": { "type": "string", "description": "run-marker.mjs version tag + short git sha, e.g. run-marker@0.1.0+2d24ac4", "minLength": 1 }
+        "harness_version": { "type": "string", "description": "run-marker.mjs version tag + short git sha, e.g. run-marker@0.1.0+2d24ac4", "minLength": 1 },
+        "setup": {
+          "type": "object",
+          "description": "v1.1: the configuration that produced the reading (M-006). Rows of different setups are never mixed in a table.",
+          "additionalProperties": false,
+          "required": ["config_id", "kind", "provider", "tools", "prompt_variant", "fetch_meaning", "cli_version"],
+          "properties": {
+            "config_id": { "type": "string", "description": "the configuration's id in the taskpack (marker.configs[].id)", "pattern": "^[a-z][a-z0-9-]{0,30}$" },
+            "kind": { "type": "string", "enum": ["api_tools", "agent_cli"] },
+            "provider": { "type": "string", "enum": ["openai", "anthropic", "perplexity", "claude-code", "fake"] },
+            "tools": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "prompt_variant": { "type": "string", "pattern": "^N[0-9]+$" },
+            "fetch_meaning": { "type": "string", "description": "what a fetched URL means for this setup: the model opened the page (OpenAI), the provider server fetched it (Anthropic), the fetch_url tool was asked for it (Perplexity), the local CLI fetched and summarised it (Claude Code)", "enum": ["model_opened_page", "provider_server_fetched", "fetch_url_requested", "local_fetch_summarised", "fake"] },
+            "cli_version": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] }
+          }
+        }
       }
     },
     "stage_reached": {
@@ -86,6 +101,7 @@
             "catalog_display_vs_sealed_expectation",
             "agent_fetch_vs_sealed_body_digest",
             "llm_answer_rules_vs_sealed_expectation",
+            "natural_task_traces_vs_sealed_repo",
             "sealed_expectation_vs_harness_http_probe",
             "sealed_repo_vs_github_api",
             "sealed_repo_vs_official_docs",

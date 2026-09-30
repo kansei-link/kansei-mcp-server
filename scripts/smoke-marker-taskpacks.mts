@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
- * Smoke test: every REAL taskpack (M-001 … M-004) produces readings that pass
- * reading.v1.schema.json, and its marker block is complete and selectable.
+ * Smoke test: every REAL taskpack (M-001 … M-004, M-006) produces readings that pass
+ * reading.v1.schema.json (v1.1), and its marker block is complete and selectable.
  * (Codex review 2 ①: "M-004a" violated the marker_id pattern and would have
  * failed at the harness's schema gate on the first real run.)
  *
@@ -10,7 +10,7 @@
  * No network, no seal, no DB: readings are synthesised from each pack's marker
  * block the same way run-marker/marker-generic build them, then validated.
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { validateReading, loadReadingSchema, newUlid, isoWithOffset } from "../exec-harness/lib/reading.mjs";
 import { selectTarget } from "../exec-harness/lib/marker-targets.mjs";
@@ -24,11 +24,11 @@ function walk(dir: string): string[] { return readdirSync(dir).flatMap((f) => { 
 const packs = walk(PACKS_DIR).map((p) => ({ path: p, rel: p.slice(ROOT.length + 1).replaceAll("\\", "/"), pack: JSON.parse(readFileSync(p, "utf-8")) })).filter((x) => x.pack.marker);
 const schema = loadReadingSchema();
 const ids = packs.map((x) => x.pack.marker.marker_id);
-expect("four real marker packs found (M-001..M-004)", ["M-001", "M-002", "M-003", "M-004"].every((id) => ids.includes(id)), ids.join(","));
+expect("five real marker packs found (M-001..M-004, M-006)", ["M-001", "M-002", "M-003", "M-004", "M-006"].every((id) => ids.includes(id)), ids.join(","));
 expect("marker ids unique", new Set(ids).size === ids.length);
 
-const METHODS: Record<string, string> = { mcp_direct_read: "harness_direct_api_vs_sealed_expectation", "http_probe/catalog_display": "catalog_display_vs_sealed_expectation", "http_probe/fetch_check_summary": "agent_fetch_vs_sealed_body_digest", llm_answer: "llm_answer_rules_vs_sealed_expectation" };
-const GT_METHODS: Record<string, string> = { mcp_direct_read: "sealed_expectation_vs_harness_direct_api", "http_probe/catalog_display": "sealed_expectation_vs_harness_http_probe", "http_probe/fetch_check_summary": "sealed_expectation_vs_harness_http_probe", llm_answer: "sealed_repo_vs_github_api" };
+const METHODS: Record<string, string> = { mcp_direct_read: "harness_direct_api_vs_sealed_expectation", "http_probe/catalog_display": "catalog_display_vs_sealed_expectation", "http_probe/fetch_check_summary": "agent_fetch_vs_sealed_body_digest", llm_answer: "llm_answer_rules_vs_sealed_expectation", natural_task: "natural_task_traces_vs_sealed_repo" };
+const GT_METHODS: Record<string, string> = { mcp_direct_read: "sealed_expectation_vs_harness_direct_api", "http_probe/catalog_display": "sealed_expectation_vs_harness_http_probe", "http_probe/fetch_check_summary": "sealed_expectation_vs_harness_http_probe", llm_answer: "sealed_repo_vs_github_api", natural_task: "sealed_repo_vs_github_api" };
 
 for (const { rel, pack } of packs) {
   const MK = pack.marker;
@@ -47,6 +47,7 @@ for (const { rel, pack } of packs) {
   if (kind === "llm_answer") expect(`${tag}: note declares the seal is the repo URL only and auth is a rule constant`, /ONLY THE OFFICIAL MCP REPOSITORY URL/.test(MK.note || "") && /AUTH_RULE/.test(MK.note || ""));
   // ATTRIBUTION-Rules v0.1 §2-1: A1/A2 fixed in the taskpack (public), B = the production catalog item, read only
   if (MK.marker_id === "M-004") {
+    expect(`${tag}: two-line form = memory baseline without Perplexity (openai, gemini, claude)`, JSON.stringify(MK.providers) === JSON.stringify(["openai", "gemini", "claude"]), JSON.stringify(MK.providers));
     const at = MK.attribution || {};
     expect(`${tag}: attribution A1/A2 fixed exactly`, JSON.stringify((at.official_docs || []).map((p: any) => [p.id, p.url])) === JSON.stringify([["A1", "https://www.atled.jp/agileworks/functions/ai-use/"], ["A2", "https://www.atled.jp/news/20260727_01/"]]), JSON.stringify(at.official_docs));
     expect(`${tag}: attribution B reads the production catalog item agile-works`, at.catalog?.service_id === "agile-works" && at.catalog?.display_api_url === "https://kansei-link-mcp-production.up.railway.app/mcp");
@@ -66,7 +67,7 @@ for (const { rel, pack } of packs) {
     for (const stage of [["done", null, true, false, false], ["understand", "understand", false, true, false], ["discover", "discover", false, false, true]] as const) {
       const reading = {
         reading_id: newUlid(), claim: MK.claim, marker_id: MK.marker_id, expected_digest: "0".repeat(64),
-        target: { service_id: pack.service_id, model: "model-x", harness_version: "run-marker@0.4.0+0000000" },
+        target: { service_id: pack.service_id, model: "model-x", harness_version: "run-marker@0.4.0+0000000", ...(kind === "natural_task" ? { setup: { config_id: MK.configs[0].id, kind: MK.configs[0].kind, provider: MK.configs[0].provider, tools: MK.configs[0].tools, prompt_variant: Object.keys(MK.prompt_variants)[0], fetch_meaning: MK.configs[0].fetch_meaning, cli_version: null } } : {}) },
         stage_reached: stage[0], stage_stopped: stage[1],
         observed: { pass: stage[2], method: METHODS[key], checks: [{ label: "x", ok: stage[2] }], false_completion: stage[3], undetermined: stage[4], ground_truth_consistent: true, instrument_error: null, trap_armed: false },
         evidence_ref: `evidence/x/${MK.marker_id.toLowerCase()}#sha256:${"a".repeat(64)}`, observer, kind: "synthetic", observed_at: isoWithOffset(new Date()), supersedes: null,
@@ -84,6 +85,19 @@ for (const { rel, pack } of packs) {
   };
   const gerrs = validateReading(gt, schema);
   expect(`${tag}: ground-truth reading passes reading.v1`, gerrs.length === 0, gerrs.join("; "));
+}
+
+// M-006: configurations fixed by Michie 2026-09-30; Gemini with search grounding is not among them (terms); no answer format is appended
+{
+  const m6 = packs.find((x) => x.pack.marker.marker_id === "M-006")?.pack.marker;
+  expect("M-006: four configurations openai / anthropic / perplexity (api_tools) + claude-code (agent_cli)", JSON.stringify((m6?.configs || []).map((c: any) => [c.id, c.kind])) === JSON.stringify([["openai", "api_tools"], ["anthropic", "api_tools"], ["perplexity", "api_tools"], ["claude-code", "agent_cli"]]), JSON.stringify(m6?.configs));
+  expect("M-006: no gemini configuration; not_measured says why", !(m6?.configs || []).some((c: any) => /gemini/i.test(JSON.stringify(c))) && /Gemini/.test(m6?.not_measured || "") && /terms/.test(m6?.not_measured || ""));
+  expect("M-006: models fixed (gpt-5.5 dated, claude-opus-5-5, perplexity preset fast)", m6?.configs?.[0]?.options?.model === "gpt-5.5-2026-04-23" && m6?.configs?.[1]?.options?.model === "claude-opus-5-5" && m6?.configs?.[2]?.options?.preset === "fast" && m6?.configs?.[3]?.options?.model === "claude-opus-5-5");
+  expect("M-006: two prompt variants, natural wording, no answer format", Object.keys(m6?.prompt_variants || {}).join() === "N1,N2" && !/REPO:|AUTH:/.test(JSON.stringify(m6?.prompt_variants)) && m6?.answer_format === "none");
+  expect("M-006: Anthropic tools are the base versions", JSON.stringify(m6?.configs?.[1]?.tools) === JSON.stringify(["web_search_20250305", "web_fetch_20250910"]));
+  const commit = join(ROOT, "evidence", "commitments", "M-006.sha256");
+  const committed = existsSync(commit) ? (readFileSync(commit, "utf-8").match(/^([0-9a-f]{64})s/m) || [])[1] : null;
+  expect("M-006: seal pending (no commitment yet, expected_digest is the PENDING mark) or sealed (expected_digest equals the commitment)", committed ? m6?.expected_digest === committed : m6?.expected_digest === "PENDING_SEAL_BY_MICHIE", String(m6?.expected_digest));
 }
 
 // negative control: the old id must be rejected by the same gate

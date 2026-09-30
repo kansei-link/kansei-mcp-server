@@ -86,6 +86,8 @@ export function validateReading(reading, schema = loadReadingSchema()) {
     // ⑤ exclusivity: for a generic agent reading exactly one of pass / false_completion / undetermined /
     // instrument_error is true. Exempt: ground-truth rows (method sealed_*, pass = consistency) and the
     // M-001 method (its judge predates the three values; revisited after the seven rows, runtime pinned).
+    // v1.1: a natural-task reading (M-006) must say which configuration produced it
+    if (reading.observed?.method === 'natural_task_traces_vs_sealed_repo' && !(reading.target && typeof reading.target === 'object' && reading.target.setup)) errors.push('$.target.setup: required for method natural_task_traces_vs_sealed_repo');
     const o = reading.observed;
     if (o && typeof o === 'object' && typeof o.method === 'string' && !o.method.startsWith('sealed_') && o.method !== 'harness_direct_api_vs_sealed_expectation') {
       const n = [o.pass === true, o.false_completion === true, o.undetermined === true, o.instrument_error != null].filter(Boolean).length;
