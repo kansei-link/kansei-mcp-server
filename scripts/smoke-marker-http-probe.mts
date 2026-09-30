@@ -4,7 +4,8 @@
  *
  *   npx tsx scripts/smoke-marker-http-probe.mts
  *
- * Starts a local server on 127.0.0.1:47331 that plays both roles: the sealed
+ * Starts a local server on 127.0.0.1:47331 (the port the M-996 fixture seal names; KANSEI_SMOKE_PORT_A moves it,
+ * see smoke-loopback-ports.mjs) that plays both roles: the sealed
  * endpoints (/dead-404, /dead-410, /alive) and a fake catalog (/mcp, answering
  * tools/call lookup with a display the test controls). Runs run-marker with the
  * M-996 fixture in --dry-run. No network beyond loopback, no real seal, no DB.
@@ -16,8 +17,10 @@ function spawnAsync(cmd: string, args: string[], opts: any): Promise<{ status: n
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { smokePorts } from "./smoke-loopback-ports.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
+const PORTS = smokePorts();
 const FIX = join(ROOT, "exec-harness", "fixtures");
 let failures = 0;
 const expect = (label: string, ok: boolean, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}${ok || !detail ? "" : `  (${detail})`}`); if (!ok) failures++; };
@@ -62,10 +65,10 @@ const server = createServer((req, res) => {
     res.writeHead(500); res.end();
   });
 });
-await new Promise<void>((r) => server.listen(47331, "127.0.0.1", () => r()));
+await new Promise<void>((r) => server.listen(PORTS.A, "127.0.0.1", () => r()));
 
 async function run(extra: string[] = []) {
-  const r = await spawnAsync(process.execPath, [join(ROOT, "exec-harness", "run-marker.mjs"), "fixtures/taskpack-m996.json", "--dry-run", ...extra], { cwd: ROOT, env: { ...process.env, KANSEI_M996_SEALED_PATH: join(FIX, "M-996.sealed.json") } });
+  const r = await spawnAsync(process.execPath, [join(ROOT, "exec-harness", "run-marker.mjs"), "fixtures/taskpack-m996.json", "--dry-run", ...extra], { cwd: ROOT, env: { ...process.env, KANSEI_M996_SEALED_PATH: join(FIX, "M-996.sealed.json"), ...PORTS.childEnv } });
   const out = r.out;
   const m = /evidence: (\S+?)\/ \(manifest/.exec(out);
   const bundle = m ? join(ROOT, m[1]) : null;

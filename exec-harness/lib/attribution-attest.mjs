@@ -16,41 +16,170 @@ import { createHash } from 'node:crypto';
 
 export const sha256Hex = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
-/* ---------- column B's body ----------
- * The WHOLE catalog item (every key, every leaf, strings or not, arrays in their order) as canonical JSON
- * (object keys sorted), minus exactly two leaves that change on their own — and only while their value
- * matches the grammar of the value that changes on its own (Codex 1391a31 R1: a leaf is excluded by its
- * exact grammar, never by its type, so a value that could carry a link stays in the body):
- *   _meta.attempt_id        a new id on every call (src/tools/lookup.ts: randomUUID()) — excluded only while
- *                           it is an RFC 4122 UUID in lower case, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
- *   freshness.data_age_days grows by one every day — excluded only while it is an integer from 0 to 100000
- * Any other value (upper case, a URL, empty, another shape, a negative or huge number) stays in the body,
- * so the sha256 changes and every attestation of the old body expires. Nothing else is excluded: a new
- * key anywhere (_repository, _meta.repository, freshness.repository, …) changes the body (Codex 7e9a3e2 ①). */
-export const B_BODY_FIELDS = 'all_except:_meta.attempt_id(rfc4122-uuid-lowercase),freshness.data_age_days(int 0..100000)';
-export const UUID_LOWER = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-export const DATA_AGE_DAYS_MAX = 100000;
-const VOLATILE = [
-  { path: ['_meta', 'attempt_id'], ok: (v) => typeof v === 'string' && UUID_LOWER.test(v) },
-  { path: ['freshness', 'data_age_days'], ok: (v) => Number.isInteger(v) && v >= 0 && v <= DATA_AGE_DAYS_MAX },
-];
 const isPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-function canonical(v) {
-  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
-  if (isPlain(v)) return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}`;
-  return JSON.stringify(v === undefined ? null : v);
-}
-export function catalogBody(payload) {
-  const copy = isPlain(payload) ? { ...payload } : payload;
-  if (isPlain(copy)) {
-    for (const { path: [top, leaf], ok } of VOLATILE) {
-      if (isPlain(copy[top]) && Object.hasOwn(copy[top], leaf) && ok(copy[top][leaf])) {
-        const { [leaf]: _drop, ...rest } = copy[top];
-        copy[top] = rest;
+
+/* ---------- a strict JSON scanner (RFC 8259; node built-ins only) ----------
+ * Codex 544808b R2 (Michie 2026-09-30): a fingerprint taken from JSON.stringify(JSON.parse(text)) loses what
+ * the round trip loses — 1e400 becomes null, the first of two equal keys disappears (and a link with it),
+ * 3.0000000000000000001 becomes 3, 1e5 becomes 100000, 2^53+1 becomes 2^53, -0 becomes 0. The kind is
+ * closed here, not case by case: nothing that decides is read through a value round trip. The text is
+ * scanned token by token and every token keeps its own characters.
+ * Refused (a reason is returned, never an exception): not a string, more than maxBytes of UTF-8, anything
+ * outside the RFC 8259 grammar (whitespace is SP / HT / LF / CR only; no BOM, comment, trailing comma, bare
+ * control character in a string, leading zero, NaN / Infinity), anything after the one value, a key that
+ * appears twice in one object (compared after the escapes are resolved), nesting deeper than maxDepth.
+ * Nodes: { t:'o', members:[{ key, node }] } | { t:'a', items:[node] } | { t:'s', raw, value } |
+ *        { t:'n', raw } | { t:'l', raw }   (raw = the token exactly as written, quotes included for strings) */
+export const BODY_MAX_BYTES = 1048576; // 1 MiB
+export const BODY_MAX_DEPTH = 64;
+const NUMBER_TOKEN = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
+const HEX4 = /^[0-9A-Fa-f]{4}$/;
+const ESCAPED = new Map([['"', 34], ['\\', 92], ['/', 47], ['b', 8], ['f', 12], ['n', 10], ['r', 13], ['t', 9]]);
+class NotStrictJson extends Error {}
+export function scanStrictJson(text, { maxBytes = BODY_MAX_BYTES, maxDepth = BODY_MAX_DEPTH } = {}) {
+  if (typeof text !== 'string') return { ok: false, why: 'not_a_string' };
+  if (Buffer.byteLength(text, 'utf8') > maxBytes) return { ok: false, why: 'too_large' };
+  let i = 0;
+  const fail = (why) => { throw new NotStrictJson(why); };
+  const ws = () => { for (;;) { const c = text.charCodeAt(i); if (c === 32 || c === 9 || c === 10 || c === 13) i++; else return; } };
+  const string = () => {
+    const start = i; i++; // at the opening quote
+    let value = ''; let from = i;
+    for (;;) {
+      if (i >= text.length) fail('syntax');
+      const c = text.charCodeAt(i);
+      if (c === 34) { value += text.slice(from, i); i++; return { t: 's', raw: text.slice(start, i), value }; }
+      if (c < 32) fail('syntax');
+      if (c !== 92) { i++; continue; }
+      value += text.slice(from, i);
+      const e = text[i + 1];
+      if (e === 'u') {
+        const hex = text.slice(i + 2, i + 6);
+        if (!HEX4.test(hex)) fail('syntax');
+        value += String.fromCharCode(parseInt(hex, 16)); i += 6;
+      } else if (ESCAPED.has(e)) { value += String.fromCharCode(ESCAPED.get(e)); i += 2; }
+      else fail('syntax');
+      from = i;
+    }
+  };
+  const value = (depth) => {
+    ws();
+    const c = text[i];
+    if (c === '{') {
+      if (depth >= maxDepth) fail('too_deep');
+      i++; const members = []; const seen = new Set();
+      ws();
+      if (text[i] === '}') { i++; return { t: 'o', members }; }
+      for (;;) {
+        ws();
+        if (text[i] !== '"') fail('syntax');
+        const k = string();
+        if (seen.has(k.value)) fail('duplicate_key');
+        seen.add(k.value);
+        ws();
+        if (text[i] !== ':') fail('syntax');
+        i++;
+        members.push({ key: k.value, node: value(depth + 1) });
+        ws();
+        if (text[i] === ',') { i++; continue; }
+        if (text[i] === '}') { i++; return { t: 'o', members }; }
+        fail('syntax');
       }
     }
+    if (c === '[') {
+      if (depth >= maxDepth) fail('too_deep');
+      i++; const items = [];
+      ws();
+      if (text[i] === ']') { i++; return { t: 'a', items }; }
+      for (;;) {
+        items.push(value(depth + 1));
+        ws();
+        if (text[i] === ',') { i++; continue; }
+        if (text[i] === ']') { i++; return { t: 'a', items }; }
+        fail('syntax');
+      }
+    }
+    if (c === '"') return string();
+    for (const lit of ['true', 'false', 'null']) if (text.startsWith(lit, i)) { i += lit.length; return { t: 'l', raw: lit }; }
+    NUMBER_TOKEN.lastIndex = i;
+    const m = NUMBER_TOKEN.exec(text);
+    if (!m) fail('syntax');
+    i += m[0].length;
+    return { t: 'n', raw: m[0] };
+  };
+  try {
+    const node = value(0);
+    ws();
+    if (i !== text.length) fail('trailing');
+    return { ok: true, node };
+  } catch (e) {
+    if (e instanceof NotStrictJson) return { ok: false, why: e.message };
+    return { ok: false, why: 'syntax' }; // anything unexpected is a refusal too (never an exception)
   }
-  return canonical(copy);
+}
+
+/* ---------- column B's body ----------
+ * The WHOLE catalog item as canonical text, made from the item's ORIGINAL TEXT (the tool result's text,
+ * before any parsing) by the strict scanner above — never from a parsed value:
+ *   object   its members sorted by key (UTF-16 code units of the resolved key), each key written as
+ *            JSON.stringify(resolved key)
+ *   array    its items in their order
+ *   number   the token exactly as written (1e400, -0, 1e5, 100000 and 3.0000000000000000001 are five
+ *            different bodies)
+ *   true / false / null   as written
+ *   string   JSON.stringify(resolved string) — the same string gives the same text however it was escaped
+ *   whitespace between tokens is dropped
+ * minus exactly two members that change on their own — and only while the TOKEN AS WRITTEN has the
+ * grammar of the value that changes on its own (Codex 1391a31 R1: excluded by exact grammar, never by type):
+ *   _meta.attempt_id        a new id on every call (src/tools/lookup.ts: randomUUID()) — left out only while
+ *                           the string token is exactly a quote, an RFC 4122 UUID in lower case and a quote
+ *                           (a token written with any escape does not match and stays)
+ *   freshness.data_age_days grows by one every day — left out only while the number token matches
+ *                           /^(0|[1-9][0-9]{0,4}|100000)$/ (a sign, a fraction or an exponent does not
+ *                           match and stays: 1e5, 3.0, -0, 00 … are in the body or refused)
+ * The member is left out key and value together, so its presence is not part of the body while its value
+ * has that grammar. Any other value there (upper case, a URL, empty, another type, a negative or huge
+ * number) stays, so the sha256 changes and every attestation of the old body expires. Nothing else is left
+ * out: a new key anywhere (_repository, _meta.repository, freshness.repository, …) changes the body (Codex
+ * 7e9a3e2 ①). So two item texts have the same body only when they differ in whitespace, the order of
+ * keys, how a string or key is escaped, or those two members.
+ * A text the scanner refuses has NO body: catalogBodyFromText returns null, column B is unknown
+ * (instrument; the sidecar says body_not_canonical and which refusal) and no attestation is looked up. */
+export const B_BODY_FIELDS = 'all_except:_meta.attempt_id(rfc4122-uuid-lowercase),freshness.data_age_days(int 0..100000)';
+const UUID_TOKEN = /^"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"$/;
+const AGE_TOKEN = /^(0|[1-9][0-9]{0,4}|100000)$/;
+const VOLATILE = new Map([
+  ['_meta', { leaf: 'attempt_id', ok: (n) => n.t === 's' && UUID_TOKEN.test(n.raw) }],
+  ['freshness', { leaf: 'data_age_days', ok: (n) => n.t === 'n' && AGE_TOKEN.test(n.raw) }],
+]);
+const byKey = (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+function canonicalText(node, volatile = null) {
+  if (node.t === 'o') {
+    const kept = volatile ? node.members.filter((m) => !(m.key === volatile.leaf && volatile.ok(m.node))) : node.members;
+    return `{${[...kept].sort(byKey).map((m) => `${JSON.stringify(m.key)}:${canonicalText(m.node)}`).join(',')}}`;
+  }
+  if (node.t === 'a') return `[${node.items.map((x) => canonicalText(x)).join(',')}]`;
+  if (node.t === 's') return JSON.stringify(node.value);
+  return node.raw;
+}
+/** { body, why }: body = the canonical text (why null), or null with why = the scanner's refusal. Never throws. */
+export function catalogBodyDetail(text) {
+  const s = scanStrictJson(text);
+  if (!s.ok) return { body: null, why: s.why };
+  const root = s.node;
+  if (root.t !== 'o') return { body: canonicalText(root), why: null };
+  const members = [...root.members].sort(byKey).map((m) => `${JSON.stringify(m.key)}:${canonicalText(m.node, m.node.t === 'o' ? VOLATILE.get(m.key) ?? null : null)}`);
+  return { body: `{${members.join(',')}}`, why: null };
+}
+/** Column B's body from the item's original text, or null when it cannot be made canonical. */
+export function catalogBodyFromText(text) { return catalogBodyDetail(text).body; }
+
+/** JSON.parse for a file that DECIDES (an attestation, observers.json): only a text the strict scanner
+ *  accepts is parsed (so a key written twice is a refusal, not "the last one wins"). Throws otherwise. */
+function parseStrict(text) {
+  const s = scanStrictJson(text);
+  if (!s.ok) throw new Error(`not_strict_json:${s.why}`);
+  return JSON.parse(text);
 }
 
 /* ---------- the source a human attests: fixed in the taskpack ----------
@@ -97,7 +226,7 @@ export function attestationPath(dir, markerId, sourceId, bodySha) { return join(
 export function loadObservers(dir) {
   try {
     if (!dir) return [];
-    const list = JSON.parse(readFileSync(join(dir, OBSERVERS_FILE), 'utf8'));
+    const list = parseStrict(readFileSync(join(dir, OBSERVERS_FILE), 'utf8'));
     // each entry: "human:" + a name with no leading/trailing space and no control character
     const ok = (o) => typeof o === 'string' && o.startsWith('human:') && o.length > 6 && o.slice(6) === o.slice(6).trim() && !REASON_FORBIDDEN_CHARS.test(o);
     if (!Array.isArray(list) || !list.length || !list.every(ok)) return [];
@@ -154,7 +283,10 @@ export function findAttestation(dir, ctx) {
     if (!/^[0-9a-f]{64}$/.test(String(ctx.bodySha))) return { verdict: null, why: 'no_body', cautions: [] };
     const p = attestationPath(dir, ctx.markerId, ctx.sourceId, ctx.bodySha);
     if (!existsSync(p)) return { verdict: null, why: 'none_for_this_body', cautions: [] };
-    const a = JSON.parse(readFileSync(p, 'utf8'));
+    const text = readFileSync(p, 'utf8');
+    const strict = scanStrictJson(text);
+    if (!strict.ok) return { verdict: null, why: strict.why === 'duplicate_key' ? 'invalid:duplicate_key' : 'unreadable', cautions: [] };
+    const a = JSON.parse(text);
     const full = { observers: loadObservers(dir), today: localToday(), ...ctx };
     const bad = validateAttestation(a, full);
     return bad ? { verdict: null, why: `invalid:${bad}`, cautions: [] } : { verdict: a.verdict, why: 'valid', cautions: reasonCautions(a) };

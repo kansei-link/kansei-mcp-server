@@ -4,7 +4,8 @@
  *
  *   npx tsx scripts/smoke-marker-fetch-check.mts
  *
- * Local server on 127.0.0.1:47332 serves three fixed pages (digests sealed in the
+ * Local server on 127.0.0.1:47332 (the port the M-995 fixture seal names; KANSEI_SMOKE_PORT_B moves it, see
+ * smoke-loopback-ports.mjs) serves three fixed pages (digests sealed in the
  * M-995 fixture). A fake fetch-check summary JSON (same shape as
  * founder-ops/.../fetch-check/<date>.json) plays the two agents. --dry-run only.
  */
@@ -16,8 +17,10 @@ import { createServer } from "node:http";
 import { readFileSync, writeFileSync, mkdtempSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
+import { smokePorts } from "./smoke-loopback-ports.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
+const PORTS = smokePorts();
 const FIX = join(ROOT, "exec-harness", "fixtures");
 let failures = 0;
 const expect = (label: string, ok: boolean, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}${ok || !detail ? "" : `  (${detail})`}`); if (!ok) failures++; };
@@ -34,7 +37,7 @@ const server = createServer((req, res) => {
   res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
   res.end(mutateIndex && req.url === "/agent-wiki/" ? body.replace("fixture", "edited") : body);
 });
-await new Promise<void>((r) => server.listen(47332, "127.0.0.1", () => r()));
+await new Promise<void>((r) => server.listen(PORTS.B, "127.0.0.1", () => r()));
 
 const tmp = mkdtempSync(join(tmpdir(), "fetch-check-"));
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -46,7 +49,7 @@ function summary(cells: Record<string, Record<string, string | { status: string;
   return p;
 }
 async function run(summaryPath: string, extra: string[] = []) {
-  const r = await spawnAsync(process.execPath, [join(ROOT, "exec-harness", "run-marker.mjs"), "fixtures/taskpack-m995.json", "--dry-run", "--fetch-summary", summaryPath, ...extra], { cwd: ROOT, env: { ...process.env, KANSEI_M995_SEALED_PATH: join(FIX, "M-995.sealed.json") } });
+  const r = await spawnAsync(process.execPath, [join(ROOT, "exec-harness", "run-marker.mjs"), "fixtures/taskpack-m995.json", "--dry-run", "--fetch-summary", summaryPath, ...extra], { cwd: ROOT, env: { ...process.env, KANSEI_M995_SEALED_PATH: join(FIX, "M-995.sealed.json"), ...PORTS.childEnv } });
   const out = r.out;
   const m = /evidence: (\S+?)\/ \(manifest/.exec(out);
   const bundle = m ? join(ROOT, m[1]) : null;

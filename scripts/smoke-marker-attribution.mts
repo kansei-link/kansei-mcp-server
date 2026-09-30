@@ -13,8 +13,16 @@
  * Part A2: the HINT reader (classifySource / sourceListsRepo) — unchanged, private, decides nothing.
  * Part A3: attribution-attest.mjs — column B's body (two volatile leaves only), the source targets, the
  *          attestation validator (exact keys, placeholders, target, seal, body, verdict listed/not_listed).
+ * Part A4: column B's body comes from the item's ORIGINAL TEXT through a strict RFC 8259 scanner, never from a value
+ *          round trip (Codex 544808b R2: 1e400 → null; and the same kind: a key twice, 3.0000000000000000001, 1e5,
+ *          2^53+1, -0 …) — pairs that must have another body or none, pairs that must have the same body, the
+ *          refusals, and the files that decide (attestations, observers.json) read through the same scanner.
+ * Part I:  Codex's 234 independent cases of 544808b (fixtures/attribution-cases-544808b.json) — Codex's runner ported.
+ * Part J:  random pairs of item texts, fixed seed, 2000 by default (KANSEI_SMOKE_RANDOM_PAIRS): the same body only
+ *          for whitespace, key order, escapes and the two excluded members; and those alone never change the body.
  * Part B:  run-marker end to end in --dry-run with the M-994 fixture seal, provider 'fake', and a loopback
- *          server (127.0.0.1:47336) playing A1/A2, the KanseiLINK catalog and the GitHub API.
+ *          server (127.0.0.1:47336) playing A1/A2, the KanseiLINK catalog and the GitHub API. The fake catalog can
+ *          send the item as a raw text of the test's choosing (the three Codex cases and the seven of the same kind).
  * Part C:  the sheet drawn from Part B's readings (三列 + 判断（規則 v0.1）).
  * Part D/E: Codex's earlier independent cases (110 of 185d63d, 93 of 8d905ee) — hint cases replayed on the
  *          hint reader, judgement and ground-truth cases as before, loopback cases by smoke label.
@@ -33,7 +41,7 @@ import { createServer } from "node:http";
 import { readFileSync, writeFileSync, mkdtempSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
-import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, AGENT_METHOD, RECHECK_TEXT, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs, classifySource, catalogBody, sha256Hex, validateAttestation, findAttestation, sourceState, sourceTarget, ATTESTATION_KIND, B_BODY_FIELDS, reasonCautions, loadObservers, localToday } from "../exec-harness/lib/attribution-rules.mjs";
+import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, AGENT_METHOD, RECHECK_TEXT, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs, classifySource, catalogBodyFromText, catalogBodyDetail, scanStrictJson, sha256Hex, validateAttestation, findAttestation, sourceState, sourceTarget, ATTESTATION_KIND, B_BODY_FIELDS, reasonCautions, loadObservers, localToday } from "../exec-harness/lib/attribution-rules.mjs";
 import { renderSheet } from "../exec-harness/render-reading-sheet.mjs";
 import { validateReading, loadReadingSchema } from "../exec-harness/lib/reading.mjs";
 import { readmeRows } from "../exec-harness/lib/marker-persist.mjs";
@@ -44,6 +52,9 @@ let failures = 0;
 const passed: string[] = [];
 const expect = (label: string, ok: boolean, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}${ok || !detail ? "" : `  (${detail})`}`); if (!ok) failures++; else passed.push(label); };
 const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: number | null; out: string }> => new Promise((res) => { const p = spawn(cmd, args, opts); let out = ""; p.stdout.on("data", (d) => (out += d)); p.stderr.on("data", (d) => (out += d)); p.on("close", (code) => res({ status: code, out })); });
+// column B's body is made from the item's ORIGINAL TEXT only (Codex 544808b R2). A test that starts from an object
+// writes it the way the fake servers send it (JSON.stringify) and takes the body of that text.
+const bodyOf = (payload: any): string => catalogBodyFromText(JSON.stringify(payload)) as string;
 
 // ── Part A: cells, truth table and precedence ────────────────────────────
 {
@@ -137,13 +148,13 @@ const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution
   // column B's body: the whole item, minus exactly _meta.attempt_id (string) and freshness.data_age_days (integer ≥ 0)
   const item = (o: any = {}) => ({ service_id: "s", name: "N", mcp_status: "official", trust_score: 0.5, tags: ["x", "y"], connection_guide: null, freshness: { confidence: "medium", data_age_days: 3, last_refreshed: "2026-09-04 17:10:55" }, _meta: { source: "kansei-link", attempt_id: "0901886c-9053-494f-af18-a38d280f63ab", kansei_link: { intent: "service_profile" } }, ...o });
   const UUID2 = "11111111-2222-4333-8444-555555555555";
-  const base = sha256Hex(catalogBody(item()));
+  const base = sha256Hex(bodyOf(item()));
   const withMeta = (m: any) => item({ _meta: { ...item()._meta, ...m } });
   const withFresh = (f: any) => item({ freshness: { ...item().freshness, ...f } });
-  expect("A3 body: a new lower-case UUID attempt_id keeps the sha256 (no needless expiry)", sha256Hex(catalogBody(withMeta({ attempt_id: UUID2 }))) === base);
-  expect("A3 body: data_age_days 0 and 100000 keep the sha256", sha256Hex(catalogBody(withFresh({ data_age_days: 0 }))) === base && sha256Hex(catalogBody(withFresh({ data_age_days: 100000 }))) === base);
-  expect("A3 body: a new data_age_days keeps the sha256", sha256Hex(catalogBody(withFresh({ data_age_days: 4 }))) === base);
-  expect("A3 body: key order does not matter (canonical JSON)", sha256Hex(catalogBody(JSON.parse(JSON.stringify({ ...item(), service_id: "s" }).replace('"service_id":"s",', "")))) !== "" && catalogBody({ b: 1, a: { d: 1, c: 2 } }) === catalogBody({ a: { c: 2, d: 1 }, b: 1 }));
+  expect("A3 body: a new lower-case UUID attempt_id keeps the sha256 (no needless expiry)", sha256Hex(bodyOf(withMeta({ attempt_id: UUID2 }))) === base);
+  expect("A3 body: data_age_days 0 and 100000 keep the sha256", sha256Hex(bodyOf(withFresh({ data_age_days: 0 }))) === base && sha256Hex(bodyOf(withFresh({ data_age_days: 100000 }))) === base);
+  expect("A3 body: a new data_age_days keeps the sha256", sha256Hex(bodyOf(withFresh({ data_age_days: 4 }))) === base);
+  expect("A3 body: key order does not matter (canonical JSON)", sha256Hex(bodyOf(JSON.parse(JSON.stringify({ ...item(), service_id: "s" }).replace('"service_id":"s",', "")))) !== "" && bodyOf({ b: 1, a: { d: 1, c: 2 } }) === bodyOf({ a: { c: 2, d: 1 }, b: 1 }));
   for (const [what, it] of [
     ["_repository added (Codex ① case 1)", item({ _repository: "https://github.com/x/y" })],
     ["_meta.repository added (case 2)", withMeta({ repository: "https://github.com/x/y" })],
@@ -165,8 +176,8 @@ const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution
     ["data_age_days of an unexpected type (string) stays in the body", withFresh({ data_age_days: "https://github.com/x/y" })],
     ["data_age_days negative stays in the body", withFresh({ data_age_days: -1 })],
     ["a new top-level key", item({ repository: "https://github.com/x/y" })],
-  ] as const) expect(`A3 body changes when: ${what}`, sha256Hex(catalogBody(it)) !== base);
-  expect("A3 body: the not-found payload has a body too", /^[0-9a-f]{64}$/.test(sha256Hex(catalogBody({ error: "Service 'x' not found." }))));
+  ] as const) expect(`A3 body changes when: ${what}`, sha256Hex(bodyOf(it)) !== base);
+  expect("A3 body: the not-found payload has a body too", /^[0-9a-f]{64}$/.test(sha256Hex(bodyOf({ error: "Service 'x' not found." }))));
   // targets fixed by the taskpack
   const cfg = { official_docs: [{ id: "A1", url: "https://example.invalid/a1" }, { id: "A2", url: "https://example.invalid/a2" }], catalog: { display_api_url: "https://example.invalid/mcp", service_id: "svc", body_fields: B_BODY_FIELDS } };
   expect("A3 target A1/A2 = the URL fixed in the taskpack", sourceTarget(cfg, "A1") === "https://example.invalid/a1" && sourceTarget(cfg, "A2") === "https://example.invalid/a2");
@@ -245,6 +256,142 @@ const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution
   rmSync(d, { recursive: true, force: true });
 }
 
+// ── Part A4: column B's body is made from the item's ORIGINAL TEXT (Codex 544808b R2; Michie 2026-09-30) ──
+// The kind: a fingerprint of JSON.stringify(JSON.parse(text)) loses what the value round trip loses. Every pair
+// below is two texts that the round trip made equal (or that hide a value); now the second has another body or none.
+const BS = String.fromCharCode(92); // one backslash, spelled this way so that no escape is ever rewritten in this file
+const UUID_A = "0901886c-9053-494f-af18-a38d280f63ab";
+const UUID_B = "11111111-2222-4333-8444-555555555555";
+const LINK = "https://github.com/fake-vendor/fake-official-mcp-server";
+const rawItem = (o: { attempt?: string; age?: string; extra?: string; meta?: string } = {}) => `{"service_id":"fake-subject","name":"Fake","mcp_status":"official","trust_score":0.5,"freshness":{"confidence":"medium","data_age_days":${o.age ?? "3"}},"_meta":${o.meta ?? `{"attempt_id":${o.attempt ?? `"${UUID_A}"`}}`}${o.extra ?? ""}}`;
+const bodyText = (t: string) => catalogBodyFromText(t);
+// [why, before, after]: after must NOT have before's body (another body, or no body at all)
+const RAW_PAIRS: Array<[string, string, string]> = [
+  ["Codex R2 data_age_days null → 1e400 (JSON.parse: Infinity → stringify: null)", rawItem({ age: "null" }), rawItem({ age: "1e400" })],
+  ["Codex R2 data_age_days null → -1e400", rawItem({ age: "null" }), rawItem({ age: "-1e400" })],
+  ["kind 1 duplicate key: _meta.attempt_id first a link, then a UUID (the link disappeared)", rawItem(), rawItem({ attempt: `"${LINK}","attempt_id":"${UUID_A}"` })],
+  ["kind 2 duplicate key: description first a link, then plain", rawItem({ extra: `,"description":"plain"` }), rawItem({ extra: `,"description":"see ${LINK}","description":"plain"` })],
+  ["kind 3 number 3 → 3.0000000000000000001", rawItem({ extra: `,"n":3` }), rawItem({ extra: `,"n":3.0000000000000000001` })],
+  ["kind 4 data_age_days 100000 → 1e5 (was inside the exclusion by value)", rawItem({ age: "100000" }), rawItem({ age: "1e5" })],
+  ["kind 5 number 2^53 → 2^53+1", rawItem({ extra: `,"n":9007199254740992` }), rawItem({ extra: `,"n":9007199254740993` })],
+  ["kind 6 number 0 → -0", rawItem({ extra: `,"n":0` }), rawItem({ extra: `,"n":-0` })],
+  ["kind 7 data_age_days 0 → -0 (was inside the exclusion by value)", rawItem({ age: "0" }), rawItem({ age: "-0" })],
+  // the same kind, looked for before submitting
+  ["data_age_days 3 → 3.0", rawItem(), rawItem({ age: "3.0" })],
+  ["data_age_days 3 → 3e0", rawItem(), rawItem({ age: "3e0" })],
+  ["data_age_days 3 → 3E0", rawItem(), rawItem({ age: "3E0" })],
+  ["data_age_days 3 → 03 (leading zero: not JSON)", rawItem(), rawItem({ age: "03" })],
+  ["data_age_days 30 → 3e1", rawItem({ age: "30" }), rawItem({ age: "3e1" })],
+  ["data_age_days 100000 → 100000.0", rawItem({ age: "100000" }), rawItem({ age: "100000.0" })],
+  ["data_age_days 100000 → 1E5", rawItem({ age: "100000" }), rawItem({ age: "1E5" })],
+  ["data_age_days 100000 → 1e+5", rawItem({ age: "100000" }), rawItem({ age: "1e+5" })],
+  ["data_age_days 100000 → 100001", rawItem({ age: "100000" }), rawItem({ age: "100001" })],
+  ["data_age_days 0 → 0.0", rawItem({ age: "0" }), rawItem({ age: "0.0" })],
+  ["data_age_days 0 → 0e0", rawItem({ age: "0" }), rawItem({ age: "0e0" })],
+  ["data_age_days 3 → \"3\" (a string)", rawItem(), rawItem({ age: `"3"` })],
+  ["data_age_days 3 → a link", rawItem(), rawItem({ age: `"${LINK}"` })],
+  ["data_age_days twice: first a link, then 3", rawItem(), rawItem({ age: `"${LINK}","data_age_days":3` })],
+  ["attempt_id UUID → the same UUID written with an escape (the token is not the plain grammar: it stays)", rawItem(), rawItem({ attempt: `"${UUID_A.replace("-", `${BS}u002d`)}"` })],
+  ["attempt_id UUID → the UUID followed by an escaped line feed", rawItem(), rawItem({ attempt: `"${UUID_A}${BS}n"` })],
+  ["attempt_id UUID → UPPER case", rawItem(), rawItem({ attempt: `"${UUID_A.toUpperCase()}"` })],
+  ["attempt_id UUID → a link", rawItem(), rawItem({ attempt: `"${LINK}"` })],
+  ["attempt_id UUID → null", rawItem(), rawItem({ attempt: "null" })],
+  ["duplicate key written once with an escape (descriptio + u006e)", rawItem({ extra: `,"description":"plain"` }), rawItem({ extra: `,"description":"see ${LINK}","descriptio${BS}u006e":"plain"` })],
+  ["_meta twice: first with a repository, then the usual one", rawItem(), rawItem({ extra: "" }).replace(`"_meta":`, `"_meta":{"repository":"${LINK}"},"_meta":`)],
+  ["freshness twice", rawItem(), rawItem().replace(`"freshness":`, `"freshness":{"repository":"${LINK}"},"freshness":`)],
+  ["service_id twice", rawItem(), rawItem().replace(`"service_id":"fake-subject"`, `"service_id":"${LINK}","service_id":"fake-subject"`)],
+  ["a duplicate key deep inside an array", rawItem({ extra: `,"x":[{"a":1}]` }), rawItem({ extra: `,"x":[{"a":"${LINK}","a":1}]` })],
+  ["__proto__ key with a link added", rawItem(), rawItem({ extra: `,"__proto__":{"repository":"${LINK}"}` })],
+  ["__proto__ twice", rawItem({ extra: `,"__proto__":{"a":1}` }), rawItem({ extra: `,"__proto__":{"repository":"${LINK}"},"__proto__":{"a":1}` })],
+  ["number 1 → 1.0", rawItem({ extra: `,"n":1` }), rawItem({ extra: `,"n":1.0` })],
+  ["number 1 → 1e0", rawItem({ extra: `,"n":1` }), rawItem({ extra: `,"n":1e0` })],
+  ["number 1 → 10e-1", rawItem({ extra: `,"n":1` }), rawItem({ extra: `,"n":10e-1` })],
+  ["number 1e400 → 1e401 (both Infinity)", rawItem({ extra: `,"n":1e400` }), rawItem({ extra: `,"n":1e401` })],
+  ["number 1e400 → 1E400", rawItem({ extra: `,"n":1e400` }), rawItem({ extra: `,"n":1E400` })],
+  ["number 1e-400 → 0 (underflow)", rawItem({ extra: `,"n":0` }), rawItem({ extra: `,"n":1e-400` })],
+  ["number 0.1 → 0.10", rawItem({ extra: `,"n":0.1` }), rawItem({ extra: `,"n":0.10` })],
+  ["number 0.30000000000000004 → 0.3000000000000000444 (same double)", rawItem({ extra: `,"n":0.30000000000000004` }), rawItem({ extra: `,"n":0.3000000000000000444` })],
+  ["null → \"null\"", rawItem({ extra: `,"v":null` }), rawItem({ extra: `,"v":"null"` })],
+  ["true → \"true\"", rawItem({ extra: `,"v":true` }), rawItem({ extra: `,"v":"true"` })],
+  ["1 → \"1\"", rawItem({ extra: `,"v":1` }), rawItem({ extra: `,"v":"1"` })],
+  ["{} → []", rawItem({ extra: `,"v":{}` }), rawItem({ extra: `,"v":[]` })],
+  ["a space inside a string", rawItem({ extra: `,"v":"a b"` }), rawItem({ extra: `,"v":"a  b"` })],
+  ["array order", rawItem({ extra: `,"v":[1,2]` }), rawItem({ extra: `,"v":[2,1]` })],
+  ["a link after the item (text after the one value)", rawItem(), `${rawItem()} "${LINK}"`],
+  ["a second item after the first", rawItem(), `${rawItem()}${rawItem({ extra: `,"repository":"${LINK}"` })}`],
+  ["a comment carrying a link", rawItem(), rawItem().replace("{", `{/* ${LINK} */`)],
+  ["a trailing comma", rawItem(), rawItem({ extra: "," })],
+  ["a byte order mark in front", rawItem(), `${String.fromCharCode(0xfeff)}${rawItem()}`],
+  ["NaN", rawItem({ extra: `,"n":null` }), rawItem({ extra: `,"n":NaN` })],
+  ["Infinity", rawItem({ extra: `,"n":null` }), rawItem({ extra: `,"n":Infinity` })],
+  ["a bare line feed inside a string", rawItem({ extra: `,"v":"a${BS}nb"` }), rawItem({ extra: `,"v":"a\nb"` })],
+  ["_meta.attempt_id nested one level deeper is not the excluded leaf", rawItem({ extra: `,"x":{"_meta":{"attempt_id":"${UUID_A}"}}` }), rawItem({ extra: `,"x":{"_meta":{"attempt_id":"${UUID_B}"}}` })],
+  ["_meta.x.attempt_id is not the excluded leaf", rawItem({ meta: `{"attempt_id":"${UUID_A}","x":{"attempt_id":"${UUID_A}"}}` }), rawItem({ meta: `{"attempt_id":"${UUID_A}","x":{"attempt_id":"${UUID_B}"}}` })],
+  ["freshness.attempt_id is not an excluded leaf", rawItem({ extra: "" }).replace(`"confidence":"medium"`, `"confidence":"medium","attempt_id":"${UUID_A}"`), rawItem().replace(`"confidence":"medium"`, `"confidence":"medium","attempt_id":"${UUID_B}"`)],
+  ["_meta.data_age_days is not an excluded leaf", rawItem({ meta: `{"attempt_id":"${UUID_A}","data_age_days":1}` }), rawItem({ meta: `{"attempt_id":"${UUID_A}","data_age_days":2}` })],
+  ["_meta as an array holding the id object", rawItem({ meta: `[{"attempt_id":"${UUID_A}"}]` }), rawItem({ meta: `[{"attempt_id":"${UUID_B}"}]` })],
+];
+// texts that differ ONLY in whitespace, key order, how a string or key is escaped, or the two excluded members: the same body
+const RAW_SAME: Array<[string, string, string]> = [
+  ["whitespace (pretty-printed like the production catalog)", rawItem(), JSON.stringify(JSON.parse(rawItem()), null, 2)],
+  ["whitespace: tabs, CR and LF between tokens", rawItem(), rawItem().replaceAll(",", " ,\t\r\n ").replaceAll(":", " : ")],
+  ["key order", `{"service_id":"s","a":1,"b":{"d":1,"c":2}}`, `{"b":{"c":2,"d":1},"a":1,"service_id":"s"}`],
+  ["a key written with an escape (u0061 is a)", `{"a":1}`, `{"${BS}u0061":1}`],
+  ["a string written with escapes: the solidus", `{"v":"a/b"}`, `{"v":"a${BS}/b"}`],
+  ["a string written with escapes: u00e9 is the letter itself", `{"v":"${String.fromCharCode(0xe9)}"}`, `{"v":"${BS}u00e9"}`],
+  ["a string written with escapes: u00E9 in upper-case hex", `{"v":"${BS}u00e9"}`, `{"v":"${BS}u00E9"}`],
+  ["a string written with escapes: a surrogate pair", `{"v":"${String.fromCodePoint(0x1f600)}"}`, `{"v":"${BS}ud83d${BS}ude00"}`],
+  ["a string written with escapes: n and u000a", `{"v":"a${BS}nb"}`, `{"v":"a${BS}u000ab"}`],
+  ["the keys _meta and attempt_id written with escapes still name the excluded leaf", rawItem(), rawItem({ meta: `{"attempt_id":"${UUID_B}"}` }).replace(`"_meta"`, `"${BS}u005fmeta"`).replace(`"attempt_id"`, `"attempt${BS}u005fid"`)],
+  ["_meta.attempt_id: another lower-case UUID", rawItem(), rawItem({ attempt: `"${UUID_B}"` })],
+  ["freshness.data_age_days: 3 → 4", rawItem(), rawItem({ age: "4" })],
+  ["freshness.data_age_days: 0 → 100000", rawItem({ age: "0" }), rawItem({ age: "100000" })],
+  ["freshness.data_age_days: 9 → 99999", rawItem({ age: "9" }), rawItem({ age: "99999" })],
+  // found while looking for equal bodies (reported to Michie): the excluded MEMBER is left out key and value, so its presence is not in the body
+  ["known: _meta.attempt_id present (UUID) vs the member absent", rawItem(), rawItem({ meta: "{}" })],
+  ["known: freshness.data_age_days present (3) vs the member absent", rawItem(), rawItem().replace(`,"data_age_days":3`, "")],
+];
+{
+  for (const [why, before, after] of RAW_PAIRS) {
+    const b0 = bodyText(before), b1 = bodyText(after);
+    expect(`A4 another body or none: ${why}`, typeof b0 === "string" && b1 !== b0, `${b0} | ${b1}`);
+  }
+  for (const [why, a, b] of RAW_SAME) expect(`A4 same body: ${why}`, typeof bodyText(a) === "string" && bodyText(a) === bodyText(b), `${bodyText(a)} | ${bodyText(b)}`);
+  // what the canonical text looks like: tokens as written, keys sorted, strings re-written from their resolved value
+  expect("A4 canonical text: number tokens exactly as written, keys sorted, no whitespace", bodyText(`{ "b" : [ 1e400 , -0 , 1E5 , 3.0000000000000000001 , true , null ] , "a" : "x" }`) === `{"a":"x","b":[1e400,-0,1E5,3.0000000000000000001,true,null]}`, String(bodyText(`{ "b" : [ 1e400 , -0 , 1E5 , 3.0000000000000000001 , true , null ] , "a" : "x" }`)));
+  expect("A4 canonical text: the excluded members are gone, everything else of _meta and freshness stays", bodyText(rawItem({ meta: `{"source":"k","attempt_id":"${UUID_A}"}` })) === `{"_meta":{"source":"k"},"freshness":{"confidence":"medium"},"mcp_status":"official","name":"Fake","service_id":"fake-subject","trust_score":0.5}`, String(bodyText(rawItem({ meta: `{"source":"k","attempt_id":"${UUID_A}"}` }))));
+  expect("A4 canonical text: a string is re-written from its resolved value (a link written with escapes is the plain link in the body a person reads)", bodyText(`{"v":"https:${BS}/${BS}/github.com${BS}u002ffake-vendor"}`) === `{"v":"https://github.com/fake-vendor"}`);
+  expect("A4 for texts written by JSON.stringify the body is what the former catalogBody gave (keys sorted, the two leaves gone)", bodyOf({ service_id: "s", freshness: { data_age_days: 3, confidence: "medium" }, _meta: { attempt_id: UUID_A }, n: 0.5, t: ["y", "x"], z: null }) === `{"_meta":{},"freshness":{"confidence":"medium"},"n":0.5,"service_id":"s","t":["y","x"],"z":null}`);
+  // refusals say why and never throw
+  const why = (t: any) => catalogBodyDetail(t).why;
+  const deep = (n: number) => `${"[".repeat(n)}${"]".repeat(n)}`;
+  expect("A4 refusal reasons: duplicate_key / syntax / trailing / too_deep / too_large / not_a_string", why(`{"a":1,"a":2}`) === "duplicate_key" && why(`{"a":1,}`) === "syntax" && why(`{} {}`) === "trailing" && why(deep(65)) === "too_deep" && why(`"${"x".repeat(1048576)}"`) === "too_large" && why(undefined) === "not_a_string" && why({ a: 1 }) === "not_a_string", [why(`{"a":1,"a":2}`), why(`{"a":1,}`), why(`{} {}`), why(deep(65)), why(undefined)].join());
+  expect("A4 limits: depth 64 and exactly 1 MiB are inside; one more is outside", why(deep(64)) === null && why(`${"{\"a\":".repeat(64)}1${"}".repeat(64)}`) === null && why(`${"{\"a\":".repeat(65)}1${"}".repeat(65)}`) === "too_deep" && why(`"${"x".repeat(1048574)}"`) === null && why(`"${"x".repeat(1048575)}"`) === "too_large" && why(`"${String.fromCharCode(0x3042).repeat(349525)}"`) === "too_large");
+  // the scanner accepts exactly what JSON.parse accepts (RFC 8259), except a key twice in one object
+  const accepts = (t: string) => { try { JSON.parse(t); return true; } catch { return false; } };
+  const texts = ["1", "-1", "0", "-0", "1.5", "1e5", "1E+5", "1e-5", "01", "-01", "+1", ".5", "1.", "1e", "1e+", "0x10", "- 1", "--1", "1 2", "true", "false", "null", "True", "nul", "undefined", "NaN", "Infinity", "-Infinity", `""`, `"a"`, `'a'`, `"a`, `a"`, `"${BS}"`, `"${BS}x"`, `"${BS}u12"`, `"${BS}u12g4"`, `"${BS}u0000"`, `"${BS}ud800"`, `"a\tb"`, `"a${String.fromCharCode(0x2028)}b"`, `"a${String.fromCharCode(0x7f)}b"`, "[]", "[1,]", "[,1]", "[1 2]", "[1,2", "{}", `{"a"}`, `{"a":}`, `{"a":1,}`, `{a:1}`, `{"a":1 "b":2}`, `{"a":1}}`, "", " ", "\n1\n", `${String.fromCharCode(0xfeff)}1`, `${String.fromCharCode(0xa0)}1`, "1\f", "/**/1", "1//x", `{"a":{"b":[1,{"c":null}]}}`];
+  const mismatch = texts.filter((t) => scanStrictJson(t).ok !== accepts(t));
+  expect(`A4 the scanner accepts exactly what JSON.parse accepts on ${texts.length} probes`, mismatch.length === 0, JSON.stringify(mismatch));
+  expect("A4 … except a key twice in one object (JSON.parse keeps the last; the scanner refuses), compared after the escapes are resolved", accepts(`{"a":1,"a":2}`) && !scanStrictJson(`{"a":1,"a":2}`).ok && !scanStrictJson(`{"a":1,"${BS}u0061":2}`).ok && scanStrictJson(`{"a":{"a":1},"b":{"a":1}}`).ok && scanStrictJson(`[{"a":1},{"a":1}]`).ok);
+  expect("A4 a lone surrogate written as an escape is accepted and has a stable body", typeof bodyText(`{"v":"${BS}ud800"}`) === "string" && bodyText(`{"v":"${BS}ud800"}`) === bodyText(`{"v":"${BS}uD800"}`) && bodyText(`{"v":"${BS}ud800"}`) !== bodyText(`{"v":"${BS}ud801"}`));
+  // the files that DECIDE are read through the same scanner: a key written twice is a refusal, not "the last one wins"
+  const d = mkdtempSync(join(tmpdir(), "att-strict-"));
+  const sha = "c".repeat(64);
+  const ctx = { markerId: "M-994", expectedDigest: SEAL_DIGEST, sourceId: "B", target: "t", bodySha: sha };
+  const att = { attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: SEAL_DIGEST, source_id: "B", target: "t", body_sha256: sha, verdict: "listed", observer: "human:smoke-tester", date: "2026-09-29", reason: "read the whole body" };
+  writeFileSync(join(d, "observers.json"), '["human:smoke-tester"]');
+  writeFileSync(join(d, `M-994-B-${sha}.json`), JSON.stringify(att));
+  expect("A4 attestation file: the plain file is valid (control)", findAttestation(d, ctx).verdict === "listed");
+  writeFileSync(join(d, `M-994-B-${sha}.json`), JSON.stringify(att).replace(`"verdict":"listed"`, `"verdict":"not_listed","verdict":"listed"`));
+  expect("A4 attestation file: verdict written twice (not_listed, then listed) → invalid:duplicate_key, no verdict", findAttestation(d, ctx).verdict === null && findAttestation(d, ctx).why === "invalid:duplicate_key", JSON.stringify(findAttestation(d, ctx)));
+  writeFileSync(join(d, `M-994-B-${sha}.json`), `${JSON.stringify(att)} `.replace(/ $/, ",") );
+  expect("A4 attestation file: text after the object → unreadable, no verdict", findAttestation(d, ctx).verdict === null && findAttestation(d, ctx).why === "unreadable");
+  writeFileSync(join(d, `M-994-B-${sha}.json`), JSON.stringify(att));
+  writeFileSync(join(d, "observers.json"), '["human:smoke-tester"] ["human:someone-else"]');
+  expect("A4 observers.json with text after the list → nobody (no observer accepted)", loadObservers(d).length === 0 && findAttestation(d, ctx).why === "invalid:observer");
+  rmSync(d, { recursive: true, force: true });
+}
+
 // ── Part B: end to end on loopback ───────────────────────────────────────
 const REPO = "https://github.com/fake-vendor/fake-official-mcp-server";
 const mode: Record<string, string> = { a1: "none", a2: "listed", catalog: "no_repo", gh: "ok" };
@@ -270,6 +417,9 @@ const catalogItem = (id: string, m = mode.catalog): any => {
   return item;
 };
 const ABSENT = (id: string) => ({ error: `Service '${id}' not found. Use search_services to find valid service IDs.` });
+let rawCatalog: string | null = null; // when set, the fake catalog's item text, character for character
+let extraBlocks: any[] = []; // further content blocks of the tool result (the real catalog sends exactly one)
+let rawBlockType = "text"; // the type of the first content block (the real catalog sends "text")
 const server = createServer((req, res) => {
   let body = ""; req.on("data", (d) => (body += d)); req.on("end", () => {
     const u = req.url || "";
@@ -287,6 +437,8 @@ const server = createServer((req, res) => {
       const sse = (msg: any) => res.end(`event: message\ndata: ${JSON.stringify(msg)}\n\n`);
       if (mode.catalog === "rpc_error") return sse({ jsonrpc: "2.0", id: rpc.id, error: { code: -32603, message: "Internal error" } });
       if (mode.catalog === "absent") return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(ABSENT(id)) }] } });
+      // the fake catalog can send the item as a raw text of the test's choosing (not only JSON.stringify of an object), and extra content blocks
+      if (rawCatalog !== null) return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: rawBlockType, text: rawCatalog }, ...extraBlocks] } });
       return sse({ jsonrpc: "2.0", id: rpc.id, result: { content: [{ type: "text", text: JSON.stringify(catalogItem(id)) }] } });
     }
     if (u === "/gh/repos/fake-vendor/fake-official-mcp-server") {
@@ -311,7 +463,7 @@ const BASE = "http://127.0.0.1:47336";
 const env = { ...process.env, KANSEI_M994_SEALED_PATH: join(FIX, "M-994.sealed.json"), KANSEI_FAKE_LLM_ANSWERS_FILE: answersPath, KANSEI_FAKE_ATTR_BASE: BASE, KANSEI_FAKE_ATTESTATIONS_DIR: attDir };
 const PACK_ATTR = JSON.parse(JSON.stringify(JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8")).marker.attribution).replaceAll("${ENV:KANSEI_FAKE_ATTR_BASE}", BASE));
 const pageSha = (m: string) => sha256Hex(Buffer.from(page(m), "utf8"));
-const bSha = (payload: any) => sha256Hex(catalogBody(payload));
+const bSha = (payload: any) => sha256Hex(bodyOf(payload));
 // write a (valid unless overridden) human attestation for one source and body
 function attest(sourceId: string, bodySha: string, verdict: "listed" | "not_listed", over: Record<string, any> = {}, fileSha = bodySha) {
   const a: any = { attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: SEAL_DIGEST, source_id: sourceId, target: sourceTarget(PACK_ATTR, sourceId), body_sha256: bodySha, verdict, observer: "human:smoke-tester", date: "2026-09-29", reason: "read the whole body", ...over };
@@ -352,7 +504,7 @@ try {
     expect("B1 the private sidecar names each source's target (what a person attests)", r.diag("A1")?.target === `${BASE}/a1` && r.diag("B")?.target === sourceTarget(PACK_ATTR, "B"));
     expect("B1 the hint stays private: A2 hint listed, A1 hint unknown, B hint unknown", r.diag("A2")?.hint?.state === "listed" && r.diag("A1")?.hint?.state === "unknown" && r.diag("B")?.hint?.state === "unknown" && /判断に使わない/.test(r.diag("B")?.hint?.note || ""), JSON.stringify([r.diag("A2")?.hint, r.diag("B")?.hint]));
     expect("B1 no hint, no body sha256, no repository value in the public files", !/hint|手がかり|fake-official-mcp-server/.test(r.pub) && ![pageSha("none"), pageSha("listed"), bSha(catalogItem("fake-subject"))].some((s) => r.pub.includes(s)));
-    expect("B1 the public log marks 要再確認 by source id only", /"event":"attribution","column":"A","listed":false,"not_listed":false,"instrument":"other","needs_recheck":\["A1","A2"\]/.test(r.pub) && /"column":"B","listed":false,"not_listed":false,"instrument":"other","needs_recheck":true/.test(r.pub), r.pub.split("\n").filter((l) => l.includes("attribution")).join(" | "));
+    expect("B1 the public log marks 要再確認 by source id only, in the same form for A and B (an array of source ids)", /"event":"attribution","column":"A","listed":false,"not_listed":false,"instrument":"other","needs_recheck":\["A1","A2"\]/.test(r.pub) && /"column":"B","listed":false,"not_listed":false,"instrument":"other","needs_recheck":\["B"\]/.test(r.pub), r.pub.split("\n").filter((l) => l.includes("attribution")).join(" | "));
     const rr = readmeRows(r.metrics.readings.map((x: any) => ({ ...x, _outcome: x.observed.method === AGENT_METHOD ? {} : null })));
     expect("B1 README rows carry the 要再確認 mark for A and B", rr.gtRows.includes(`A 公式情報: ${RECHECK_TEXT}（A1 要再確認・A2 要再確認）`) && rr.gtRows.includes(`B KanseiLINK: ${RECHECK_TEXT}`), rr.gtRows);
     // a person attests: A2 listed, B not listed (for exactly these bodies)
@@ -420,8 +572,9 @@ try {
       const { readCatalogDisplay } = await import("../exec-harness/lib/marker-targets.mjs");
       const d0 = await readCatalogDisplay(`${BASE}/mcp`, "fake-subject");
       const d1 = await readCatalogDisplay(`${BASE}/mcp`, "fake-subject", 20000, { keepPayload: true });
-      const { payload, freshness: _f1, ...rest } = d1 as any; const { freshness: _f0, ...rest0 } = d0 as any; // the fake item's freshness moves on every call, like the real one
-      expect("B2 keepPayload: default off returns no payload (M-002 unchanged), on returns it, other fields identical", !("payload" in d0) && typeof payload === "object" && JSON.stringify(rest) === JSON.stringify(rest0));
+      const { payload, payloadText, contentBlocks, contentIsText, freshness: _f1, ...rest } = d1 as any; const { freshness: _f0, ...rest0 } = d0 as any; // the fake item's freshness moves on every call, like the real one
+      expect("B2 keepPayload: default off returns no payload, no original text, no block count or type (M-002 unchanged); on returns them; other fields identical", !("payload" in d0) && !("payloadText" in d0) && !("contentBlocks" in d0) && !("contentIsText" in d0) && typeof payload === "object" && JSON.stringify(rest) === JSON.stringify(rest0));
+      expect("B2 keepPayload: payloadText is the item's original text (what JSON.parse gave the payload), one content block of type text", typeof payloadText === "string" && JSON.stringify(JSON.parse(payloadText)) === JSON.stringify(payload) && contentBlocks === 1 && contentIsText === true);
     }
     // Codex 7e9a3e2 ①: a link added to a field that used to be excluded changes the body and expires the old "not listed"
     mode.catalog = "no_repo";
@@ -440,6 +593,57 @@ try {
       mode.catalog = to;
       const rx = await run();
       expect(`B2 Codex 1391a31 R1 ${why}: body sha256 changes, the attestation is not found, B unknown, U2`, rx.diag("B")?.body_sha256 !== before && rx.diag("B")?.attestation === "none_for_this_body" && stateOf(rx.B?.observed) === "unknown" && judgeOf(rx) === "U2", `${judgeOf(rx)} ${rx.diag("B")?.attestation}`);
+    }
+    // Codex 544808b R2 (Michie 2026-09-30): the fingerprint comes from the item's ORIGINAL TEXT. A person attests the
+    // first text; the catalog then sends the second. The old attestation must not be found (another body) or must not
+    // even be looked up (no body) → B unknown, U2 — never #3 (not_listed kept) and never #1 (listed kept).
+    clearAtt(); mode.catalog = "no_repo";
+    {
+      const shaOf = (t: string) => sha256Hex(catalogBodyFromText(t) as string);
+      const e2e = RAW_PAIRS.filter(([why]) => /^(Codex R2|kind [1-7]) /.test(why));
+      expect("B2 raw: the three Codex cases and the seven of the same kind are all replayed end to end", e2e.length === 9, String(e2e.length));
+      for (const [why, before, after] of e2e) for (const verdict of (why.startsWith("Codex R2 data_age_days null → 1e400") ? ["not_listed", "listed"] : ["not_listed"]) as Array<"listed" | "not_listed">) {
+        clearAtt(); attest("A2", pageSha("listed"), "listed"); attest("B", shaOf(before), verdict);
+        rawCatalog = before;
+        const r0 = await run();
+        rawCatalog = after;
+        const rx = await run();
+        const canonical = catalogBodyFromText(after) !== null;
+        expect(`B2 raw ${why} [attested ${verdict}]: before → the attestation holds (${verdict === "listed" ? "#1" : "#3"}); after → ${canonical ? "another fingerprint, none_for_this_body" : "no body, body_not_canonical"}, B unknown, U2`,
+          stateOf(r0.B?.observed) === verdict && judgeOf(r0) === (verdict === "listed" ? "#1" : "#3")
+          && stateOf(rx.B?.observed) === "unknown" && judgeOf(rx) === "U2" && rx.diag("B")?.attestation === (canonical ? "none_for_this_body" : "body_not_canonical")
+          && ok(rx.B?.observed, "catalog_body_canonical") === canonical && ok(rx.B?.observed, "catalog_item_needs_recheck") === canonical && (canonical ? rx.diag("B")?.body_sha256 !== shaOf(before) : rx.diag("B")?.body_sha256 === null)
+          && validateReading(rx.B, schema).length === 0,
+          `${judgeOf(r0)} → ${judgeOf(rx)} ${rx.diag("B")?.attestation} ${JSON.stringify(rx.B?.observed.checks)}`);
+        if (!canonical) expect(`B2 raw ${why}: the row says 未確定（項の原文を正準化できない）, the sidecar says which refusal, nothing of the item is public`, columnB(rx.B?.observed).text === "未確定（項の原文を正準化できない）" && rx.diag("B")?.body_not_canonical === "duplicate_key" && !/fake-official-mcp-server|duplicate_key|body_not_canonical/.test(rx.pub) && /"column":"B","listed":false,"not_listed":false,"instrument":"other","needs_recheck":\[\]/.test(rx.pub), `${columnB(rx.B?.observed).text} ${rx.diag("B")?.body_not_canonical}`);
+        // the other way round, when the second text has a body too: attest it, then the catalog sends the first
+        if (canonical) {
+          clearAtt(); attest("A2", pageSha("listed"), "listed"); attest("B", shaOf(after), verdict);
+          rawCatalog = before;
+          const ry = await run();
+          expect(`B2 raw ${why} [attested ${verdict}], the other way round: B unknown, U2`, stateOf(ry.B?.observed) === "unknown" && judgeOf(ry) === "U2" && ry.diag("B")?.attestation === "none_for_this_body", `${judgeOf(ry)} ${ry.diag("B")?.attestation}`);
+        }
+      }
+      // what must NOT expire an attestation: whitespace, key order, the escapes of a string, the two volatile leaves
+      clearAtt(); attest("A2", pageSha("listed"), "listed"); attest("B", shaOf(rawItem()), "not_listed");
+      const parsed = JSON.parse(rawItem());
+      for (const [why, text] of [
+        ["pretty-printed with two spaces (the production catalog's form)", JSON.stringify(parsed, null, 2)],
+        ["keys in another order, another UUID, another age", JSON.stringify({ _meta: { attempt_id: UUID_B }, freshness: { data_age_days: 77, confidence: "medium" }, trust_score: 0.5, mcp_status: "official", name: "Fake", service_id: "fake-subject" })],
+        ["a string written with an escape (name = F + u0061 + ke)", rawItem().replace(`"name":"Fake"`, `"name":"F${BS}u0061ke"`)],
+      ] as const) {
+        rawCatalog = text;
+        const rs = await run();
+        expect(`B2 raw: ${why} → the same body, the attestation holds (B not listed, #3)`, stateOf(rs.B?.observed) === "not_listed" && judgeOf(rs) === "#3" && rs.diag("B")?.body_sha256 === shaOf(rawItem()), `${judgeOf(rs)} ${rs.diag("B")?.attestation}`);
+      }
+      // found while looking for the same kind: a second content block is text nobody fingerprinted → no body
+      rawCatalog = rawItem(); extraBlocks = [{ type: "text", text: `see ${LINK}` }];
+      const r2b = await run();
+      expect("B2 raw: a tool result with a second content block (carrying a link) → no body, B unknown, U2, the sidecar says not_one_text_block", stateOf(r2b.B?.observed) === "unknown" && judgeOf(r2b) === "U2" && r2b.diag("B")?.attestation === "body_not_canonical" && r2b.diag("B")?.body_not_canonical === "not_one_text_block" && ok(r2b.B?.observed, "catalog_body_canonical") === false && !/fake-official-mcp-server/.test(r2b.pub), `${judgeOf(r2b)} ${JSON.stringify(r2b.diag("B"))}`);
+      extraBlocks = []; rawBlockType = "resource";
+      const r2c = await run();
+      expect("B2 raw: a tool result whose only block is not of type text → no body, B unknown, U2", stateOf(r2c.B?.observed) === "unknown" && judgeOf(r2c) === "U2" && r2c.diag("B")?.body_not_canonical === "not_one_text_block" && r2c.diag("B")?.body_sha256 === null, `${judgeOf(r2c)} ${JSON.stringify(r2c.diag("B"))}`);
+      rawBlockType = "text"; rawCatalog = null;
     }
     clearAtt(); mode.catalog = "no_repo";
     expect("B2 a fresh lower-case UUID attempt_id on every call does not change the body (the real catalog)", bSha(catalogItem("fake-subject")) === bSha(catalogItem("fake-subject")) && catalogItem("fake-subject")._meta.attempt_id !== catalogItem("fake-subject")._meta.attempt_id);
@@ -746,7 +950,7 @@ try {
         } else if (c.id === "valid-baseline") {
           fpage = repo; fpayload = c.input.catalog;
           put(v2("A1", pageShaF(), "listed", { reason: "Fixture reviewer: the page links the repository." }));
-          put(v2("B", sha256Hex(catalogBody(fpayload)), "not_listed"));
+          put(v2("B", sha256Hex(bodyOf(fpayload)), "not_listed"));
           const r = await frun(c.id);
           expect(`F ${c.id} → A ${c.expect.A}, B ${c.expect.B}, ${c.expect.judgement}`, r.A === c.expect.A && r.B === c.expect.B && r.judgement === c.expect.judgement, JSON.stringify(r));
           aux(c.id, r);
@@ -763,7 +967,7 @@ try {
           fpage = repo; fpayload = c.input.catalog;
           put(v2("A1", pageShaF(), "listed", { reason: "Fixture reviewer: the page links the repository." }));
           const r = await frun(c.id);
-          put(v2("B", sha256Hex(catalogBody(fpayload)), "listed", { reason: "Fixture reviewer: the item names the repository." }));
+          put(v2("B", sha256Hex(bodyOf(fpayload)), "listed", { reason: "Fixture reviewer: the item names the repository." }));
           const r2 = await frun(`${c.id}-attested`);
           expect(`F ${c.id} → without attestation B ${c.expect.B} ${c.expect.judgement} (hint ${c.expect.hint_B}); attested listed → ${c.expect.with_listed_attestation}`, r.B === c.expect.B && r.judgement === c.expect.judgement && r.hintB === c.expect.hint_B && r2.judgement === c.expect.with_listed_attestation, `${JSON.stringify(r)} ${JSON.stringify(r2)}`);
           aux(c.id, r);
@@ -777,7 +981,7 @@ try {
           aux(c.id, r);
         } else if (c.id === "placeholder-e2e") {
           fpage = "PAGE_VALUE_CANARY"; fpayload = basePayload();
-          for (const s of ["A1", "A2", "B"]) put(v2(s, s === "B" ? sha256Hex(catalogBody(fpayload)) : pageShaF(), "not_listed", { observer: "human:TODO", reason: "TODO", target: "TODO" }));
+          for (const s of ["A1", "A2", "B"]) put(v2(s, s === "B" ? sha256Hex(bodyOf(fpayload)) : pageShaF(), "not_listed", { observer: "human:TODO", reason: "TODO", target: "TODO" }));
           const r = await frun("placeholder");
           expect(`F ${c.id} → A ${c.expect.A}, B ${c.expect.B}, ${c.expect.judgement}`, r.A === c.expect.A && r.B === c.expect.B && r.judgement === c.expect.judgement, JSON.stringify(r));
           aux("placeholder", r);
@@ -826,7 +1030,7 @@ try {
   const stateB = (b: any) => (({ correct: "listed", wrong: "not_listed", unknown: "unknown" }) as any)[b.state];
   const resetAtt = () => { rmSync(attdir, { recursive: true, force: true }); mkdirSync(attdir, { recursive: true }); writeFileSync(join(attdir, "observers.json"), JSON.stringify([OBS])); };
   function attestG(source: string, verdict: string, patch: any = {}) {
-    const body = source === "A1" ? a1 : source === "A2" ? a2 : catalogBody(item);
+    const body = source === "A1" ? a1 : source === "A2" ? a2 : bodyOf(item);
     const bodySha = sha256Hex(body);
     const a = { attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: digest, source_id: source, target: sourceTarget(cfg, source), body_sha256: bodySha, verdict, observer: OBS, date: "2026-09-29", reason: "Read the complete synthetic source and confirmed the verdict.", ...patch };
     for (const k of Object.keys(patch)) if (patch[k] === undefined) delete (a as any)[k];
@@ -870,8 +1074,8 @@ try {
     // the same with real-shaped ids (lower-case UUIDs): the attestation holds
     item = { ...baseItem(), _meta: { attempt_id: "0901886c-9053-494f-af18-a38d280f63ab" } }; resetAtt(); attestG("B", "not_listed"); item._meta.attempt_id = "11111111-2222-4333-8444-555555555555"; item.freshness.data_age_days = 123; r = await columns();
     expect("G catalog-two-volatile-leaves with lower-case UUID attempt ids → the attestation holds (not_listed)", stateB(r.b) === "not_listed", stateB(r.b));
-    put2("canonical-key-order", catalogBody({ z: 1, a: 2 }) === catalogBody({ a: 2, z: 1 }));
-    put2("canonical-array-order", catalogBody([1, 2]) !== catalogBody([2, 1]));
+    put2("canonical-key-order", bodyOf({ z: 1, a: 2 }) === bodyOf({ a: 2, z: 1 }));
+    put2("canonical-array-order", bodyOf([1, 2]) !== bodyOf([2, 1]));
     for (const name of ["rename", "move", "archive", "private", "404", "timeout"]) {
       gh = { full_name: `${sealed.owner}/${sealed.name}`, private: false, archived: false }; ghMode = "normal";
       if (name === "rename") gh.full_name = `${sealed.owner}/renamed`; if (name === "move") gh.full_name = `moved/${sealed.name}`;
@@ -957,7 +1161,7 @@ try {
   const baseH = `http://127.0.0.1:${(hserver.address() as any).port}`;
   const cfgH = { official_docs: [{ id: "A1", url: `${baseH}/a1` }, { id: "A2", url: `${baseH}/a2` }], catalog: { display_api_url: `${baseH}/mcp`, service_id: "audit-fixture", body_fields: B_BODY_FIELDS }, attestations_dir: hdir };
   const MKH: any = { marker_id: "M-994", kind_of_truth: "llm_answer", claim: "Independent loopback attribution audit", providers: ["fake"], github_api_base: `${baseH}/gh`, github_timeout_ms: 40, verify_repo_via_github: true, attribution: cfgH };
-  const attH = (source: string, verdict: string, over: any = {}) => ({ attestation: ATTESTATION_KIND, marker_id: MKH.marker_id, expected_digest: digestH, source_id: source, target: sourceTarget(cfgH, source), body_sha256: sha256Hex(source === "B" ? catalogBody(payloadH) : pagesH[source]), verdict, observer: OBS_H, date: localToday(), reason: "Fixture human reviewed the complete current body.", ...over });
+  const attH = (source: string, verdict: string, over: any = {}) => ({ attestation: ATTESTATION_KIND, marker_id: MKH.marker_id, expected_digest: digestH, source_id: source, target: sourceTarget(cfgH, source), body_sha256: sha256Hex(source === "B" ? bodyOf(payloadH) : pagesH[source]), verdict, observer: OBS_H, date: localToday(), reason: "Fixture human reviewed the complete current body.", ...over });
   const putH = (a: any, source = a.source_id, body = a.body_sha256) => writeFileSync(join(hdir, `${MKH.marker_id}-${source}-${body}.json`), JSON.stringify(a));
   const normB = (b: any) => (b.state === "correct" ? "listed" : b.state === "wrong" ? "not_listed" : "unknown");
   async function readH() {
@@ -987,9 +1191,9 @@ try {
     }
     const LS = String.fromCharCode(0x2028), PS = String.fromCharCode(0x2029);
     for (const [id, over] of [["verdict-TODO", { verdict: "TODOlisted" }], ["verdict-case", { verdict: "LISTED" }], ["unknown-observer", { observer: "human:Unlisted" }], ["kind-v1", { attestation: "kansei-attribution-attestation/v1" }], ["future", { date: "9999-01-01" }], ["month-13", { date: "2026-13-01" }], ["non-leap", { date: "2025-02-29" }], ["day-overflow", { date: "2026-04-31" }], ["wrong-target", { target: `${baseH}/other` }], ["wrong-marker", { marker_id: "M-993" }], ["wrong-source", { source_id: "A1" }], ["wrong-digest", { expected_digest: "0".repeat(64) }], ["wrong-body", { body_sha256: "0".repeat(64) }], ["draft-instructions", { _draft_instructions: "review" }], ["extra-key", { extra: "x" }], ["reason-empty", { reason: " " }], ["reason-201", { reason: "x".repeat(201) }], ["reason-LF", { reason: "read\nbody" }], ["reason-CR", { reason: "read\rbody" }], ["reason-TAB", { reason: "read\tbody" }], ["reason-DEL", { reason: `read${String.fromCharCode(0x7f)}body` }], ["reason-NEL", { reason: `read${String.fromCharCode(0x85)}body` }], ["reason-LS", { reason: `read${LS}body` }], ["reason-PS", { reason: `read${PS}body` }]] as const) {
-      resetH(); const a = attH("B", "not_listed", over as any); putH(a, "B", sha256Hex(catalogBody(payloadH))); add(id, pick(await readH(), ["B"]));
+      resetH(); const a = attH("B", "not_listed", over as any); putH(a, "B", sha256Hex(bodyOf(payloadH))); add(id, pick(await readH(), ["B"]));
     }
-    for (const key of Object.keys(attH("B", "not_listed"))) { resetH(); const a: any = attH("B", "not_listed"); delete a[key]; putH(a, "B", sha256Hex(catalogBody(payloadH))); add(`missing-${key}`, pick(await readH(), ["B"])); }
+    for (const key of Object.keys(attH("B", "not_listed"))) { resetH(); const a: any = attH("B", "not_listed"); delete a[key]; putH(a, "B", sha256Hex(bodyOf(payloadH))); add(`missing-${key}`, pick(await readH(), ["B"])); }
     n = 51;
     for (const observers of [null, [], [OBS_H, 5], [OBS_H, "human: "], [OBS_H, `human:x${LS}y`], {}]) {
       resetH(); const a = attH("B", "not_listed"); putH(a);
@@ -1004,10 +1208,10 @@ try {
     for (const path of ["_repository", "_meta.repository", "freshness.repository", "freshness.confidence", "_meta.attempt_id"]) {
       resetH(); const a = attH("B", "not_listed"); putH(a); const parts = path.split(".");
       if (parts.length === 1) payloadH[path] = repo; else payloadH[parts[0]][parts[1]] = repo;
-      const rr = await readH(); add(`link-added-${path}`, { B: rr.B, body_changed: sha256Hex(catalogBody(payloadH)) !== a.body_sha256 });
+      const rr = await readH(); add(`link-added-${path}`, { B: rr.B, body_changed: sha256Hex(bodyOf(payloadH)) !== a.body_sha256 });
     }
     resetH(); payloadH._meta.attempt_id = repo; const oldListed = attH("B", "listed"); putH(oldListed); payloadH._meta.attempt_id = "attempt-two";
-    { const rr = await readH(); add("link-removed-attempt-id", { B: rr.B, body_changed: sha256Hex(catalogBody(payloadH)) !== oldListed.body_sha256 }); }
+    { const rr = await readH(); add("link-removed-attempt-id", { B: rr.B, body_changed: sha256Hex(bodyOf(payloadH)) !== oldListed.body_sha256 }); }
     for (const mode of ["normal", "renamed", "moved", "redirect", "archived", "private", "missing", "timeout"]) {
       resetH(); ghH = mode; const t = await TARGETS.llmAnswer.groundTruth({ MK: MKH, sealed: sealedH, harnessLog: () => {} }); add(`ground-truth-${mode}`, { consistent: t.consistent });
     }
@@ -1043,6 +1247,311 @@ try {
     expect(`H ${c.id} → ${JSON.stringify(c.expect)}${c.revised ? " (revised)" : ""}`, okH, JSON.stringify(got));
   }
   expect("H every one of the 88 cases was replayed", fx.cases.every((c: any) => actual.has(c.id)) && actual.size === 88, String(actual.size));
+}
+
+// ── Part I: Codex's 234 independent cases of 544808b (fixtures/attribution-cases-544808b.json) ──
+// Codex's runner (audit-evidence-544808b.zip work/independent.mjs) ported statement by statement, so the ids (which
+// carry its reset counter) come out the same. Where it took catalogBody(item), the port takes the body of the text the
+// fake catalog sends (raw_catalog_item, else JSON.stringify(item)).
+{
+  const { isDeepStrictEqual } = await import("node:util");
+  const fx = JSON.parse(readFileSync(join(FIX, "attribution-cases-544808b.json"), "utf-8"));
+  const verbatim = JSON.parse(readFileSync(join(FIX, "evidence", "codex-544808b-independent-cases.json"), "utf-8"));
+  expect("I0 234 cases; ids, inputs and Codex's expectations equal the verbatim evidence", fx.cases.length === 234 && verbatim.cases.length === 234 && fx.cases.every((c: any, i: number) => c.id === verbatim.cases[i].id && JSON.stringify(c.input) === JSON.stringify(verbatim.cases[i].input) && JSON.stringify(c.codex_expected) === JSON.stringify(verbatim.cases[i].expected)));
+  expect("I0 every expectation that differs from Codex's says why (none does)", fx.cases.every((c: any) => JSON.stringify(c.expect) === JSON.stringify(c.codex_expected) || typeof c.revised === "string") && fx.cases.every((c: any) => c.revised === undefined));
+  expect("I0 Codex's three non-conforming cases are the three overflow bundles", JSON.stringify(fx.cases.filter((c: any) => !c.codex_conforms).map((c: any) => c.id)) === JSON.stringify(["bundle-overflow_positive", "bundle-overflow_negative", "bundle-overflow_positive_listed"]));
+  const { TARGETS, readCatalogDisplay } = await import("../exec-harness/lib/marker-targets.mjs");
+  const { runGenericMarker } = await import("../exec-harness/lib/marker-generic.mjs");
+  const repoKey = await import("../exec-harness/lib/repo-key.mjs");
+  const area = mkdtempSync(join(tmpdir(), "codex-544808b-"));
+  const actual = new Map<string, any>();
+  const record = (id: string, v: any) => actual.set(id, v);
+  const sealBytes = readFileSync(join(FIX, "M-994.sealed.json"));
+  const sealJson = JSON.parse(sealBytes.toString("utf-8")), digest = sha256Hex(sealBytes);
+  const sealed = TARGETS.llmAnswer.parseSealed(sealJson);
+  const repo = `https://${sealed.repo}`, uuid = "ab012345-6789-4abc-8def-0123456789ab";
+  const baseItem = (): any => ({ service_id: "audit-service", mcp_status: "audit-status", freshness: { confidence: "audit-confidence", data_age_days: 1 }, _meta: { attempt_id: uuid } });
+  let item: any, rawItemI: string | null, pages: any, status: any, gh: string, dir = "", cfg: any, counter = 0;
+  const iserver = createServer((req, res) => {
+    const u = req.url || "";
+    if (u === "/a1" || u === "/a2") { const id = u === "/a1" ? "A1" : "A2"; res.writeHead(status[id]); return res.end(pages[id]); }
+    if (u === "/mcp") { req.resume(); res.setHeader("content-type", "application/json"); return res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, result: { content: [{ type: "text", text: rawItemI ?? JSON.stringify(item) }] } })); }
+    if (u.startsWith("/gh/")) {
+      if (gh === "timeout") return;
+      if (gh === "disconnect") return void req.socket.destroy();
+      if (gh === "moved" && !u.endsWith("/moved")) { res.writeHead(301, { location: "/gh/moved" }); return res.end(); }
+      res.writeHead(gh === "404" ? 404 : 200, { "content-type": "application/json" });
+      if (gh === "malformed") return res.end("{");
+      return res.end(JSON.stringify({ private: gh === "private", archived: gh === "archived", full_name: gh === "renamed" || gh === "moved" ? "different/repository" : `${sealed.owner}/${sealed.name}` }));
+    }
+    res.writeHead(404); res.end();
+  });
+  await new Promise<void>((r) => iserver.listen(0, "127.0.0.1", () => r()));
+  const base = `http://127.0.0.1:${(iserver.address() as any).port}`;
+  const OBS_I = "human:independent-audit";
+  function reset() {
+    dir = join(area, `att-${++counter}`); mkdirSync(dir); writeFileSync(join(dir, "observers.json"), JSON.stringify([OBS_I]));
+    item = baseItem(); rawItemI = null; pages = { A1: `<p>A1_PRIVATE ${repo}</p>`, A2: "<p>A2_PRIVATE no link</p>" }; status = { A1: 200, A2: 200 }; gh = "normal";
+    cfg = { official_docs: [{ id: "A1", url: `${base}/a1` }, { id: "A2", url: `${base}/a2` }], catalog: { display_api_url: `${base}/mcp`, service_id: "audit-service", body_fields: B_BODY_FIELDS }, attestations_dir: dir };
+  }
+  const bodySha = (id: string) => sha256Hex(id === "B" ? bodyOf(item) : Buffer.from(pages[id]));
+  function attestI(id: string, verdict: string, mutation?: (a: any) => void) {
+    const a: any = { attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: digest, source_id: id, target: sourceTarget(cfg, id), body_sha256: bodySha(id), verdict, observer: OBS_I, date: localToday(), reason: "Independent fixture confirmation" };
+    const path = join(dir, `M-994-${id}-${a.body_sha256}.json`);
+    if (mutation) mutation(a);
+    writeFileSync(path, JSON.stringify(a)); return a;
+  }
+  const MKI = () => ({ marker_id: "M-994", claim: "Independent synthetic attribution fixture", kind_of_truth: "llm_answer", providers: ["fake"], attribution: cfg, github_api_base: `${base}/gh`, github_timeout_ms: 100 });
+  const rowsI = () => TARGETS.llmAnswer.attribution({ MK: MKI(), sealed, harnessLog: () => {}, attestationsDir: dir, expectedDigest: digest, markerId: "M-994" });
+  const toB = (s: string) => (({ correct: "listed", wrong: "not_listed", unknown: "unknown" }) as any)[s];
+  const state = (r: any) => ({ A: columnA(r[0]).state, B: toB(columnB(r[1]).state) });
+  const ch = (n: number) => String.fromCharCode(n);
+  try {
+    for (const a1 of ["listed", "not_listed", "unknown"]) for (const a2 of ["listed", "not_listed", "unknown"]) for (const b of ["listed", "not_listed", "unknown"]) {
+      reset(); if (a1 !== "unknown") attestI("A1", a1); if (a2 !== "unknown") attestI("A2", a2); if (b !== "unknown") attestI("B", b);
+      record(`states-${a1}-${a2}-${b}`, state(await rowsI()));
+    }
+    const mutations: Record<string, (a: any) => void> = {
+      kind: (a) => (a.attestation = "kansei-attribution-attestation/v1"), marker: (a) => (a.marker_id = "M-993"), digest: (a) => (a.expected_digest = "a".repeat(64)), source: (a) => (a.source_id = "A2"), target: (a) => (a.target += "?other"), body: (a) => (a.body_sha256 = "b".repeat(64)), observer: (a) => (a.observer = "human:unlisted"), verdict_unknown: (a) => (a.verdict = "unknown"), verdict_case: (a) => (a.verdict = "LISTED"), verdict_space: (a) => (a.verdict = "listed "), verdict_bool: (a) => (a.verdict = true), missing_verdict: (a) => delete a.verdict, draft: (a) => (a._draft_instructions = "read first"), extra: (a) => (a.extra = "x"), date_impossible: (a) => (a.date = "2026-02-30"), date_future: (a) => (a.date = "9999-12-31"), date_datetime: (a) => (a.date += "T00:00:00Z"), reason_empty: (a) => (a.reason = " "), reason_long: (a) => (a.reason = "a".repeat(201)), reason_lf: (a) => (a.reason = "a\nb"), reason_c1: (a) => (a.reason = `a${ch(0x85)}b`), reason_sep: (a) => (a.reason = `a${ch(0x2028)}b`),
+    };
+    for (const [name, mutate] of Object.entries(mutations)) for (const verdict of ["listed", "not_listed"]) {
+      reset(); attestI("A1", verdict, mutate); attestI("B", verdict, mutate);
+      record(`invalid-${name}-${verdict}`, state(await rowsI()));
+    }
+    for (const obs of [null, [], ["bad"], [OBS_I, "bad"], {}, ["human: "]]) {
+      reset(); attestI("A1", "listed"); attestI("B", "not_listed"); writeFileSync(join(dir, "observers.json"), obs === null ? "{" : JSON.stringify(obs));
+      record(`observer-list-${counter}`, state(await rowsI()));
+    }
+    for (const reason of ["TODO", "TBD", "[note]", "<note>", "{note}", "x".repeat(200)]) {
+      reset(); attestI("A1", "listed", (a) => (a.reason = reason)); attestI("B", "not_listed", (a) => (a.reason = reason));
+      record(`reason-note-${counter}`, state(await rowsI()));
+    }
+    const values = [uuid.toUpperCase(), repo, "", `${uuid}x`, `${uuid}\n`, `${uuid}\r`, `${uuid}${ch(0x2028)}`, `${uuid}${ch(0x2029)}`, ` ${uuid}`, `${uuid} `, uuid.slice(1), null, 0, true, [], { repository: repo }];
+    for (const value of values) for (const verdict of ["listed", "not_listed"]) {
+      reset(); attestI("A1", "listed"); attestI("B", verdict); const old = bodySha("B"); item._meta.attempt_id = value;
+      record(`attempt-boundary-${counter}`, { ...state(await rowsI()), hash_changed: bodySha("B") !== old });
+    }
+    for (const value of [-1, 100001, 1e9, 0.5, "1", repo, null, {}, [repo]]) {
+      reset(); attestI("A1", "listed"); attestI("B", "not_listed"); const old = bodySha("B"); item.freshness.data_age_days = value;
+      record(`age-boundary-${counter}`, { ...state(await rowsI()), hash_changed: bodySha("B") !== old });
+    }
+    for (const value of [0, 100000]) {
+      reset(); attestI("A1", "listed"); attestI("B", "not_listed"); const old = bodySha("B"); item.freshness.data_age_days = value; item._meta.attempt_id = "12345678-abcd-4abc-8abc-abcdefabcdef";
+      record(`allowed-volatility-${value}`, { ...state(await rowsI()), hash_changed: bodySha("B") !== old });
+    }
+    const bodyMutations: Record<string, (x: any) => void> = { meta: (x) => (x._meta.repository = repo), freshness: (x) => (x.freshness.repository = repo), nested: (x) => (x.extra = { arr: [repo] }), proto: (x) => Object.defineProperty(x, "__proto__", { value: { repository: repo }, enumerable: true }), url_remove: (x) => delete x.connection_guide.repository, url_change: (x) => (x.connection_guide.repository = "https://github.com/other/repo") };
+    for (const [name, mutate] of Object.entries(bodyMutations)) {
+      reset(); item.connection_guide = { repository: repo }; attestI("A1", "listed"); attestI("B", "listed"); const old = bodySha("B"); mutate(item);
+      record(`body-change-${name}`, { ...state(await rowsI()), hash_changed: bodySha("B") !== old });
+    }
+    for (const id of ["A1", "A2"]) {
+      reset(); attestI("A1", "not_listed"); attestI("A2", "not_listed"); attestI("B", "listed"); pages[id] += repo;
+      record(`page-changed-${id}`, state(await rowsI()));
+    }
+    for (const verdict of ["listed", "not_listed"]) {
+      reset(); item._meta.attempt_id = repo; attestI("A1", "listed"); attestI("B", verdict); const old = bodySha("B"); item._meta.attempt_id = uuid;
+      record(`url-to-uuid-${verdict}`, { ...state(await rowsI()), hash_changed: bodySha("B") !== old });
+    }
+    for (const http of [404, 500]) {
+      reset(); attestI("A1", "listed"); attestI("A2", "not_listed"); attestI("B", "listed"); status.A1 = http;
+      record(`page-http-${http}`, state(await rowsI()));
+    }
+    reset(); attestI("A1", "listed"); attestI("B", "listed"); cfg.catalog.body_fields = "all_except:_meta.attempt_id,freshness.data_age_days";
+    record("old-body-fields", state(await rowsI()));
+    for (const verdict of ["unknown", "listed", "not_listed"]) {
+      reset(); item = { code: "not_found", service_id: "audit-service" }; attestI("A1", "listed"); if (verdict !== "unknown") attestI("B", verdict);
+      record(`absent-item-${verdict}`, state(await rowsI()));
+    }
+    for (const mode of ["normal", "renamed", "moved", "archived", "private", "404", "malformed", "timeout", "disconnect"]) {
+      reset(); gh = mode; const r = await TARGETS.llmAnswer.groundTruth({ MK: MKI(), sealed, harnessLog: () => {} });
+      record(`ground-truth-${mode}`, { consistent: r.consistent });
+    }
+    for (const a of ["listed", "not_listed", "unknown"]) for (const b of ["correct", "wrong", "unknown"]) for (const c of ["pass", "miss", "format", "instrument"]) for (const gt of [true, false]) {
+      record(`table-${a}-${b}-${c}-${gt}`, judgeAttribution({ a: { state: a }, b: { state: b }, c: { state: c }, gtConsistent: gt }).code);
+    }
+    reset();
+    const d0: any = await readCatalogDisplay(`${base}/mcp`, "audit-service"), d1: any = await readCatalogDisplay(`${base}/mcp`, "audit-service", 20000, { keepPayload: true });
+    const { payload: _p, payloadText: _t, contentBlocks: _n, contentIsText: _x, ...rest } = d1; // port note: keepPayload now adds these four
+    record("keepPayload", { default_has_payload: "payload" in d0, other_fields_equal: isDeepStrictEqual(d0, rest) });
+    record("sourceRepoKey-reexport", { same_function: repoKey.sourceRepoKey === sourceRepoKey, key: sourceRepoKey(repo) });
+    const schemaI = loadReadingSchema();
+    for (const mode of ["attested", "stale_B", "hint_only", "moved", "format", "instrument", "overflow_positive", "overflow_negative", "overflow_positive_listed"]) {
+      reset(); if (mode.startsWith("overflow_")) item.freshness.data_age_days = null;
+      attestI("A1", "listed", (a) => (a.reason = "TODO private audit note")); attestI("B", mode === "overflow_positive_listed" ? "listed" : "not_listed");
+      if (mode.startsWith("overflow_")) rawItemI = JSON.stringify(item).replace('"data_age_days":null', `"data_age_days":${mode === "overflow_negative" ? "-1e400" : "1e400"}`);
+      if (mode === "stale_B") item._meta.attempt_id = repo;
+      if (mode === "hint_only") cfg.attestations_dir = join(area, "no-attestations");
+      if (mode === "moved") gh = "moved";
+      const text = mode === "format" ? "UNSTRUCTURED_PRIVATE_ANSWER" : `ANSWER_PRIVATE\nREPO: ${repo}\nAUTH: OAuth 2.0`;
+      const target = { ...TARGETS.llmAnswer, observe: async ({ log }: any) => { log({ role: "assistant", text }); return { text, model: "fake-model", error: mode === "instrument" ? "fixture_error" : null }; } };
+      const pack = { id: "independent-audit", version: 1, service_id: "kansei-link", goal_prompt: { ja: "fake" }, budgets: { timeout_s: 1 } };
+      const result: any = await runGenericMarker({ target, PACK: pack, MK: MKI(), packPath: join(FIX, "taskpack-m994-attribution.json"), ROOT: area, KANSEI_ROOT: area, flags: { dry: true, executor: "agent", lang: "ja", maxReadings: 20 }, sealedCommon: { json: sealJson, digest, remoteBranches: [], expired: false }, db: null, libDir: join(ROOT, "exec-harness", "lib"), VERSION: "audit", HARNESS_VERSION: "audit+544808b", OBSERVER: "kansei_harness@audit" });
+      const rr = result.readings.map((r: any) => { const { _outcome, ...x } = r; return { ...x, outcome_id: _outcome ? 1 : null }; });
+      const sheet = renderSheet(rr, { markerId: "M-994" }), l = attributionLines(rr)[0];
+      const pub = ["metrics.json", "manifest.json", "harness.jsonl"].map((f) => readFileSync(join(area, result.bundleRel, f), "utf8")).join("\n") + sheet;
+      const privateJson = JSON.parse(readFileSync(join(area, result.bundleRel, "environment.private.json"), "utf8"));
+      const needles = ["A1_PRIVATE", "A2_PRIVATE", "ANSWER_PRIVATE", "UNSTRUCTURED_PRIVATE_ANSWER", "audit-status", "audit-confidence", "TODO private audit note", "reason_looks_unfinished", repo, ...privateJson.diagnostics.filter((d: any) => d.body_sha256).map((d: any) => d.body_sha256)];
+      record(`bundle-${mode}`, { A: l.a.state, B: toB(l.b.state), code: l.judgement.code, schema_valid: result.readings.every(({ _outcome, ...r }: any) => validateReading(r, schemaI).length === 0), leaked: needles.some((n) => pub.includes(n)) });
+      if (mode.startsWith("overflow_")) { const bd = privateJson.diagnostics.find((d: any) => d.source_id === "B"); expect(`I bundle-${mode}: the text with ${mode === "overflow_negative" ? "-1e400" : "1e400"} has its own fingerprint, so the attestation of the null body is not found`, bd?.attestation === "none_for_this_body" && bd?.body_sha256 === sha256Hex(catalogBodyFromText(rawItemI as string) as string) && bd?.body_sha256 !== sha256Hex(bodyOf(item)), JSON.stringify(bd)); }
+    }
+  } finally { iserver.closeAllConnections(); await new Promise<void>((r) => iserver.close(() => r())); rmSync(area, { recursive: true, force: true }); }
+  for (const c of fx.cases) {
+    const got = actual.get(c.id);
+    expect(`I ${c.id} → ${JSON.stringify(c.expect)}`, actual.has(c.id) && isDeepStrictEqual(got, c.expect), JSON.stringify(got));
+  }
+  expect("I every one of the 234 cases was replayed", fx.cases.every((c: any) => actual.has(c.id)) && actual.size === 234, String(actual.size));
+}
+
+// ── Part J: random pairs of item texts, fixed seed (Michie 2026-09-30) ──
+// Property: two texts have the same body ONLY when they differ in nothing but whitespace, the order of keys, how a
+// string or key is escaped, and the two excluded members (while their tokens have the exact grammar). Any other
+// difference gives another body or none. And the other way round: those differences alone always give the same body.
+// The oracle is a model of the item kept by this test (never the scanner's own output): each text is PRINTED from a
+// model, and the expectation is computed from the two models.
+{
+  const PAIRS = Number(process.env.KANSEI_SMOKE_RANDOM_PAIRS || 2000);
+  let st = 0x544808b >>> 0; // fixed seed
+  const rnd = () => { st = (st + 0x6d2b79f5) >>> 0; let t = st; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const int = (n: number) => Math.floor(rnd() * n);
+  const pick = (xs: readonly any[]) => xs[int(xs.length)];
+  const chance = (p: number) => rnd() < p;
+  type N = { t: "o"; m: Array<[string, N]> } | { t: "a"; i: N[] } | { t: "s"; v: string; esc?: boolean } | { t: "n"; raw: string } | { t: "l"; raw: string };
+  const fc = (n: number) => String.fromCharCode(n);
+  const ALPHABET = ["a", "b", "Z", "0", "7", "-", "_", " ", "/", ":", ".", '"', BS, "\n", "\t", fc(1), fc(0x7f), fc(0xe9), fc(0x65e5), fc(0x2028), fc(0xd83d) + fc(0xde00)];
+  const HEXD = "0123456789abcdef";
+  const randUuid = () => [8, 4, 4, 4, 12].map((n) => Array.from({ length: n }, () => HEXD[int(16)]).join("")).join("-");
+  const randAge = () => pick(["0", "1", "7", "42", "365", "99999", "100000", String(int(100001))]);
+  const NUMBERS = ["0", "-0", "1", "-1", "7", "42", "100000", "100001", "3.5", "-0.25", "1e5", "1E5", "1e+5", "2.50", "1e-7", "0.0000001", "12345678901234567", "9007199254740992", "9007199254740993", "3", "3.0", "3.0000000000000000001", "1e400", "-1e400", "1e-400", "0.1", "0.10"];
+  const KEYS = ["a", "b", "c", "name", "url", "id", "x y", fc(0xe9), "repository", "description", "attempt_id", "data_age_days", "_meta", "freshness", "__proto__", "constructor", "", "a/b", 'q"q'];
+  const randString = (): N => ({ t: "s", v: Array.from({ length: int(7) }, () => pick(ALPHABET)).join("") });
+  const randLeaf = (): N => { const k = int(10); return k < 4 ? randString() : k < 8 ? { t: "n", raw: pick(NUMBERS) } : { t: "l", raw: pick(["true", "false", "null"]) }; };
+  const randNode = (depth: number): N => {
+    const k = depth >= 3 ? 9 : int(10);
+    if (k < 2) { const m: Array<[string, N]> = []; for (let j = int(4); j > 0; j--) { const key = pick(KEYS); if (!m.some(([x]) => x === key)) m.push([key, randNode(depth + 1)]); } return { t: "o", m }; }
+    if (k < 4) return { t: "a", i: Array.from({ length: int(4) }, () => randNode(depth + 1)) };
+    return randLeaf();
+  };
+  const randRoot = (): N => {
+    const meta: Array<[string, N]> = [["attempt_id", chance(0.9) ? { t: "s", v: randUuid() } : randLeaf()]];
+    if (chance(0.5)) meta.push(["source", randString()]);
+    const fresh: Array<[string, N]> = [["confidence", { t: "s", v: pick(["high", "medium", "low"]) }], ["data_age_days", chance(0.9) ? { t: "n", raw: randAge() } : randLeaf()]];
+    const m: Array<[string, N]> = [["service_id", { t: "s", v: "fake-subject" }], ["mcp_status", { t: "s", v: "official" }]];
+    if (chance(0.95)) m.push(["_meta", chance(0.95) ? { t: "o", m: meta } : randLeaf()]);
+    if (chance(0.95)) m.push(["freshness", chance(0.95) ? { t: "o", m: fresh } : randLeaf()]);
+    for (let j = int(6); j > 0; j--) { const key = pick(KEYS); if (!m.some(([x]) => x === key)) m.push([key, randNode(1)]); }
+    return { t: "o", m };
+  };
+  const clone = (n: N): N => JSON.parse(JSON.stringify(n));
+  // the grammar of the two excluded leaves, written independently of the harness (no regular expression shared with it)
+  const isUuidLower = (s: string) => { const parts = s.split("-"); return parts.length === 5 && parts.map((x) => x.length).join() === "8,4,4,4,12" && [...parts.join("")].every((c) => HEXD.includes(c)); };
+  const isAge = (raw: string) => { const v = Number(raw); return String(v) === raw && Number.isInteger(v) && v >= 0 && v <= 100000; };
+  const excluded = (vol: string | null, key: string, n: N) => (vol === "_meta" && key === "attempt_id" && n.t === "s" && !n.esc && isUuidLower(n.v)) || (vol === "freshness" && key === "data_age_days" && n.t === "n" && isAge(n.raw));
+  // the oracle: a length-prefixed description of what must be in the body; null when some object has a key twice
+  const sem = (n: N, depth = 0, vol: string | null = null): string | null => {
+    const wrap = (s: string) => `${s.length}:${s}`;
+    if (n.t === "o") {
+      if (new Set(n.m.map(([k]) => k)).size !== n.m.length) return null;
+      const parts: string[] = [];
+      for (const [k, child] of [...n.m].sort((x, y) => (x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0))) {
+        if (excluded(vol, k, child)) continue;
+        const s = sem(child, depth + 1, depth === 0 && child.t === "o" ? k : null);
+        if (s === null) return null;
+        parts.push(wrap(k) + wrap(s));
+      }
+      return `o${parts.join("")}`;
+    }
+    if (n.t === "a") { const parts = n.i.map((x) => sem(x, depth + 1, null)); return parts.some((p) => p === null) ? null : `a${parts.map((p) => wrap(p as string)).join("")}`; }
+    return n.t === "s" ? `s${n.v}` : n.t === "n" ? `n${n.raw}` : `l${n.raw}`;
+  };
+  // the printer: the same model can be written in many ways (whitespace, key order, escapes)
+  type Style = { ws: boolean; shuffle: boolean; esc: number };
+  const hex4 = (c: number, upper: boolean) => { const h = c.toString(16).padStart(4, "0"); return `${BS}u${upper ? h.toUpperCase() : h}`; };
+  const SHORT: Record<number, string> = { 8: "b", 9: "t", 10: "n", 12: "f", 13: "r", 34: '"', 92: BS };
+  const quote = (s: string, st2: Style, plain = false, force = false) => {
+    let out = "";
+    for (let j = 0; j < s.length; j++) {
+      const c = s.charCodeAt(j);
+      if (force && j === 0) out += hex4(c, chance(0.5));
+      else if (SHORT[c] !== undefined) out += chance(0.7) ? BS + SHORT[c] : hex4(c, chance(0.5));
+      else if (c < 32) out += hex4(c, chance(0.5));
+      else if (!plain && c === 47 && chance(st2.esc)) out += `${BS}/`;
+      else if (!plain && chance(st2.esc)) out += hex4(c, chance(0.5));
+      else out += s[j];
+    }
+    return `"${out}"`;
+  };
+  const gap = (st2: Style) => (st2.ws ? pick(["", "", " ", "\n", "\t", "\r\n", "  ", " \n\t "]) : "");
+  const print = (n: N, st2: Style, depth = 0, vol: string | null = null): string => {
+    if (n.t === "o") {
+      const members = [...n.m];
+      if (st2.shuffle) for (let j = members.length - 1; j > 0; j--) { const k = int(j + 1); [members[j], members[k]] = [members[k], members[j]]; }
+      return `{${gap(st2)}${members.map(([k, child]) => {
+        // the token of the excluded id is written plainly (its grammar is about the token as written); esc=true forces an escape into it
+        const token = child.t === "s" ? quote(child.v, st2, vol === "_meta" && k === "attempt_id" && isUuidLower(child.v), child.esc === true) : print(child, st2, depth + 1, depth === 0 && child.t === "o" ? k : null);
+        return `${quote(k, st2)}${gap(st2)}:${gap(st2)}${token}${gap(st2)}`;
+      }).join(`,${gap(st2)}`)}}`;
+    }
+    if (n.t === "a") return `[${gap(st2)}${n.i.map((x) => `${print(x, st2, depth + 1, null)}${gap(st2)}`).join(`,${gap(st2)}`)}]`;
+    return n.t === "s" ? quote(n.v, st2, false, n.esc === true) : n.raw;
+  };
+  const randStyle = (): Style => ({ ws: chance(0.6), shuffle: chance(0.6), esc: pick([0, 0, 0.1, 0.5]) });
+  // every node with its container, for the mutations
+  type Slot = { parent: N; index: number; node: N; depth: number };
+  const slots = (n: N, depth = 0, out: Slot[] = []): Slot[] => {
+    if (n.t === "o") n.m.forEach(([, child], index) => { out.push({ parent: n, index, node: child, depth: depth + 1 }); slots(child, depth + 1, out); });
+    if (n.t === "a") n.i.forEach((child, index) => { out.push({ parent: n, index, node: child, depth: depth + 1 }); slots(child, depth + 1, out); });
+    return out;
+  };
+  const put = (s: Slot, node: N) => { if (s.parent.t === "o") s.parent.m[s.index][1] = node; else if (s.parent.t === "a") s.parent.i[s.index] = node; };
+  const objects = (root: N) => [root, ...slots(root).map((s) => s.node)].filter((n): n is Extract<N, { t: "o" }> => n.t === "o");
+  const member = (root: N, top: string) => { const m = root.t === "o" ? root.m.find(([k]) => k === top)?.[1] : undefined; return m && m.t === "o" ? m : null; };
+  const URLS = ["https://github.com/fake-vendor/fake-official-mcp-server", "https://github.com/other/other", "github.com/x/y"];
+  const MUTATIONS: Record<string, (root: N) => boolean> = {
+    noise_only: () => true,
+    volatile_value: (root) => { let did = false; const me = member(root, "_meta"), fr = member(root, "freshness"); const a = me?.m.find(([k]) => k === "attempt_id"); if (a && a[1].t === "s" && isUuidLower(a[1].v) && !a[1].esc) { a[1] = { t: "s", v: randUuid() }; did = true; } const d = fr?.m.find(([k]) => k === "data_age_days"); if (d && d[1].t === "n" && isAge(d[1].raw)) { d[1] = { t: "n", raw: randAge() }; did = true; } return did; },
+    string_change: (root) => { const c = slots(root).filter((s) => s.node.t === "s"); if (!c.length) return false; const s = pick(c); const v = (s.node as any).v as string; put(s, { t: "s", v: pick([`${v}x`, v.slice(1), `${v} `, v.toUpperCase() === v ? `${v}!` : v.toUpperCase(), ""]) }); return true; },
+    url_insert: (root) => { const c = slots(root).filter((s) => s.node.t === "s"); if (!c.length) return false; const s = pick(c); put(s, { t: "s", v: `${(s.node as any).v} ${pick(URLS)}` }); return true; },
+    number_lexeme: (root) => { const c = slots(root).filter((s) => s.node.t === "n"); if (!c.length) return false; put(pick(c), { t: "n", raw: pick(NUMBERS) }); return true; },
+    number_same_value_other_token: (root) => { const c = slots(root).filter((s) => s.node.t === "n" && /^-?[0-9]+$/.test((s.node as any).raw)); if (!c.length) return false; const s = pick(c); const raw = (s.node as any).raw as string; put(s, { t: "n", raw: pick([`${raw}.0`, `${raw}e0`, `${raw}E0`, `${raw}e+0`, `${raw}.00`, raw.startsWith("-") ? raw.slice(1) : `-${raw}`, `0${raw}`]) }); return true; },
+    duplicate_key: (root) => { const c = objects(root).filter((o) => o.m.length > 0); if (!c.length) return false; const o = pick(c); const [k, v] = pick(o.m); o.m.splice(int(o.m.length + 1), 0, [k, chance(0.5) ? clone(v) : { t: "s", v: pick(URLS) }]); return true; },
+    add_member: (root) => { const o = pick(objects(root)); const key = pick(KEYS.filter((k) => !o.m.some(([x]) => x === k)).concat([`k${int(1000)}`])); if (o.m.some(([x]) => x === key)) return false; o.m.push([key, chance(0.5) ? { t: "s", v: pick(URLS) } : randLeaf()]); return true; },
+    remove_member: (root) => { const c = objects(root).filter((o) => o.m.length > 0); if (!c.length) return false; const o = pick(c); o.m.splice(int(o.m.length), 1); return true; },
+    type_change: (root) => { const c = slots(root).filter((s) => s.node.t !== "o" && s.node.t !== "a"); if (!c.length) return false; const s = pick(c); const n = s.node as any; put(s, n.t === "n" ? { t: "s", v: n.raw } : n.t === "l" ? { t: "s", v: n.raw } : pick([{ t: "n", raw: "1" }, { t: "l", raw: "null" }, { t: "l", raw: "true" }, { t: "o", m: [] }, { t: "a", i: [] }])); return true; },
+    array_change: (root) => { const c = [root, ...slots(root).map((s) => s.node)].filter((n): n is Extract<N, { t: "a" }> => n.t === "a"); if (!c.length) return false; const a = pick(c); const k = int(3); if (k === 0) a.i.push(randLeaf()); else if (k === 1 && a.i.length) a.i.pop(); else if (a.i.length >= 2) a.i.reverse(); else a.i.unshift({ t: "s", v: pick(URLS) }); return true; },
+    key_rename: (root) => { const c = objects(root).filter((o) => o.m.length > 0); if (!c.length) return false; const o = pick(c); const m = pick(o.m); const nk = pick([`${m[0]}x`, m[0].toUpperCase(), ` ${m[0]}`]); if (o.m.some(([x]) => x === nk)) return false; m[0] = nk; return true; },
+    volatile_break: (root) => { const me = member(root, "_meta"), fr = member(root, "freshness"); const which = chance(0.5); if (which && me) { const a = me.m.find(([k]) => k === "attempt_id"); if (!a) return false; const u = randUuid(); a[1] = pick([{ t: "s", v: u.toUpperCase() }, { t: "s", v: pick(URLS) }, { t: "s", v: `${u}x` }, { t: "s", v: "" }, { t: "s", v: u, esc: true }, { t: "s", v: ` ${u}` }, { t: "s", v: `${u}\n` }, { t: "n", raw: "7" }, { t: "l", raw: "null" }, { t: "o", m: [["repository", { t: "s", v: pick(URLS) }]] }]); return true; } if (fr) { const d = fr.m.find(([k]) => k === "data_age_days"); if (!d) return false; d[1] = pick([{ t: "n", raw: "-0" }, { t: "n", raw: "1e5" }, { t: "n", raw: "1E5" }, { t: "n", raw: "100001" }, { t: "n", raw: "3.0" }, { t: "n", raw: "-1" }, { t: "n", raw: "1e400" }, { t: "n", raw: "-1e400" }, { t: "n", raw: "0.5" }, { t: "s", v: "3" }, { t: "s", v: pick(URLS) }, { t: "l", raw: "null" }]); return true; } return false; },
+    volatile_moved: (root) => { const me = member(root, "_meta"); if (!me || root.t !== "o") return false; const j = me.m.findIndex(([k]) => k === "attempt_id"); if (j < 0) return false; const [m] = me.m.splice(j, 1); const dest = pick([root, member(root, "freshness") || root]); if (dest.m.some(([k]) => k === "attempt_id")) return false; dest.m.push(m); return true; },
+  };
+  const names = Object.keys(MUTATIONS);
+  const accepts = (t: string) => { try { JSON.parse(t); return true; } catch { return false; } };
+  let same = 0, different = 0, refused = 0, bad = 0, corrupted = 0;
+  const seen: Record<string, [number, number]> = Object.fromEntries(names.map((n) => [n, [0, 0]]));
+  for (let n = 0; n < PAIRS && bad < 5; n++) {
+    const baseTree = randRoot();
+    const mutated = clone(baseTree);
+    const kind = names[n % names.length];
+    if (!MUTATIONS[kind](mutated)) { n--; continue; } // the mutation did not apply to this item: draw another item
+    const a = print(baseTree, randStyle()), b = print(mutated, randStyle());
+    const sa = sem(baseTree), sb = sem(mutated);
+    const ba = catalogBodyFromText(a), bb = catalogBodyFromText(b);
+    const wantSame = sb !== null && sa === sb;
+    const okPair = typeof ba === "string" && accepts(a) && (wantSame ? bb === ba : bb !== ba) && (sb === null ? bb === null : true);
+    if (wantSame) same++; else different++;
+    if (bb === null) refused++;
+    seen[kind][wantSame ? 0 : 1]++;
+    if (!okPair) { bad++; expect(`J pair ${n} (${kind}): ${wantSame ? "only allowed differences, so the same body" : "another difference, so another body or none"}`, false, `a=${JSON.stringify(a)} b=${JSON.stringify(b)} body(a)=${JSON.stringify(ba)} body(b)=${JSON.stringify(bb)}`); }
+    // the scanner is exactly as strict as JSON.parse (plus: a key twice): damage one character of a and compare
+    const at = int(a.length + 1);
+    const c = pick([a.slice(0, at) + a.slice(at + 1), a.slice(0, at) + pick([",", ":", '"', "{", "}", "[", "]", "0", "-", ".", "e", BS, " ", "x", "\n", fc(0xa0), fc(0xfeff)]) + a.slice(at), a.slice(0, at) + pick(["1", '"', "}", "e", BS, "u"]) + a.slice(at + 1)]);
+    const sc = scanStrictJson(c), acc = accepts(c);
+    corrupted++;
+    if ((sc.ok && !acc) || (!sc.ok && acc && sc.why !== "duplicate_key")) { bad++; expect(`J damaged text ${n}: the scanner accepts exactly what JSON.parse accepts (except a key twice)`, false, `text=${JSON.stringify(c)} scanner=${JSON.stringify(sc.ok ? "ok" : sc.why)} JSON.parse=${acc}`); }
+  }
+  console.log(`      J: ${same + different} pairs (seed fixed): ${same} with only allowed differences, ${different} with another difference (${refused} of them refused); per mutation [same, different]: ${names.map((k) => `${k} ${seen[k].join("/")}`).join(", ")}`);
+  expect(`J ${PAIRS} random pairs, fixed seed: the same body only for whitespace, key order, escapes and the two excluded members; every other difference gives another body or none`, bad === 0 && same + different === PAIRS);
+  expect("J the other way round was exercised: pairs that differ only in the allowed ways all had the same body", same >= PAIRS / 20 && ["noise_only", "volatile_value"].every((k) => seen[k][0] > 0 && seen[k][1] === 0), JSON.stringify(seen));
+  expect("J every mutation that changes the item was seen giving another body or none", ["string_change", "url_insert", "number_same_value_other_token", "duplicate_key", "add_member", "type_change", "key_rename", "volatile_break", "volatile_moved"].every((k) => seen[k][1] > 0) && seen.duplicate_key[0] === 0 && seen.url_insert[0] === 0 && seen.number_same_value_other_token[0] === 0 && seen.volatile_break[0] === 0, JSON.stringify(seen));
+  expect(`J ${corrupted} damaged texts: the scanner accepted exactly what JSON.parse accepted (except a key twice)`, bad === 0);
 }
 
 console.log(failures === 0 ? "\nmarker attribution smoke: ALL PASS" : `\nmarker attribution smoke: ${failures} FAILED`);

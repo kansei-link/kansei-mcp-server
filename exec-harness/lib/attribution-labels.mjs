@@ -21,7 +21,8 @@
  *   U0 ground truth moved (renamed / moved / archived / not public)  → 未確定（計器）; C is not counted as a miss
  *   U1 A unknown: no page attested listed and not every page attested not listed for that run's body
  *      (未確定（本文に変化あり・要再確認）), or a page not read, or no A row → 未確定（計器）
- *   U2 B unknown: no attestation for that run's body (要再確認), or unobservable, or no B row → 未確定（計器）
+ *   U2 B unknown: no attestation for that run's body (要再確認), or unobservable, or the item's text has no
+ *      canonical body (catalog_body_canonical false: not strict JSON, a key twice, …), or no B row → 未確定（計器）
  *   U4 the AI reading itself is an instrument error                   → 未確定（計器）
  *   U3 the AI answer violated the two-line form                       → 未確定（回答形式）
  * Precedence: U0 > U1 > U2 > U4 > U3 > #1–#8.
@@ -69,6 +70,7 @@ export function columnB(obs) {
   if (obs.pass === true && !obs.instrument_error && yes(obs, 'catalog_item_attested_listed')) return { state: 'correct', text: '正しい・人の確認', recheck: [] };
   if (obs.pass === false && !obs.instrument_error && yes(obs, 'catalog_item_attested_not_listed')) return { state: 'wrong', text: check(obs, 'catalog_item_present')?.ok === false ? '誤り・人の確認（項なし）' : '誤り・人の確認（欠落）', recheck: [] };
   if (check(obs, 'catalog_item_observed')?.ok === false) return { state: 'unknown', text: '未確定（観測できない）', recheck: [] };
+  if (check(obs, 'catalog_body_canonical')?.ok === false) return { state: 'unknown', text: '未確定（項の原文を正準化できない）', recheck: [] };
   if (yes(obs, 'catalog_item_needs_recheck')) return { state: 'unknown', text: RECHECK_TEXT, recheck: ['B'] };
   if (check(obs, 'catalog_body_fields_fixed')?.ok === false) return { state: 'unknown', text: '未確定（欄の指定が規則と違う）', recheck: [] };
   return { state: 'unknown', text: '未確定（計器）', recheck: [] };

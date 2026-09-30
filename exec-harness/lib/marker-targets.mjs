@@ -87,8 +87,11 @@ export function classifyCatalogPayload(payload, serviceId) {
 }
 
 /** Read one service's public display through the catalog MCP endpoint (tools/call lookup detail).
- *  opts.keepPayload (attribution column B only): also return the whole display payload, in memory.
- *  Default off, so the M-002 observation and its transcript are unchanged. */
+ *  opts.keepPayload (attribution column B only): also return, in memory, the parsed payload (for the private
+ *  hint), payloadText = the item's ORIGINAL TEXT exactly as the tool result carried it (result.content[0].text,
+ *  before JSON.parse — column B's fingerprint is made from this text, never from the parsed value) and
+ *  contentBlocks = how many content blocks the tool result had, contentIsText = the first one's type is "text"
+ *  (column B needs exactly one text block: a second block would be text nobody fingerprinted). Default off, so the M-002 observation and its transcript are unchanged. */
 export async function readCatalogDisplay(apiUrl, serviceId, timeoutMs = 20000, opts = {}) {
   const c = new AbortController(); const t = setTimeout(() => c.abort(), timeoutMs);
   try {
@@ -102,15 +105,17 @@ export async function readCatalogDisplay(apiUrl, serviceId, timeoutMs = 20000, o
     let rpc; try { const m = text.match(/^data: (.*)$/m); rpc = JSON.parse(m ? m[1] : text); } catch { return { reachable: true, valid: false, http: r.status, error: 'invalid_response' }; }
     if (rpc.error) return { reachable: true, valid: false, http: r.status, error: 'rpc_error' };
     if (rpc.result?.isError) return { reachable: true, valid: false, http: r.status, error: 'tool_error' };
-    let payload; try { payload = JSON.parse(rpc.result?.content?.[0]?.text ?? ''); } catch { return { reachable: true, valid: false, http: r.status, error: 'invalid_payload' }; }
+    const payloadText = rpc.result?.content?.[0]?.text;
+    let payload; try { payload = JSON.parse(payloadText ?? ''); } catch { return { reachable: true, valid: false, http: r.status, error: 'invalid_payload' }; }
     if (!payload || typeof payload !== 'object') return { reachable: true, valid: false, http: r.status, error: 'invalid_payload' };
     const shape = classifyCatalogPayload(payload, serviceId);
-    if (shape.kind === 'absent') return { reachable: true, valid: true, found: false, http: r.status, tokens: [], ...(opts.keepPayload ? { payload } : {}) };
+    const kept = opts.keepPayload ? { payload, payloadText, contentBlocks: Array.isArray(rpc.result?.content) ? rpc.result.content.length : null, contentIsText: rpc.result?.content?.[0]?.type === 'text' } : {};
+    if (shape.kind === 'absent') return { reachable: true, valid: true, found: false, http: r.status, tokens: [], ...kept };
     if (shape.kind !== 'display') return { reachable: true, valid: false, http: r.status, error: shape.error };
     const tokens = [String(payload.mcp_status).toLowerCase()];
     if (payload.freshness?.confidence === 'high') tokens.push('updated');
     if (payload.freshness?.confidence) tokens.push(`freshness:${payload.freshness.confidence}`);
-    return { reachable: true, valid: true, found: true, http: r.status, tokens, mcp_status: payload.mcp_status, freshness: payload.freshness ?? null, ...(opts.keepPayload ? { payload } : {}) };
+    return { reachable: true, valid: true, found: true, http: r.status, tokens, mcp_status: payload.mcp_status, freshness: payload.freshness ?? null, ...kept };
   } catch (e) { return { reachable: false, valid: false, http: null, error: 'network', err: String(e?.message || e).slice(0, 80) }; }
   finally { clearTimeout(t); }
 }
@@ -281,8 +286,12 @@ const llmAnswer = {
    * once per run; they read only (public pages, the public catalog) and never touch the subject.
    * §4-2 (Michie 2026-09-29, after Codex review of 7e9a3e2): the instrument only DETECTS CHANGE. For each
    * source fixed in the taskpack (A1, A2 = official pages, B = the KanseiLINK catalog item) it reads the
-   * body and takes its sha256 (A: the raw bytes after HTTP 200 and complete receipt; B: catalogBody =
-   * the whole item minus _meta.attempt_id and freshness.data_age_days). The source's state comes ONLY
+   * body and takes its sha256 (A: the raw bytes after HTTP 200 and complete receipt; B: catalogBodyFromText =
+   * the canonical text of the whole item made from the item's ORIGINAL TEXT by a strict JSON scanner — every
+   * number token as written, no value round trip (Codex 544808b R2) — minus _meta.attempt_id and
+   * freshness.data_age_days while their tokens have the exact grammar; a text the scanner refuses — not
+   * RFC 8259, a key twice in one object, deeper than 64, over 1 MiB — or a tool result that is not exactly
+   * one text block has no body: B is unknown and no attestation is looked up). The source's state comes ONLY
    * from a valid human attestation of exactly that body (evidence/attestations/<marker>-<source>-<sha>.json,
    * verdict listed or not_listed; observer in observers.json; attribution-attest.mjs validateAttestation); without
    * one the source is 未確定（本文に変化あり・要再確認）. A note (reason) that looks unfinished is a private caution only.
@@ -292,7 +301,7 @@ const llmAnswer = {
    * pass=false with instrument_error=null = not listed (by attestation). Checks carry booleans only:
    *   A: <id>_page_fetched, <id>_attested_listed, <id>_attested_not_listed, <id>_needs_recheck,
    *      official_docs_attested_listed (some page), official_docs_attested_not_listed (every page).
-   *   B: catalog_item_observed, catalog_body_fields_fixed, catalog_item_present,
+   *   B: catalog_item_observed, catalog_body_fields_fixed, catalog_item_present, catalog_body_canonical,
    *      catalog_item_attested_listed, catalog_item_attested_not_listed, catalog_item_needs_recheck.
    */
   async attribution({ MK, sealed, harnessLog, attestationsDir, expectedDigest, markerId }) {
@@ -300,7 +309,7 @@ const llmAnswer = {
     if (!cfg) return [];
     // First and only place these parts are loaded. If attribution-attest.mjs cannot be loaded this throws
     // and marker-generic writes both rows as instrument errors (U1/U2); the agent readings are unaffected.
-    const { catalogBody, sha256Hex, sourceTarget, sourceState, B_BODY_FIELDS } = await import('./attribution-attest.mjs');
+    const { catalogBodyDetail, sha256Hex, sourceTarget, sourceState, B_BODY_FIELDS } = await import('./attribution-attest.mjs');
     // The hint reader is optional: when it cannot be loaded, the rows are exactly the same.
     let hints = null;
     try { hints = await import('./attribution-rules.mjs'); } catch { hints = null; }
@@ -343,11 +352,17 @@ const llmAnswer = {
     const d = await readCatalogDisplay(cfg.catalog?.display_api_url, cfg.catalog?.service_id, 20000, { keepPayload: true });
     const observed = Boolean(d.reachable && d.valid);
     const bChecks = [{ label: 'catalog_item_observed', ok: observed }, { label: 'catalog_body_fields_fixed', ok: fieldsFixed }];
-    let bState = 'unread', bSha = null, bWhy = observed ? 'body_fields_not_fixed_in_taskpack' : 'not_observed', bCautions = [], bHint = null;
+    let bState = 'unread', bSha = null, bWhy = observed ? 'body_fields_not_fixed_in_taskpack' : 'not_observed', bCautions = [], bHint = null, bNotCanonical = null;
     if (observed) {
       bChecks.push({ label: 'catalog_item_present', ok: Boolean(d.found) });
-      bSha = sha256Hex(catalogBody(d.payload));
-      if (fieldsFixed) { const st = sourceState({ fetched: true, bodySha: bSha, dir, ctx: ctxOf('B') }); bState = st.state; bWhy = st.why; bCautions = st.cautions; }
+      // the fingerprint comes from the item's original text only; no canonical body → no fingerprint, no attestation lookup
+      const canon = d.contentBlocks === 1 && d.contentIsText ? catalogBodyDetail(d.payloadText) : { body: null, why: 'not_one_text_block' };
+      bChecks.push({ label: 'catalog_body_canonical', ok: canon.body !== null });
+      if (canon.body === null) { bWhy = 'body_not_canonical'; bNotCanonical = canon.why; }
+      else {
+        bSha = sha256Hex(canon.body);
+        if (fieldsFixed) { const st = sourceState({ fetched: true, bodySha: bSha, dir, ctx: ctxOf('B') }); bState = st.state; bWhy = st.why; bCautions = st.cautions; }
+      }
       bHint = hint((m) => {
         const fields = m.catalogStringLeaves(d.payload).filter(([, v]) => m.classifySource(v, sealed).state === 'listed').map(([path]) => path);
         return { state: fields.length ? 'listed' : 'unknown', reason: fields.length ? 'some_field_resolves' : 'no_field_resolves', fields };
@@ -355,10 +370,11 @@ const llmAnswer = {
     }
     if (bState === 'recheck') recheck.push('B');
     bChecks.push({ label: 'catalog_item_attested_listed', ok: bState === 'listed' }, { label: 'catalog_item_attested_not_listed', ok: bState === 'not_listed' }, { label: 'catalog_item_needs_recheck', ok: bState === 'recheck' });
-    diagnostics.push({ event: 'attribution_source', source_id: 'B', target: sourceTarget(cfg, 'B'), body_sha256: bSha, state: bState, attestation: bWhy, attestation_cautions: bCautions, needs_recheck: bState === 'recheck', hint: bHint });
+    diagnostics.push({ event: 'attribution_source', source_id: 'B', target: sourceTarget(cfg, 'B'), body_sha256: bSha, state: bState, attestation: bWhy, ...(bNotCanonical ? { body_not_canonical: bNotCanonical } : {}), attestation_cautions: bCautions, needs_recheck: bState === 'recheck', hint: bHint });
     const bInstrument = bState === 'listed' || bState === 'not_listed' ? null : 'other';
     rows.push({ method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository (attested by a person for the body read this run)', pass: bState === 'listed', instrument_error: bInstrument, checks: bChecks });
-    harnessLog({ event: 'attribution', column: 'B', listed: bState === 'listed', not_listed: bState === 'not_listed', instrument: bInstrument, needs_recheck: bState === 'recheck' });
+    // needs_recheck has the same form in both columns: the ids of the sources to re-check (B: ["B"] or [])
+    harnessLog({ event: 'attribution', column: 'B', listed: bState === 'listed', not_listed: bState === 'not_listed', instrument: bInstrument, needs_recheck: bState === 'recheck' ? ['B'] : [] });
     if (recheck.length) diagnostics.push({ event: 'attribution_needs_recheck', sources: [...recheck], note: '本文に変化あり・要再確認: 当日の本文 sha256 に一致する人の確認がない（evidence/attestations/README.md）' });
     rows.diagnostics = diagnostics; // private sidecar only (environment.private.json)
     rows.needsRecheck = recheck;

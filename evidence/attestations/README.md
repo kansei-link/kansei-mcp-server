@@ -23,7 +23,7 @@ values or to values the harness computes — never screened by a list of forbidd
 | `expected_digest` | the seal's sha256 (binds the file to the sealed repository) |
 | `source_id` | `A1`, `A2` (taskpack `attribution.official_docs[].id`) or `B` |
 | `target` | the source exactly as the taskpack fixes it — A1/A2: the page URL; B: `kansei-catalog <display_api_url> service_id=<service_id> fields=<body_fields>` with `body_fields` = `all_except:_meta.attempt_id(rfc4122-uuid-lowercase),freshness.data_age_days(int 0..100000)` (`sourceTarget` / `B_BODY_FIELDS` in `exec-harness/lib/attribution-attest.mjs`) |
-| `body_sha256` | sha256 of the body read that run — A: the raw HTTP body bytes (HTTP 200, received completely); B: `catalogBody` = the whole catalog item as canonical JSON (keys sorted, arrays in order, every leaf) minus exactly two leaves, and only while their value has the grammar of a value that changes on its own: `_meta.attempt_id` while it is an RFC 4122 UUID in lower case, `freshness.data_age_days` while it is an integer from 0 to 100000. Any other value there (a URL, an upper-case UUID, an odd number) stays in the body, so the sha256 changes (Codex 1391a31 R1) |
+| `body_sha256` | sha256 of the body read that run — A: the raw HTTP body bytes (HTTP 200, received completely); B: `catalogBodyFromText` = the canonical text of the whole catalog item, made from the item's **original text** (the tool result's text, before any parsing) by a strict RFC 8259 scanner — never from a parsed value, because `JSON.stringify(JSON.parse(text))` loses information (`1e400` → `null`, the first of two equal keys, `3.0000000000000000001` → `3`, `1e5` → `100000`, `-0` → `0`; Codex 544808b R2). Keys sorted, arrays in order, every number token exactly as written, strings re-written from their resolved value, whitespace dropped; minus exactly two members, and only while the token as written has the grammar of a value that changes on its own: `_meta.attempt_id` while it is a quote, an RFC 4122 UUID in lower case and a quote; `freshness.data_age_days` while it matches `^(0|[1-9][0-9]{0,4}|100000)$`. Any other token there (a URL, an upper-case UUID, an escape, `1e5`, `-0`) stays in the body, so the sha256 changes (Codex 1391a31 R1). A text outside the grammar, with a key twice in one object, deeper than 64, over 1 MiB, or a tool result that is not exactly one text block has **no body**: B is unknown and no attestation is looked up |
 | `verdict` | `listed` or `not_listed` — nothing else. **Drafts have no verdict key**: a person writes it in |
 | `observer` | one of the strings in **`observers.json` in this directory**, character for character (today `["human:synapse-arrows"]`) |
 | `date` | a real calendar date `YYYY-MM-DD`, **not after today** (the harness's local date). An impossible date such as `2026-13-01` is `invalid:date` |
@@ -31,6 +31,9 @@ values or to values the harness computes — never screened by a list of forbidd
 
 Any other key (a draft's `_draft_instructions`, for example), a missing key, or any field outside the table
 makes the file invalid and the source stays 要再確認. The sidecar says why (`attestation: "invalid:<field>"`).
+The file is read through the same strict scanner as column B's body: a key written twice is
+`invalid:duplicate_key` (never "the last one wins"), and a file that is not strict JSON (a byte order mark,
+a trailing comma, text after the object) is `unreadable`. `observers.json` is read the same way.
 
 ## observers.json
 

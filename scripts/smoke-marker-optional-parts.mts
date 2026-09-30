@@ -29,8 +29,10 @@ import { mkdtempSync, mkdirSync, cpSync, readFileSync, writeFileSync, existsSync
 import { resolve, join, dirname, relative } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
+import { smokePorts } from "./smoke-loopback-ports.mjs";
 
 const SRC = resolve(import.meta.dirname, "..");
+const PORTS = smokePorts(); // KANSEI_SMOKE_PORT_A / _B move the two fixture ports (see smoke-loopback-ports.mjs)
 let failures = 0;
 const expect = (label: string, ok: boolean, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}${ok || !detail ? "" : `  (${detail})`}`); if (!ok) failures++; };
 const spawnAsync = (cmd: string, args: string[], opts: any): Promise<{ status: number | null; out: string }> => new Promise((res) => { const p = spawn(cmd, args, opts); let out = ""; p.stdout.on("data", (d) => (out += d)); p.stderr.on("data", (d) => (out += d)); p.on("close", (code) => res({ status: code, out })); });
@@ -70,7 +72,7 @@ git("init"); git("add", "-A"); git("-c", "user.name=Offline smoke", "-c", "user.
 git("update-ref", "refs/remotes/origin/offline-test", git("rev-parse", "HEAD").toString().trim());
 const FIX = join(root, "exec-harness", "fixtures");
 // human attestations for the loopback bodies (evidence/attestations of the copy; the M-994 pack falls back to it)
-const { sha256Hex, catalogBody, sourceTarget, ATTESTATION_KIND } = await import(pathToFileURL(join(SRC, "exec-harness/lib/attribution-attest.mjs")).href);
+const { sha256Hex, catalogBodyFromText, sourceTarget, ATTESTATION_KIND } = await import(pathToFileURL(join(SRC, "exec-harness/lib/attribution-attest.mjs")).href);
 const PACK994 = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8"));
 const attCfg = JSON.parse(JSON.stringify(PACK994.marker.attribution).replaceAll("${ENV:KANSEI_FAKE_ATTR_BASE}", "http://127.0.0.1:47331"));
 
@@ -93,13 +95,13 @@ const server = createServer((req, res) => {
     res.writeHead(404); res.end();
   });
 });
-await new Promise<void>((r) => server.listen(47331, "127.0.0.1", () => r()));
+await new Promise<void>((r) => server.listen(PORTS.A, "127.0.0.1", () => r()));
 const A1_BODY = "<html><body>AI 活用</body></html>";
 const A2_BODY = `<html><body><a href="${REPO}">公式 MCP</a></body></html>`;
 const B_ITEM = (id: string) => ({ service_id: id, name: "Fake", mcp_status: "official", freshness: { confidence: "medium" }, connection_guide: { steps: ["install"] } });
 const attDir = join(root, "evidence", "attestations"); mkdirSync(attDir, { recursive: true });
 writeFileSync(join(attDir, "observers.json"), JSON.stringify(["human:smoke-fixture"])); // the copy's allow-list of observers
-for (const [source, body, verdict] of [["A1", A1_BODY, "not_listed"], ["A2", A2_BODY, "listed"], ["B", catalogBody(B_ITEM("fake-subject")), "not_listed"]] as const) {
+for (const [source, body, verdict] of [["A1", A1_BODY, "not_listed"], ["A2", A2_BODY, "listed"], ["B", catalogBodyFromText(JSON.stringify(B_ITEM("fake-subject"))), "not_listed"]] as const) {
   const sha = sha256Hex(Buffer.from(body, "utf8"));
   writeFileSync(join(attDir, `M-994-${source}-${sha}.json`), JSON.stringify({ attestation: ATTESTATION_KIND, marker_id: "M-994", expected_digest: PACK994.marker.expected_digest, source_id: source, target: sourceTarget(attCfg, source), body_sha256: sha, verdict, observer: "human:smoke-fixture", date: "2026-09-29", reason: "fixture: the whole loopback body was read" }));
 }
@@ -113,7 +115,7 @@ const PAGES: Record<string, string> = {
   "/insights/control.html": "<html><head><title>Fake control article</title></head><body>fixture</body></html>\n",
 };
 const pages = createServer((req, res) => { const b = PAGES[req.url || ""]; if (!b) { res.writeHead(404); return res.end(); } res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(b); });
-await new Promise<void>((r) => pages.listen(47332, "127.0.0.1", () => r()));
+await new Promise<void>((r) => pages.listen(PORTS.B, "127.0.0.1", () => r()));
 const TODAY = new Date().toISOString().slice(0, 10);
 const summaryPath = join(root, "fetch-summary.json");
 const cell = { status: "fetched", error: null, snippet: "…" };
@@ -130,7 +132,7 @@ fs.readFileSync = function (p, ...a) {
 };
 syncBuiltinESMExports();
 `);
-const withEnv = { ...baseEnv, KANSEI_M995_SEALED_PATH: join(FIX, "M-995.sealed.json") };
+const withEnv = { ...baseEnv, KANSEI_M995_SEALED_PATH: join(FIX, "M-995.sealed.json"), ...PORTS.childEnv };
 async function runIn(pack: string, extra: string[] = [], nodeArgs: string[] = []) {
   const r = await spawnAsync(process.execPath, [...nodeArgs, join(root, "exec-harness", "run-marker.mjs"), pack, "--dry-run", ...extra], { cwd: root, env: withEnv });
   const m = /evidence: (\S+?)\/ \(manifest/.exec(r.out);
@@ -158,7 +160,7 @@ async function existingMarkersUnaffected(tag: string, nodeArgs: string[] = []) {
 const attrRows = (r: any) => ({ A: r.readings.find((x: any) => x.observed.method === "sealed_repo_vs_official_docs"), B: r.readings.find((x: any) => x.observed.method === "sealed_repo_vs_kansei_catalog") });
 // the attested rows of the intact harness: A listed (A2 attested listed), B not listed (attested) — fixed here, compared below
 const WANT_A = { pass: true, instrument_error: null, checks: [["A1_page_fetched", true], ["A1_attested_listed", false], ["A1_attested_not_listed", true], ["A1_needs_recheck", false], ["A2_page_fetched", true], ["A2_attested_listed", true], ["A2_attested_not_listed", false], ["A2_needs_recheck", false], ["official_docs_attested_listed", true], ["official_docs_attested_not_listed", false]] };
-const WANT_B = { pass: false, instrument_error: null, checks: [["catalog_item_observed", true], ["catalog_body_fields_fixed", true], ["catalog_item_present", true], ["catalog_item_attested_listed", false], ["catalog_item_attested_not_listed", true], ["catalog_item_needs_recheck", false]] };
+const WANT_B = { pass: false, instrument_error: null, checks: [["catalog_item_observed", true], ["catalog_body_fields_fixed", true], ["catalog_item_present", true], ["catalog_body_canonical", true], ["catalog_item_attested_listed", false], ["catalog_item_attested_not_listed", true], ["catalog_item_needs_recheck", false]] };
 const same = (o: any, w: any) => o && o.pass === w.pass && o.instrument_error === w.instrument_error && JSON.stringify(o.checks.map((c: any) => [c.label, c.ok])) === JSON.stringify(w.checks);
 const hintOf = (r: any) => { const priv = r.bundle ? JSON.parse(readFileSync(join(r.bundle, "environment.private.json"), "utf-8")) : {}; return (priv.diagnostics || []).filter((d: any) => d.event === "attribution_source").map((d: any) => d.hint?.reason); };
 try {
