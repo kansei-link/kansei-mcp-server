@@ -149,28 +149,62 @@ export const B_BODY_FIELDS = 'all_except:_meta.attempt_id(rfc4122-uuid-lowercase
 const UUID_TOKEN = /^"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"$/;
 const AGE_TOKEN = /^(0|[1-9][0-9]{0,4}|100000)$/;
 const VOLATILE = new Map([
-  ['_meta', { leaf: 'attempt_id', ok: (n) => n.t === 's' && UUID_TOKEN.test(n.raw) }],
-  ['freshness', { leaf: 'data_age_days', ok: (n) => n.t === 'n' && AGE_TOKEN.test(n.raw) }],
+  ['_meta', { leaf: 'attempt_id', grammar: '_meta.attempt_id(rfc4122-uuid-lowercase)', ok: (n) => n.t === 's' && UUID_TOKEN.test(n.raw) }],
+  ['freshness', { leaf: 'data_age_days', grammar: 'freshness.data_age_days(int 0..100000)', ok: (n) => n.t === 'n' && AGE_TOKEN.test(n.raw) }],
 ]);
 const byKey = (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
-function canonicalText(node, volatile = null) {
+/* A value left out of a body is never dropped silently (firelinks 2026-10-01): every run records, in the private
+ * sidecar only, which grammar matched and the token exactly as written (volatile_spans), so that a change hidden by
+ * an exclusion can be traced later if it turns out to matter. */
+function canonicalText(node, volatile = null, spans = null) {
   if (node.t === 'o') {
-    const kept = volatile ? node.members.filter((m) => !(m.key === volatile.leaf && volatile.ok(m.node))) : node.members;
-    return `{${[...kept].sort(byKey).map((m) => `${JSON.stringify(m.key)}:${canonicalText(m.node)}`).join(',')}}`;
+    const kept = [];
+    for (const m of node.members) {
+      if (volatile && m.key === volatile.leaf && volatile.ok(m.node)) { if (spans) spans.push({ grammar: volatile.grammar, value: m.node.raw }); continue; }
+      kept.push(m);
+    }
+    return `{${kept.sort(byKey).map((m) => `${JSON.stringify(m.key)}:${canonicalText(m.node)}`).join(',')}}`;
   }
   if (node.t === 'a') return `[${node.items.map((x) => canonicalText(x)).join(',')}]`;
   if (node.t === 's') return JSON.stringify(node.value);
   return node.raw;
 }
-/** { body, why }: body = the canonical text (why null), or null with why = the scanner's refusal. Never throws. */
+/** { body, why, spans }: body = the canonical text (why null) and spans = the excluded tokens as written
+ *  [{ grammar, value }], or body null with why = the scanner's refusal. Never throws. */
 export function catalogBodyDetail(text) {
   const s = scanStrictJson(text);
-  if (!s.ok) return { body: null, why: s.why };
+  if (!s.ok) return { body: null, why: s.why, spans: [] };
   const root = s.node;
-  if (root.t !== 'o') return { body: canonicalText(root), why: null };
-  const members = [...root.members].sort(byKey).map((m) => `${JSON.stringify(m.key)}:${canonicalText(m.node, m.node.t === 'o' ? VOLATILE.get(m.key) ?? null : null)}`);
-  return { body: `{${members.join(',')}}`, why: null };
+  if (root.t !== 'o') return { body: canonicalText(root), why: null, spans: [] };
+  const spans = [];
+  const members = [...root.members].sort(byKey).map((m) => `${JSON.stringify(m.key)}:${canonicalText(m.node, m.node.t === 'o' ? VOLATILE.get(m.key) ?? null : null, spans)}`);
+  return { body: `{${members.join(',')}}`, why: null, spans };
 }
+
+/* ---------- column A's body ----------
+ * The raw HTTP body bytes (HTTP 200, received completely), with exactly the spans below replaced by a fixed mark
+ * and NOTHING ELSE changed (one byte elsewhere changes the sha256). A span is left out only while its characters
+ * match the grammar as written (Codex 1391a31 R1 / 544808b R2: by the token, never by position or by a parsed
+ * value); the same characters in another form (9 or 11 digits, upper case, the quotes elsewhere) stay.
+ * The list grows only from observation (ATTRIBUTION-Rules §4-2, 2026-10-01): a person sees the body change, confirms
+ * that the difference is confined to one span, and then adds its grammar here. Nothing is added on a guess.
+ *   wpp_params.token(hex10)  WordPress Popular Posts nonce, seen rotating daily on the atled.jp pages
+ *                            (bodies of 2026-09-30 / 2026-10-01 differ in nothing else): the characters
+ *                            "token":"<ten lower-case hex digits>" → "token":"<volatile>"
+ * The masking runs on the bytes as latin1 (one code unit per byte), so every other byte, UTF-8 or not, is kept exactly.
+ * The spans left out are reported (grammar + the characters as written) for the private sidecar. */
+export const A_BODY_FIELDS = 'raw_bytes_except:wpp_params.token(hex10)';
+const A_VOLATILE = Object.freeze([Object.freeze({ grammar: 'wpp_params.token(hex10)', re: /"token":"[0-9a-f]{10}"/g, mark: '"token":"<volatile>"' })]);
+/** { body: Buffer, spans: [{ grammar, value }] } from the raw page bytes. Never throws. */
+export function pageBodyDetail(bytes) {
+  const latin1 = Buffer.from(bytes).toString('latin1');
+  const spans = [];
+  let out = latin1;
+  for (const v of A_VOLATILE) out = out.replace(v.re, (m) => { spans.push({ grammar: v.grammar, value: m }); return v.mark; });
+  return { body: Buffer.from(out, 'latin1'), spans };
+}
+/** sha256 of column A's body (the raw bytes with the volatile spans masked). */
+export function pageBodySha(bytes) { return sha256Hex(pageBodyDetail(bytes).body); }
 /** Column B's body from the item's original text, or null when it cannot be made canonical. */
 export function catalogBodyFromText(text) { return catalogBodyDetail(text).body; }
 
@@ -183,12 +217,13 @@ function parseStrict(text) {
 }
 
 /* ---------- the source a human attests: fixed in the taskpack ----------
- * A1/A2: the page URL exactly as the taskpack gives it (after ${ENV:} resolution).
+ * A1/A2: the page URL exactly as the taskpack gives it (after ${ENV:} resolution) and the body's fields:
+ *        "<url> fields=<A_BODY_FIELDS>" (the taskpack's official_docs[].body_fields must say the same).
  * B:     one line naming the catalog endpoint, the service_id and the body's fields. */
 export function sourceTarget(cfg, sourceId) {
   if (sourceId === 'B') return `kansei-catalog ${cfg?.catalog?.display_api_url} service_id=${cfg?.catalog?.service_id} fields=${B_BODY_FIELDS}`;
   const p = (Array.isArray(cfg?.official_docs) ? cfg.official_docs : []).find((x) => x?.id === sourceId);
-  return p ? String(p.url) : null;
+  return p ? `${p.url} fields=${A_BODY_FIELDS}` : null;
 }
 
 /* ---------- human attestations ----------

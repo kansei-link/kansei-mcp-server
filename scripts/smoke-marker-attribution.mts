@@ -17,6 +17,10 @@
  *          round trip (Codex 544808b R2: 1e400 → null; and the same kind: a key twice, 3.0000000000000000001, 1e5,
  *          2^53+1, -0 …) — pairs that must have another body or none, pairs that must have the same body, the
  *          refusals, and the files that decide (attestations, observers.json) read through the same scanner.
+ * Part A5: column A's body = the raw bytes with exactly the volatile spans of A_BODY_FIELDS masked (wpp_params.token(hex10),
+ *          added from observation 2026-10-01): the two days' real bodies give one fingerprint (when founder-ops is at hand),
+ *          one byte anywhere else changes it, a span in any other form stays, a link added / removed / renamed changes it,
+ *          and the spans left out are reported (never public).
  * Part I:  Codex's 234 independent cases of 544808b (fixtures/attribution-cases-544808b.json) — Codex's runner ported.
  * Part J:  random pairs of item texts, fixed seed, 2000 by default (KANSEI_SMOKE_RANDOM_PAIRS): the same body only
  *          for whitespace, key order, escapes and the two excluded members; and those alone never change the body.
@@ -41,7 +45,7 @@ import { createServer } from "node:http";
 import { readFileSync, writeFileSync, mkdtempSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
-import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, AGENT_METHOD, RECHECK_TEXT, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs, classifySource, catalogBodyFromText, catalogBodyDetail, scanStrictJson, sha256Hex, validateAttestation, findAttestation, sourceState, sourceTarget, ATTESTATION_KIND, B_BODY_FIELDS, reasonCautions, loadObservers, localToday } from "../exec-harness/lib/attribution-rules.mjs";
+import { columnA, columnB, columnC, judgeAttribution, attributionLines, gtLabel, ATTR_METHODS, AGENT_METHOD, RECHECK_TEXT, sourceRepoKey, sourceListsRepo, decodeHtmlCharRefs, classifySource, catalogBodyFromText, catalogBodyDetail, scanStrictJson, pageBodyDetail, pageBodySha, A_BODY_FIELDS, sha256Hex, validateAttestation, findAttestation, sourceState, sourceTarget, ATTESTATION_KIND, B_BODY_FIELDS, reasonCautions, loadObservers, localToday } from "../exec-harness/lib/attribution-rules.mjs";
 import { renderSheet } from "../exec-harness/render-reading-sheet.mjs";
 import { validateReading, loadReadingSchema } from "../exec-harness/lib/reading.mjs";
 import { readmeRows } from "../exec-harness/lib/marker-persist.mjs";
@@ -179,8 +183,8 @@ const SEAL_DIGEST = JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution
   ] as const) expect(`A3 body changes when: ${what}`, sha256Hex(bodyOf(it)) !== base);
   expect("A3 body: the not-found payload has a body too", /^[0-9a-f]{64}$/.test(sha256Hex(bodyOf({ error: "Service 'x' not found." }))));
   // targets fixed by the taskpack
-  const cfg = { official_docs: [{ id: "A1", url: "https://example.invalid/a1" }, { id: "A2", url: "https://example.invalid/a2" }], catalog: { display_api_url: "https://example.invalid/mcp", service_id: "svc", body_fields: B_BODY_FIELDS } };
-  expect("A3 target A1/A2 = the URL fixed in the taskpack", sourceTarget(cfg, "A1") === "https://example.invalid/a1" && sourceTarget(cfg, "A2") === "https://example.invalid/a2");
+  const cfg = { official_docs: [{ id: "A1", url: "https://example.invalid/a1", body_fields: A_BODY_FIELDS }, { id: "A2", url: "https://example.invalid/a2", body_fields: A_BODY_FIELDS }], catalog: { display_api_url: "https://example.invalid/mcp", service_id: "svc", body_fields: B_BODY_FIELDS } };
+  expect("A3 target A1/A2 = the URL fixed in the taskpack + the page body's field spec", sourceTarget(cfg, "A1") === `https://example.invalid/a1 fields=${A_BODY_FIELDS}` && sourceTarget(cfg, "A2") === `https://example.invalid/a2 fields=${A_BODY_FIELDS}` && A_BODY_FIELDS === "raw_bytes_except:wpp_params.token(hex10)");
   expect("A3 target B = catalog endpoint + service_id + field spec", sourceTarget(cfg, "B") === `kansei-catalog https://example.invalid/mcp service_id=svc fields=${B_BODY_FIELDS}`);
   expect("A3 the field spec names the exclusion grammar (Codex 1391a31 R1)", B_BODY_FIELDS === "all_except:_meta.attempt_id(rfc4122-uuid-lowercase),freshness.data_age_days(int 0..100000)");
   expect("A3 target of an unknown source = null", sourceTarget(cfg, "A9") === null);
@@ -392,6 +396,53 @@ const RAW_SAME: Array<[string, string, string]> = [
   rmSync(d, { recursive: true, force: true });
 }
 
+
+// ── Part A5: column A's body — the raw bytes with the volatile spans masked (observed 2026-10-01) ──
+{
+  const TOK = (hex: string) => `"token":"${hex}"`;
+  const pageBytes = (tok: string, link: string | null = REPO_A5, extra = "") => Buffer.from(`<!doctype html><html><head><meta charset="utf-8"><title>AI 活用 — 日本語のページ</title></head><body><p>公式 MCP サーバー${link ? ` <a href="${link}">リポジトリ</a>` : ""}${extra}</p><script>var wpp_params = {"sampling_active":"","ajax_url":"https:\\/\\/example.invalid\\/wp-admin\\/admin-ajax.php","ID":"8718",${tok}};</script></body></html>`, "utf8");
+  const REPO_A5 = "https://github.com/fake-vendor/fake-official-mcp-server";
+  const sha = (b: Buffer) => pageBodySha(b);
+  const base = sha(pageBytes(TOK("fd47b75d86")));
+  expect("A5 the same page with another ten-digit token has the same body; the span is reported with the characters as written", sha(pageBytes(TOK("c24ec3936b"))) === base && JSON.stringify(pageBodyDetail(pageBytes(TOK("c24ec3936b"))).spans) === JSON.stringify([{ grammar: "wpp_params.token(hex10)", value: TOK("c24ec3936b") }]));
+  expect("A5 the masked body keeps every other byte (UTF-8 included) and marks the span", (() => { const b = pageBytes(TOK("c24ec3936b")); const d = pageBodyDetail(b); const i = b.indexOf(TOK("c24ec3936b")); return d.body.length === b.length && d.body.subarray(0, i).equals(b.subarray(0, i)) && d.body.subarray(i + 20).equals(b.subarray(i + 20)) && d.body.subarray(i, i + 20).toString("latin1") === '"token":"<volatile>"'; })());
+  expect("A5 a page without the span: the body is the raw bytes and no span is reported", (() => { const b = Buffer.from("<html><body>AI 活用</body></html>", "utf8"); const d = pageBodyDetail(b); return d.body.equals(b) && d.spans.length === 0 && sha(b) === sha256Hex(b); })());
+  expect("A5 two spans on one page are both left out and both reported", pageBodyDetail(pageBytes(TOK("0123456789"), REPO_A5, `<i>${TOK("abcdefabcd")}</i>`)).spans.length === 2 && sha(pageBytes(TOK("0123456789"), REPO_A5, `<i>${TOK("abcdefabcd")}</i>`)) === sha(pageBytes(TOK("abcdefabcd"), REPO_A5, `<i>${TOK("0123456789")}</i>`)));
+  for (const [why, tok] of [["nine digits", TOK("fd47b75d8")], ["eleven digits", TOK("fd47b75d86a")], ["upper-case hex", TOK("FD47B75D86")], ["a non-hex character", TOK("fd47b75d8g")], ["single quotes", "'token':'fd47b75d86'"], ["a space after the colon", '"token": "fd47b75d86"'], ["the key in another case", '"Token":"fd47b75d86"'], ["no closing quote", '"token":"fd47b75d86'], ["another key with the same value", '"nonce":"fd47b75d86"']] as const)
+    expect(`A5 a span in another form stays in the body (${why}) → another fingerprint than the ten-digit form`, sha(pageBytes(tok)) !== base && pageBodyDetail(pageBytes(tok)).spans.length === 0);
+  expect("A5 a link added / removed / renamed changes the fingerprint", sha(pageBytes(TOK("fd47b75d86"), null)) !== base && sha(pageBytes(TOK("fd47b75d86"), "https://github.com/fake-vendor/fake-official-mcp-server-v2")) !== base && sha(pageBytes(TOK("fd47b75d86"), REPO_A5, ` <a href="${REPO_A5}">again</a>`)) !== base);
+  // random single-byte damage, fixed seed: the fingerprint changes unless the byte is one of the ten hex digits and stays a hex digit
+  {
+    let st = 0x0a1 >>> 0;
+    const rnd = () => { st = (st + 0x6d2b79f5) >>> 0; let t = st; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const orig = pageBytes(TOK("fd47b75d86"));
+    const tokStart = orig.indexOf('"token":"') + 9; // the first of the ten hex digits
+    const HEX = "0123456789abcdef";
+    let same = 0, different = 0, bad = 0;
+    for (let n = 0; n < 3000 && bad < 5; n++) {
+      const i = rnd() < 0.3 ? tokStart - 1 + Math.floor(rnd() * 12) : Math.floor(rnd() * orig.length); // three in ten land on or beside the span
+      const nb = rnd() < 0.5 ? HEX.charCodeAt(Math.floor(rnd() * 16)) : Math.floor(rnd() * 256);
+      if (nb === orig[i]) { n--; continue; }
+      const m = Buffer.from(orig); m[i] = nb;
+      const inside = i >= tokStart && i < tokStart + 10 && HEX.includes(String.fromCharCode(nb));
+      const equal = sha(m) === base;
+      if (equal) same++; else different++;
+      if (equal !== inside) { bad++; expect(`A5 random byte ${n}: offset ${i} byte ${nb} → ${inside ? "same body" : "another body"}`, false, `got ${equal ? "same" : "different"}`); }
+    }
+    expect(`A5 3000 single-byte damages (seed fixed): ${same} inside the ten hex digits kept the body, ${different} changed it; no other equality`, bad === 0 && same > 0 && different > same);
+  }
+  // the two days' real bodies of A1 and A2 (founder-ops, outside the repository): one fingerprint each — skipped when the folder is not at hand
+  const bodiesDir = process.env.KANSEI_A_BODIES_DIR || join(ROOT, "..", "founder-ops", "research", "Marker-M004_2026-09-25", "attestations-draft", "bodies");
+  if (existsSync(bodiesDir)) {
+    const days = readdirSync(bodiesDir).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+    for (const id of ["A1", "A2"]) {
+      const shas = new Map<string, string>();
+      for (const day of days) { const f = readdirSync(join(bodiesDir, day)).find((x) => x.startsWith(`${id}-`)); if (f) shas.set(day, sha(readFileSync(join(bodiesDir, day, f)))); }
+      expect(`A5 real ${id}: the bodies of ${[...shas.keys()].join(", ")} have one fingerprint under the new definition`, shas.size >= 2 && new Set(shas.values()).size === 1, JSON.stringify([...shas]));
+    }
+  } else console.log(`SKIP  A5 real A1/A2 bodies: ${bodiesDir} not found (founder-ops is outside the repository)`);
+}
+
 // ── Part B: end to end on loopback ───────────────────────────────────────
 const REPO = "https://github.com/fake-vendor/fake-official-mcp-server";
 const mode: Record<string, string> = { a1: "none", a2: "listed", catalog: "no_repo", gh: "ok" };
@@ -400,7 +451,9 @@ const page = (m: string) => m === "listed" ? `<html><body><a href="${REPO}">公�
   : m === "dot_tail" ? `<html><body><a href="${REPO}/..">x</a></body></html>`
   : m === "nested_data" ? `<html><body><a href="data:text/plain,${REPO}">PAGE_CANARY_PRIVATE</a></body></html>`
   : m === "percent_names" ? `<html><body><a href="https://github.com/%66%61%6b%65-vendor/%66%61%6b%65-official-mcp-server">PAGE_CANARY_PRIVATE</a></body></html>`
-  : m === "entity_hyphen" ? `<html><body><a href="https://github.com/fake&hyphen;vendor/fake-official-mcp-server">x</a></body></html>` : "<html><body>AI 活用</body></html>";
+  : m === "entity_hyphen" ? `<html><body><a href="https://github.com/fake&hyphen;vendor/fake-official-mcp-server">x</a></body></html>`
+  : m === "token" ? `<html><body><a href="${REPO}">公式 MCP</a><script>var wpp_params = {"ID":"8718","token":"${(tokenSeq++ % 0xfffff).toString(16).padStart(10, "0")}"};</script></body></html>` : "<html><body>AI 活用</body></html>";
+let tokenSeq = 0x1a2b3; // the fake wpp nonce: another value on every request, like the real pages
 // the fake catalog item; _meta.attempt_id and freshness.data_age_days move on every call, like the real ones
 const catalogItem = (id: string, m = mode.catalog): any => {
   const item: any = { service_id: id, name: "Fake", mcp_endpoint: "https://<your-host>/mcp", mcp_status: "official", api_auth_method: "oauth2", freshness: { confidence: "medium", data_age_days: Math.floor(Math.random() * 99) }, _meta: { attempt_id: randomUUID() }, connection_guide: { steps: ["install"] } };
@@ -462,7 +515,7 @@ writeFileSync(join(attDir, "observers.json"), JSON.stringify(["human:smoke-teste
 const BASE = "http://127.0.0.1:47336";
 const env = { ...process.env, KANSEI_M994_SEALED_PATH: join(FIX, "M-994.sealed.json"), KANSEI_FAKE_LLM_ANSWERS_FILE: answersPath, KANSEI_FAKE_ATTR_BASE: BASE, KANSEI_FAKE_ATTESTATIONS_DIR: attDir };
 const PACK_ATTR = JSON.parse(JSON.stringify(JSON.parse(readFileSync(join(FIX, "taskpack-m994-attribution.json"), "utf-8")).marker.attribution).replaceAll("${ENV:KANSEI_FAKE_ATTR_BASE}", BASE));
-const pageSha = (m: string) => sha256Hex(Buffer.from(page(m), "utf8"));
+const pageSha = (m: string) => pageBodySha(Buffer.from(page(m), "utf8"));
 const bSha = (payload: any) => sha256Hex(bodyOf(payload));
 // write a (valid unless overridden) human attestation for one source and body
 function attest(sourceId: string, bodySha: string, verdict: "listed" | "not_listed", over: Record<string, any> = {}, fileSha = bodySha) {
@@ -501,7 +554,7 @@ try {
     expect("B1 no attestation: B unknown, needs recheck, item present", stateOf(r.B?.observed) === "unknown" && ok(r.B?.observed, "catalog_item_needs_recheck") === true && ok(r.B?.observed, "catalog_item_present") === true && ok(r.B?.observed, "catalog_body_fields_fixed") === true, JSON.stringify(r.B?.observed));
     expect("B1 judgement without attestations = U1 (nobody is blamed, nobody is credited)", judgeOf(r) === "U1", judgeOf(r));
     expect("B1 the private sidecar records each body sha256, 要再確認, and the hint", r.diag("A1")?.body_sha256 === pageSha("none") && r.diag("A2")?.body_sha256 === pageSha("listed") && r.diag("B")?.body_sha256 === bSha(catalogItem("fake-subject")) && [r.diag("A1"), r.diag("A2"), r.diag("B")].every((d: any) => d.needs_recheck === true && d.state === "recheck" && d.attestation === "none_for_this_body") && r.priv.diagnostics.some((d: any) => d.event === "attribution_needs_recheck" && JSON.stringify(d.sources) === '["A1","A2","B"]'), JSON.stringify(r.priv.diagnostics));
-    expect("B1 the private sidecar names each source's target (what a person attests)", r.diag("A1")?.target === `${BASE}/a1` && r.diag("B")?.target === sourceTarget(PACK_ATTR, "B"));
+    expect("B1 the private sidecar names each source's target (what a person attests)", r.diag("A1")?.target === `${BASE}/a1 fields=${A_BODY_FIELDS}` && r.diag("B")?.target === sourceTarget(PACK_ATTR, "B"));
     expect("B1 the hint stays private: A2 hint listed, A1 hint unknown, B hint unknown", r.diag("A2")?.hint?.state === "listed" && r.diag("A1")?.hint?.state === "unknown" && r.diag("B")?.hint?.state === "unknown" && /判断に使わない/.test(r.diag("B")?.hint?.note || ""), JSON.stringify([r.diag("A2")?.hint, r.diag("B")?.hint]));
     expect("B1 no hint, no body sha256, no repository value in the public files", !/hint|手がかり|fake-official-mcp-server/.test(r.pub) && ![pageSha("none"), pageSha("listed"), bSha(catalogItem("fake-subject"))].some((s) => r.pub.includes(s)));
     expect("B1 the public log marks 要再確認 by source id only, in the same form for A and B (an array of source ids)", /"event":"attribution","column":"A","listed":false,"not_listed":false,"instrument":"other","needs_recheck":\["A1","A2"\]/.test(r.pub) && /"column":"B","listed":false,"not_listed":false,"instrument":"other","needs_recheck":\["B"\]/.test(r.pub), r.pub.split("\n").filter((l) => l.includes("attribution")).join(" | "));
@@ -678,6 +731,31 @@ try {
       expect("B2 body_fields missing or different in the taskpack → B unknown, catalog_body_fields_fixed false", [none[1], other[1]].every((x: any) => stateOf(x) === "unknown" && ok(x, "catalog_body_fields_fixed") === false));
       clearAtt();
     }
+  }
+  // (2b) column A's body: the token rotates on every request, yet the attestation holds; the spans left out go to the sidecar only
+  {
+    clearAtt(); mode.a1 = "token"; mode.a2 = "listed"; mode.catalog = "no_repo";
+    const tokSha = pageSha("token");
+    attest("A1", tokSha, "listed"); attest("A2", pageSha("listed"), "listed"); attest("B", bSha(catalogItem("fake-subject")), "not_listed");
+    const t1 = await run(); const t2 = await run();
+    const spanOf = (r: any, id: string) => r.diag(id)?.volatile_spans;
+    expect("B2b A1 with a rotating wpp token: two runs, two tokens, one body — the attestation holds both times (#3)", judgeOf(t1) === "#3" && judgeOf(t2) === "#3" && ok(t1.A?.observed, "A1_attested_listed") === true && ok(t2.A?.observed, "A1_attested_listed") === true && t1.diag("A1")?.body_sha256 === tokSha && t2.diag("A1")?.body_sha256 === tokSha, `${judgeOf(t1)} ${judgeOf(t2)} ${t1.diag("A1")?.body_sha256}`);
+    expect("B2b the span left out is recorded in the private sidecar with its grammar and the characters as written, different on each run", spanOf(t1, "A1")?.length === 1 && spanOf(t1, "A1")[0].grammar === "wpp_params.token(hex10)" && /^"token":"[0-9a-f]{10}"$/.test(spanOf(t1, "A1")[0].value) && spanOf(t2, "A1")[0].value !== spanOf(t1, "A1")[0].value && JSON.stringify(spanOf(t1, "A2")) === "[]", JSON.stringify([spanOf(t1, "A1"), spanOf(t2, "A1")]));
+    expect("B2b B's two leaves left out are recorded the same way (attempt_id as the token written, data_age_days as the number written)", spanOf(t1, "B")?.length === 2 && spanOf(t1, "B")[0].grammar === "_meta.attempt_id(rfc4122-uuid-lowercase)" && /^"[0-9a-f-]{36}"$/.test(spanOf(t1, "B")[0].value) && spanOf(t1, "B")[1].grammar === "freshness.data_age_days(int 0..100000)" && /^[0-9]{1,2}$/.test(spanOf(t1, "B")[1].value), JSON.stringify(spanOf(t1, "B")));
+    expect("B2b nothing of the spans reaches a public file (no token value, no UUID, no grammar name)", ![spanOf(t1, "A1")[0].value.slice(9, 19), spanOf(t1, "B")[0].value.slice(1, 37), "volatile_spans", "wpp_params", "rfc4122"].some((x) => t1.pub.includes(x)));
+    expect("B2b the page's body fields are fixed in the fixture taskpack and reported in the row", ok(t1.A?.observed, "A1_body_fields_fixed") === true && ok(t1.A?.observed, "A2_body_fields_fixed") === true && t1.diag("A1")?.body_fields_fixed === true && validateReading(t1.A, schema).length === 0);
+    // the taskpack must fix the page's fields; another spec (or none) → that page unknown whatever is attested
+    {
+      const { TARGETS } = await import("../exec-harness/lib/marker-targets.mjs");
+      const sealed = { repo: "github.com/fake-vendor/fake-official-mcp-server", owner: "fake-vendor", name: "fake-official-mcp-server" };
+      const call = (docs: any) => TARGETS.llmAnswer.attribution({ MK: { attribution: { ...PACK_ATTR, attestations_dir: attDir, official_docs: docs } }, sealed, harnessLog: () => {}, attestationsDir: attDir, expectedDigest: SEAL_DIGEST, markerId: "M-994" });
+      const good = await call(PACK_ATTR.official_docs);
+      const none = await call(PACK_ATTR.official_docs.map(({ body_fields, ...d }: any) => d));
+      const other = await call(PACK_ATTR.official_docs.map((d: any) => ({ ...d, body_fields: "raw_bytes" })));
+      expect("B2b body_fields fixed as the rule says → the attestations apply (A listed)", stateOf(good[0]) === "listed");
+      expect("B2b body_fields missing or different in the taskpack → A unknown, <id>_body_fields_fixed false, no 要再確認 (the page was read)", [none[0], other[0]].every((x: any) => stateOf(x) === "unknown" && ok(x, "A1_body_fields_fixed") === false && ok(x, "A1_page_fetched") === true && ok(x, "A1_needs_recheck") === false) && none.diagnostics.find((d: any) => d.source_id === "A1")?.attestation === "body_fields_not_fixed_in_taskpack");
+    }
+    clearAtt(); mode.a1 = "none"; mode.a2 = "listed";
   }
   // (3) A variants
   {
@@ -1022,7 +1100,7 @@ try {
   });
   await new Promise<void>((r) => gserver.listen(0, "127.0.0.1", () => r()));
   const base = `http://127.0.0.1:${(gserver.address() as any).port}`;
-  const cfg = { official_docs: [{ id: "A1", url: `${base}/a1` }, { id: "A2", url: `${base}/a2` }], catalog: { display_api_url: `${base}/mcp`, service_id: "fake-subject", body_fields: B_BODY_FIELDS }, attestations_dir: attdir };
+  const cfg = { official_docs: [{ id: "A1", url: `${base}/a1`, body_fields: A_BODY_FIELDS }, { id: "A2", url: `${base}/a2`, body_fields: A_BODY_FIELDS }], catalog: { display_api_url: `${base}/mcp`, service_id: "fake-subject", body_fields: B_BODY_FIELDS }, attestations_dir: attdir };
   const MK = { ...pack.marker, attribution: cfg, github_api_base: `${base}/gh`, github_timeout_ms: 80 };
   const OBS = "human:offline-review";
   const actual = new Map<string, any>();
@@ -1159,7 +1237,7 @@ try {
   });
   await new Promise<void>((r) => hserver.listen(0, "127.0.0.1", () => r()));
   const baseH = `http://127.0.0.1:${(hserver.address() as any).port}`;
-  const cfgH = { official_docs: [{ id: "A1", url: `${baseH}/a1` }, { id: "A2", url: `${baseH}/a2` }], catalog: { display_api_url: `${baseH}/mcp`, service_id: "audit-fixture", body_fields: B_BODY_FIELDS }, attestations_dir: hdir };
+  const cfgH = { official_docs: [{ id: "A1", url: `${baseH}/a1`, body_fields: A_BODY_FIELDS }, { id: "A2", url: `${baseH}/a2`, body_fields: A_BODY_FIELDS }], catalog: { display_api_url: `${baseH}/mcp`, service_id: "audit-fixture", body_fields: B_BODY_FIELDS }, attestations_dir: hdir };
   const MKH: any = { marker_id: "M-994", kind_of_truth: "llm_answer", claim: "Independent loopback attribution audit", providers: ["fake"], github_api_base: `${baseH}/gh`, github_timeout_ms: 40, verify_repo_via_github: true, attribution: cfgH };
   const attH = (source: string, verdict: string, over: any = {}) => ({ attestation: ATTESTATION_KIND, marker_id: MKH.marker_id, expected_digest: digestH, source_id: source, target: sourceTarget(cfgH, source), body_sha256: sha256Hex(source === "B" ? bodyOf(payloadH) : pagesH[source]), verdict, observer: OBS_H, date: localToday(), reason: "Fixture human reviewed the complete current body.", ...over });
   const putH = (a: any, source = a.source_id, body = a.body_sha256) => writeFileSync(join(hdir, `${MKH.marker_id}-${source}-${body}.json`), JSON.stringify(a));
@@ -1292,7 +1370,7 @@ try {
   function reset() {
     dir = join(area, `att-${++counter}`); mkdirSync(dir); writeFileSync(join(dir, "observers.json"), JSON.stringify([OBS_I]));
     item = baseItem(); rawItemI = null; pages = { A1: `<p>A1_PRIVATE ${repo}</p>`, A2: "<p>A2_PRIVATE no link</p>" }; status = { A1: 200, A2: 200 }; gh = "normal";
-    cfg = { official_docs: [{ id: "A1", url: `${base}/a1` }, { id: "A2", url: `${base}/a2` }], catalog: { display_api_url: `${base}/mcp`, service_id: "audit-service", body_fields: B_BODY_FIELDS }, attestations_dir: dir };
+    cfg = { official_docs: [{ id: "A1", url: `${base}/a1`, body_fields: A_BODY_FIELDS }, { id: "A2", url: `${base}/a2`, body_fields: A_BODY_FIELDS }], catalog: { display_api_url: `${base}/mcp`, service_id: "audit-service", body_fields: B_BODY_FIELDS }, attestations_dir: dir };
   }
   const bodySha = (id: string) => sha256Hex(id === "B" ? bodyOf(item) : Buffer.from(pages[id]));
   function attestI(id: string, verdict: string, mutation?: (a: any) => void) {

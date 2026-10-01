@@ -286,7 +286,8 @@ const llmAnswer = {
    * once per run; they read only (public pages, the public catalog) and never touch the subject.
    * §4-2 (Michie 2026-09-29, after Codex review of 7e9a3e2): the instrument only DETECTS CHANGE. For each
    * source fixed in the taskpack (A1, A2 = official pages, B = the KanseiLINK catalog item) it reads the
-   * body and takes its sha256 (A: the raw bytes after HTTP 200 and complete receipt; B: catalogBodyFromText =
+   * body and takes its sha256 (A: pageBodyDetail = the raw bytes after HTTP 200 and complete receipt with exactly the
+   * volatile spans of A_BODY_FIELDS masked (wpp_params.token(hex10)); B: catalogBodyFromText =
    * the canonical text of the whole item made from the item's ORIGINAL TEXT by a strict JSON scanner — every
    * number token as written, no value round trip (Codex 544808b R2) — minus _meta.attempt_id and
    * freshness.data_age_days while their tokens have the exact grammar; a text the scanner refuses — not
@@ -299,7 +300,7 @@ const llmAnswer = {
    * to the private sidecar as a hint; it never changes a row.
    * Row encoding: pass = listed (by attestation); instrument_error 'other' = unknown;
    * pass=false with instrument_error=null = not listed (by attestation). Checks carry booleans only:
-   *   A: <id>_page_fetched, <id>_attested_listed, <id>_attested_not_listed, <id>_needs_recheck,
+   *   A: <id>_page_fetched, <id>_body_fields_fixed, <id>_attested_listed, <id>_attested_not_listed, <id>_needs_recheck,
    *      official_docs_attested_listed (some page), official_docs_attested_not_listed (every page).
    *   B: catalog_item_observed, catalog_body_fields_fixed, catalog_item_present, catalog_body_canonical,
    *      catalog_item_attested_listed, catalog_item_attested_not_listed, catalog_item_needs_recheck.
@@ -309,7 +310,7 @@ const llmAnswer = {
     if (!cfg) return [];
     // First and only place these parts are loaded. If attribution-attest.mjs cannot be loaded this throws
     // and marker-generic writes both rows as instrument errors (U1/U2); the agent readings are unaffected.
-    const { catalogBodyDetail, sha256Hex, sourceTarget, sourceState, B_BODY_FIELDS } = await import('./attribution-attest.mjs');
+    const { catalogBodyDetail, pageBodyDetail, sha256Hex, sourceTarget, sourceState, A_BODY_FIELDS, B_BODY_FIELDS } = await import('./attribution-attest.mjs');
     // The hint reader is optional: when it cannot be loaded, the rows are exactly the same.
     let hints = null;
     try { hints = await import('./attribution-rules.mjs'); } catch { hints = null; }
@@ -323,22 +324,24 @@ const llmAnswer = {
     const pages = Array.isArray(cfg.official_docs) ? cfg.official_docs : [];
     const aChecks = []; const states = [];
     for (const p of pages) {
-      let fetched = false, bodySha = null, h = null;
+      // the page's body = the raw bytes with the volatile spans masked (pageBodyDetail); the taskpack must fix the fields
+      const fieldsFixedA = p.body_fields === A_BODY_FIELDS;
+      let fetched = false, bodySha = null, h = null, spans = [];
       const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000);
       try {
         const r = await fetch(p.url, { headers: { 'user-agent': 'kansei-marker-harness/0.4' }, signal: c.signal });
         if (r.status === 200) {
           const bytes = Buffer.from(await r.arrayBuffer()); fetched = true; // the whole body, received
-          bodySha = sha256Hex(bytes);
+          const pb = pageBodyDetail(bytes); bodySha = sha256Hex(pb.body); spans = pb.spans;
           h = hint((m) => { const x = m.classifySource(bytes.toString('utf8'), sealed, { html: true }); return { state: x.state, reason: x.reason }; });
         } else await r.body?.cancel().catch(() => {});
       } catch { fetched = false; bodySha = null; } finally { clearTimeout(t); }
       const ctx = ctxOf(p.id);
-      const st = sourceState({ fetched, bodySha, dir, ctx });
+      const st = fieldsFixedA ? sourceState({ fetched, bodySha, dir, ctx }) : { state: 'unread', why: fetched ? 'body_fields_not_fixed_in_taskpack' : 'not_fetched', cautions: [] };
       states.push(st.state);
       if (st.state === 'recheck') recheck.push(p.id);
-      aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_attested_listed`, ok: st.state === 'listed' }, { label: `${p.id}_attested_not_listed`, ok: st.state === 'not_listed' }, { label: `${p.id}_needs_recheck`, ok: st.state === 'recheck' });
-      diagnostics.push({ event: 'attribution_source', source_id: p.id, target: ctx.target, body_sha256: bodySha, state: st.state, attestation: st.why, attestation_cautions: st.cautions, needs_recheck: st.state === 'recheck', hint: h });
+      aChecks.push({ label: `${p.id}_page_fetched`, ok: fetched }, { label: `${p.id}_body_fields_fixed`, ok: fieldsFixedA }, { label: `${p.id}_attested_listed`, ok: st.state === 'listed' }, { label: `${p.id}_attested_not_listed`, ok: st.state === 'not_listed' }, { label: `${p.id}_needs_recheck`, ok: st.state === 'recheck' });
+      diagnostics.push({ event: 'attribution_source', source_id: p.id, target: ctx.target, body_sha256: bodySha, body_fields_fixed: fieldsFixedA, volatile_spans: spans, state: st.state, attestation: st.why, attestation_cautions: st.cautions, needs_recheck: st.state === 'recheck', hint: h });
     }
     const aListed = states.includes('listed');
     const aNotListed = !aListed && states.length > 0 && states.every((x) => x === 'not_listed');
@@ -352,7 +355,7 @@ const llmAnswer = {
     const d = await readCatalogDisplay(cfg.catalog?.display_api_url, cfg.catalog?.service_id, 20000, { keepPayload: true });
     const observed = Boolean(d.reachable && d.valid);
     const bChecks = [{ label: 'catalog_item_observed', ok: observed }, { label: 'catalog_body_fields_fixed', ok: fieldsFixed }];
-    let bState = 'unread', bSha = null, bWhy = observed ? 'body_fields_not_fixed_in_taskpack' : 'not_observed', bCautions = [], bHint = null, bNotCanonical = null;
+    let bState = 'unread', bSha = null, bWhy = observed ? 'body_fields_not_fixed_in_taskpack' : 'not_observed', bCautions = [], bHint = null, bNotCanonical = null, bSpans = [];
     if (observed) {
       bChecks.push({ label: 'catalog_item_present', ok: Boolean(d.found) });
       // the fingerprint comes from the item's original text only; no canonical body → no fingerprint, no attestation lookup
@@ -360,7 +363,7 @@ const llmAnswer = {
       bChecks.push({ label: 'catalog_body_canonical', ok: canon.body !== null });
       if (canon.body === null) { bWhy = 'body_not_canonical'; bNotCanonical = canon.why; }
       else {
-        bSha = sha256Hex(canon.body);
+        bSha = sha256Hex(canon.body); bSpans = canon.spans || [];
         if (fieldsFixed) { const st = sourceState({ fetched: true, bodySha: bSha, dir, ctx: ctxOf('B') }); bState = st.state; bWhy = st.why; bCautions = st.cautions; }
       }
       bHint = hint((m) => {
@@ -370,7 +373,7 @@ const llmAnswer = {
     }
     if (bState === 'recheck') recheck.push('B');
     bChecks.push({ label: 'catalog_item_attested_listed', ok: bState === 'listed' }, { label: 'catalog_item_attested_not_listed', ok: bState === 'not_listed' }, { label: 'catalog_item_needs_recheck', ok: bState === 'recheck' });
-    diagnostics.push({ event: 'attribution_source', source_id: 'B', target: sourceTarget(cfg, 'B'), body_sha256: bSha, state: bState, attestation: bWhy, ...(bNotCanonical ? { body_not_canonical: bNotCanonical } : {}), attestation_cautions: bCautions, needs_recheck: bState === 'recheck', hint: bHint });
+    diagnostics.push({ event: 'attribution_source', source_id: 'B', target: sourceTarget(cfg, 'B'), body_sha256: bSha, body_fields_fixed: fieldsFixed, volatile_spans: bSpans, state: bState, attestation: bWhy, ...(bNotCanonical ? { body_not_canonical: bNotCanonical } : {}), attestation_cautions: bCautions, needs_recheck: bState === 'recheck', hint: bHint });
     const bInstrument = bState === 'listed' || bState === 'not_listed' ? null : 'other';
     rows.push({ method: 'sealed_repo_vs_kansei_catalog', claim: 'the KanseiLINK catalog item for the subject names the sealed MCP repository (attested by a person for the body read this run)', pass: bState === 'listed', instrument_error: bInstrument, checks: bChecks });
     // needs_recheck has the same form in both columns: the ids of the sources to re-check (B: ["B"] or [])

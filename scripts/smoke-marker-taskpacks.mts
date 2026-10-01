@@ -14,7 +14,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { validateReading, loadReadingSchema, newUlid, isoWithOffset } from "../exec-harness/lib/reading.mjs";
 import { selectTarget } from "../exec-harness/lib/marker-targets.mjs";
-import { B_BODY_FIELDS } from "../exec-harness/lib/attribution-attest.mjs";
+import { A_BODY_FIELDS, B_BODY_FIELDS } from "../exec-harness/lib/attribution-attest.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const PACKS_DIR = join(ROOT, "exec-harness", "taskpacks");
@@ -51,6 +51,7 @@ for (const { rel, pack } of packs) {
     expect(`${tag}: two-line form = memory baseline without Perplexity (openai, gemini, claude)`, JSON.stringify(MK.providers) === JSON.stringify(["openai", "gemini", "claude"]), JSON.stringify(MK.providers));
     const at = MK.attribution || {};
     expect(`${tag}: attribution A1/A2 fixed exactly`, JSON.stringify((at.official_docs || []).map((p: any) => [p.id, p.url])) === JSON.stringify([["A1", "https://www.atled.jp/agileworks/functions/ai-use/"], ["A2", "https://www.atled.jp/news/20260727_01/"]]), JSON.stringify(at.official_docs));
+    expect(`${tag}: attribution A1/A2 body fields fixed to the harness constant (raw bytes minus the observed volatile span, 2026-10-01)`, (at.official_docs || []).every((p: any) => p.body_fields === A_BODY_FIELDS) && A_BODY_FIELDS === "raw_bytes_except:wpp_params.token(hex10)");
     expect(`${tag}: attribution B reads the production catalog item agile-works`, at.catalog?.service_id === "agile-works" && at.catalog?.display_api_url === "https://kansei-link-mcp-production.up.railway.app/mcp");
     expect(`${tag}: attribution B body fields fixed to the harness constant (the whole item minus the two volatile leaves by their exact grammar, §4-2 / Codex 1391a31 R1)`, at.catalog?.body_fields === B_BODY_FIELDS && B_BODY_FIELDS === "all_except:_meta.attempt_id(rfc4122-uuid-lowercase),freshness.data_age_days(int 0..100000)");
     expect(`${tag}: rename detection on (verify_repo_via_github not false, default GitHub API)`, MK.verify_repo_via_github !== false && !MK.github_api_base);
