@@ -218,8 +218,10 @@ export async function runHealthProbe(
   }
 
   // ── Update DB ───────────────────────────────────────────────────
+  // An observed status: source 'probe' and the time of the observation, so the
+  // seeder never overwrites it and the tools can show how old it is (2026-10-02).
   const updateMcpStatus = db.prepare(
-    "UPDATE services SET mcp_status = ? WHERE id = ?"
+    "UPDATE services SET mcp_status = ?, mcp_status_source = 'probe', mcp_status_checked_at = datetime('now') WHERE id = ?"
   );
   const insertOutcome = db.prepare(
     `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, context_masked, provenance, verification_status, task_type, created_at)
@@ -273,6 +275,7 @@ export async function runHealthProbe(
           | { trust_score: number; axr_score: number | null; axr_grade: string | null }
           | undefined;
         archiveService.run(r.service_id);
+        updateMcpStatus.run("unreachable", r.service_id); // the endpoint is gone: never 'verified' again until a probe reaches it
         insertDeprecation.run(
           r.service_id,
           `Endpoint gone (POST initialize ${r.http_status}) — archived by weekly health probe`,
@@ -281,7 +284,7 @@ export async function runHealthProbe(
         archivedNew++;
         statusUpdated++;
       } else if (r.error === "dns_fail" || r.error === "connection_refused") {
-        updateMcpStatus.run("dead", r.service_id);
+        updateMcpStatus.run("unreachable", r.service_id);
         statusUpdated++;
         // Dead endpoint → downgrade to 0.1
         const d = downgradeTrust.run(0.1, r.service_id);

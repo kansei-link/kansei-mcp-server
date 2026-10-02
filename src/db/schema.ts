@@ -1,5 +1,8 @@
 import type Database from "better-sqlite3";
 
+/** Changelog entries OUR OWN probe / refresh write when an endpoint or repository is gone. They are never "an upstream answered". */
+export const DEATH_NOTICE_CHANGE_TYPES = "'deprecated', 'deprecation', 'archived', 'probe_failed'";
+
 export function initializeDb(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS services (
@@ -724,15 +727,21 @@ export function initializeDb(db: Database.Database): void {
       WHERE last_refreshed_at IS NOT NULL
     `);
 
+    // Only a changelog row that an upstream wrote counts as "an upstream answered".
+    // A death notice — 'deprecated' / 'archived' / 'probe_failed' (and the
+    // misspelt 'deprecation') — is written by our own probe or refresh when the
+    // endpoint or repo is GONE; it is the opposite of a check (2026-10-02, marker M-002).
     db.exec(`
       UPDATE services
       SET upstream_checked_at = (
             SELECT MAX(c.change_date) FROM service_changelog c
             WHERE c.service_id = services.id
+              AND c.change_type NOT IN (${DEATH_NOTICE_CHANGE_TYPES})
           ),
           upstream_check_source = 'changelog_backfill'
       WHERE EXISTS (
         SELECT 1 FROM service_changelog c WHERE c.service_id = services.id
+          AND c.change_type NOT IN (${DEATH_NOTICE_CHANGE_TYPES})
       )
     `);
 
@@ -748,6 +757,62 @@ export function initializeDb(db: Database.Database): void {
       `[migration] freshness provenance: ${verified.cnt}/${total.cnt} services have an upstream check date; ` +
         `the rest now report confidence "unverified" instead of a refresh date nothing stood behind`
     );
+  }
+
+  // Migration (2026-10-02, marker M-002): the backfill above once counted a
+  // death notice as a check. Rows whose ONLY changelog entries are death
+  // notices got an upstream_checked_at they never earned. This reverts exactly
+  // those rows to unverified. Idempotent (schema_migrations), audited, and it
+  // never touches a check that github / npm recorded themselves.
+  if (!db.prepare("SELECT 1 AS x FROM schema_migrations WHERE migration_id = 'upstream_backfill_death_notices_v1'").get()) {
+    const tx = db.transaction(() => {
+      const wrong = (db.prepare(`
+        SELECT COUNT(*) AS c FROM services s
+        WHERE s.upstream_check_source = 'changelog_backfill'
+          AND NOT EXISTS (
+            SELECT 1 FROM service_changelog c WHERE c.service_id = s.id
+              AND c.change_type NOT IN (${DEATH_NOTICE_CHANGE_TYPES})
+          )`).get() as { c: number }).c;
+      const r = db.prepare(`
+        UPDATE services
+        SET upstream_checked_at = NULL, upstream_check_source = NULL, last_refreshed_at = NULL
+        WHERE upstream_check_source = 'changelog_backfill'
+          AND NOT EXISTS (
+            SELECT 1 FROM service_changelog c WHERE c.service_id = services.id
+              AND c.change_type NOT IN (${DEATH_NOTICE_CHANGE_TYPES})
+          )`).run();
+      // a backfilled date may also have been taken FROM a death notice on a row that has real entries too: recompute it
+      const re = db.prepare(`
+        UPDATE services
+        SET upstream_checked_at = (
+              SELECT MAX(c.change_date) FROM service_changelog c
+              WHERE c.service_id = services.id AND c.change_type NOT IN (${DEATH_NOTICE_CHANGE_TYPES})
+            )
+        WHERE upstream_check_source = 'changelog_backfill'
+          AND upstream_checked_at <> (
+              SELECT MAX(c.change_date) FROM service_changelog c
+              WHERE c.service_id = services.id AND c.change_type NOT IN (${DEATH_NOTICE_CHANGE_TYPES})
+            )`).run();
+      db.exec("UPDATE services SET last_refreshed_at = upstream_checked_at WHERE upstream_check_source = 'changelog_backfill'");
+      const audit = db.prepare("INSERT INTO migration_audit (migration_id, metric, value) VALUES ('upstream_backfill_death_notices_v1', ?, ?)");
+      audit.run('backfilled_by_death_notice_only', wrong);
+      audit.run('reverted_to_unverified', r.changes);
+      audit.run('date_recomputed', re.changes);
+      db.prepare("INSERT INTO schema_migrations (migration_id) VALUES ('upstream_backfill_death_notices_v1')").run();
+      console.log(`[migration] upstream backfill: ${r.changes} services whose only changelog entries were death notices (deprecated / archived / probe_failed) are back to "unverified"; ${re.changes} backfilled dates recomputed without them`);
+    });
+    tx();
+  }
+
+  // mcp_status provenance (2026-10-02, marker M-002): where the status came
+  // from and when it was observed. 'seed' = the shipped catalogue; 'probe' = the
+  // health probe (or watchdog) observed it. The seeder never overwrites a
+  // probe-sourced status (seed.ts); the tools show a liveness claim only while a
+  // probe within 30 days stands behind it (utils/mcp-status.ts). Rows that
+  // predate the column have NULL source and are shown as unverified until probed.
+  if ((db.prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = 'mcp_status_source'").get() as { cnt: number }).cnt === 0) {
+    db.exec("ALTER TABLE services ADD COLUMN mcp_status_source TEXT");
+    db.exec("ALTER TABLE services ADD COLUMN mcp_status_checked_at TEXT");
   }
 
   // Model-level performance stats per service (for audit_cost routing)

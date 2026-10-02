@@ -219,6 +219,37 @@ record; move `category` from writable to proposable. Fixes both live defects on
 its own: the GitHub-over-operator overwrite, and the seed upgrade wiping a
 locally-held correction.
 
+**First implementation, 2026-10-02 (`fix/mcp-status-provenance`, marker M-002):
+`mcp_status` — probe > seed.** The marker found endpoints the weekly health probe
+had recorded as gone (404 / 410 / DNS failure) still shown as `verified` in
+production. Two writers competed for the column with no order: the probe wrote
+what it observed, and `seedDatabase()` wrote the shipped value back on the next
+start. The fix is the rank rule for this one field, done directly on the column
+rather than through `service_field_provenance` (which does not exist yet):
+
+- `services.mcp_status_source` (`'seed'` | `'probe'`) and
+  `services.mcp_status_checked_at` (when the probe observed it). Idempotent ALTER.
+- `health-probe.ts` (and the watchdog's zero-success mark) write
+  `source='probe'`, `checked_at=now`: handshake → `verified`, HTTP reachable →
+  `official`, 404 / 410 / DNS / refused → `unreachable` (new; the row is still
+  archived on 404 / 410 as before).
+- `seed.ts` overwrites `mcp_status` only while the row's source is the seed
+  (`CASE WHEN mcp_status_source = 'probe' THEN keep ELSE seed END`). The seed
+  stays authoritative where nothing has been observed; it never outranks an
+  observation. `archived` keeps its `MAX` rule.
+- The read side does not trust the stored value either: `get_service_detail` and
+  `search_services` show `verified` / `official` only while a probe within 30
+  days stands behind it (`utils/mcp-status.ts`), otherwise `unverified`, with
+  `mcp_status_checked_at` beside it — the same shape as `freshness`.
+- The 2026-09-20 backfill had counted a changelog `deprecated` row — the probe's
+  own death notice — as "an upstream answered". A second, audited migration
+  reverts rows whose only changelog entries are death notices to unverified, and
+  the backfill itself now excludes them.
+
+This is the pattern the rest of Phase 1 generalises: **an observation outranks
+the catalogue, the catalogue outranks nothing that was observed, and the reader
+shows a claim only with the evidence's date next to it.**
+
 ### Phase 2 — turn on Registry description refresh
 
 Now safe, because it cannot outrank a company statement and cannot silently

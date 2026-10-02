@@ -174,7 +174,7 @@ function main() {
 
     // Mark dead candidates in DB
     const markDead = db.prepare(
-      "UPDATE services SET mcp_status = 'dead' WHERE id = ? AND mcp_status = 'verified'"
+      "UPDATE services SET mcp_status = 'unreachable', mcp_status_source = 'probe', mcp_status_checked_at = datetime('now') WHERE id = ? AND mcp_status = 'verified'"
     );
     let markedDead = 0;
     for (const r of critical.filter((c) => c.overall_success_rate === 0 && c.total_outcomes >= 5)) {

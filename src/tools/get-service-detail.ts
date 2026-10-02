@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { z } from "zod";
 import { kanseiAppLink } from "../utils/app-link.js";
 import { computeFreshness, FRESHNESS_LEGEND } from "../utils/freshness.js";
+import { displayMcpStatus, MCP_STATUS_LEGEND } from "../utils/mcp-status.js";
 
 interface ServiceRow {
   id: string;
@@ -13,6 +14,9 @@ interface ServiceRow {
   tags: string | null;
   mcp_endpoint: string | null;
   mcp_status: string | null;
+  mcp_status_source: string | null;
+  mcp_status_checked_at: string | null;
+  archived: number | null;
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
@@ -137,6 +141,9 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
   // confidence of records nobody had checked. The guide date is still returned
   // below, on the guide, where it says what it actually means.
   const freshness = computeFreshness(service);
+  // mcp_status is shown as a liveness claim only while a probe within 30 days
+  // stands behind it; the stored value is not changed here (utils/mcp-status.ts).
+  const mcp = displayMcpStatus(service);
 
   if (!guide) {
     return {
@@ -145,7 +152,8 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
       category: service.category,
       description: service.description,
       mcp_endpoint: service.mcp_endpoint || null,
-      mcp_status: service.mcp_status ?? "official",
+      ...mcp,
+      mcp_status_legend: MCP_STATUS_LEGEND,
       api_url: service.api_url,
       api_auth_method: service.api_auth_method,
       trust_score: service.trust_score,
@@ -164,7 +172,8 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     category: service.category,
     description: service.description,
     mcp_endpoint: service.mcp_endpoint || null,
-    mcp_status: service.mcp_status ?? "official",
+    ...mcp,
+    mcp_status_legend: MCP_STATUS_LEGEND,
     trust_score: service.trust_score,
     freshness,
     freshness_legend: FRESHNESS_LEGEND.upstream_metadata,

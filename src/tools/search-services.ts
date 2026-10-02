@@ -12,6 +12,7 @@ import {
   FRESHNESS_LEGEND,
   type FreshnessMeta,
 } from "../utils/freshness.js";
+import { displayMcpStatus, type McpStatusBasis } from "../utils/mcp-status.js";
 
 interface ServiceRow {
   id: string;
@@ -22,6 +23,9 @@ interface ServiceRow {
   tags: string | null;
   mcp_endpoint: string | null;
   mcp_status: string | null;
+  mcp_status_source: string | null;
+  mcp_status_checked_at: string | null;
+  archived: number | null;
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
@@ -807,7 +811,11 @@ interface ScoredResult {
   category: string | null;
   agent_ready: AgentReady;
   mcp_endpoint: string | null;
+  /** shown as a liveness claim only while a probe within 30 days stands behind it (utils/mcp-status.ts) */
   mcp_status: string;
+  mcp_status_checked_at: string | null;
+  mcp_status_source: string | null;
+  mcp_status_basis: McpStatusBasis;
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
@@ -954,7 +962,7 @@ function formatResult(
     category: s.category,
     agent_ready: classifyAgentReady(s),
     mcp_endpoint: s.mcp_endpoint || null,
-    mcp_status: s.mcp_status ?? "official",
+    ...displayMcpStatus(s),
     api_url: s.api_url ?? null,
     api_auth_method: s.api_auth_method ?? null,
     trust_score: s.trust_score,
