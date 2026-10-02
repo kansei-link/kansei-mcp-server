@@ -89,8 +89,11 @@ export const SHAPES = Object.freeze({
   openai: {
     // Response object (developers.openai.com/api/reference/resources/responses — read 2026-10-02)
     top: obj({
-      status: str({ enum: ['completed'] }),
+      // completed is read; incomplete is checked like any response and then never read: instrument budget when
+      // incomplete_details.reason is max_output_tokens, other for any other reason (N4)
+      status: str({ enum: ['completed', 'incomplete'] }),
       error: { t: 'object', opt: true, nullable: true, enum: [null] }, // absent or null; an error object refuses the response (N4)
+      incomplete_details: obj({ reason: str() }, { opt: true, nullable: true }),
       output: arr(union({
         web_search_call: obj({
           id: str(),
@@ -173,6 +176,7 @@ const urlStr = (u) => (isStr(u) && u.trim() ? u.trim() : null);
 export function tracesOpenAI(raw) {
   const unknown = [];
   let v; try { v = checkShape(raw, SHAPES.openai.top, unknown); } catch { return refused(); }
+  if (v.status === 'incomplete') return refused(v.incomplete_details?.reason === 'max_output_tokens' ? 'budget' : 'other');
   const t = emptyTrace({ unknown_types: unknown });
   let citationFields = 0;
   for (const item of v.output) {
@@ -282,7 +286,10 @@ function queryPairs(url) {
 }
 const isHttpUrl = (a) => /^https?:\/\/\S+$/.test(a);
 const urlPathEndsMcp = (a) => { try { return new URL(a).pathname.replace(/\/+$/, '').endsWith(OFFICIAL_FORMS.P3.url_path_suffix); } catch { return false; } };
-const isPackage = (a) => a === OFFICIAL_FORMS.P3.package || a.startsWith(`${OFFICIAL_FORMS.P3.package}@`);
+// mcp-remote, or mcp-remote@<version> where the version is a plain tag or semver: no ':' '/' '@' '#' — an npm alias
+// (mcp-remote@npm:other), a git / github: / file: / URL spec runs ANOTHER package (Claude's review of da628ca)
+export const PACKAGE_VERSION = /^[0-9A-Za-z][0-9A-Za-z.\-]*$/;
+const isPackage = (a) => a === OFFICIAL_FORMS.P3.package || (a.startsWith(`${OFFICIAL_FORMS.P3.package}@`) && PACKAGE_VERSION.test(a.slice(OFFICIAL_FORMS.P3.package.length + 1)));
 const startsBasic = (v) => isStr(v) && /^\s*basic(\s|$)/i.test(v);
 
 /** The form of one entry, by position: { form: 'P2' | 'P3' | null, state: 'official' | 'unclear' | 'other', remoteUrl } */

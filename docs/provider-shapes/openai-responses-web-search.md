@@ -10,7 +10,8 @@ Response object (top level):
 - `status`: `"in_progress"` | `"completed"` | `"incomplete"`
 - `error`: nullable object `{ code, message }`
 - `output`: array of output items
-- also `id`, `object`, `created_at`, `model`, `incomplete_details`, `usage` (not read for the judgement)
+- `incomplete_details`: nullable `{ reason }` — `"max_output_tokens"` or `"content_filter"`; the request sets `max_output_tokens: 16000` (a reasoning model counts its reasoning tokens against it)
+- also `id`, `object`, `created_at`, `model`, `usage` (not read for the judgement)
 
 Output item `web_search_call`: `id`, `type: "web_search_call"`, `status` (`"in_progress"`, `"searching"`, `"completed"`, `"failed"`, `"incomplete"`), `action`, one of:
 - `{ type: "search", query?: string, queries?: string[], sources?: [{ type: "url", url }] }` — `sources` only with `include: ["web_search_call.action.sources"]`
@@ -37,7 +38,8 @@ Guide example (verbatim, ids shortened):
 
 | path | required | type / allowed |
 |---|---|---|
-| `status` | yes | `"completed"` only (anything else refuses the response — Codex 79e624d N4) |
+| `status` | yes | `"completed"` is read. `"incomplete"` is checked and never read: instrument `budget` when `incomplete_details.reason` is `"max_output_tokens"`, `other` for any other reason. Anything else refuses the response (Codex 79e624d N4) |
+| `incomplete_details` | no | object `{ reason: string }` or null |
 | `error` | no | absent or `null` (an error object refuses the response) |
 | `output` | yes | array; every item an object with a string `type` |
 | `output[web_search_call].id` | yes | string |

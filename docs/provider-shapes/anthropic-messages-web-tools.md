@@ -7,7 +7,7 @@ Sources (read 2026-10-02):
 
 ## What the documentation says (the fields the harness depends on)
 
-A response has `content` (array of blocks) and `stop_reason`. These pages document `"end_turn"` and
+A response has `content` (array of blocks) and `stop_reason`. The request sets `max_tokens: 8000`. These pages document `"end_turn"` and
 `"pause_turn"` ("The API can pause a long-running search turn and return `stop_reason: "pause_turn"`. To
 continue, send the paused assistant message back unchanged in a new request.").
 
