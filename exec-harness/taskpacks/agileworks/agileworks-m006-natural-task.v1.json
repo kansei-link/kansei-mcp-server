@@ -18,10 +18,33 @@
     "verify_repo_via_github": true,
     "max_readings": 140,
     "configs": [
-      { "id": "openai", "kind": "api_tools", "provider": "openai", "tools": ["web_search"], "fetch_meaning": "model_opened_page", "cadence": "3/day", "options": { "model": "gpt-5.5-2026-04-23" } },
-      { "id": "anthropic", "kind": "api_tools", "provider": "anthropic", "tools": ["web_search_20250305", "web_fetch_20250910"], "fetch_meaning": "provider_server_fetched", "cadence": "3/day", "options": { "model": "claude-opus-5-5" } },
-      { "id": "perplexity", "kind": "api_tools", "provider": "perplexity", "tools": ["web_search", "fetch_url"], "fetch_meaning": "fetch_url_requested", "cadence": "3/day", "options": { "preset": "fast" } },
-      { "id": "claude-code", "kind": "agent_cli", "provider": "claude-code", "tools": ["WebSearch", "WebFetch", "Write"], "fetch_meaning": "local_fetch_summarised", "cadence": "1/day", "options": { "model": "claude-opus-5-5" } }
+      {
+        "id": "openai",
+        "kind": "api_tools",
+        "provider": "openai",
+        "tools": [
+          "web_search"
+        ],
+        "fetch_meaning": "model_opened_page",
+        "cadence": "3/day",
+        "options": {
+          "model": "gpt-5.5-2026-04-23"
+        }
+      },
+      {
+        "id": "anthropic",
+        "kind": "api_tools",
+        "provider": "anthropic",
+        "tools": [
+          "web_search_20250305",
+          "web_fetch_20250910"
+        ],
+        "fetch_meaning": "provider_server_fetched",
+        "cadence": "3/day",
+        "options": {
+          "model": "claude-opus-5-5"
+        }
+      }
     ],
     "prompt_variants": {
       "N1": {
@@ -33,16 +56,23 @@
         "en": "I want to automate approval workflows from an AI, with AgileWorks."
       }
     },
-    "schedule": { "api_tools": ["09:20", "14:20", "21:20"], "agent_cli": ["09:20"], "note": "informational; the Task Scheduler entries pass --observers <labels> (config id . variant) so that the three daily runs cover the api_tools configurations and only the first also runs claude-code" },
+    "schedule": {
+      "api_tools": [
+        "09:20",
+        "14:20",
+        "21:20"
+      ],
+      "note": "informational; the Task Scheduler entries pass --observers <labels> (config id . variant)"
+    },
     "official_forms_basis": {
       "readme_url": "https://github.com/atled-workflow/agileworks-mcp-server#readme",
       "read_on": "2026-09-29",
-      "forms": "lib/natural-task-rules.mjs OFFICIAL_FORMS — P2 local: node <…>/aw-app/dist/custom/admin/server.js with env ACCESS_TOKEN and SYSTEM_URL; P3 remote: npx mcp-remote <own host>/mcp with headers (or query) x-system-url and x-access-token",
+      "forms": "lib/natural-task-rules.mjs OFFICIAL_FORMS, read by position as a grammar (Codex 79e624d N1; README lines quoted in docs/provider-shapes/agileworks-readme-forms.md) — P2: command exactly node (a path to it, node.exe), the script = the first argument that is not an option, ending with aw-app/dist/custom/admin/server.js, credentials in the entry's env as ACCESS_TOKEN and SYSTEM_URL; P3: command exactly npx (a path to it, npx.cmd), with -y / --yes left out the first argument exactly mcp-remote (or mcp-remote@<version>) and the next an http(s) URL whose path ends with /mcp, credentials as --header (or that URL's query) x-access-token and x-system-url. Three values per entry: official / other (no official marker anywhere) / unclear (a marker but not the grammar) — unclear is undetermined, never a false completion",
       "npm_package": "none published (checked 2026-09-29: agileworks-mcp-server, agileworks-mcp, @atled/…, @atled-workflow/… all 404; the internal package name orval-agileworks-mcp is not on npm), so package names are never used as evidence"
     },
-    "not_measured": "Gemini with Google Search grounding: the Gemini API terms (2026-04-28) forbid collecting or analysing the grounding links programmatically, so no configuration uses it. The tool-less Gemini reading of the two-line form (M-004) is the memory baseline and remains.",
+    "not_measured": "Not configurations (each needs evidence a fixture cannot give): (1) Gemini with Google Search grounding — the Gemini API terms (2026-04-28) forbid collecting or analysing the grounding links programmatically; the tool-less Gemini reading of the two-line form (M-004) is the memory baseline and remains. (2) Perplexity Agent API — its documented structured citation field (output_text.annotations) has not been seen filled on a real response; until it has, a Perplexity row could not tell a cited page from an uncited one (removed 2026-10-02 after Codex review of 79e624d). (3) Claude Code — the isolation of the CLI (no user settings, memory, skills, MCP servers, hooks; only the allowed tools) has not been verified on a real start; a fixture can only show that the harness checks the system/init event it is given (removed 2026-10-02). Their readers and callers are removed from lib/natural-task*.mjs; git history keeps them.",
     "report_readme": "founder-ops/research/Marker-M006_2026-09-30/README.md",
-    "note": "M-006 = the natural-task reading of the same seal as M-004 (the official MCP repository URL; sealed again as M-006 with its own fingerprint). No format is appended to the request and no options are shown. Judgement from two closed traces only (lib/natural-task-rules.mjs). CLOSED SHAPE FIRST (after the Codex review of fe0d132): every item of output[] / content[] / the event list must be an object with a string type, and every item of a type the rules read must carry its required fields with the right types; anything else is an instrument error (other), never an undetermined of the subject; a well-formed item of an unknown type is skipped and only its type name is kept, privately. DISCOVER = a URL in the structured fetched or cited fields of the provider's response resolves to the sealed repository (sourceRepoKey on each whole URL; a page body or an answer text is never scanned; candidates that only appeared in search results are recorded, never counted; a fetch REQUEST counts whether or not its result came back). Citations come from the provider's structured field only — OpenAI and Perplexity: output_text.annotations[url_citation].url; Anthropic: text.citations; Claude Code and any output_text without an annotations array: no trace. The [n] markers of a Perplexity answer are NOT read (removed 2026-09-30: no part reads free text). UNDERSTAND = exactly one parseable artifact (a fenced code block or a work-directory file that is strict JSON — a key written twice in one object makes it no artifact — with a top-level mcpServers object; an entry is read only when it is well-formed: command a string, args an array of strings, env an object of strings) that points at the official server in one of the README's two forms with the official credential slots IN THEIR OWN PLACE (P2: the entry's env itself has ACCESS_TOKEN and SYSTEM_URL; P3: the --header arguments or the query of the mcp-remote URL themselves have x-access-token and x-system-url); a Basic / API-key style credential anywhere in that entry (an env key, a --header name, a query name; or Authorization, in any case, whose value starts with Basic — in env, a header or the query) is a false completion; no single artifact = undetermined. Claude Code is checked before anything is graded: exit code 0, exactly one result event with is_error=false and subtype=success, exactly one system/init whose tools / mcp_servers / plugins are arrays, tools exactly WebSearch, WebFetch, Write, the other two empty; otherwise the row is an instrument error (provider_api / budget / other) and the files left in the work directory are not graded. Its child process gets only the environment variables of an allow-list (lib/natural-task.mjs CLAUDE_CODE_ENV_INHERIT plus the switches the harness sets); their names are recorded in the manifest. Exactly one of pass / false_completion / undetermined / instrument is true. Private, never public: the traces (URLs), the artifact and the skipped type names go to environment.private.json; the raw response and the work files go to <observer>/transcript.jsonl. Public rows carry booleans, and a model id a provider reports is public only when it matches ^[a-z0-9][a-z0-9.\\-]{0,63}$ (otherwise the configuration's own value is shown and the reported one is kept private). Rows of different setups are never mixed in a table: the sheet counts stops, false completions and undetermined readings per configuration (config id + prompt variant + fetch meaning) and gives no figure across configurations.",
+    "note": "M-006 = the natural-task reading of the same seal as M-004 (the official MCP repository URL; sealed again as M-006 with its own fingerprint). No format is appended to the request and no options are shown. Two configurations: OpenAI Responses (web_search) and Anthropic Messages (web_search_20250305 + web_fetch_20250910). THE SHAPE TABLE FIRST (lib/natural-task-rules.mjs SHAPES, written from the providers' documentation copied in docs/provider-shapes/ with the date it was read): one generic checker validates the whole response — top level (OpenAI status completed, error absent or null, output an array; Anthropic every turn's content an array and its stop_reason documented, every turn but the last pause_turn, a last pause_turn = instrument budget) and every item of a type the table knows, field by field — before anything is read; anything outside it refuses the whole response (instrument other, no partial trace); a well-formed item of an unknown type is skipped and only its type name is kept, privately. The readers walk the checker's view, which holds only declared fields. DISCOVER = a URL in the structured fetched or cited fields resolves to the sealed repository (sourceRepoKey on each whole URL; page bodies and answer texts are never scanned; candidates from search results are recorded, never counted; a fetch REQUEST counts whether or not its result came back). Citations: OpenAI output_text.annotations[url_citation].url, Anthropic text.citations[web_search_result_location].url; a block without its citation field cites nothing of its own and the other blocks' citations stay. UNDERSTAND = exactly one strict-JSON artifact (a fenced block; a key written twice makes it no artifact) with a top-level mcpServers object, each entry read by the README's two forms as a grammar by position (official_forms_basis), with the official credential slots IN THEIR OWN PLACE; a Basic / API-key style credential anywhere in that entry is a false completion; an entry that carries an official marker but not the grammar is undetermined; no single artifact = undetermined. Exactly one of pass / false_completion / undetermined / instrument is true. Private, never public: the traces, the artifact and the skipped type names go to environment.private.json; the raw responses go to <observer>/transcript.jsonl. Public rows carry booleans, and a model id a provider reports is public only when it matches ^[a-z0-9][a-z0-9.\\-]{0,63}$. The sheet labels and counts rows per configuration (config id + prompt variant + fetch meaning) and gives no figure across configurations.",
     "answer_format": "none"
   },
   "goal_prompt": {
@@ -52,12 +82,15 @@
   "preflight": [],
   "preconditions": [
     "Sealed file holds the official MCP repository URL only, sealed as M-006 (draft: exec-harness/draft-marker.mjs M-006; the seal itself and the commitment are Michie's)",
-    "API keys for OpenAI, Anthropic and Perplexity in .env (git-ignored); Claude Code runs with ANTHROPIC_API_KEY (no subscription), isolated (empty CLAUDE_CONFIG_DIR, --safe-mode, no MCP, tools WebSearch/WebFetch/Write)",
-    "Every configuration's response shape is checked against the documented one BEFORE anything is read from it (each item typed, each read item field by field); an unexpected shape is an instrument error, never a judgement"
+    "API keys for OpenAI and Anthropic in .env (git-ignored)",
+    "Every configuration's response is checked against the shape table (lib/natural-task-rules.mjs SHAPES; docs/provider-shapes/) BEFORE anything is read from it; an unexpected shape is an instrument error, never a judgement"
   ],
   "scripted_steps": [],
   "agentic": {
-    "models": ["openai", "anthropic", "perplexity", "claude-code"],
+    "models": [
+      "openai",
+      "anthropic"
+    ],
     "runs_per_day": 3,
     "temperature": "provider default"
   },

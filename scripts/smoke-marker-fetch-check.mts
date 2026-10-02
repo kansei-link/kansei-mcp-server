@@ -41,11 +41,11 @@ await new Promise<void>((r) => server.listen(PORTS.B, "127.0.0.1", () => r()));
 
 const tmp = mkdtempSync(join(tmpdir(), "fetch-check-"));
 const TODAY = new Date().toISOString().slice(0, 10);
-function summary(cells: Record<string, Record<string, string | { status: string; date?: string }>>, cli: Record<string, string> = { claude: "9.9.9 (Claude Code)", codex: "codex-cli 0.0.1" }, date = TODAY, runAt?: string) {
+function summary(cells: Record<string, Record<string, string | { status: string; date?: string }>>, cli: Record<string, string> = { claude: "9.9.9 (Claude Code)", codex: "codex-cli 0.0.1" }, date = TODAY, runAt?: string, agents: Record<string, string> = { claude: "claude-opus-5", codex: "gpt-6-astra" }) {
   const p = join(tmp, `${Date.now()}-${Math.random().toString(36).slice(2, 6)}.json`);
   const checks: any = {};
   for (const [id, byAgent] of Object.entries(cells)) { checks[id] = {}; for (const [agent, v] of Object.entries(byAgent)) checks[id][agent] = typeof v === "string" ? { status: v, error: null, snippet: "…" } : { status: v.status, date: v.date, error: null, snippet: "…" }; }
-  writeFileSync(p, JSON.stringify({ date, run_at: runAt ?? `${date}T00:00:01.000Z`, agents: { claude: "claude-opus-5", codex: "gpt-6-astra" }, cli_versions: cli, checks }));
+  writeFileSync(p, JSON.stringify({ date, run_at: runAt ?? `${date}T00:00:01.000Z`, agents, cli_versions: cli, checks }));
   return p;
 }
 async function run(summaryPath: string, extra: string[] = []) {
@@ -54,8 +54,9 @@ async function run(summaryPath: string, extra: string[] = []) {
   const m = /evidence: (\S+?)\/ \(manifest/.exec(out);
   const bundle = m ? join(ROOT, m[1]) : null;
   const metrics = bundle && existsSync(join(bundle, "metrics.json")) ? JSON.parse(readFileSync(join(bundle, "metrics.json"), "utf-8")) : null;
+  const manifest = bundle && existsSync(join(bundle, "manifest.json")) ? JSON.parse(readFileSync(join(bundle, "manifest.json"), "utf-8")) : null;
   const by = (obs: string) => metrics?.readings?.find((x: any) => x.observer.startsWith(obs));
-  return { status: r.status, out, bundle, metrics, claude: by("claude-code@"), codex: by("codex@"), gt: metrics?.readings?.find((x: any) => x.observed.method === "sealed_expectation_vs_harness_http_probe") };
+  return { status: r.status, out, bundle, metrics, manifest, claude: by("claude-code@"), codex: by("codex@"), gt: metrics?.readings?.find((x: any) => x.observed.method === "sealed_expectation_vs_harness_http_probe") };
 }
 
 try {
@@ -68,6 +69,19 @@ try {
     expect("(1) target.model from summary", r.claude?.target.model === "claude-opus-5");
     expect("(1) both done/pass", r.claude?.stage_reached === "done" && r.codex?.stage_reached === "done" && r.claude?.observed.pass && r.codex?.observed.pass);
     expect("(1) ground truth consistent, no gt row", r.claude?.observed.ground_truth_consistent === true && !r.gt);
+  }
+  // (1b) Codex review 3 of 79e624d, F6: the public model grammar of M-006 must not touch M-003. The model an agent
+  //      reports is recorded as it is (85b768a): target.model, metrics.runs[].model, manifest.models and the outcome row's
+  //      model_name (the same variable in marker-generic) — "Claude Sonnet 4" and "claude/sonnet-4" stay, never "none".
+  {
+    const all = { "fetch-index": { claude: "fetched", codex: "fetched" }, "fetch-square": { claude: "fetched", codex: "fetched" }, "fetch-control-insights": { claude: "fetched", codex: "fetched" } };
+    const r = await run(summary(all, undefined, TODAY, undefined, { claude: "Claude Sonnet 4", codex: "claude/sonnet-4" }));
+    expect("(1b) F6 exit 0", r.status === 0, r.out.slice(-400));
+    expect("(1b) F6 target.model is the reported value as it is (85b768a): \"Claude Sonnet 4\" / \"claude/sonnet-4\"", r.claude?.target.model === "Claude Sonnet 4" && r.codex?.target.model === "claude/sonnet-4", `${r.claude?.target.model} ${r.codex?.target.model}`);
+    expect("(1b) F6 metrics.runs[].model and manifest.models carry the same values", JSON.stringify(r.metrics?.runs?.map((x: any) => x.model)) === JSON.stringify(["Claude Sonnet 4", "claude/sonnet-4"]) && JSON.stringify(Object.values(r.manifest?.models || {})) === JSON.stringify(["Claude Sonnet 4", "claude/sonnet-4"]), JSON.stringify([r.metrics?.runs, r.manifest?.models]));
+    expect("(1b) F6 no setup on M-003 rows; observer string and CLI version as before", !r.claude?.target.setup && r.claude?.observer === "claude-code@9.9.9" && r.codex?.observer === "codex@0.0.1");
+    const gen = readFileSync(join(ROOT, "exec-harness", "lib", "marker-generic.mjs"), "utf-8");
+    expect("(1b) F6 the outcome row's model_name is the same variable as target.model; the grammar applies only under observer.setup", ["model_name: model,", "target: { service_id: PACK.service_id, model,", "if (observer.setup) {", "const pm = publicModel(obs.model,", "model = obs.model || observer.model || observer.provider || 'none';"].every((s) => gen.includes(s)) && gen.indexOf("if (observer.setup) {") < gen.indexOf("const pm = publicModel(obs.model,"));
   }
   // (2) codex denied on wiki pages but fetched control → codex stops at discover; claude done
   {

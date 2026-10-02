@@ -1,5 +1,5 @@
 {
- "note": "Regression cases after the Codex review of fe0d132 (M-006, the natural-task reading; 55 cases; byte for byte in evidence/codex-fe0d132-independent-cases.json — its commit field names the reviewed tree 544808b, the reviewed diff is 1391a31..fe0d132; id, input and codex_expected copied verbatim). 35 conformed; the 20 that did not are Codex's R1–R8 and one observation, all of one kind: an input outside the expected shape was accepted as empty or undetermined. Fixed (Michie 2026-09-30) by checking the closed shape before reading: credential slots in their own place (R1), wrong credentials in every place of the entry (R2), the Claude Code result and exit code first (R3), exactly one init with its three arrays and exactly the allowed tools (R4), no reading of [n] markers in a Perplexity answer (R5), every item of output[] / content[] typed and the read ones checked field by field (R6), the sheet counted per configuration (R7), a provider-reported model public only in a closed grammar (R8), an Anthropic web_fetch request counted without its result block. Every expectation here is Codex's own (no revision). Replayed by Part F of scripts/smoke-marker-natural-task.mts, which ports Codex's runner (outputs/reproduce-audit.mjs: the rules in process, then run-marker --dry-run with the M-993 fixture seal and the fake provider). The inputs carry the reviewer's paths as they were. All values invented.",
+ "note": "Regression cases after the Codex review of fe0d132 (M-006, the natural-task reading; 55 cases; byte for byte in evidence/codex-fe0d132-independent-cases.json — its commit field names the reviewed tree 544808b, the reviewed diff is 1391a31..fe0d132; id, input and codex_expected copied verbatim). 35 conformed; the 20 that did not are Codex's R1–R8 and one observation, all of one kind: an input outside the expected shape was accepted as empty or undetermined. Fixed (Michie 2026-09-30) by checking the closed shape before reading: credential slots in their own place (R1), wrong credentials in every place of the entry (R2), the Claude Code result and exit code first (R3), exactly one init with its three arrays and exactly the allowed tools (R4), no reading of [n] markers in a Perplexity answer (R5), every item of output[] / content[] typed and the read ones checked field by field (R6), the sheet counted per configuration (R7), a provider-reported model public only in a closed grammar (R8), an Anthropic web_fetch request counted without its result block. Every expectation here is Codex's own (no revision). Replayed by Part F of scripts/smoke-marker-natural-task.mts, which ports Codex's runner (outputs/reproduce-audit.mjs: the rules in process, then run-marker --dry-run with the M-993 fixture seal and the fake provider). The inputs carry the reviewer's paths as they were. All values invented. Revised 2026-10-02: the 20 cases about Perplexity and Claude Code are expect=no_configuration (not replayed); every other expectation is unchanged. Replay adapter (the port's, never the stored input): a case written before the top level was checked gets the documented top level only where it lacks it — an OpenAI response without `status` is replayed as { status: 'completed', error: null, ...response }, an Anthropic response without `turns` as { turns: [{ stop_reason: 'end_turn', ...response }] } — so each case still tests what it was written to test (the items are Codex's, unchanged). A response that has its own status / turns is replayed as it is.",
  "commit_reviewed": "fe0d132 (tree 544808b84a39e2b36a9e17c4f7f17823b97615fa, diff 1391a31..fe0d132)",
  "cases": [
   {
@@ -253,7 +253,8 @@
    },
    "codex_expected": false,
    "codex_conforms": true,
-   "expect": false
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F2-marker-[9]",
@@ -282,7 +283,8 @@
    },
    "codex_expected": false,
    "codex_conforms": true,
-   "expect": false
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F2-marker-[[2]]",
@@ -311,7 +313,8 @@
    },
    "codex_expected": false,
    "codex_conforms": false,
-   "expect": false
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F2-marker-[web:[2]]",
@@ -340,7 +343,8 @@
    },
    "codex_expected": false,
    "codex_conforms": false,
-   "expect": false
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F3-P2-header-instead-of-env",
@@ -549,7 +553,8 @@
    },
    "codex_expected": "other",
    "codex_conforms": false,
-   "expect": "other"
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F5-claude-error",
@@ -592,7 +597,8 @@
    ],
    "codex_expected": "provider_api",
    "codex_conforms": false,
-   "expect": "provider_api"
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F7-init-fields-missing",
@@ -626,7 +632,8 @@
    ],
    "codex_expected": false,
    "codex_conforms": false,
-   "expect": false
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F7-second-init-not-isolated",
@@ -682,7 +689,8 @@
    ],
    "codex_expected": false,
    "codex_conforms": false,
-   "expect": false
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "observation-Anthropic-request-no-result",
@@ -1490,7 +1498,8 @@
    },
    "codex_expected": 1,
    "codex_conforms": true,
-   "expect": 1
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F1-schema-perplexity.N1",
@@ -1593,7 +1602,8 @@
    },
    "codex_expected": [],
    "codex_conforms": true,
-   "expect": []
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "E2E-perplexity.N1",
@@ -1626,7 +1636,8 @@
    },
    "codex_expected": "undetermined",
    "codex_conforms": false,
-   "expect": "undetermined"
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F1-exclusive-perplexity.N2",
@@ -1699,7 +1710,8 @@
    },
    "codex_expected": 1,
    "codex_conforms": true,
-   "expect": 1
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F1-schema-perplexity.N2",
@@ -1802,7 +1814,8 @@
    },
    "codex_expected": [],
    "codex_conforms": true,
-   "expect": []
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "E2E-perplexity.N2",
@@ -1816,7 +1829,8 @@
    },
    "codex_expected": "undetermined",
    "codex_conforms": true,
-   "expect": "undetermined"
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F1-exclusive-claude-code.N1",
@@ -1889,7 +1903,8 @@
    },
    "codex_expected": 1,
    "codex_conforms": true,
-   "expect": 1
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F1-schema-claude-code.N1",
@@ -1993,7 +2008,8 @@
    },
    "codex_expected": [],
    "codex_conforms": true,
-   "expect": []
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "E2E-claude-code.N1",
@@ -2047,7 +2063,8 @@
    },
    "codex_expected": "provider_api",
    "codex_conforms": false,
-   "expect": "provider_api"
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F1-exclusive-claude-code.N2",
@@ -2120,7 +2137,8 @@
    },
    "codex_expected": 1,
    "codex_conforms": true,
-   "expect": 1
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F1-schema-claude-code.N2",
@@ -2224,7 +2242,8 @@
    },
    "codex_expected": [],
    "codex_conforms": true,
-   "expect": []
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "E2E-claude-code.N2",
@@ -2263,7 +2282,8 @@
    },
    "codex_expected": "other",
    "codex_conforms": false,
-   "expect": "other"
+   "expect": "no_configuration",
+   "revised": "Perplexity and Claude Code are not configurations since 2026-10-02 (Codex review of 79e624d; taskpack not_measured); their readers / callers / isolation parts are removed, so the case has nothing to run against."
   },
   {
    "id": "F1-missing-setup",

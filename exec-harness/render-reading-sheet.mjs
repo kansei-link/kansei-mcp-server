@@ -49,7 +49,7 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
   const dates = rows.map((r) => r.observed_at.slice(0, 10));
   const period = rows.length ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '—';
   // v1.1: a reading that names its setup (M-006) is shown per configuration × prompt variant; rows of different setups are never mixed
-  const setupOf = (r) => (r.target.setup ? `${r.target.setup.config_id}/${r.target.setup.prompt_variant}${r.target.setup.kind === 'agent_cli' ? '（CLI）' : ''}→${r.target.model}` : null);
+  const setupOf = (r) => (r.target.setup ? `${r.target.setup.config_id}/${r.target.setup.prompt_variant}（取得＝${r.target.setup.fetch_meaning}）${r.target.setup.kind === 'agent_cli' ? '（CLI）' : ''}→${r.target.model}` : null);
   const observerOf = (r) => setupOf(r) || (r.observer.startsWith('kansei_harness') ? (r.target.model && r.target.model !== 'none' ? `harness→${r.target.model}` : 'harness') : `${r.observer}${r.target.model && r.target.model !== 'none' ? `（${r.target.model}）` : ''}`);
   const naturalTask = agent.some((r) => r.observed.method === 'natural_task_traces_vs_sealed_repo');
   const observers = [...new Set(agent.map(observerOf))];
@@ -73,9 +73,9 @@ export function renderSheet(rows, { markerId, now = new Date() }) {
   lines.push(`- 観測者: ${observers.length ? observers.join('、') : '—'}`);
   lines.push(`- 描画: ${now.toISOString()}（この表は台帳から機械的に描く。序列・得点・他ベンダーとの並置・対象の生値は載せない）`);
   if (naturalTask) {
-    lines.push('- 構成: 観測者の欄は「構成/課題文の変種→模型」。構成ごとに「取得」の意味が違う（OpenAI＝模型が開いたページ、Anthropic＝提供者のサーバーが取った本文、Perplexity＝fetch_url に頼んだ URL、Claude Code＝手元が取って要約した物）ので、構成の行は混ぜて数えない。');
-    lines.push('- 引用: 提供者の応答の構造化された欄だけを読む（OpenAI と Perplexity＝output_text の annotations の url_citation、Anthropic＝text の citations）。本文の [n] の印や本文中の URL は読まない。Claude Code と、annotations の欄が無い応答は「跡なし」。');
-    lines.push('- Gemini の検索ありは提供者の規約により測っていない（道具を使わない Gemini の行は M-004 の二行形式＝記憶の基準線にある）。');
+    lines.push('- 構成: 観測者の欄は「構成/課題文の変種（取得の意味）→模型」。構成は OpenAI（Responses API の web_search・取得＝模型が開いたページ）と Anthropic（Messages API の web_search＋web_fetch・取得＝提供者のサーバーが取った本文）の二つ。構成ごとに「取得」の意味が違うので、構成の行は混ぜて数えない。');
+    lines.push('- 引用: 提供者の応答の構造化された欄だけを読む（OpenAI＝output_text の annotations の url_citation、Anthropic＝text の citations）。本文の [n] の印や本文中の URL は読まない。応答の形は読む前に表（docs/provider-shapes/）で検査し、外れた応答は計器。');
+    lines.push('- 測っていない構成: Gemini の検索あり（提供者の規約）、Perplexity（Agent API の引用欄が実応答で未確認）、Claude Code（隔離を実起動で検証できていない）。道具を使わない Gemini の行は M-004 の二行形式＝記憶の基準線にある。');
   }
   lines.push('');
   lines.push('## 一日一行');

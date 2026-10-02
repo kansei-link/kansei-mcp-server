@@ -1,279 +1,263 @@
 /**
  * Rules for kind_of_truth = natural_task (M-006) — the natural-task reading, judged from two CLOSED
  * traces only (founder-ops/research/Marker-M004_2026-09-25/PROPOSAL-M004-natural-task_2026-09-29.md
- * §3, §4, §10; Michie's decisions of 2026-09-29/30). Pure functions, no I/O. Never grades free text.
+ * §3, §4, §10; Michie's decisions of 2026-09-29/30 and 2026-10-02). Pure functions, no I/O. Never grades free text.
  *
- * CLOSED SHAPE FIRST (Codex review of fe0d132, Michie 2026-09-30): a response is checked against the shape
- * it is documented to have BEFORE anything is read from it. Every item of output[] / content[] / the event
- * list must be an object with a string `type`; every item of a type this module reads must carry its
- * required fields with the right types. Anything else → shape_ok=false → instrument "other" (never an
- * "undetermined" of the subject). A missing field is "not there", never "empty". An item of a type this
- * module does not know, when well-formed, is skipped and only its type name is kept (private).
+ * TWO CONFIGURATIONS (2026-10-02, after Codex review of 79e624d): OpenAI Responses (web_search) and
+ * Anthropic Messages (web_search_20250305 + web_fetch_20250910). Perplexity and Claude Code are not
+ * measured (taskpack not_measured); their readers are gone from this module (git history keeps them).
  *
- * TRACE (discover): the URLs a configuration leaves in STRUCTURED fields, each handed whole to
- * sourceRepoKey — never found by scanning a page or an answer. No part of this module reads free text.
- *   candidates  URLs that appeared in search results (seen, not opened)      → recorded, never counted
- *   fetched     URLs the model asked to open (the REQUEST is the reaching;   → counted
- *               whether the fetch succeeded is kept beside it as `ok`; a request whose result never
- *               came is still a request)
- *   cited       URLs the final answer cites, from the provider's structured    → counted
- *               citation field only: OpenAI output_text.annotations[url_citation].url, Anthropic
- *               text.citations[web_search_result_location].url, Perplexity output_text.annotations
- *               [url_citation].url (the field the Agent API reference documents). The [n] markers of a
- *               Perplexity answer are NOT read (removed 2026-09-30: no part reads free text).
- *   Each field is either readable or "no trace" (readable=false: Claude Code has no structured
- *   citations; an output_text without an annotations array has none either); a field that is not
- *   readable decides nothing.
- * ARTIFACT (understand): the configuration file the answer produced — a fenced code block or a file
- * in the work directory that is strict JSON (RFC 8259, no key twice in one object: JSON.parse would keep
- * the last and hide the first) and an object with a top-level `mcpServers` object.
- * Exactly one distinct artifact is judged; none or several → undetermined. Free text is never read.
- * An mcpServers entry is read only when it is well-formed (command a string; args, when there, an array of
- * strings; env, when there, an object of strings); otherwise it is not one of the official forms.
- *   points_official  some mcpServers entry has one of the two forms of the official README
- *                    (OFFICIAL_FORMS: P2 local entry path, P3 mcp-remote to <own host>/mcp). No package
- *                    name exists on npm, so package names are never used.
+ * THE SHAPE TABLE (SHAPES, below) is the only description of what is read. A response is checked against it
+ * by one generic function (checkShape) BEFORE anything is read, and the readers then walk the VIEW the
+ * checker returns — a copy that holds only the fields the table declares — so no code can read a field the
+ * table does not name. The table was written from the providers' documentation, copied with the date it
+ * was read in docs/provider-shapes/ (openai-responses-web-search.md, anthropic-messages-web-tools.md).
+ *   - every item of a list the table walks is an object with a string `type`;
+ *   - an item of a type the table knows is checked field by field (required fields present, every
+ *     declared field of the declared type, enumerated values only);
+ *   - an item of a type the table does not know, when it is a well-formed typed object, is skipped and only
+ *     its type name is kept (private);
+ *   - anything else anywhere → the whole response is refused: instrument "other", no partial trace.
+ * A missing field is "not there", never "empty": a field the table marks required must be present (a
+ * nullable field must be present with null). The top level is in the table too (Codex 79e624d N2 / N4):
+ *   OpenAI   status = "completed", error absent or null, output an array.
+ *   Anthropic every turn's content an array and its stop_reason documented; every turn but the last is
+ *            pause_turn; the last ends the turn (end_turn / max_tokens / stop_sequence) — a last pause_turn
+ *            (continuations exhausted) is instrument "budget". The caller hands over EVERY turn as it came
+ *            (raw.turns) and nothing is concatenated before the check.
+ *
+ * TRACE (discover): URLs from the declared fields only, each handed whole to sourceRepoKey.
+ *   candidates  search results (seen, not opened)                         → recorded, never counted
+ *   fetched     URLs the model asked to open (the REQUEST is the reaching) → counted
+ *   cited       URLs the provider's structured citation field names       → counted
+ *               OpenAI output_text.annotations[url_citation].url; Anthropic text.citations[web_search_result_location].url.
+ *               A text block without its citation field has no citations of its own; the valid citations of
+ *               the other blocks stay (Codex 79e624d P2).
+ * ARTIFACT (understand): exactly one strict-JSON object with a top-level mcpServers object (fenced block).
+ *   Each entry is read by the README's two forms as a GRAMMAR, by position (Codex 79e624d N1):
+ *     P2  command is exactly node (a path to it, node.exe) and the script — the first argument that is not
+ *         an option — ends with aw-app/dist/custom/admin/server.js.
+ *     P3  command is exactly npx (a path to it, npx.cmd); with the options -y / --yes left out, the first
+ *         argument is exactly mcp-remote (or mcp-remote@<version>) and the next one is an http(s) URL whose
+ *         path ends with /mcp.
+ *   Three values per entry: official (the grammar holds) / other (no official marker anywhere in the entry:
+ *   neither the P2 path nor the package name) / unclear (a marker is there but the grammar does not hold:
+ *   `echo <path>`, `node other.js <path>`, `npx other mcp-remote …`). Unclear is never a false completion:
+ *   only the passing side is strict.
  *   auth_correct     the official credential slots IN THEIR OWN PLACE: P2 = the entry's env itself has
- *                    ACCESS_TOKEN and SYSTEM_URL; P3 = the entry's --header arguments or the URL's query
- *                    themselves have x-access-token and x-system-url. A name in another place does not count.
- *   wrong_auth_field a Basic / API-key style credential anywhere in that entry: an env key, a --header
- *                    name or a query name of the URL among wrong_credential_names; or Authorization
- *                    (any case) whose value starts with Basic — in env, in a header (also through
- *                    ${VAR} taken from the entry's env) or in the query.
+ *                    ACCESS_TOKEN and SYSTEM_URL; P3 = the --header arguments or the query of THE mcp-remote
+ *                    URL itself have x-access-token and x-system-url.
+ *   wrong_auth_field a Basic / API-key style credential anywhere in that entry (names in env / headers /
+ *                    the query of any URL argument; Authorization whose value starts with Basic, anywhere).
  * JUDGEMENT (exactly one of pass / false_completion / undetermined / instrument):
- *   response shape not as documented                       → instrument "other"
- *   the agent run itself failed (Claude Code result)        → instrument "provider_api" / "budget"
- *   no tool call at all                                    → discover, undetermined (tools_used=false)
- *   discover passed  = fetched or cited holds a URL that resolves to the sealed repository
- *   then: artifact official + auth correct + no wrong field → done (pass)
- *         artifact official + wrong field                   → understand, false_completion
- *         artifact official, no credential slot            → understand, undetermined
- *         artifact points elsewhere                        → understand, false_completion
- *         no single parseable artifact                     → understand, undetermined
- *   discover not passed (traces readable, nothing resolves):
- *         artifact points elsewhere / wrong field          → discover, false_completion
- *         artifact official                                → discover, undetermined + reached_without_trace
- *         otherwise                                        → discover, undetermined
+ *   refused response → instrument other; continuations exhausted → instrument budget; no tool call → undetermined.
+ *   discovered (fetched or cited resolves to the sealed repo):
+ *     official + auth correct + no wrong field → done | official + wrong field → understand fc |
+ *     official, no slots → understand und | unclear → understand und | other → understand fc | none → understand und
+ *   not discovered: other or (official + wrong field) → discover fc | otherwise → discover und
  */
 import { sourceRepoKey } from './repo-key.mjs';
 import { scanStrictJson } from './attribution-attest.mjs'; // the strict RFC 8259 scanner (pure; node built-ins only)
 
 export const METHOD = 'natural_task_traces_vs_sealed_repo';
 
-/* ---------- the two official forms (README of the sealed repository, read 2026-09-29) ---------- */
+/* ---------- the two official forms (README of the sealed repository, read 2026-09-29; quoted in docs/provider-shapes/agileworks-readme-forms.md) ---------- */
 export const OFFICIAL_FORMS = Object.freeze({
-  P2: Object.freeze({ entry_path_suffix: 'aw-app/dist/custom/admin/server.js', env_keys: Object.freeze(['ACCESS_TOKEN', 'SYSTEM_URL']) }),
-  P3: Object.freeze({ command: 'npx', package: 'mcp-remote', url_path_suffix: '/mcp', header_names: Object.freeze(['x-access-token', 'x-system-url']) }),
+  P2: Object.freeze({ commands: Object.freeze(['node', 'node.exe']), entry_path_suffix: 'aw-app/dist/custom/admin/server.js', env_keys: Object.freeze(['ACCESS_TOKEN', 'SYSTEM_URL']) }),
+  P3: Object.freeze({ commands: Object.freeze(['npx', 'npx.cmd']), skip_options: Object.freeze(['-y', '--yes']), package: 'mcp-remote', url_path_suffix: '/mcp', header_names: Object.freeze(['x-access-token', 'x-system-url']) }),
   wrong_credential_names: Object.freeze(['user', 'username', 'password', 'passwd', 'pass', 'basic', 'api_key', 'apikey', 'x_api_key', 'authorization_basic']),
 });
 
+/* ---------- the shape table ----------
+ * A spec is { t, opt?, nullable?, enum?, fields?, items?, union? }:
+ *   t        'string' | 'number' | 'boolean' | 'object' | 'array' | 'any'
+ *   opt      the field may be absent (absent ≠ null: a present field must have the declared type)
+ *   nullable the field may be null (it must still be present unless opt)
+ *   enum     allowed values
+ *   fields   (object) declared fields; only these are copied to the view
+ *   items    (array) the spec of every item
+ *   union    (object) { cases: { <type>: spec } } — the object must have a string `type`; a known type is
+ *            checked by its spec; an unknown one is skipped (its name recorded) when it is a typed object
+ */
+const str = (o = {}) => ({ t: 'string', ...o });
+const num = (o = {}) => ({ t: 'number', ...o });
+const arr = (items, o = {}) => ({ t: 'array', items, ...o });
+const obj = (fields, o = {}) => ({ t: 'object', fields, ...o });
+const union = (cases, o = {}) => ({ t: 'object', union: { cases }, ...o });
+
+export const SHAPES = Object.freeze({
+  openai: {
+    // Response object (developers.openai.com/api/reference/resources/responses — read 2026-10-02)
+    top: obj({
+      status: str({ enum: ['completed'] }),
+      error: { t: 'object', opt: true, nullable: true, enum: [null] }, // absent or null; an error object refuses the response (N4)
+      output: arr(union({
+        web_search_call: obj({
+          id: str(),
+          status: str({ enum: ['completed', 'failed', 'incomplete', 'searching', 'in_progress'] }),
+          action: union({
+            search: obj({ query: str({ opt: true }), queries: arr(str(), { opt: true }), sources: arr(union({ url: obj({ url: str() }) }), { opt: true }) }),
+            open_page: obj({ url: str({ nullable: true }) }), // documented url?: string | null — the key is required here (N3), null allowed
+            find_in_page: obj({ url: str(), pattern: str() }),
+          }),
+        }),
+        message: obj({
+          role: str({ enum: ['assistant'] }),
+          content: arr(union({
+            output_text: obj({ text: str(), annotations: arr(union({ url_citation: obj({ url: str(), start_index: num(), end_index: num() }) }), { opt: true }) }),
+            refusal: obj({ refusal: str() }),
+          })),
+        }),
+      })),
+    }),
+  },
+  anthropic: {
+    // one Messages API response (platform.claude.com/docs …/web-search-tool, …/web-fetch-tool — read 2026-10-02)
+    turn: obj({
+      stop_reason: str({ enum: ['end_turn', 'max_tokens', 'stop_sequence', 'pause_turn'] }),
+      content: arr(union({
+        text: obj({ text: str(), citations: arr(union({ web_search_result_location: obj({ url: str(), cited_text: str() }) }), { opt: true, nullable: true }) }),
+        server_tool_use: obj({ id: str(), name: str({ enum: ['web_search', 'web_fetch'] }), input: { t: 'object', fields: { query: str({ opt: true }), url: str({ opt: true }) } } }),
+        web_search_tool_result: obj({ tool_use_id: str(), content: { t: 'any' } }), // a list of results OR one error object (checked below by WEB_SEARCH_CONTENT)
+        web_fetch_tool_result: obj({ tool_use_id: str(), content: union({ web_fetch_result: obj({ url: str() }), web_fetch_tool_result_error: obj({ error_code: str() }) }) }),
+      })),
+    }),
+  },
+});
+// web_search_tool_result.content is one of two documented shapes
+export const WEB_SEARCH_CONTENT = Object.freeze({
+  list: arr(union({ web_search_result: obj({ url: str(), title: str() }) })),
+  error: union({ web_search_tool_result_error: obj({ error_code: str() }) }),
+});
+const ANTHROPIC_LAST = new Set(['end_turn', 'max_tokens', 'stop_sequence']);
+
 const isPlain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isStr = (v) => typeof v === 'string';
-const canonical = (v) => (Array.isArray(v) ? `[${v.map(canonical).join(',')}]` : isPlain(v) ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}` : JSON.stringify(v === undefined ? null : v));
-const normName = (s) => String(s).trim().toLowerCase().replace(/-/g, '_');
-const urlStr = (u) => (typeof u === 'string' && u.trim() ? u.trim() : null);
+const typeOf = (v) => (v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v);
+class ShapeError extends Error {}
+const refuse = (path) => { throw new ShapeError(path); };
+
+/**
+ * The one checker. Returns the VIEW of `value` (only declared fields, recursively). Throws ShapeError on any
+ * violation. `unknown` collects the names of skipped unknown types.
+ */
+export function checkShape(value, spec, unknown = [], path = '$') {
+  if (value === null) { if (spec.nullable || (spec.enum && spec.enum.includes(null))) return null; refuse(path); }
+  if (spec.enum && !spec.enum.includes(value)) refuse(path);
+  if (spec.t === 'any') return value;
+  if (typeOf(value) !== spec.t) refuse(path);
+  if (spec.t === 'array') return value.map((x, i) => checkShape(x, spec.items, unknown, `${path}[${i}]`));
+  if (spec.t !== 'object') return value;
+  let fields = spec.fields;
+  if (spec.union) {
+    if (!isStr(value.type)) refuse(`${path}.type`);
+    const c = spec.union.cases[value.type];
+    if (!c) { const n = String(value.type).slice(0, 80); if (!unknown.includes(n)) unknown.push(n); return { type: value.type, __unknown: true }; }
+    const view = checkShape(value, c, unknown, path);
+    return { type: value.type, ...view };
+  }
+  const view = {};
+  for (const [k, s] of Object.entries(fields || {})) {
+    if (!Object.hasOwn(value, k)) { if (s.opt) continue; refuse(`${path}.${k}`); }
+    view[k] = checkShape(value[k], s, unknown, `${path}.${k}`);
+  }
+  return view;
+}
 
 /* ---------- traces per configuration ---------- */
 const emptyTrace = (over = {}) => ({ shape_ok: true, instrument: null, tools_used: false, candidates: [], fetched: [], fetched_readable: true, cited: [], cited_readable: true, text: '', unknown_types: [], ...over });
-class ShapeError extends Error {}
-/** need(condition): the response is not shaped as documented → the whole response is refused. */
-const need = (ok) => { if (!ok) throw new ShapeError(); };
-/** an item of a list this module walks: an object with a string `type` */
-const typed = (x) => isPlain(x) && isStr(x.type);
-const unknown = (t, name) => { const n = String(name).slice(0, 80); if (!t.unknown_types.includes(n)) t.unknown_types.push(n); };
-/** Run a reader; a ShapeError (or anything unexpected) gives the refused trace, never a partial one. */
-function closed(read, over = {}) {
-  try { return read(); } catch { return emptyTrace({ shape_ok: false, instrument: 'other', ...over }); }
-}
-/** output_text: text is a string; annotations, when there, is an array of typed items; url_citation has a string url. */
-function readOutputText(t, c, seen) {
-  need(isStr(c.text));
-  t.text += (t.text ? '\n' : '') + c.text;
-  if (c.annotations === undefined) { seen.without++; return; } // no annotations array: this text has no citation trace
-  need(Array.isArray(c.annotations));
-  seen.with++;
-  for (const an of c.annotations) {
-    need(typed(an));
-    if (an.type === 'url_citation') { need(isStr(an.url)); const u = urlStr(an.url); if (u) t.cited.push(u); } else unknown(t, `annotation:${an.type}`);
+const refused = (instrument = 'other') => emptyTrace({ shape_ok: instrument !== 'other', instrument });
+const urlStr = (u) => (isStr(u) && u.trim() ? u.trim() : null);
+
+/** OpenAI Responses API (web_search; include web_search_call.action.sources). raw = the response object. */
+export function tracesOpenAI(raw) {
+  const unknown = [];
+  let v; try { v = checkShape(raw, SHAPES.openai.top, unknown); } catch { return refused(); }
+  const t = emptyTrace({ unknown_types: unknown });
+  let citationFields = 0;
+  for (const item of v.output) {
+    if (item.__unknown) continue;
+    if (item.type === 'web_search_call') {
+      t.tools_used = true;
+      const a = item.action;
+      if (a.__unknown) continue;
+      if (a.type === 'search') for (const s of a.sources ?? []) { if (!s.__unknown) { const u = urlStr(s.url); if (u) t.candidates.push(u); } }
+      if (a.type === 'open_page' || a.type === 'find_in_page') t.fetched.push({ url: urlStr(a.url), ok: item.status === 'completed' });
+    }
+    if (item.type === 'message') for (const c of item.content) {
+      if (c.__unknown || c.type !== 'output_text') continue;
+      t.text += (t.text ? '\n' : '') + c.text;
+      if (c.annotations === undefined) continue; // this block cites nothing of its own (P2: the other blocks' citations stay)
+      citationFields++;
+      for (const an of c.annotations) if (!an.__unknown && an.type === 'url_citation') { const u = urlStr(an.url); if (u) t.cited.push(u); }
+    }
   }
+  t.cited_readable = citationFields > 0;
+  return t;
 }
 
-/** OpenAI Responses API (web_search; include web_search_call.action.sources). */
-export function tracesOpenAI(resp) {
-  return closed(() => {
-    need(isPlain(resp) && Array.isArray(resp.output));
-    const t = emptyTrace(); const seen = { with: 0, without: 0 };
-    for (const item of resp.output) {
-      need(typed(item));
-      if (item.type === 'web_search_call') {
-        need(typed(item.action));
-        t.tools_used = true;
-        const a = item.action;
-        if (a.type === 'search') {
-          need(a.sources === undefined || Array.isArray(a.sources)); // present only with include=web_search_call.action.sources
-          for (const s of a.sources ?? []) { need(typed(s)); if (s.type === 'url') { need(isStr(s.url)); const u = urlStr(s.url); if (u) t.candidates.push(u); } else unknown(t, `source:${s.type}`); }
-        } else if (a.type === 'open_page' || a.type === 'find_in_page') {
-          need(a.url === undefined || a.url === null || isStr(a.url)); // documented as nullable: a request whose URL was not given
-          t.fetched.push({ url: urlStr(a.url), ok: true });
-        } else unknown(t, `action:${a.type}`);
-      } else if (item.type === 'message') {
-        need(Array.isArray(item.content));
-        for (const c of item.content) { need(typed(c)); if (c.type === 'output_text') readOutputText(t, c, seen); else unknown(t, `content:${c.type}`); }
-      } else unknown(t, item.type);
-    }
-    t.cited_readable = seen.with > 0 && seen.without === 0;
-    return t;
-  });
-}
-
-/** Anthropic Messages API (web_search_20250305 + web_fetch_20250910); `content` = all blocks of the turn(s). */
-export function tracesAnthropic(resp) {
-  return closed(() => {
-    const content = isPlain(resp) && Array.isArray(resp.content) ? resp.content : Array.isArray(resp) ? resp : null;
-    need(content !== null);
-    const t = emptyTrace();
-    const requests = new Map(); // server_tool_use id of a web_fetch → its entry in t.fetched
-    for (const b of content) {
-      need(typed(b));
+/** Anthropic Messages API. raw = { turns: [response, …] } exactly as received; each turn is checked before it is used. */
+export function tracesAnthropic(raw) {
+  if (!isPlain(raw) || !Array.isArray(raw.turns) || raw.turns.length === 0) return refused();
+  const unknown = [];
+  let turns;
+  try { turns = raw.turns.map((d, i) => checkShape(d, SHAPES.anthropic.turn, unknown, `$.turns[${i}]`)); } catch { return refused(); }
+  for (let i = 0; i < turns.length - 1; i++) if (turns[i].stop_reason !== 'pause_turn') return refused();
+  const last = turns[turns.length - 1].stop_reason;
+  if (last === 'pause_turn') return refused('budget'); // continuations exhausted: the run did not end
+  if (!ANTHROPIC_LAST.has(last)) return refused();
+  const t = emptyTrace({ unknown_types: unknown });
+  const requests = new Map();
+  let citationFields = 0;
+  try {
+    for (const b of turns.flatMap((x) => x.content)) {
+      if (b.__unknown) continue;
       if (b.type === 'server_tool_use') {
-        need(isStr(b.id) && isStr(b.name) && isPlain(b.input));
         t.tools_used = true;
+        if (requests.has(b.id)) refuse('duplicate id');
+        if (b.name === 'web_search') { if (!isStr(b.input.query)) refuse('web_search input.query'); requests.set(b.id, { name: 'web_search' }); }
         if (b.name === 'web_fetch') {
-          need(isStr(b.input.url) && !requests.has(b.id));
+          if (!isStr(b.input.url)) refuse('web_fetch input.url');
           const entry = { url: urlStr(b.input.url), ok: false }; // the request is the reaching, with or without a result block
-          requests.set(b.id, entry); t.fetched.push(entry);
-        } else if (b.name !== 'web_search') unknown(t, `server_tool_use:${b.name}`);
-      } else if (b.type === 'web_search_tool_result') {
-        need(isStr(b.tool_use_id));
+          requests.set(b.id, { name: 'web_fetch', entry }); t.fetched.push(entry);
+        }
+      }
+      if (b.type === 'web_search_tool_result') {
+        const req = requests.get(b.tool_use_id); if (!req || req.name !== 'web_search') refuse('search result without its request');
         t.tools_used = true;
-        if (Array.isArray(b.content)) for (const r of b.content) { need(typed(r)); if (r.type === 'web_search_result') { need(isStr(r.url)); const u = urlStr(r.url); if (u) t.candidates.push(u); } else unknown(t, `search_result:${r.type}`); }
-        else need(typed(b.content)); // an error object
-      } else if (b.type === 'web_fetch_tool_result') {
-        need(isStr(b.tool_use_id) && typed(b.content) && requests.has(b.tool_use_id)); // a result answers a request of this response
-        t.tools_used = true;
-        if (b.content.type === 'web_fetch_result') {
-          need(isStr(b.content.url));
-          const entry = requests.get(b.tool_use_id); entry.ok = true;
-          const u = urlStr(b.content.url); if (u && u !== entry.url) t.fetched.push({ url: u, ok: true }); // where the provider's server ended up
-        } // otherwise an error object: the request stays, not ok
-      } else if (b.type === 'text') {
-        need(isStr(b.text) && (b.citations === undefined || b.citations === null || Array.isArray(b.citations)));
+        let list = null;
+        try { list = checkShape(b.content, WEB_SEARCH_CONTENT.list, unknown); } catch { checkShape(b.content, WEB_SEARCH_CONTENT.error, unknown); }
+        for (const r of list ?? []) if (!r.__unknown) { const u = urlStr(r.url); if (u) t.candidates.push(u); }
+      }
+      if (b.type === 'web_fetch_tool_result') {
+        const req = requests.get(b.tool_use_id); if (!req || req.name !== 'web_fetch') refuse('fetch result without its request');
+        if (b.content.__unknown) refuse('unknown fetch result');
+        if (b.content.type === 'web_fetch_result') { req.entry.ok = true; const u = urlStr(b.content.url); if (u && u !== req.entry.url) t.fetched.push({ url: u, ok: true }); }
+      }
+      if (b.type === 'text') {
         t.text += (t.text ? '\n' : '') + b.text;
-        for (const c of b.citations ?? []) { need(typed(c)); if (c.type === 'web_search_result_location') { need(isStr(c.url)); const u = urlStr(c.url); if (u) t.cited.push(u); } else unknown(t, `citation:${c.type}`); }
-      } else unknown(t, b.type);
+        if (b.citations === undefined || b.citations === null) continue;
+        citationFields++;
+        for (const c of b.citations) if (!c.__unknown) { const u = urlStr(c.url); if (u) t.cited.push(u); }
+      }
     }
-    return t;
-  });
+  } catch { return refused(); }
+  t.cited_readable = citationFields > 0;
+  return t;
 }
 
-/**
- * Perplexity Agent API (POST /v1/agent; tools web_search + fetch_url). Citations: only the documented
- * structured field, output_text.annotations[url_citation].url. The answer text is never read for markers.
- */
-export function tracesPerplexity(resp) {
-  return closed(() => {
-    need(isPlain(resp) && Array.isArray(resp.output));
-    const t = emptyTrace(); const seen = { with: 0, without: 0 };
-    for (const item of resp.output) {
-      need(typed(item));
-      if (item.type === 'search_results') {
-        need(Array.isArray(item.results));
-        t.tools_used = true;
-        for (const r of item.results) { need(isPlain(r) && isStr(r.url)); const u = urlStr(r.url); if (u) t.candidates.push(u); }
-      } else if (item.type === 'fetch_url_results') {
-        need(Array.isArray(item.contents));
-        t.tools_used = true;
-        for (const c of item.contents) {
-          need(isPlain(c) && isStr(c.url) && (c.snippet === undefined || c.snippet === null || isStr(c.snippet)));
-          const u = urlStr(c.url); if (u) t.fetched.push({ url: u, ok: isStr(c.snippet) && c.snippet.trim() !== '' && c.snippet.trim() !== 'no_result_returned' });
-        }
-      } else if (item.type === 'message') {
-        need(Array.isArray(item.content));
-        for (const c of item.content) { need(typed(c)); if (c.type === 'output_text') readOutputText(t, c, seen); else unknown(t, `content:${c.type}`); }
-      } else unknown(t, item.type);
-    }
-    t.cited_readable = seen.with > 0 && seen.without === 0;
-    return t;
-  });
-}
-
-/**
- * Claude Code `-p --output-format stream-json --verbose`: events = parsed lines. No structured citations.
- * Checked first (Codex fe0d132 R3, R4): exactly one system/init, exactly one result, the result has
- * is_error (boolean) and subtype (string). A result that is not { is_error:false, subtype:"success" } is the
- * agent run failing — instrument "provider_api" ("budget" for the turn / budget limits) — and NOTHING of the
- * run is graded (no trace, no text; the caller does not grade the files left in the work directory either).
- */
-const BUDGET_SUBTYPES = new Set(['error_max_turns', 'error_max_budget_usd']);
-export function tracesClaudeCode(events) {
-  const none = { cited_readable: false };
-  return closed(() => {
-    need(Array.isArray(events));
-    const t = emptyTrace(none);
-    const uses = new Map(); // tool_use id → { name, entry (WebFetch: its entry in t.fetched) }
-    let inits = 0; const results = [];
-    for (const e of events) {
-      need(typed(e));
-      if (e.type === 'system') { if (e.subtype === 'init') inits++; else unknown(t, `system:${isStr(e.subtype) ? e.subtype : '?'}`); }
-      else if (e.type === 'assistant') {
-        need(isPlain(e.message) && Array.isArray(e.message.content));
-        for (const c of e.message.content) {
-          need(typed(c));
-          if (c.type !== 'tool_use') continue; // text / thinking blocks are not read
-          need(isStr(c.id) && isStr(c.name) && isPlain(c.input));
-          if (c.name === 'WebSearch') { need(!uses.has(c.id)); uses.set(c.id, { name: c.name, entry: null }); t.tools_used = true; }
-          else if (c.name === 'WebFetch') {
-            need(isStr(c.input.url) && !uses.has(c.id));
-            const entry = { url: urlStr(c.input.url), ok: false }; // the request is the reaching, with or without a result line
-            uses.set(c.id, { name: c.name, entry }); t.fetched.push(entry); t.tools_used = true;
-          } else unknown(t, `tool_use:${c.name}`);
-        }
-      } else if (e.type === 'user') {
-        need(isPlain(e.message) && (isStr(e.message.content) || Array.isArray(e.message.content)));
-        const ids = [];
-        for (const c of Array.isArray(e.message.content) ? e.message.content : []) { need(typed(c)); if (c.type === 'tool_result') { need(isStr(c.tool_use_id)); ids.push(c.tool_use_id); } }
-        const use = ids.map((id) => uses.get(id)).find(Boolean);
-        if (!use) continue;
-        const r = e.tool_use_result;
-        need(r === undefined || isStr(r) || isPlain(r)); // a string is the tool's error text
-        if (!isPlain(r)) continue;
-        if (use.name === 'WebSearch') {
-          need(Array.isArray(r.results));
-          for (const x of r.results) {
-            need(isStr(x) || isPlain(x));
-            if (!isPlain(x)) continue;
-            need(Array.isArray(x.content));
-            for (const c of x.content) { need(isPlain(c) && (c.url === undefined || isStr(c.url))); const u = urlStr(c.url); if (u) t.candidates.push(u); }
-          }
-        } else {
-          need(typeof r.code === 'number' && typeof r.bytes === 'number' && (r.url === undefined || isStr(r.url)));
-          use.entry.ok = r.code >= 200 && r.code < 300 && r.bytes > 0;
-          const u = urlStr(r.url); if (u && u !== use.entry.url) t.fetched.push({ url: u, ok: use.entry.ok });
-        }
-      } else if (e.type === 'result') results.push(e);
-      else unknown(t, e.type);
-    }
-    need(inits === 1 && results.length === 1);
-    const res = results[0];
-    need(typeof res.is_error === 'boolean' && isStr(res.subtype));
-    if (res.is_error !== false || res.subtype !== 'success') return emptyTrace({ ...none, instrument: BUDGET_SUBTYPES.has(res.subtype) ? 'budget' : 'provider_api', unknown_types: t.unknown_types });
-    need(isStr(res.result));
-    t.text = res.result;
-    return t;
-  }, none);
-}
-
-export const TRACE_READERS = Object.freeze({ tracesOpenAI, tracesAnthropic, tracesPerplexity, tracesClaudeCode });
+export const TRACE_READERS = Object.freeze({ tracesOpenAI, tracesAnthropic });
 
 /* ---------- the artifact ---------- */
 const FENCE = /```[^\n]*\n([\s\S]*?)```/g;
+const canonical = (v) => (Array.isArray(v) ? `[${v.map(canonical).join(',')}]` : isPlain(v) ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}` : JSON.stringify(v === undefined ? null : v));
 function parseArtifactCandidate(text) {
   // strict JSON only: a block with a key written twice is not an artifact (the first value would be hidden)
   if (typeof text !== 'string' || !scanStrictJson(text).ok) return null;
   let v; try { v = JSON.parse(text); } catch { return null; }
   return isPlain(v) && isPlain(v.mcpServers) ? v : null;
 }
-/** { state: 'none' | 'one' | 'many', artifact, sources } from the answer text's fenced blocks and the work directory's JSON files. */
+/** { state: 'none' | 'one' | 'many', artifact, sources } from the answer text's fenced blocks (and files, for a configuration that writes them). */
 export function extractArtifact({ text = '', files = [] } = {}) {
   const found = new Map();
   for (const m of String(text).matchAll(FENCE)) { const a = parseArtifactCandidate(m[1]); if (a) found.set(canonical(a), { artifact: a, source: 'fenced_block' }); }
@@ -284,68 +268,86 @@ export function extractArtifact({ text = '', files = [] } = {}) {
   return { state: 'one', artifact: only.artifact, sources: [only.source] };
 }
 
-/* Each place a credential can sit in one mcpServers entry, read separately (Codex fe0d132 R1, R2):
- *   env      the entry's env object: [key, value] (value kept only when it is a string)
- *   headers  the entry's --header arguments: "Name: value"
- *   query    the query of the mcp-remote URL: [name, value] */
+const normName = (s) => String(s).trim().toLowerCase().replace(/-/g, '_');
+const normPath = (s) => String(s).replace(/\\/g, '/').toLowerCase();
+const baseName = (s) => normPath(s).split('/').pop();
+const isOption = (a) => a.startsWith('-');
 function headerPairs(args) {
   const out = [];
-  for (let i = 0; i + 1 < args.length; i++) if (args[i] === '--header' && typeof args[i + 1] === 'string') { const j = args[i + 1].indexOf(':'); if (j > 0) out.push({ name: args[i + 1].slice(0, j).trim(), value: args[i + 1].slice(j + 1).trim() }); }
+  for (let i = 0; i + 1 < args.length; i++) if (args[i] === '--header' && isStr(args[i + 1])) { const j = args[i + 1].indexOf(':'); if (j > 0) out.push({ name: args[i + 1].slice(0, j).trim(), value: args[i + 1].slice(j + 1).trim() }); }
   return out;
 }
 function queryPairs(url) {
   try { return [...new URL(url).searchParams.entries()].map(([name, value]) => ({ name, value })); } catch { return []; }
 }
+const isHttpUrl = (a) => /^https?:\/\/\S+$/.test(a);
+const urlPathEndsMcp = (a) => { try { return new URL(a).pathname.replace(/\/+$/, '').endsWith(OFFICIAL_FORMS.P3.url_path_suffix); } catch { return false; } };
+const isPackage = (a) => a === OFFICIAL_FORMS.P3.package || a.startsWith(`${OFFICIAL_FORMS.P3.package}@`);
 const startsBasic = (v) => isStr(v) && /^\s*basic(\s|$)/i.test(v);
-function judgeEntry(entry) {
-  if (!isPlain(entry)) return { form: null, auth_correct: false, wrong_auth_field: false };
-  const args = Array.isArray(entry.args) ? entry.args.filter((a) => typeof a === 'string') : [];
-  const env = isPlain(entry.env) ? Object.entries(entry.env).map(([name, value]) => ({ name, value })) : [];
-  const cmd = typeof entry.command === 'string' ? entry.command.replace(/\\/g, '/').split('/').pop().replace(/\.(cmd|exe)$/i, '').toLowerCase() : '';
-  const headers = headerPairs(args);
-  let form = null, remoteQuery = [];
-  // an entry an MCP client could not start as written is not one of the official forms
+
+/** The form of one entry, by position: { form: 'P2' | 'P3' | null, state: 'official' | 'unclear' | 'other', remoteUrl } */
+export function entryForm(entry) {
+  if (!isPlain(entry)) return { form: null, state: 'other', remoteUrl: null };
   const wellFormed = isStr(entry.command) && (entry.args === undefined || (Array.isArray(entry.args) && entry.args.every(isStr))) && (entry.env === undefined || (isPlain(entry.env) && Object.values(entry.env).every(isStr)));
-  if (!wellFormed) { /* form stays null */ }
-  else if (args.some((a) => a.replace(/\\/g, '/').toLowerCase().endsWith(OFFICIAL_FORMS.P2.entry_path_suffix))) form = 'P2';
-  else {
-    const remoteUrl = args.find((a) => /^https?:\/\/\S+$/.test(a) && a.split(/[?#]/)[0].endsWith(OFFICIAL_FORMS.P3.url_path_suffix));
-    const pkg = args.some((a) => a === OFFICIAL_FORMS.P3.package || a.startsWith(`${OFFICIAL_FORMS.P3.package}@`));
-    if (cmd === OFFICIAL_FORMS.P3.command && pkg && remoteUrl) { form = 'P3'; remoteQuery = queryPairs(remoteUrl); }
+  const strings = [entry.command, ...(Array.isArray(entry.args) ? entry.args : []), ...(isPlain(entry.env) ? Object.values(entry.env) : [])].filter(isStr);
+  const marked = strings.some((s) => normPath(s).includes(OFFICIAL_FORMS.P2.entry_path_suffix) || s.includes(OFFICIAL_FORMS.P3.package));
+  if (!wellFormed) return { form: null, state: marked ? 'unclear' : 'other', remoteUrl: null };
+  const cmd = baseName(entry.command);
+  const args = entry.args ?? [];
+  if (OFFICIAL_FORMS.P2.commands.includes(cmd)) {
+    // the script = the first argument that is not an option; an option before it must not be one that runs or loads other code
+    const i = args.findIndex((x) => !isOption(x));
+    const before = i < 0 ? [] : args.slice(0, i);
+    const RUNS_OTHER_CODE = ['-e', '--eval', '-p', '--print', '-r', '--require', '--import', '--loader', '--experimental-loader'];
+    if (i >= 0 && normPath(args[i]).endsWith(OFFICIAL_FORMS.P2.entry_path_suffix) && before.every((x) => !RUNS_OTHER_CODE.includes(x.split('=')[0]))) return { form: 'P2', state: 'official', remoteUrl: null };
   }
-  // the query of every URL argument is a place a credential can sit, whatever the form
-  const query = args.filter((a) => /^https?:\/\/\S+$/.test(a)).flatMap(queryPairs);
-  // auth_correct: the official slots in their own place only — P2: the env itself (the README's exact names);
-  // P3: the --header arguments (header names are case-insensitive) or the query of the mcp-remote URL itself
-  const envHas = (k) => env.some((e) => e.name === k && isStr(e.value));
-  const slotHas = (h) => headers.some((x) => x.name.toLowerCase() === h) || remoteQuery.some((x) => x.name === h);
-  const auth_correct = form === 'P2' ? OFFICIAL_FORMS.P2.env_keys.every(envHas) : form === 'P3' ? OFFICIAL_FORMS.P3.header_names.every(slotHas) : false;
-  // wrong_auth_field: every place of this entry — names, and Authorization: Basic wherever it is
+  if (OFFICIAL_FORMS.P3.commands.includes(cmd)) {
+    const rest = args.filter((a) => !OFFICIAL_FORMS.P3.skip_options.includes(a));
+    if (rest.length >= 2 && isPackage(rest[0]) && isHttpUrl(rest[1]) && urlPathEndsMcp(rest[1])) return { form: 'P3', state: 'official', remoteUrl: rest[1] };
+  }
+  return { form: null, state: marked ? 'unclear' : 'other', remoteUrl: null };
+}
+
+function judgeEntry(entry) {
+  const f = entryForm(entry);
+  if (!isPlain(entry)) return { ...f, auth_correct: false, wrong_auth_field: false };
+  const args = Array.isArray(entry.args) ? entry.args.filter(isStr) : [];
+  const env = isPlain(entry.env) ? Object.entries(entry.env).map(([name, value]) => ({ name, value })) : [];
+  const headers = headerPairs(args);
+  const remoteQuery = f.remoteUrl ? queryPairs(f.remoteUrl) : [];
+  const query = args.filter(isHttpUrl).flatMap(queryPairs);
+  // a slot is filled only by a non-empty string (an empty value is not a credential: only the passing side is strict)
+  const filled = (v) => isStr(v) && v.trim() !== '';
+  const envHas = (k) => env.some((e) => e.name === k && filled(e.value));
+  const slotHas = (h) => headers.some((x) => x.name.toLowerCase() === h && filled(x.value)) || remoteQuery.some((x) => x.name === h && filled(x.value));
+  const auth_correct = f.form === 'P2' ? OFFICIAL_FORMS.P2.env_keys.every(envHas) : f.form === 'P3' ? OFFICIAL_FORMS.P3.header_names.every(slotHas) : false;
   const envValue = (name) => env.find((e) => e.name === name && isStr(e.value))?.value;
-  const resolved = (v) => (isStr(v) ? v.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (m, n) => envValue(n) ?? m) : v); // "Authorization:${AUTH_HEADER}" with the value in env
+  const resolved = (v) => (isStr(v) ? v.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (m, n) => envValue(n) ?? m) : v);
   const places = [...env, ...headers.map((h) => ({ name: h.name, value: resolved(h.value) })), ...query];
   const wrongName = places.some((p) => OFFICIAL_FORMS.wrong_credential_names.includes(normName(p.name)));
   const basic = places.some((p) => normName(p.name) === 'authorization' && startsBasic(p.value));
-  return { form, auth_correct, wrong_auth_field: wrongName || basic };
+  return { ...f, auth_correct, wrong_auth_field: wrongName || basic };
 }
-/** { parsed, points_official, form, auth_correct, wrong_auth_field } for one artifact (or none). */
+/** { parsed, points_official, points_unclear, form, auth_correct, wrong_auth_field } for one artifact (or none). */
 export function judgeArtifact(artifact) {
-  if (!isPlain(artifact) || !isPlain(artifact.mcpServers)) return { parsed: false, points_official: false, form: null, auth_correct: false, wrong_auth_field: false };
+  const none = { parsed: false, points_official: false, points_unclear: false, form: null, auth_correct: false, wrong_auth_field: false };
+  if (!isPlain(artifact) || !isPlain(artifact.mcpServers)) return none;
   const entries = Object.values(artifact.mcpServers).map(judgeEntry);
-  const official = entries.filter((e) => e.form);
-  if (!official.length) return { parsed: true, points_official: false, form: null, auth_correct: false, wrong_auth_field: entries.some((e) => e.wrong_auth_field) };
-  return { parsed: true, points_official: true, form: official.map((e) => e.form).sort()[0], auth_correct: official.some((e) => e.auth_correct), wrong_auth_field: official.some((e) => e.wrong_auth_field) };
+  const official = entries.filter((e) => e.state === 'official');
+  if (official.length) return { parsed: true, points_official: true, points_unclear: false, form: official[0].form, auth_correct: official.some((e) => e.auth_correct), wrong_auth_field: official.some((e) => e.wrong_auth_field) };
+  const unclear = entries.some((e) => e.state === 'unclear');
+  return { parsed: true, points_official: false, points_unclear: unclear, form: null, auth_correct: false, wrong_auth_field: !unclear && entries.some((e) => e.wrong_auth_field) };
 }
 
 /* ---------- the judgement ---------- */
 /** sealedKey = 'host/owner/repo'. traces from tracesX(); art from extractArtifact(). */
 export function judgeNaturalTask({ traces, art, sealedKey }) {
-  const readable = traces.shape_ok && !traces.instrument; // nothing is graded from a refused response or a failed run
-  const resolves = (u) => typeof u === 'string' && sourceRepoKey(u) === sealedKey;
+  const readable = traces.shape_ok && !traces.instrument;
+  const resolves = (u) => isStr(u) && sourceRepoKey(u) === sealedKey;
   const fetchedSealed = readable && traces.fetched_readable && traces.fetched.some((f) => resolves(f.url));
   const citedSealed = readable && traces.cited_readable && traces.cited.some(resolves);
   const candidateOnly = readable && !fetchedSealed && !citedSealed && traces.candidates.some(resolves);
-  const none = { parsed: false, points_official: false, form: null, auth_correct: false, wrong_auth_field: false };
+  const none = { parsed: false, points_official: false, points_unclear: false, form: null, auth_correct: false, wrong_auth_field: false };
   const aj = readable && art.state === 'one' ? judgeArtifact(art.artifact) : none;
   const discovered = fetchedSealed || citedSealed;
   const checks = [
@@ -360,6 +362,7 @@ export function judgeNaturalTask({ traces, art, sealedKey }) {
     { label: 'artifact_single', ok: readable && art.state === 'one' },
     { label: 'artifact_parsed', ok: aj.parsed },
     { label: 'artifact_points_official', ok: aj.points_official },
+    { label: 'artifact_form_unclear', ok: aj.points_unclear },
     { label: 'artifact_auth_correct', ok: aj.auth_correct },
     { label: 'artifact_wrong_auth_field', ok: aj.wrong_auth_field },
     { label: 'reached_without_trace', ok: readable && !discovered && traces.tools_used && aj.points_official },
@@ -371,10 +374,10 @@ export function judgeNaturalTask({ traces, art, sealedKey }) {
   if (discovered) {
     if (aj.points_official && aj.auth_correct && !aj.wrong_auth_field) return out('done', null, { pass: true });
     if (aj.points_official && aj.wrong_auth_field) return out('understand', 'understand', { fc: true });
-    if (aj.points_official) return out('understand', 'understand', { und: true });
+    if (aj.points_official || aj.points_unclear) return out('understand', 'understand', { und: true });
     if (aj.parsed) return out('understand', 'understand', { fc: true });
     return out('understand', 'understand', { und: true });
   }
-  if (aj.parsed && (!aj.points_official || aj.wrong_auth_field)) return out('discover', 'discover', { fc: true });
+  if (aj.parsed && !aj.points_unclear && (!aj.points_official || aj.wrong_auth_field)) return out('discover', 'discover', { fc: true });
   return out('discover', 'discover', { und: true });
 }

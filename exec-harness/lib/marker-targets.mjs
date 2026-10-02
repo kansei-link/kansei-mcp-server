@@ -440,18 +440,16 @@ const naturalTask = {
     return out;
   },
   async observe({ PACK, MK, observer, flags, log }) {
-    const { runNaturalTask, claudeCodeIsolation, CONFIG_DEFAULTS } = await import('./natural-task.mjs');
+    const { runNaturalTask, CONFIG_DEFAULTS } = await import('./natural-task.mjs');
     const variant = MK.prompt_variants[observer.variant];
     const lang = variant?.[flags.lang] ? flags.lang : 'ja';
     const question = variant[lang]; // the natural request alone: no answer format, no options
     const cfg = { ...(CONFIG_DEFAULTS[observer.provider] || {}), ...(observer.config.options || {}) };
     const a = await runNaturalTask({ provider: observer.provider }, question, { label: observer.label, cfg });
-    // private (transcript.jsonl): the raw response and the work files; a failed agent run keeps its events here too
-    log({ role: 'assistant', provider: observer.provider, model: a.model, error: a.error || null, error_class: a.error_class || null, raw: a.raw ?? a.raw_private ?? null, files: a.files || [], usage: a.usage || null, cli_version: a.cli_version || null });
-    if (a.error) return { error: a.error, errorClass: a.error_class || null, model: a.model, cliVersion: a.cli_version || null };
-    // an agent CLI must have run isolated (system/init: only the allowed tools, no MCP server, no plugin)
-    const isolation = observer.setup?.kind === 'agent_cli' ? claudeCodeIsolation(a.raw?.response ?? a.raw, observer.config.tools || cfg.tools || []) : null;
-    return { raw: a.raw, files: a.files || [], model: a.model, cliVersion: a.cli_version || null, isolation, usage: a.usage || null };
+    // private (transcript.jsonl): the raw response(s) as received
+    log({ role: 'assistant', provider: observer.provider, model: a.model, error: a.error || null, error_class: a.error_class || null, raw: a.raw ?? null, usage: a.usage || null });
+    if (a.error) return { error: a.error, errorClass: a.error_class || null, model: a.model };
+    return { raw: a.raw, files: [], model: a.model, usage: a.usage || null };
   },
   async judge({ obs, sealed, observer }) {
     const R = await import('./natural-task-rules.mjs');
@@ -459,27 +457,19 @@ const naturalTask = {
     const CLASSES = ['provider_api', 'timeout', 'budget', 'other'];
     if (obs?.error) return { reached: 'discover', stopped: 'discover', pass: false, falseCompletion: false, undetermined: false, instrument: CLASSES.includes(obs.errorClass) ? obs.errorClass : 'provider_api', checks: [{ label: 'provider_answered', ok: false }] };
     const provider = observer?.provider;
-    const READERS = { openai: 'tracesOpenAI', anthropic: 'tracesAnthropic', perplexity: 'tracesPerplexity', 'claude-code': 'tracesClaudeCode' };
+    const READERS = { openai: 'tracesOpenAI', anthropic: 'tracesAnthropic' };
     // fake (smoke only): the fixture names which documented shape it plays; an unknown name is a refused response
     const reader = provider === 'fake' ? (Object.hasOwn(R.TRACE_READERS, obs.raw?._traces_as ?? 'tracesOpenAI') ? obs.raw?._traces_as ?? 'tracesOpenAI' : null) : READERS[provider] ?? null;
     const traces = reader ? R.TRACE_READERS[reader](provider === 'fake' ? obs.raw?.response ?? obs.raw : obs.raw) : { shape_ok: false, instrument: 'other', tools_used: false, candidates: [], fetched: [], fetched_readable: false, cited: [], cited_readable: false, text: '', unknown_types: [] };
-    // an agent run that was not isolated, or a refused / failed response: the work files are not graded either
-    const gradable = traces.shape_ok && !traces.instrument && !(obs.isolation && !obs.isolation.ok);
-    const art = gradable ? R.extractArtifact({ text: traces.text, files: obs.files || [] }) : { state: 'none', artifact: null, sources: [] };
+    // a refused or failed response: nothing of it is graded
+    const gradable = traces.shape_ok && !traces.instrument;
+    const art = gradable ? R.extractArtifact({ text: traces.text }) : { state: 'none', artifact: null, sources: [] };
     const v = R.judgeNaturalTask({ traces, art, sealedKey: sealed.repo });
-    if (obs.isolation && !obs.isolation.ok) { v.instrument = 'other'; v.pass = false; v.falseCompletion = false; v.undetermined = false; v.reached = 'discover'; v.stopped = 'discover'; }
-    v.checks.push({ label: 'agent_environment_isolated', ok: obs.isolation ? obs.isolation.ok : true });
     // what a person may look at later, in the run's two PRIVATE files (never public): environment.private.json gets the
     // traces, the artifact and the type names of the items that were skipped; <observer>/transcript.jsonl gets the raw
-    // response and the work files (observe's log above)
-    v.private = { event: 'natural_task_traces', observer: observer?.label, candidates: traces.candidates, fetched: traces.fetched, cited: traces.cited, unknown_types: traces.unknown_types || [], artifact: art.state === 'one' ? art.artifact : null, artifact_state: art.state, artifact_sources: art.sources, artifact_form: v.artifact_form, isolation: obs.isolation, usage: obs.usage || null };
+    // response(s) (observe's log above)
+    v.private = { event: 'natural_task_traces', observer: observer?.label, candidates: traces.candidates, fetched: traces.fetched, cited: traces.cited, unknown_types: traces.unknown_types || [], artifact: art.state === 'one' ? art.artifact : null, artifact_state: art.state, artifact_sources: art.sources, artifact_form: v.artifact_form, usage: obs.usage || null };
     return v;
-  },
-  /** (R4 P2) the names — never the values — of the environment variables an agent CLI child may get. */
-  async childEnvNames({ MK }) {
-    if (!(Array.isArray(MK.configs) ? MK.configs : []).some((c) => c.kind === 'agent_cli')) return null;
-    const { CLAUDE_CODE_ENV_INHERIT, CLAUDE_CODE_ENV_SET } = await import('./natural-task.mjs');
-    return { inherited_when_set: [...CLAUDE_CODE_ENV_INHERIT], set_by_harness: ['CLAUDE_CONFIG_DIR', ...Object.keys(CLAUDE_CODE_ENV_SET)] };
   },
   promptGuidance() {
     return { form: 'natural_request', lines: 0, auth_options_listed: [], format_text: null, leaks_expected_repo_url: false, leaks_expected_auth_method: false, note: 'the request is the only text the model sees; no answer format, no option list' };

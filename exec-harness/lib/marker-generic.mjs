@@ -134,13 +134,21 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     if (v.private) privateEnvironment.diagnostics.push(v.private); // e.g. M-006: the traces and the artifact, never public
     log({ role: 'harness', event: 'assert', stage_reached: v.reached, stage_stopped: v.stopped, pass: v.pass, checks: v.checks, false_completion: v.falseCompletion, instrument_error: v.instrument, error, metrics: { elapsed_ms: elapsed } });
 
-    // reported by the provider / the CLI: public only in the closed grammar (R8); the rest stays in the private sidecar
-    const pm = publicModel(obs.model, observer.model || observer.provider || 'none');
-    const cliVersion = typeof obs.cliVersion === 'string' && PUBLIC_CLI_VERSION.test(obs.cliVersion) ? obs.cliVersion : null;
-    const withheld = { ...(pm.withheld !== null ? { reported_model: String(pm.withheld).slice(0, 300) } : {}), ...(obs.cliVersion != null && cliVersion === null ? { reported_cli_version: String(obs.cliVersion).slice(0, 300) } : {}) };
-    if (Object.keys(withheld).length) privateEnvironment.diagnostics.push({ event: 'provider_reported_value_withheld', observer: observer.label, ...withheld });
+    // M-006 (an observer that carries a setup): what the provider / the CLI reports is public only in the closed grammar
+    // (Codex fe0d132 R8); the rest stays in the private sidecar. Every other marker records exactly as at 85b768a
+    // (Codex review 3 of 79e624d, F6: the grammar had turned M-003's reported model into "none").
+    let model, cliVersion;
+    if (observer.setup) {
+      const pm = publicModel(obs.model, observer.model || observer.provider || 'none');
+      cliVersion = typeof obs.cliVersion === 'string' && PUBLIC_CLI_VERSION.test(obs.cliVersion) ? obs.cliVersion : null;
+      const withheld = { ...(pm.withheld !== null ? { reported_model: String(pm.withheld).slice(0, 300) } : {}), ...(obs.cliVersion != null && cliVersion === null ? { reported_cli_version: String(obs.cliVersion).slice(0, 300) } : {}) };
+      if (Object.keys(withheld).length) privateEnvironment.diagnostics.push({ event: 'provider_reported_value_withheld', observer: observer.label, ...withheld });
+      model = pm.model;
+    } else {
+      cliVersion = obs.cliVersion || null;
+      model = obs.model || observer.model || observer.provider || 'none';
+    }
     const observerStr = observer.id === 'kansei_harness' ? OBSERVER : `${observer.id}@${cliVersion || 'unknown'}`;
-    const model = pm.model;
     const reading = {
       reading_id: newUlid(), claim: MK.claim, marker_id: MK.marker_id, expected_digest: sealedCommon.digest,
       target: { service_id: PACK.service_id, model, harness_version: HARNESS_VERSION, ...(observer.setup ? { setup: { ...observer.setup, cli_version: cliVersion } } : {}) },
@@ -156,8 +164,6 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
   }
 
   // ---- bundle ----
-  let childEnvNames = null;
-  if (typeof target.childEnvNames === 'function') { try { childEnvNames = await target.childEnvNames({ MK: MKr }); } catch { childEnvNames = null; } }
   const libs = {};
   for (const f of ['marker-sealed.mjs', 'marker-generic.mjs', 'marker-targets.mjs', 'marker-persist.mjs', 'llm-ask.mjs', 'llm-answer-rules.mjs', 'attribution-labels.mjs', 'reading.mjs', 'marker-bundle.mjs', 'marker-store.mjs']) libs[`lib/${f}`] = fileSha(join(libDir, f));
   // Optional parts (the M-004 attribution parts: attribution-attest.mjs, the hint reader attribution-rules.mjs and the six vendored decoder
@@ -176,9 +182,7 @@ export async function runGenericMarker({ target, PACK, MK, packPath, ROOT, KANSE
     pack: { id: PACK.id, version: PACK.version, sha256: fileSha(packPath) },
     executor: { file: 'run-marker.mjs', version: VERSION, sha256: fileSha(join(libDir, '..', 'run-marker.mjs')), libs, git_head: HARNESS_VERSION.split('+')[1] },
     marker: { marker_id: MK.marker_id, kind: 'synthetic', kind_of_truth: MK.kind_of_truth, observation: MK.observation || null, expected_digest: sealedCommon.digest, commitment_file: MK.commitment_file, commitment_commit: sealedCommon.commitSha, commitment_remote_branches: sealedCommon.remoteBranches, sealed_at: sealedCommon.sealedAt, expires_at: sealedCommon.expiresAt, expired_at_run: sealedCommon.expired, ground_truth_consistent: gtConsistent },
-    environment: { node: process.version, executor: flags.executor, dry_run: flags.dry, max_readings: flags.maxReadings, allow_expired: flags.allowExpired, observers: observers.map((o) => o.label), display_api_url: MKr.display_api_url || null, fetch_check_dir: MKr.fetch_check_dir || null, providers: MKr.providers || null,
-      // names only: the environment variables an agent CLI child may get (natural_task with an agent_cli configuration)
-      ...(childEnvNames ? { child_env_names: childEnvNames } : {}) },
+    environment: { node: process.version, executor: flags.executor, dry_run: flags.dry, max_readings: flags.maxReadings, allow_expired: flags.allowExpired, observers: observers.map((o) => o.label), display_api_url: MKr.display_api_url || null, fetch_check_dir: MKr.fetch_check_dir || null, providers: MKr.providers || null },
     // (D) the size of the guidance: for llm_answer the prompt ends with a fixed two-line answer
     // format that lists the AUTH options — recorded so the reading can be discounted accordingly.
     prompt_guidance: target.promptGuidance ? target.promptGuidance({ MK: MKr, flags }) : null,
