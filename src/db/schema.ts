@@ -818,6 +818,23 @@ export function initializeDb(db: Database.Database): void {
       db.exec(`ALTER TABLE services ADD COLUMN ${col} TEXT`);
     }
   }
+  // An observation of one endpoint says nothing about another. When
+  // mcp_endpoint changes — by the seed's upsert, a vendor submission, an
+  // approved proposal or any future writer — the three liveness columns go back
+  // to NULL. One rule in the DB instead of one per writer (Codex review 5:
+  // per-writer clearing compared against the probed endpoint and missed A→B→A
+  // and NULL observations). The probe's own writes do not touch mcp_endpoint,
+  // so it never fires for them.
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS services_endpoint_clears_liveness
+    AFTER UPDATE OF mcp_endpoint ON services
+    WHEN OLD.mcp_endpoint IS NOT NEW.mcp_endpoint
+    BEGIN
+      UPDATE services
+         SET mcp_liveness = NULL, mcp_liveness_checked_at = NULL, mcp_liveness_endpoint = NULL
+       WHERE id = NEW.id;
+    END;
+  `);
 
   // Model-level performance stats per service (for audit_cost routing)
   db.exec(`

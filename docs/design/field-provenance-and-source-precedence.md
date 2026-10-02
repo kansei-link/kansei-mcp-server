@@ -238,11 +238,16 @@ meanings, and ranking them made one erase the other.
   HTTP answer overwrote the provider's classification with `official`.
 
 With the meanings apart there is nothing to rank: the seed keeps writing
-`mcp_status` (its value is the provider's claim) and never touches liveness.
-Vendor submissions and approved proposals may write `mcp_status`; when they
-change `mcp_endpoint`, the liveness columns go back to NULL. When the seed
-changes `mcp_endpoint`, `mcp_liveness_endpoint` no longer matches and the
-display drops to unverified on its own.
+`mcp_status` (its value is the provider's claim) and never writes liveness.
+When ANY writer changes `mcp_endpoint` — the seed's upsert, a vendor
+submission, an approved proposal, a future writer — one DB trigger
+(`services_endpoint_clears_liveness`, `AFTER UPDATE OF mcp_endpoint … WHEN OLD
+IS NOT NEW`) sets the three liveness columns to NULL. A rule per writer had
+compared against the probed endpoint and missed a return to an endpoint
+observed earlier and a NULL observation (Codex review 5); the trigger is the
+rule of record. The probe's own write never names `mcp_endpoint`, so it never
+fires it. So: unless the seed changes the endpoint, the liveness columns are
+the same before and after `seedDatabase()`.
 
 The read side (`utils/mcp-status.ts` `displayMcpStatus()`, the only way any
 outward path — lookup tips / detail, search incl. compact, MCP resources, the
@@ -251,7 +256,18 @@ HTTP rankings listing, audit_cost — shows `mcp_status`):
 30 days; a stored `verified` without one, a stored `dead` / `unreachable`, an
 archived row, or `unreachable` on the same endpoint → `unverified`; every
 provider claim is shown as stored. `mcp_liveness {state, checked_at,
-endpoint_matches}` always sits beside it. Timestamps are read as UTC.
+endpoint_matches}` always sits beside it. Timestamps are read as UTC, and a
+timestamp counts only if its value exists: the fields go through `Date.UTC`
+and are written back, and the written-back text must equal the stored one
+(2026-09-31, 02-29 in a common year, month 13, day 00, 24:00, 23:59:60 are no
+observation). The same lesson as the marker's sealed fingerprints and
+confirmation dates: a value that changes on a round trip has lost information.
+
+The probe's newly working DNS / connection-refused detection feeds the
+liveness columns only. The 0.1 trust downgrade in that branch had never run
+(the branch was dead) and is removed, so trust, archived and the outcome row
+are what they were at 775a797; whether a dead endpoint should lose trust (it
+moves search ranking) is a separate decision.
 
 The 2026-09-20 backfill had counted a changelog `deprecated` row — the probe's
 own death notice — as "an upstream answered". A second, audited migration

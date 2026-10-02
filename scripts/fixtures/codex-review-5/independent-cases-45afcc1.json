@@ -1,0 +1,1352 @@
+{
+  "commit": "45afcc1e65170db484a920f03dccfc52c67f71a1",
+  "observedAt": "2026-10-02T11:13:29.733Z",
+  "cases": [
+    {
+      "id": "display-fresh",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "verified",
+      "actual": "verified",
+      "conforms": true
+    },
+    {
+      "id": "display-missing",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-old",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-09-02T11:59:59Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-edge",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-09-02T12:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "verified",
+      "actual": "verified",
+      "conforms": true
+    },
+    {
+      "id": "display-future",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:01Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-invalid-text",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "yesterday",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-invalid-calendar",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-09-31T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "verified",
+      "conforms": false
+    },
+    {
+      "id": "display-dead",
+      "input": {
+        "row": {
+          "mcp_status": "dead",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-stored-unreachable",
+      "input": {
+        "row": {
+          "mcp_status": "unreachable",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-archived",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 1,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-unreachable",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "unreachable",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-other-endpoint",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp/"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-official-no-probe",
+      "input": {
+        "row": {
+          "mcp_status": "official",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "display-official-old",
+      "input": {
+        "row": {
+          "mcp_status": "official",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2020-01-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "display-official-reachable",
+      "input": {
+        "row": {
+          "mcp_status": "official",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "reachable",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "display-official-other",
+      "input": {
+        "row": {
+          "mcp_status": "official",
+          "mcp_endpoint": "https://fake-independent.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp/"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "invalid-calendar-parser",
+      "input": {
+        "timestamp": "2026-09-31T00:00:00Z"
+      },
+      "expected": null,
+      "actual": "2026-10-01T00:00:00.000Z",
+      "conforms": false
+    },
+    {
+      "id": "vendor-new",
+      "input": {
+        "beforeEndpoint": "https://fake-independent.invalid/mcp/current",
+        "observedEndpoint": "https://fake-independent.invalid/mcp/current",
+        "afterEndpoint": "https://fake-independent.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "vendor-same",
+      "input": {
+        "beforeEndpoint": "https://fake-independent.invalid/mcp/current",
+        "observedEndpoint": "https://fake-independent.invalid/mcp/current",
+        "afterEndpoint": "https://fake-independent.invalid/mcp/current"
+      },
+      "expected": [
+        "handshake",
+        "2026-10-01T00:00:00Z",
+        "https://fake-independent.invalid/mcp/current"
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-01T00:00:00Z",
+        "https://fake-independent.invalid/mcp/current"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "vendor-return-to-observed",
+      "input": {
+        "beforeEndpoint": "https://fake-independent.invalid/mcp/current",
+        "observedEndpoint": "https://fake-independent.invalid/mcp",
+        "afterEndpoint": "https://fake-independent.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-01T00:00:00Z",
+        "https://fake-independent.invalid/mcp"
+      ],
+      "conforms": false
+    },
+    {
+      "id": "vendor-missing-observed",
+      "input": {
+        "beforeEndpoint": "https://fake-independent.invalid/mcp/current",
+        "observedEndpoint": null,
+        "afterEndpoint": "https://fake-independent.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-01T00:00:00Z",
+        null
+      ],
+      "conforms": false
+    },
+    {
+      "id": "propose-new",
+      "input": {
+        "beforeEndpoint": "https://fake-independent.invalid/mcp/current",
+        "observedEndpoint": "https://fake-independent.invalid/mcp/current",
+        "afterEndpoint": "https://fake-independent.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "propose-same",
+      "input": {
+        "beforeEndpoint": "https://fake-independent.invalid/mcp/current",
+        "observedEndpoint": "https://fake-independent.invalid/mcp/current",
+        "afterEndpoint": "https://fake-independent.invalid/mcp/current"
+      },
+      "expected": [
+        "handshake",
+        "2026-10-01T00:00:00Z",
+        "https://fake-independent.invalid/mcp/current"
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-01T00:00:00Z",
+        "https://fake-independent.invalid/mcp/current"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "propose-return-to-observed",
+      "input": {
+        "beforeEndpoint": "https://fake-independent.invalid/mcp/current",
+        "observedEndpoint": "https://fake-independent.invalid/mcp",
+        "afterEndpoint": "https://fake-independent.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-01T00:00:00Z",
+        "https://fake-independent.invalid/mcp"
+      ],
+      "conforms": false
+    },
+    {
+      "id": "propose-missing-observed",
+      "input": {
+        "beforeEndpoint": "https://fake-independent.invalid/mcp/current",
+        "observedEndpoint": null,
+        "afterEndpoint": "https://fake-independent.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-01T00:00:00Z",
+        null
+      ],
+      "conforms": false
+    },
+    {
+      "id": "public-lookup-invalid-calendar",
+      "input": {
+        "id": "fakeauditunique-invalid-calendar",
+        "checked_at": "2026-09-31T00:00:00Z"
+      },
+      "expected": "unverified",
+      "actual": "verified",
+      "conforms": false
+    },
+    {
+      "id": "public-compact-invalid-calendar",
+      "input": {
+        "id": "fakeauditunique-invalid-calendar"
+      },
+      "expected": "unverified",
+      "actual": "verified",
+      "conforms": false
+    },
+    {
+      "id": "public-resource-invalid-calendar",
+      "input": {
+        "id": "fakeauditunique-invalid-calendar"
+      },
+      "expected": "unverified",
+      "actual": "verified",
+      "conforms": false
+    },
+    {
+      "id": "seed-liveness-unchanged",
+      "input": {
+        "fakeRows": 9
+      },
+      "expected": [
+        {
+          "id": "fake-propose-missing-observed",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": null
+        },
+        {
+          "id": "fake-propose-new",
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": null,
+          "mcp_liveness_endpoint": null
+        },
+        {
+          "id": "fake-propose-return-to-observed",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        {
+          "id": "fake-propose-same",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp/current"
+        },
+        {
+          "id": "fake-vendor-missing-observed",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": null
+        },
+        {
+          "id": "fake-vendor-new",
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": null,
+          "mcp_liveness_endpoint": null
+        },
+        {
+          "id": "fake-vendor-return-to-observed",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        {
+          "id": "fake-vendor-same",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp/current"
+        },
+        {
+          "id": "fakeauditunique-invalid-calendar",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-09-31T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        }
+      ],
+      "actual": [
+        {
+          "id": "fake-propose-missing-observed",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": null
+        },
+        {
+          "id": "fake-propose-new",
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": null,
+          "mcp_liveness_endpoint": null
+        },
+        {
+          "id": "fake-propose-return-to-observed",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        {
+          "id": "fake-propose-same",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp/current"
+        },
+        {
+          "id": "fake-vendor-missing-observed",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": null
+        },
+        {
+          "id": "fake-vendor-new",
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": null,
+          "mcp_liveness_endpoint": null
+        },
+        {
+          "id": "fake-vendor-return-to-observed",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        },
+        {
+          "id": "fake-vendor-same",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-01T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp/current"
+        },
+        {
+          "id": "fakeauditunique-invalid-calendar",
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-09-31T00:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent.invalid/mcp"
+        }
+      ],
+      "conforms": true
+    },
+    {
+      "id": "seed-conflict-liveness-unchanged",
+      "input": {
+        "selection": "first live verified HTTP seed row with no observation; chosen by shape, no fixed service ID"
+      },
+      "expected": [
+        "unreachable",
+        "2026-10-02T11:13:23Z",
+        "https://tandem.ac/mcp"
+      ],
+      "actual": [
+        "unreachable",
+        "2026-10-02T11:13:23Z",
+        "https://tandem.ac/mcp"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "migration-deprecated",
+      "input": {
+        "base": "775a797",
+        "change_type": "deprecated"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-deprecation",
+      "input": {
+        "base": "775a797",
+        "change_type": "deprecation"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-archived",
+      "input": {
+        "base": "775a797",
+        "change_type": "archived"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-probe_failed",
+      "input": {
+        "base": "775a797",
+        "change_type": "probe_failed"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-preserve-github",
+      "input": {
+        "source": "github"
+      },
+      "expected": "2026-09-20",
+      "actual": "2026-09-20",
+      "conforms": true
+    },
+    {
+      "id": "migration-preserve-npm",
+      "input": {
+        "source": "npm"
+      },
+      "expected": "2026-09-20",
+      "actual": "2026-09-20",
+      "conforms": true
+    },
+    {
+      "id": "migration-mixed",
+      "input": {},
+      "expected": "2026-09-01",
+      "actual": "2026-09-01",
+      "conforms": true
+    },
+    {
+      "id": "migration-second-start-logically-identical",
+      "input": {
+        "base": "775a797",
+        "tables": [
+          "services",
+          "schema_migrations",
+          "migration_audit"
+        ]
+      },
+      "expected": {
+        "services": [
+          {
+            "id": "fake-death-archived",
+            "name": "fake-death-archived",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-death-deprecated",
+            "name": "fake-death-deprecated",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-death-deprecation",
+            "name": "fake-death-deprecation",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-death-probe_failed",
+            "name": "fake-death-probe_failed",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-github",
+            "name": "fake-github",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-20",
+            "upstream_checked_at": "2026-09-20",
+            "upstream_check_source": "github",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-mixed",
+            "name": "fake-mixed",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-01",
+            "upstream_checked_at": "2026-09-01",
+            "upstream_check_source": "changelog_backfill",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-npm",
+            "name": "fake-npm",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-20",
+            "upstream_checked_at": "2026-09-20",
+            "upstream_check_source": "npm",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          }
+        ],
+        "markers": [
+          {
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "applied_at": "2026-10-02 11:13:29"
+          },
+          {
+            "migration_id": "service_stats_rebuild_v1",
+            "applied_at": "2026-10-02 11:13:29"
+          },
+          {
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "applied_at": "2026-10-02 11:13:29"
+          }
+        ],
+        "audit": [
+          {
+            "id": 1,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 2,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 3,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "quarantined_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 4,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 5,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 6,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 7,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "deleted_placeholder_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 8,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 9,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "backfilled_by_death_notice_only",
+            "value": 4,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 10,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "reverted_to_unverified",
+            "value": 4,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 11,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "date_recomputed",
+            "value": 1,
+            "recorded_at": "2026-10-02 11:13:29"
+          }
+        ]
+      },
+      "actual": {
+        "services": [
+          {
+            "id": "fake-death-archived",
+            "name": "fake-death-archived",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-death-deprecated",
+            "name": "fake-death-deprecated",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-death-deprecation",
+            "name": "fake-death-deprecation",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-death-probe_failed",
+            "name": "fake-death-probe_failed",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-github",
+            "name": "fake-github",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-20",
+            "upstream_checked_at": "2026-09-20",
+            "upstream_check_source": "github",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-mixed",
+            "name": "fake-mixed",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-01",
+            "upstream_checked_at": "2026-09-01",
+            "upstream_check_source": "changelog_backfill",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-npm",
+            "name": "fake-npm",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 11:13:29",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-20",
+            "upstream_checked_at": "2026-09-20",
+            "upstream_check_source": "npm",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          }
+        ],
+        "markers": [
+          {
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "applied_at": "2026-10-02 11:13:29"
+          },
+          {
+            "migration_id": "service_stats_rebuild_v1",
+            "applied_at": "2026-10-02 11:13:29"
+          },
+          {
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "applied_at": "2026-10-02 11:13:29"
+          }
+        ],
+        "audit": [
+          {
+            "id": 1,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 2,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 3,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "quarantined_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 4,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 5,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 6,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 7,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "deleted_placeholder_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 8,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 9,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "backfilled_by_death_notice_only",
+            "value": 4,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 10,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "reverted_to_unverified",
+            "value": 4,
+            "recorded_at": "2026-10-02 11:13:29"
+          },
+          {
+            "id": 11,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "date_recomputed",
+            "value": 1,
+            "recorded_at": "2026-10-02 11:13:29"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "F8-dns-trust-parity",
+      "input": {
+        "initialTrust": 0.8,
+        "error": "TypeError(fetch failed), cause.code=ENOTFOUND",
+        "baseline": 0.8
+      },
+      "expected": 0.8,
+      "actual": 0.1,
+      "conforms": false
+    }
+  ],
+  "summary": {
+    "total": 39,
+    "conforming": 29,
+    "nonconforming": 10
+  }
+}

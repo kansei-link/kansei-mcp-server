@@ -22,6 +22,15 @@
  *   (b) the seed's `official` stays `official`; its liveness is `unknown`
  *   (c) after a handshake, the seed changing mcp_endpoint → `unverified`
  *   (d) a vendor / proposal that changes the endpoint NULLs the liveness columns
+ *   (h) calendar validity (Codex review 5, F1/F2): a timestamp whose value does
+ *       not exist (09-31, 02-29 in a common year, month 13 / 00, day 00, 24:00,
+ *       23:59:60, hour 25) is no observation → `unverified`; real edge dates
+ *       (2028-02-29, month end, year end) still → `verified`. Pure parser, and
+ *       lookup default / compact search / resource / /api/dashboard/rankings
+ *       under a fake clock
+ *   (i) the trigger services_endpoint_clears_liveness (Codex review 5, F4):
+ *       vendor / propose / seed across starts, A→B→A, NULL→A, A→NULL, same
+ *       value; the probe's own write never fires it
  *   (e) lookup default (tips), compact search, resources and the services
  *       listing over HTTP (/api/dashboard/rankings) never show a dead endpoint
  *       as `verified`; neither does audit_cost's alt_mcp_status
@@ -36,10 +45,10 @@
 import Database from "better-sqlite3";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
-import { mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SELF = fileURLToPath(import.meta.url);
 const DAY = 86400000;
@@ -88,6 +97,62 @@ if (process.argv.includes("--tz-child")) {
   setAt("datetime('now', '-31 days')"); out.sqlite_31d = show();
   db.prepare("UPDATE services SET mcp_liveness_checked_at = ? WHERE id = 'fake-tz-one'").run(new Date(Date.now() - 31 * DAY).toISOString()); out.js_31d = show();
   srv.close();
+  console.log(JSON.stringify(out));
+  process.exit(0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// (h) child mode: under a fake clock (--import fake-clock.mjs), insert rows with
+// the given handshake timestamps and read them through lookup default, compact
+// search, resource and /api/dashboard/rankings. Prints the verdicts as JSON.
+// ─────────────────────────────────────────────────────────────────────────────
+if (process.argv.includes("--clock-child")) {
+  const { initializeDb } = await import("../dist/db/schema.js");
+  const { register: registerLookup } = await import("../dist/tools/lookup.js");
+  const { register: registerSearch } = await import("../dist/tools/search-services.js");
+  const { registerResources } = await import("../dist/resources.js");
+  const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
+  const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+  const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
+  const rows = JSON.parse(process.env.KANSEI_CLOCK_ROWS);
+  const dbPath = process.env.KANSEI_DB_PATH;
+  const db = new Database(dbPath);
+  const origErr = console.error, origLog = console.log; console.error = () => {}; console.log = () => {};
+  initializeDb(db);
+  console.error = origErr; console.log = origLog;
+  const ins = db.prepare("INSERT INTO services (id, name, description, category, mcp_endpoint, mcp_status, mcp_liveness, mcp_liveness_checked_at, mcp_liveness_endpoint, trust_score, axr_score) VALUES (?, ?, ?, 'fake-clock', ?, 'verified', 'handshake', ?, ?, 0.9, 999)");
+  for (const r of rows) { const ep = `https://${r.id}.invalid/mcp`; ins.run(r.id, r.id, `fakeclockrow ${r.id}`, ep, r.at, ep); }
+  const server = new McpServer({ name: "smoke-clock", version: "0" });
+  registerLookup(server, db); registerSearch(server, db); registerResources(server, db);
+  const [ct, st] = InMemoryTransport.createLinkedPair();
+  await server.connect(st);
+  const client = new Client({ name: "smoke-clock-client", version: "0" });
+  await client.connect(ct);
+  const parse = (res) => { const t = res.content[0].text; return JSON.parse(t.slice(t.indexOf("{"))); };
+  const findKey = (o, k) => { if (!o || typeof o !== "object") return undefined; if (k in o) return o[k]; for (const v of Object.values(o)) { const f = findKey(v, k); if (f !== undefined) return f; } return undefined; };
+  const out = { now: new Date().toISOString(), rows: {} };
+  for (const r of rows) {
+    const lookup = findKey(parse(await client.callTool({ name: "lookup", arguments: { service_id: r.id } })), "connection")?.mcp_status;
+    const compact = (findKey(parse(await client.callTool({ name: "search_services", arguments: { intent: r.id, compact: true, limit: 20 } })), "r") ?? []).find((x) => x.id === r.id)?.mcp;
+    const resource = JSON.parse((await client.readResource({ uri: `kansei://service/${r.id}` })).contents[0].text).mcp_status;
+    out.rows[r.id] = { lookup, compact, resource };
+  }
+  await client.close(); await server.close(); db.close();
+
+  const port = process.env.KANSEI_CLOCK_PORT;
+  const http = spawn(process.execPath, ["--import", process.env.KANSEI_FAKE_CLOCK_URL, "dist/http-server.js"], {
+    env: { ...process.env, KANSEI_DB_PATH: dbPath, PORT: port, KANSEI_HOST: "127.0.0.1", RESEND_API_KEY: "" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let log = ""; http.stdout.on("data", (d) => (log += d)); http.stderr.on("data", (d) => (log += d));
+  let up = false;
+  for (let i = 0; i < 120 && !up; i++) { try { up = (await fetch(`http://127.0.0.1:${port}/health`)).ok; } catch { /* not yet */ } if (!up) await new Promise((r) => setTimeout(r, 500)); }
+  if (up) {
+    const j = await (await fetch(`http://127.0.0.1:${port}/api/dashboard/rankings?limit=1000&offset=0`)).json();
+    for (const r of rows) out.rows[r.id].rankings = (j.services ?? []).find((x) => x.id === r.id)?.mcp_status;
+  } else out.http_log = log.slice(-500);
+  http.kill();
+  await new Promise((r) => setTimeout(r, 300));
   console.log(JSON.stringify(out));
   process.exit(0);
 }
@@ -184,6 +249,28 @@ try {
     const lv = d(row("official", "handshake", 1)).mcp_liveness;
     expect("(rule) mcp_liveness is {state, checked_at, endpoint_matches}", JSON.stringify(Object.keys(lv).sort()) === JSON.stringify(["checked_at", "endpoint_matches", "state"]) && lv.state === "handshake" && lv.endpoint_matches === true);
     expect("(rule) 'YYYY-MM-DD HH:MM:SS' is read as UTC", parseUtc("2026-10-02 00:00:00") === Date.UTC(2026, 9, 2) && parseUtc("2026-10-02T00:00:00") === Date.UTC(2026, 9, 2) && parseUtc("2026-10-02T00:00:00Z") === Date.UTC(2026, 9, 2));
+    // (h) the value must exist, not just the shape
+    const INVALID = [
+      "2026-09-31T00:00:00Z", "2027-02-29T00:00:00Z", "2026-13-01T00:00:00Z", "2026-00-15T00:00:00Z", "2026-10-00T00:00:00Z",
+      "2026-10-01T24:00:00Z", "2026-10-01T23:59:60Z", "2026-10-01T25:00:00Z", "2026-10-01T12:60:00Z",
+      "2026-09-31 00:00:00", "2027-02-29 12:00:00", "2026-10-01 24:00:00", "2026-09-31", "2026-02-30T00:00:00+09:00",
+      "2026-10-01T00:00:00+24:00", "2026-10-01 00:00:00Z",
+    ];
+    const bad = INVALID.filter((v) => !Number.isNaN(parseUtc(v)));
+    expect(`(h) parseUtc: ${INVALID.length} non-existent / malformed values → NaN`, bad.length === 0, JSON.stringify(bad));
+    const VALID = [
+      ["2028-02-29T00:00:00Z", Date.UTC(2028, 1, 29)], ["2028-02-29 23:59:59", Date.UTC(2028, 1, 29, 23, 59, 59)],
+      ["2026-09-30T23:59:59Z", Date.UTC(2026, 8, 30, 23, 59, 59)], ["2027-02-28T23:59:59Z", Date.UTC(2027, 1, 28, 23, 59, 59)],
+      ["2026-12-31T23:59:59Z", Date.UTC(2026, 11, 31, 23, 59, 59)], ["2026-12-31", Date.UTC(2026, 11, 31)],
+      ["2027-01-01T00:00:00.123Z", Date.UTC(2027, 0, 1) + 123], ["2026-10-02T09:00:00+09:00", Date.UTC(2026, 9, 2)],
+      ["2026-10-01T20:00-04:00", Date.UTC(2026, 9, 2)], ["2000-02-29T00:00:00Z", Date.UTC(2000, 1, 29)],
+    ];
+    const wrong = VALID.filter(([v, want]) => parseUtc(v) !== want);
+    expect(`(h) parseUtc: ${VALID.length} real dates (2028-02-29, month end, year end, offsets, fractions) read exactly`, wrong.length === 0, JSON.stringify(wrong.map(([v]) => [v, parseUtc(v)])));
+    const at2 = (v, now) => displayMcpStatus({ ...row("verified", "handshake", 0), mcp_liveness_checked_at: v }, new Date(now));
+    const inv = at2("2026-09-31T00:00:00Z", "2026-10-02T12:00:00Z");
+    expect("(h) display: handshake dated 2026-09-31 (rolls to 10-01 if trusted) → unverified, basis no_fresh_handshake", inv.mcp_status === "unverified" && inv.mcp_status_basis === "no_fresh_handshake", JSON.stringify(inv));
+    expect("(h) display: handshake dated 2028-02-29 seen on 2028-03-01 → verified", at2("2028-02-29T00:00:00Z", "2028-03-01T00:00:00Z").mcp_status === "verified");
     expect("(rule) hasFreshHandshake mirrors the verified rule", hasFreshHandshake(row("verified", "handshake", 1)) && !hasFreshHandshake(row("verified", "handshake", 31)));
     expect("(legend) official is the provider's claim; liveness is mcp_liveness", /provider/.test(MCP_STATUS_LEGEND.mcp_status) && /mcp_liveness/.test(MCP_STATUS_LEGEND.mcp_status) && /endpoint_matches/.test(MCP_STATUS_LEGEND.mcp_liveness));
   }
@@ -288,7 +375,7 @@ try {
     await quiet(() => seedDatabase(db)); // the next start: the seed puts its own endpoints back
     const pd2 = svc(PROBED_DEAD.id), hs2 = svc(HS.id);
     expect("(a) real probe: after the seed restores the endpoint, the dead row is still not verified", pd2.mcp_endpoint !== deadUrl && displayMcpStatus(pd2).mcp_status === "unverified", JSON.stringify(displayMcpStatus(pd2)));
-    expect("(c) after a handshake, the seed changing mcp_endpoint → unverified, endpoint_matches false", hs2.mcp_endpoint !== okUrl && hs2.mcp_liveness === "handshake" && displayMcpStatus(hs2).mcp_status === "unverified" && displayMcpStatus(hs2).mcp_liveness.endpoint_matches === false, JSON.stringify(displayMcpStatus(hs2)));
+    expect("(c) after a handshake, the seed changing mcp_endpoint → the trigger NULLs the liveness columns → unverified, liveness unknown", hs2.mcp_endpoint !== okUrl && hs2.mcp_liveness === null && hs2.mcp_liveness_checked_at === null && hs2.mcp_liveness_endpoint === null && displayMcpStatus(hs2).mcp_status === "unverified" && displayMcpStatus(hs2).mcp_liveness.state === "unknown", JSON.stringify(displayMcpStatus(hs2)));
     expect("(c) …through lookup default (tips) as well", (await tips(HS.id)).mcp_status === "unverified");
     expect("(probe) the 404 row stays archived across the seed (MAX rule) and stays official in mcp_status", svc(officialHttp.id).archived === 1 && svc(officialHttp.id).mcp_status === "official");
   }
@@ -372,6 +459,122 @@ try {
       const aw = rows.find((r) => r.id === "agile-works");
       expect("(g) /api/dashboard/rankings: agile-works is official", aw && aw.mcp_status === "official", JSON.stringify(aw));
     }
+  }
+
+  // ── (h) calendar validity through the four outward paths, under a fake clock ──
+  {
+    const clockFile = join(DIR, "fake-clock.mjs");
+    writeFileSync(clockFile, `
+      const REAL = Date; const FAKE = REAL.parse(process.env.KANSEI_FAKE_NOW); const t0 = REAL.now();
+      const now = () => FAKE + (REAL.now() - t0);
+      function FakeDate(...a) { if (!new.target) return new REAL(now()).toString(); return a.length ? new REAL(...a) : new REAL(now()); }
+      FakeDate.prototype = REAL.prototype; FakeDate.now = now; FakeDate.UTC = REAL.UTC; FakeDate.parse = REAL.parse;
+      globalThis.Date = FakeDate;
+    `);
+    const PASSES = [
+      { now: "2026-10-02T12:00:00Z", rows: [
+        ["2026-09-31T00:00:00Z", "unverified"], ["2026-10-00T00:00:00Z", "unverified"], ["2026-10-01T24:00:00Z", "unverified"],
+        ["2026-10-01T23:59:60Z", "unverified"], ["2026-10-01T25:00:00Z", "unverified"], ["2026-09-31 00:00:00", "unverified"],
+        ["2026-09-30T23:59:59Z", "verified"], ["2026-10-01 00:00:00", "verified"],
+      ] },
+      { now: "2027-01-01T00:00:00Z", rows: [
+        ["2026-13-01T00:00:00Z", "unverified"], ["2027-00-31T00:00:00Z", "unverified"], ["2026-12-32T00:00:00Z", "unverified"],
+        ["2026-12-31T23:59:59Z", "verified"],
+      ] },
+      { now: "2027-03-01T12:00:00Z", rows: [["2027-02-29T00:00:00Z", "unverified"], ["2027-02-28T23:59:59Z", "verified"]] },
+      { now: "2028-03-01T00:00:00Z", rows: [["2028-02-30T00:00:00Z", "unverified"], ["2028-02-29T00:00:00Z", "verified"], ["2028-02-29 23:59:59", "verified"]] },
+    ];
+    for (const [pi, p] of PASSES.entries()) {
+      const rows = p.rows.map(([at, want], ri) => ({ id: `fakeclock-p${pi + 1}-r${ri}`, at, want }));
+      const r = spawnSync(process.execPath, ["--import", pathToFileURL(clockFile).href, SELF, "--clock-child"], {
+        env: { ...process.env, KANSEI_FAKE_NOW: p.now, KANSEI_FAKE_CLOCK_URL: pathToFileURL(clockFile).href, KANSEI_CLOCK_ROWS: JSON.stringify(rows), KANSEI_DB_PATH: join(DIR, `clock-${pi + 1}.db`), KANSEI_CLOCK_PORT: String(3630 + pi) },
+        encoding: "utf8", timeout: 180000,
+      });
+      let o = null; try { o = JSON.parse(r.stdout.trim().split("\n").pop()); } catch { /* reported below */ }
+      if (!o) { expect(`(h) clock ${p.now}: child ran`, false, (r.stderr || r.stdout || String(r.error)).slice(-400)); continue; }
+      expect(`(h) clock ${p.now}: the fake clock is in effect (${o.now})`, Math.abs(Date.parse(o.now) - Date.parse(p.now)) < 120000 && !o.http_log, o.http_log ?? "");
+      for (const row of rows) {
+        const got = o.rows[row.id];
+        expect(`(h) clock ${p.now}: handshake at '${row.at}' → ${row.want} on lookup / compact / resource / rankings`, got && ["lookup", "compact", "resource", "rankings"].every((k) => got[k] === row.want), JSON.stringify(got));
+      }
+    }
+  }
+
+  // ── (i) the trigger: a changed mcp_endpoint NULLs liveness, whoever writes it ──
+  {
+    const liveOf = (d, id) => { const r = d.prepare("SELECT mcp_endpoint, mcp_liveness, mcp_liveness_checked_at, mcp_liveness_endpoint FROM services WHERE id = ?").get(id); return r; };
+    const isNull = (r) => r.mcp_liveness === null && r.mcp_liveness_checked_at === null && r.mcp_liveness_endpoint === null;
+    // the health probe's own statement shape (updateLiveness): it never names mcp_endpoint
+    const seat = (d, id) => d.prepare("UPDATE services SET mcp_liveness = 'handshake', mcp_liveness_checked_at = strftime('%Y-%m-%dT%H:%M:%SZ','now'), mcp_liveness_endpoint = mcp_endpoint WHERE id = ?").run(id);
+    const A = "https://fake-trigger-a.invalid/mcp", B = "https://fake-trigger-b.invalid/mcp";
+    const vendor = vendorClaimWriter(db);
+    let proposeStep = 0; // the changelog is unique per (service, day, type, summary)
+    const writers = {
+      vendor: async (id, ep) => vendor.run("official", ep, id),
+      propose: async (id, ep) => {
+        const p = proposeUpdate(db, { service_id: id, changes: { mcp_endpoint: ep }, reason: `smoke: trigger matrix step ${++proposeStep} → ${ep}`, change_type: "correction" });
+        if (!p.proposal_id) throw new Error("propose refused: " + JSON.stringify(p));
+        await quiet(() => reviewUpdate(db, { proposal_id: p.proposal_id, action: "approve", reviewer: "smoke" }));
+      },
+    };
+    const matrix = async (name, d, id, write) => {
+      seat(d, id);
+      const s0 = liveOf(d, id);
+      expect(`(i) ${name}: the probe's write (liveness only) does not fire the trigger`, s0.mcp_liveness === "handshake" && s0.mcp_liveness_endpoint === s0.mcp_endpoint && s0.mcp_endpoint === A, JSON.stringify(s0));
+      await write(B); const s1 = liveOf(d, id);
+      expect(`(i) ${name}: A→B NULLs the three liveness columns`, s1.mcp_endpoint === B && isNull(s1), JSON.stringify(s1));
+      seat(d, id);
+      await write(A); const s2 = liveOf(d, id);
+      expect(`(i) ${name}: B→A (back to an endpoint observed before) NULLs them`, s2.mcp_endpoint === A && isNull(s2), JSON.stringify(s2));
+      seat(d, id); const seated = liveOf(d, id);
+      await write(A); const s3 = liveOf(d, id);
+      expect(`(i) ${name}: rewriting the same value keeps them`, JSON.stringify(s3) === JSON.stringify(seated) && s3.mcp_liveness === "handshake", JSON.stringify(s3));
+      await write(null); const s4 = liveOf(d, id);
+      expect(`(i) ${name}: A→NULL NULLs them`, s4.mcp_endpoint === null && isNull(s4), JSON.stringify(s4));
+      seat(d, id); d.prepare("UPDATE services SET mcp_liveness_endpoint = ? WHERE id = ?").run(A, id); // a stale observation left from A
+      await write(A); const s5 = liveOf(d, id);
+      expect(`(i) ${name}: NULL→A NULLs them (even when the stale observation names A)`, s5.mcp_endpoint === A && isNull(s5), JSON.stringify(s5));
+    };
+    for (const [name, write] of Object.entries(writers)) {
+      const id = `fake-trigger-${name}`;
+      db.prepare("INSERT INTO services (id, name, mcp_endpoint, mcp_status, trust_score) VALUES (?, ?, ?, 'official', 0.5)").run(id, id, A);
+      await matrix(name, db, id, (ep) => writers[name](id, ep));
+    }
+
+    // seed: a copy of dist/ whose seed file we control, so each start can carry a different endpoint
+    const tree = join(DIR, "seedtree");
+    cpSync(resolve("dist"), join(tree, "dist"), { recursive: true });
+    cpSync(resolve("src/data"), join(tree, "src/data"), { recursive: true });
+    symlinkSync(resolve("node_modules"), join(tree, "node_modules"), "junction");
+    const seedFile = join(tree, "src/data/services-seed.json");
+    const seedRows = JSON.parse(readFileSync(seedFile, "utf8"));
+    const R = seedRows.find((s) => typeof s.mcp_endpoint === "string" && s.mcp_endpoint.startsWith("http") && !s.mcp_endpoint.includes("{") && !s.archived && s.mcp_status === "official");
+    const SA = R.mcp_endpoint;
+    const { initializeDb: initTree } = await import(pathToFileURL(join(tree, "dist/db/schema.js")).href);
+    const { seedDatabase: seedTree } = await import(pathToFileURL(join(tree, "dist/db/seed.js")).href);
+    const sd = new Database(join(DIR, "seed-trigger.db")); open.push(sd);
+    const boot = async (ep) => { R.mcp_endpoint = ep; writeFileSync(seedFile, JSON.stringify(seedRows)); await quiet(() => { initTree(sd); seedTree(sd); }); };
+    await boot(SA);
+    // same matrix, with the seed's own endpoint as A
+    seat(sd, R.id);
+    const t0 = liveOf(sd, R.id);
+    expect("(i) seed: the probe's write (liveness only) does not fire the trigger", t0.mcp_liveness === "handshake" && t0.mcp_endpoint === SA && t0.mcp_liveness_endpoint === SA, JSON.stringify(t0));
+    await boot(B); const t1 = liveOf(sd, R.id);
+    expect("(i) seed (next start): A→B NULLs the three liveness columns", t1.mcp_endpoint === B && isNull(t1), JSON.stringify(t1));
+    seat(sd, R.id);
+    await boot(SA); const t2 = liveOf(sd, R.id);
+    expect("(i) seed (next start): B→A NULLs them", t2.mcp_endpoint === SA && isNull(t2), JSON.stringify(t2));
+    seat(sd, R.id); const tSeated = liveOf(sd, R.id);
+    await boot(SA); const t3 = liveOf(sd, R.id);
+    expect("(i) seed (next start): the same endpoint again keeps them (seed before = after)", JSON.stringify(t3) === JSON.stringify(tSeated), JSON.stringify(t3));
+    await boot(null); const t4 = liveOf(sd, R.id);
+    expect("(i) seed (next start): A→NULL NULLs them", t4.mcp_endpoint === null && isNull(t4), JSON.stringify(t4));
+    seat(sd, R.id); sd.prepare("UPDATE services SET mcp_liveness_endpoint = ? WHERE id = ?").run(SA, R.id);
+    await boot(SA); const t5 = liveOf(sd, R.id);
+    expect("(i) seed (next start): NULL→A NULLs them", t5.mcp_endpoint === SA && isNull(t5), JSON.stringify(t5));
+    const others = sd.prepare("SELECT COUNT(*) c FROM services WHERE mcp_liveness IS NOT NULL").get().c;
+    expect("(i) seed: no other row gained or kept liveness through the six starts", others === 0, String(others));
+    expect("(i) the trigger exists once, by name", sd.prepare("SELECT COUNT(*) c FROM sqlite_master WHERE type = 'trigger' AND name = 'services_endpoint_clears_liveness'").get().c === 1);
   }
 
   // ── (f) time zones ──

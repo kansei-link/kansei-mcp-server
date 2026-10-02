@@ -36,6 +36,12 @@ interface ProbeResult {
   mcp_server_info: string | null;
   response_time_ms: number;
   error: string | null;
+  /**
+   * DNS failure / connection refused, read from err.cause as well as the
+   * message. Used ONLY for the liveness columns; `error` keeps the 775a797
+   * classification (message only) so trust and the outcome row are unchanged.
+   */
+  unreachable_cause: "dns_fail" | "connection_refused" | null;
 }
 
 async function probeEndpoint(serviceId: string, endpoint: string): Promise<ProbeResult> {
@@ -48,6 +54,7 @@ async function probeEndpoint(serviceId: string, endpoint: string): Promise<Probe
     mcp_server_info: null,
     response_time_ms: 0,
     error: null,
+    unreachable_cause: null,
   };
 
   // Skip endpoints with placeholders
@@ -113,14 +120,7 @@ async function probeEndpoint(serviceId: string, endpoint: string): Promise<Probe
     }
   } catch (err: unknown) {
     result.response_time_ms = Date.now() - start;
-    // Node's fetch reports every network failure as "fetch failed"; the
-    // ENOTFOUND / ECONNREFUSED that tells them apart is on err.cause. Without
-    // it the dns_fail / connection_refused branches below never fired, and a
-    // dead endpoint was never recorded as unreachable (2026-10-02).
-    const cause = err instanceof Error ? (err.cause as { code?: string; message?: string } | undefined) : undefined;
-    const msg = [err instanceof Error ? err.message : String(err), cause?.code, cause?.message]
-      .filter(Boolean)
-      .join(" ");
+    const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("abort")) {
       result.error = "timeout";
     } else if (msg.includes("ENOTFOUND") || msg.includes("getaddrinfo")) {
@@ -131,6 +131,18 @@ async function probeEndpoint(serviceId: string, endpoint: string): Promise<Probe
       result.error = "ssl_error";
     } else {
       result.error = msg.slice(0, 100);
+    }
+    // Node's fetch reports every network failure as "fetch failed"; the
+    // ENOTFOUND / ECONNREFUSED that tells them apart is on err.cause, so the
+    // message-only branches above never saw them and a dead endpoint was never
+    // recorded as unreachable (2026-10-02). The cause is read here for the
+    // liveness columns only — `error` (and with it trust and the outcome row)
+    // stays as it was at 775a797 (Codex review 5, F8).
+    const cause = err instanceof Error ? (err.cause as { code?: string; message?: string } | undefined) : undefined;
+    const full = [msg, cause?.code, cause?.message].filter(Boolean).join(" ");
+    if (!full.includes("abort")) {
+      if (full.includes("ENOTFOUND") || full.includes("getaddrinfo")) result.unreachable_cause = "dns_fail";
+      else if (full.includes("ECONNREFUSED")) result.unreachable_cause = "connection_refused";
     }
   } finally {
     clearTimeout(timeout);
@@ -241,9 +253,6 @@ export async function runHealthProbe(
   const updateTrust = db.prepare(
     "UPDATE services SET trust_score = MAX(trust_score, ?) WHERE id = ? AND trust_score < ?"
   );
-  const downgradeTrust = db.prepare(
-    "UPDATE services SET trust_score = MIN(trust_score, ?) WHERE id = ?"
-  );
 
   // POST 404/410 on the registered endpoint = endpoint gone. Same archive
   // semantics as the 2026-07-06 full sweep: hide from rankings, keep the row,
@@ -263,7 +272,6 @@ export async function runHealthProbe(
 
   let statusUpdated = 0;
   let trustBoosted = 0;
-  let trustDowngraded = 0;
   let archivedNew = 0;
   const tx = db.transaction(() => {
     for (const r of results) {
@@ -293,12 +301,13 @@ export async function runHealthProbe(
         );
         archivedNew++;
         statusUpdated++;
-      } else if (r.error === "dns_fail" || r.error === "connection_refused") {
+      } else if (r.unreachable_cause || r.error === "dns_fail" || r.error === "connection_refused") {
+        // Liveness only. The 0.1 trust downgrade that used to sit here never
+        // ran at 775a797 (the branch was dead, see probeEndpoint), so enabling
+        // it now would silently re-rank search. Whether a dead endpoint should
+        // lose trust is Michie's call, in a separate PR (Codex review 5, F8).
         updateLiveness.run("unreachable", r.endpoint, r.service_id);
         statusUpdated++;
-        // Dead endpoint → downgrade to 0.1
-        const d = downgradeTrust.run(0.1, r.service_id);
-        if (d.changes > 0) trustDowngraded++;
       }
 
       // Record as outcome (confirmed data!)
@@ -320,7 +329,7 @@ export async function runHealthProbe(
   });
   tx();
 
-  console.error(`\n  DB updated: ${statusUpdated} liveness observations, ${trustBoosted} trust boosted, ${trustDowngraded} trust downgraded, ${archivedNew} archived (endpoint gone)`);
+  console.error(`\n  DB updated: ${statusUpdated} liveness observations, ${trustBoosted} trust boosted, ${archivedNew} archived (endpoint gone)`);
   console.error("═══════════════════════════════════════");
 
   return {

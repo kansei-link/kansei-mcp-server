@@ -84,19 +84,47 @@ export interface McpStatusDisplay {
 const DAY_MS = 1000 * 60 * 60 * 24;
 
 /**
+ * 'YYYY-MM-DD', 'YYYY-MM-DD HH:MM[:SS[.f]]' (no zone) or
+ * 'YYYY-MM-DDTHH:MM[:SS[.f]][Z|±HH[:]MM]'.
+ */
+const STAMP = /^(\d{4})-(\d{2})-(\d{2})(?:([ T])(\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+
+const pad = (n: number, w = 2) => String(n).padStart(w, "0");
+
+/**
  * Read a stored timestamp as UTC. SQLite's datetime('now') gives
  * 'YYYY-MM-DD HH:MM:SS' with no zone — JavaScript would read that as LOCAL
  * time, so the 'T' and 'Z' are supplied. A zone-less ISO string is read as UTC
- * too. Anything else unparseable → NaN.
+ * too. Anything else → NaN.
+ *
+ * The VALUE must exist, not just the shape (Codex review 5, 2026-10-02):
+ * `new Date('2026-09-31T00:00:00Z')` silently rolls over to 10-01 and a
+ * non-existent date read as a fresh handshake. So the fields are turned into a
+ * time with Date.UTC, written back as 'YYYY-MM-DDTHH:MM:SS', and the result
+ * must equal the fields as written — 09-31, 02-29 in a common year, month 13,
+ * day 00, 24:00, 23:59:60, hour 25 … all come back different and are rejected.
  */
 export function parseUtc(s: string | null | undefined): number {
   if (!s) return NaN;
-  const t = s.trim();
-  let iso = t;
-  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(t)) iso = t.replace(" ", "T") + "Z";
-  else if (/^\d{4}-\d{2}-\d{2}$/.test(t)) iso = t + "T00:00:00Z";
-  else if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/.test(t)) return NaN;
-  return new Date(iso).getTime();
+  const m = STAMP.exec(s.trim());
+  if (!m) return NaN;
+  const [, ys, mos, ds, sep, hs = "00", mis = "00", ss = "00", frac, zone] = m;
+  if (sep === " " && zone) return NaN; // the space form is SQLite's, which never carries a zone
+  const [y, mo, d, h, mi, sec] = [ys, mos, ds, hs, mis, ss].map(Number);
+  const t = new Date(0);
+  t.setUTCFullYear(y, mo - 1, d); // setUTCFullYear, not Date.UTC: Date.UTC maps years 0–99 to 1900–1999
+  t.setUTCHours(h, mi, sec, 0);
+  const written = `${pad(y, 4)}-${mos}-${ds}T${hs}:${mis}:${ss}`;
+  const back = `${pad(t.getUTCFullYear(), 4)}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}T${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}:${pad(t.getUTCSeconds())}`;
+  if (back !== written) return NaN;
+  let ms = t.getTime() + (frac ? Number(frac.slice(1, 4).padEnd(3, "0")) : 0);
+  if (zone && zone !== "Z") {
+    const zh = Number(zone.slice(1, 3));
+    const zm = Number(zone.slice(-2));
+    if (zh > 23 || zm > 59) return NaN;
+    ms -= (zone[0] === "-" ? -1 : 1) * (zh * 60 + zm) * 60000;
+  }
+  return ms;
 }
 
 /** ISO UTC 'YYYY-MM-DDTHH:MM:SSZ' — the format the liveness writers store. */
@@ -146,6 +174,9 @@ export function displayMcpStatus(row: McpStatusInput, now: Date = new Date()): M
  * After a write that may have changed mcp_endpoint: an observation of another
  * endpoint says nothing about the new one, so the three liveness columns go
  * back to NULL. A write that kept the same endpoint keeps them.
+ * The rule of record is the DB trigger services_endpoint_clears_liveness
+ * (schema.ts), which fires on every writer; this statement is a harmless second
+ * pass kept in vendor / propose.
  */
 export const CLEAR_STALE_LIVENESS_SQL = `
   UPDATE services
