@@ -7,6 +7,7 @@ import {
   gradeLabel,
 } from "../utils/reliability-source.js";
 import { wrapUntrusted } from "../utils/untrusted.js";
+import { displayMcpStatus, MCP_STATUS_COLUMNS, MCP_STATUS_LEGEND } from "../utils/mcp-status.js";
 
 interface ServiceRow {
   id: string;
@@ -16,6 +17,10 @@ interface ServiceRow {
   api_auth_method: string | null;
   mcp_endpoint: string | null;
   mcp_status: string | null;
+  archived: number | null;
+  mcp_liveness: string | null;
+  mcp_liveness_checked_at: string | null;
+  mcp_liveness_endpoint: string | null;
   trust_score: number;
 }
 
@@ -99,7 +104,7 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
   // Get service info
   const service = db
     .prepare(
-      "SELECT id, name, category, api_url, api_auth_method, mcp_endpoint, mcp_status, trust_score FROM services WHERE id = ?"
+      `SELECT id, name, category, api_url, api_auth_method, trust_score, ${MCP_STATUS_COLUMNS} FROM services WHERE id = ?`
     )
     .get(serviceId) as ServiceRow | undefined;
 
@@ -345,9 +350,12 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     trust_score: service.trust_score,
 
     // Connection info
+    // mcp_status = the provider's claim; `verified` only on a fresh handshake
+    // with this endpoint; liveness beside it (utils/mcp-status.ts).
     connection: {
       mcp_endpoint: service.mcp_endpoint ?? null,
-      mcp_status: service.mcp_status,
+      ...displayMcpStatus(service),
+      mcp_status_legend: MCP_STATUS_LEGEND,
       api_url: service.api_url ?? guide?.base_url ?? null,
       docs_url: guide?.docs_url ?? null,
     },

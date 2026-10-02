@@ -86,7 +86,7 @@ export const FRESHNESS_LEGEND = {
     does_not_cover: [
       "whether the description text is still accurate",
       "anything in connection_guide — that content has its own, separate date",
-      "whether mcp_endpoint is reachable (that is the health probe, reported as mcp_status)",
+      "whether mcp_endpoint is reachable (that is the health probe, reported as mcp_liveness)",
     ],
     unverified_means:
       "no upstream has answered for this service since records began — not that it is stale, that it is unchecked",

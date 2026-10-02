@@ -17,6 +17,7 @@
 import Database from "better-sqlite3";
 import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
+import { SQL_UTC_NOW } from "../utils/mcp-status.js";
 
 const DB_PATH = resolve(import.meta.dirname, "../../kansei-link.db");
 
@@ -172,9 +173,14 @@ function main() {
       console.error(`\n  → ${downgraded} critical services trust downgraded by 0.1`);
     }
 
-    // Mark dead candidates in DB
+    // Mark dead candidates in DB — as liveness only. mcp_status is the
+    // provider's claim and is not the watchdog's to change (2026-10-02, M-002).
+    // Same gate as before: rows whose endpoint was believed alive.
     const markDead = db.prepare(
-      "UPDATE services SET mcp_status = 'unreachable', mcp_status_source = 'probe', mcp_status_checked_at = datetime('now') WHERE id = ? AND mcp_status = 'verified'"
+      `UPDATE services
+       SET mcp_liveness = 'unreachable', mcp_liveness_checked_at = ${SQL_UTC_NOW}, mcp_liveness_endpoint = mcp_endpoint
+       WHERE id = ? AND COALESCE(mcp_endpoint, '') <> ''
+         AND (mcp_liveness = 'handshake' OR mcp_status = 'verified')`
     );
     let markedDead = 0;
     for (const r of critical.filter((c) => c.overall_success_rate === 0 && c.total_outcomes >= 5)) {
@@ -182,7 +188,7 @@ function main() {
       if (d.changes > 0) markedDead++;
     }
     if (markedDead > 0) {
-      console.error(`  → ${markedDead} zero-success services marked as 'dead'`);
+      console.error(`  → ${markedDead} zero-success services marked unreachable (mcp_liveness)`);
     }
 
     // Write re-verification list for health-probe consumption

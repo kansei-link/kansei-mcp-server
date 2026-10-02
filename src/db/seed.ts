@@ -258,17 +258,16 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   //   the manual script and self-heals prod on the next restart.
   //
   // axr_dims / axr_facade, name, description, category, mcp_endpoint,
-  //   api_url ARE still overwritten — those are authoritative from the seed
-  //   source of truth.
-  //
-  // mcp_status: overwritten ONLY while the row's value came from the seed
-  //   (mcp_status_source IS NULL or 'seed'). A value the health probe observed
-  //   (source 'probe': verified / official / unreachable, with its
-  //   mcp_status_checked_at) is kept — before 2026-10-02 every restart snapped
-  //   dead endpoints back to the seed's "verified" (marker M-002).
+  //   mcp_status, api_url ARE still overwritten — those are authoritative
+  //   from the seed source of truth. mcp_status is the provider's claim
+  //   (official / third_party / community ...), never liveness: liveness lives
+  //   in mcp_liveness*, which only the health probe writes and the seed never
+  //   touches. When the seed changes mcp_endpoint, mcp_liveness_endpoint no
+  //   longer matches and the display falls back to unverified on its own
+  //   (utils/mcp-status.ts, 2026-10-02, marker M-002).
   const insertService = db.prepare(`
-    INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, mcp_status_source, api_url, api_auth_method, trust_score, axr_score, axr_grade, axr_dims, axr_facade, archived)
-    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, 'seed', @api_url, @api_auth_method, @trust_score, @axr_score, @axr_grade, @axr_dims, @axr_facade, @archived)
+    INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, axr_score, axr_grade, axr_dims, axr_facade, archived)
+    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score, @axr_score, @axr_grade, @axr_dims, @axr_facade, @archived)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       namespace = excluded.namespace,
@@ -276,8 +275,7 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
       category = excluded.category,
       tags = excluded.tags,
       mcp_endpoint = excluded.mcp_endpoint,
-      mcp_status = CASE WHEN services.mcp_status_source = 'probe' THEN services.mcp_status ELSE excluded.mcp_status END,
-      mcp_status_source = CASE WHEN services.mcp_status_source = 'probe' THEN 'probe' ELSE 'seed' END,
+      mcp_status = excluded.mcp_status,
       api_url = excluded.api_url,
       axr_dims = excluded.axr_dims,
       axr_facade = excluded.axr_facade,

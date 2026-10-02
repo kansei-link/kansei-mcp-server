@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { z } from "zod";
 import { maskPii } from "../utils/pii-masker.js";
 import { recalculateTrustScores } from "../utils/trust-recalc.js";
+import { CLEAR_STALE_LIVENESS_SQL } from "../utils/mcp-status.js";
 
 /**
  * Stage 1 Autonomy: PR-model Data Updates
@@ -422,6 +423,11 @@ function reviewUpdate(
         value,
         proposal.service_id
       );
+    }
+    // mcp_status is the provider's claim and may be proposed; liveness is the
+    // probe's alone. A changed endpoint is not covered by the old observation.
+    if (serviceUpdates.some(([field]) => field === "mcp_endpoint")) {
+      db.prepare(CLEAR_STALE_LIVENESS_SQL).run(proposal.service_id);
     }
 
     // Apply guide table updates (UPSERT: guide row may not exist yet)

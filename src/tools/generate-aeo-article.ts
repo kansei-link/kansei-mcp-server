@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { classifyReliabilitySource } from "../utils/reliability-source.js";
+import { hasFreshHandshake, MCP_STATUS_COLUMNS } from "../utils/mcp-status.js";
 
 // Telemetry gate (2026-07-03, re-audit of the 2026-06-16 finding):
 // a public per-vendor success_rate may ONLY be emitted when it is computed
@@ -26,6 +27,10 @@ interface ServiceRow {
   category: string | null;
   mcp_endpoint: string | null;
   mcp_status: string | null;
+  archived: number | null;
+  mcp_liveness: string | null;
+  mcp_liveness_checked_at: string | null;
+  mcp_liveness_endpoint: string | null;
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
@@ -139,7 +144,7 @@ function generateArticle(
 ): string | object {
   // --- Data collection ---
   const services = db
-    .prepare("SELECT id, name, category, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, tags, mcp_tool_count FROM services WHERE COALESCE(archived, 0) = 0")
+    .prepare(`SELECT id, name, category, api_url, api_auth_method, trust_score, tags, mcp_tool_count, ${MCP_STATUS_COLUMNS} FROM services WHERE COALESCE(archived, 0) = 0`)
     .all() as ServiceRow[];
 
   const guidesSet = new Set(
@@ -150,17 +155,6 @@ function generateArticle(
   for (const s of db.prepare("SELECT service_id, total_calls, success_rate, avg_latency_ms FROM service_stats").all() as StatsRow[]) {
     statsMap.set(s.service_id, s);
   }
-
-  // MCPハンドシェイク検証済みサービス: health-probe の JSON-RPC initialize が
-  // 成功した実測記録を持つもの（到達性プローブは synthetic 扱いだが、
-  // 「ハンドシェイクが通った」という事実自体は実測で真）。
-  const handshakeVerified = new Set(
-    (db
-      .prepare(
-        "SELECT DISTINCT service_id FROM outcomes WHERE agent_id_hash = 'health-probe' AND success = 1"
-      )
-      .all() as { service_id: string }[]).map((r) => r.service_id)
-  );
 
   // Recipe count per service
   const recipes = db.prepare("SELECT id, steps, required_services FROM recipes").all() as RecipeRow[];
@@ -225,15 +219,17 @@ function generateArticle(
 
     const aeoScore = Math.round(score * 100) / 100;
 
-    // "verified" now matches the published definition: official MCP that
-    // passed KanseiLink's MCP handshake (tool list retrieved). It is NOT a
-    // success-rate claim (the old >=0.8-blended-rate criterion was built on
-    // contaminated data).
+    // "verified" matches the published definition: official MCP (the
+    // provider's claim) whose CURRENT endpoint passed KanseiLink's MCP
+    // handshake within the last 30 days — read from mcp_liveness, the probe's
+    // own columns (2026-10-02, marker M-002). Before, any health-probe outcome
+    // with success=1 (HTTP reachable, not a handshake; any endpoint; any age)
+    // or a stored mcp_tool_count was enough. It is NOT a success-rate claim.
     let agentReady: "verified" | "connectable" | "info_only";
     if (
       s.mcp_endpoint &&
       s.mcp_status === "official" &&
-      ((s.mcp_tool_count ?? 0) > 0 || handshakeVerified.has(s.id))
+      hasFreshHandshake(s)
     ) {
       agentReady = "verified";
     } else if (s.mcp_endpoint || s.api_url) {
@@ -319,7 +315,7 @@ function generateArticle(
         scoring: "Base (MCP type: 0.1-0.5) + Bonuses (API docs, auth guide, specialist, agent data, gated live success rate: +0.1 each)",
         grades: { AAA: "0.9+", AA: "0.8+", A: "0.7+", BBB: "0.6+", BB: "0.5+", B: "0.4+", C: "0.3+", D: "<0.3" },
         agent_ready: {
-          verified: "Official MCP server + KanseiLink MCP handshake verified (tool list retrieved)",
+          verified: "Official MCP server + KanseiLink MCP handshake with the current endpoint within the last 30 days",
           connectable: "MCP/API exists but not handshake-verified as official",
           info_only: "No API or MCP available",
         },

@@ -268,11 +268,13 @@ async function main() {
   const db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
 
-  // Get verified endpoints (handshake confirmed)
+  // Endpoints whose CURRENT mcp_endpoint passed the probe's handshake
+  // (mcp_liveness, 2026-10-02 — mcp_status is the provider's claim, not liveness)
   const targets = db
     .prepare(
       `SELECT id, name, mcp_endpoint, trust_score FROM services
-       WHERE mcp_status = 'verified'
+       WHERE mcp_liveness = 'handshake'
+         AND mcp_liveness_endpoint = mcp_endpoint
          AND mcp_endpoint IS NOT NULL
        ORDER BY trust_score DESC
        LIMIT ?`

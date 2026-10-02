@@ -14,9 +14,10 @@ interface ServiceRow {
   tags: string | null;
   mcp_endpoint: string | null;
   mcp_status: string | null;
-  mcp_status_source: string | null;
-  mcp_status_checked_at: string | null;
   archived: number | null;
+  mcp_liveness: string | null;
+  mcp_liveness_checked_at: string | null;
+  mcp_liveness_endpoint: string | null;
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
@@ -141,8 +142,9 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
   // confidence of records nobody had checked. The guide date is still returned
   // below, on the guide, where it says what it actually means.
   const freshness = computeFreshness(service);
-  // mcp_status is shown as a liveness claim only while a probe within 30 days
-  // stands behind it; the stored value is not changed here (utils/mcp-status.ts).
+  // mcp_status = the provider's claim; `verified` only on a fresh handshake with
+  // the current endpoint; liveness beside it. Stored values are not changed
+  // here (utils/mcp-status.ts).
   const mcp = displayMcpStatus(service);
 
   if (!guide) {

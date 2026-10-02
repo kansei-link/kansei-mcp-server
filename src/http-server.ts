@@ -28,6 +28,7 @@ import { getDb, closeDb } from "./db/connection.js";
 import { initializeDb } from "./db/schema.js";
 import { seedDatabase } from "./db/seed.js";
 import { classifyReliabilitySource } from "./utils/reliability-source.js";
+import { displayMcpStatus, MCP_STATUS_LEGEND, type McpStatusInput } from "./utils/mcp-status.js";
 import { wrapUntrusted } from "./utils/untrusted.js";
 import { ARI_AWARD_2026_SUMMER_CSV } from "./data/ari-award-2026-summer-csv.js";
 import {
@@ -294,7 +295,8 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
 
     const rows = db.prepare(`
       SELECT s.id, s.name, s.category, s.axr_grade, s.axr_score,
-             s.mcp_status, s.mcp_endpoint, s.namespace,
+             s.mcp_status, s.mcp_endpoint, s.namespace, s.archived,
+             s.mcp_liveness, s.mcp_liveness_checked_at, s.mcp_liveness_endpoint,
              COALESCE(ps.avg_latency_ms, 0) as avg_latency_ms
       FROM services s
       LEFT JOIN (
@@ -310,10 +312,15 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
     // Audit 2026-06-16: never publish a per-vendor success rate that is blended
     // with seed/eval/probe data. Expose a number ONLY when measured from live
     // agent reports, else null.
-    const services = rows.map((s) => {
+    const services = rows.map((row) => {
+      // The raw columns never leave: mcp_status goes out only through
+      // displayMcpStatus() (provider's claim; `verified` only on a fresh
+      // handshake with this endpoint; liveness beside it — 2026-10-02).
+      const { archived: _a, mcp_liveness: _l, mcp_liveness_checked_at: _c, mcp_liveness_endpoint: _e, ...s } = row as Record<string, unknown> & { id: string };
       const rel = classifyReliabilitySource(db, s.id);
       return {
         ...s,
+        ...displayMcpStatus(row as unknown as McpStatusInput),
         // 同じ official でも根拠の強さが違う。受け手が区別できないと、
         // レジストリの推論が確認済みの事実と同じ重みで扱われる
         mcp_status_provenance: statusProvenance(s as { id: string; namespace?: string | null }),
@@ -330,6 +337,7 @@ app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => 
     // AI Access Level 0 とは式が違うので、どちらの数字かを明示して返す
     res.json({
       services, total, grade_scale: "axr_runtime", scales: scaleLegend(["axr_runtime"]),
+      mcp_status_legend: MCP_STATUS_LEGEND,
       provenance_legend: {
         verdict: "A person confirmed this against the vendor's own documentation.",
         publisher_verified: "The publisher owns the product's domain (registry namespace is DNS-verified).",

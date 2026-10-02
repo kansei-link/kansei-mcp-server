@@ -1,92 +1,165 @@
 /**
- * mcp_status provenance (2026-10-02).
+ * mcp_status and mcp_liveness — two meanings, two columns (2026-10-02).
  *
  * Incident (marker M-002): endpoints whose weekly health probe had recorded
- * 404 / 410 / DNS failure were still shown as `verified` in production. Two
- * causes, both in how the column was written, not in the probe:
- *   1. seedDatabase() runs on every start and its ON CONFLICT overwrote
- *      `mcp_status` with the shipped seed value, erasing the probe's result.
- *   2. The 2026-09-20 freshness migration counted a `deprecated` changelog row
- *      (the probe's own death notice) as "an upstream answered".
+ * 404 / 410 / DNS failure were still shown as `verified` in production.
  *
- * So the column now carries where its value came from and when:
- *   mcp_status_source      'seed' (the shipped catalogue) | 'probe' (observed)
- *   mcp_status_checked_at  when the probe observed it (ISO; null for seed)
- * Precedence: probe > seed. The seeder never overwrites a probe-sourced status.
+ * The root cause was one column carrying two meanings:
+ *   - WHO made the MCP server — `official` / `third_party` / `community` /
+ *     `api_only` / ... This is the provider's claim. The seed, the registry
+ *     sync, vendor submissions and approved proposals write it.
+ *   - WHETHER it is alive — `verified` (handshake) / `dead`. Only an
+ *     observation may say this.
+ * With both in one column the writers broke each other: the seed erased the
+ * probe's death notice on every start, the probe overwrote the provider's
+ * classification with `official` whenever it got an HTTP answer, and vendor /
+ * propose writes inherited whatever the probe had left.
  *
- * Display: a liveness claim (`verified`, `official`) is shown only while a
- * probe stands behind it and that probe is at most MCP_STATUS_PROBE_TTL_DAYS
- * old. Otherwise the agent sees `unverified`. The stored value is never
- * changed by display. Categorical statuses (`community`, `api_only`,
- * `third_party`, `unknown`, `none`) are not liveness claims and pass through.
+ * So liveness now lives in its own columns, written ONLY by the health probe
+ * and the watchdog:
+ *   mcp_liveness             'handshake' | 'reachable' | 'unreachable'
+ *   mcp_liveness_checked_at  ISO UTC 'YYYY-MM-DDTHH:MM:SSZ'
+ *   mcp_liveness_endpoint    the mcp_endpoint string that was probed, verbatim
+ * and mcp_status is the provider's claim alone.
+ *
+ * Every path that shows mcp_status to anyone outside goes through
+ * displayMcpStatus(). Rules:
+ *   - `verified` (a liveness claim) is shown only when mcp_liveness =
+ *     'handshake', checked within MCP_LIVENESS_TTL_DAYS, and probed against the
+ *     CURRENT mcp_endpoint character for character. A stored `verified`
+ *     without that (a value baked into the seed or the DB) → `unverified`.
+ *   - stored `dead` / `unreachable`, an archived row, or mcp_liveness =
+ *     'unreachable' on the same endpoint → `unverified`.
+ *   - everything else (`official`, `third_party`, `community`, `api_only`,
+ *     `unknown`, `none`) is the provider's classification and is shown as
+ *     stored — it does not say the endpoint is alive.
+ *   - mcp_liveness is always shown beside it.
+ * Stored values are never changed by display.
  */
 
-export type McpStatusSource = "seed" | "probe";
+export type McpLivenessState = "handshake" | "reachable" | "unreachable";
 
-/** How long a probe observation may stand behind a liveness claim. */
-export const MCP_STATUS_PROBE_TTL_DAYS = 30;
+/** How long a handshake may stand behind a `verified`. */
+export const MCP_LIVENESS_TTL_DAYS = 30;
 
-/** Statuses that assert the endpoint is alive — only a fresh probe may show them. */
-export const MCP_STATUS_LIVENESS_CLAIMS: ReadonlySet<string> = new Set(["verified", "official"]);
+/** Stored statuses that are liveness verdicts, not provider claims (`dead` is the pre-2026-10 probe spelling). */
+const STORED_DEATH: ReadonlySet<string> = new Set(["dead", "unreachable"]);
 
-/** Statuses the probe writes when the endpoint is gone (`dead` is the pre-2026-10 spelling). */
-export const MCP_STATUS_UNREACHABLE: ReadonlySet<string> = new Set(["unreachable", "dead"]);
+/** Columns every caller of displayMcpStatus must select (services.* covers them). */
+export const MCP_STATUS_COLUMNS =
+  "mcp_status, mcp_endpoint, archived, mcp_liveness, mcp_liveness_checked_at, mcp_liveness_endpoint";
 
 export interface McpStatusInput {
   mcp_status: string | null;
-  mcp_status_source?: string | null;
-  mcp_status_checked_at?: string | null;
+  mcp_endpoint?: string | null;
   archived?: number | null;
+  mcp_liveness?: string | null;
+  mcp_liveness_checked_at?: string | null;
+  mcp_liveness_endpoint?: string | null;
 }
 
 export type McpStatusBasis =
-  | "probe" // a probe within the TTL stands behind the claim
-  | "probe_stale" // a probe stood behind it, but older than the TTL
-  | "seed" // the shipped catalogue's value; nobody has observed it
+  | "handshake" // `verified`: a fresh handshake with the current endpoint stands behind it
+  | "no_fresh_handshake" // stored `verified`, but no handshake within the TTL on this endpoint
   | "archived" // the row is archived (endpoint gone or upstream archived)
-  | "unreachable" // the probe found the endpoint gone
-  | "categorical"; // not a liveness claim; shown as stored
+  | "unreachable" // stored dead / unreachable, or the probe found this endpoint gone
+  | "provider_claim"; // the provider's classification, shown as stored; not a liveness claim
+
+export interface McpLivenessDisplay {
+  /** What the probe last observed; 'unknown' when it never probed this row. */
+  state: McpLivenessState | "unknown";
+  /** When (UTC, as stored); null when never probed. */
+  checked_at: string | null;
+  /** Whether that observation was of the CURRENT mcp_endpoint (exact string). */
+  endpoint_matches: boolean;
+}
 
 export interface McpStatusDisplay {
-  /** What the agent sees. `unverified` whenever a liveness claim has no fresh probe behind it. */
+  /** The provider's classification, or `verified` / `unverified` per the rules above. */
   mcp_status: string;
-  /** When the probe observed the stored status; null when it never did. */
-  mcp_status_checked_at: string | null;
-  /** 'seed' | 'probe' — where the STORED value came from (null on rows older than this column). */
-  mcp_status_source: string | null;
-  /** Why the display says what it says. */
   mcp_status_basis: McpStatusBasis;
+  mcp_liveness: McpLivenessDisplay;
 }
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
-/** Columns every caller of displayMcpStatus must select (services.* covers them). */
-export const MCP_STATUS_COLUMNS = "mcp_status, mcp_status_source, mcp_status_checked_at, archived";
-
-export function displayMcpStatus(row: McpStatusInput, now: Date = new Date()): McpStatusDisplay {
-  const stored = row.mcp_status ?? "official";
-  const source = row.mcp_status_source ?? null;
-  const checkedAt = row.mcp_status_checked_at ?? null;
-  const base = { mcp_status_checked_at: checkedAt, mcp_status_source: source };
-
-  if ((row.archived ?? 0) === 1) return { ...base, mcp_status: "unverified", mcp_status_basis: "archived" };
-  if (MCP_STATUS_UNREACHABLE.has(stored)) return { ...base, mcp_status: "unverified", mcp_status_basis: "unreachable" };
-  if (!MCP_STATUS_LIVENESS_CLAIMS.has(stored)) return { ...base, mcp_status: stored, mcp_status_basis: "categorical" };
-
-  // a liveness claim: only a probe within the TTL may show it
-  if (source !== "probe" || !checkedAt) return { ...base, mcp_status: "unverified", mcp_status_basis: "seed" };
-  const t = new Date(checkedAt).getTime();
-  if (Number.isNaN(t)) return { ...base, mcp_status: "unverified", mcp_status_basis: "seed" };
-  const ageDays = Math.floor((now.getTime() - t) / DAY_MS);
-  if (ageDays > MCP_STATUS_PROBE_TTL_DAYS || ageDays < 0) return { ...base, mcp_status: "unverified", mcp_status_basis: "probe_stale" };
-  return { ...base, mcp_status: stored, mcp_status_basis: "probe" };
+/**
+ * Read a stored timestamp as UTC. SQLite's datetime('now') gives
+ * 'YYYY-MM-DD HH:MM:SS' with no zone — JavaScript would read that as LOCAL
+ * time, so the 'T' and 'Z' are supplied. A zone-less ISO string is read as UTC
+ * too. Anything else unparseable → NaN.
+ */
+export function parseUtc(s: string | null | undefined): number {
+  if (!s) return NaN;
+  const t = s.trim();
+  let iso = t;
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(t)) iso = t.replace(" ", "T") + "Z";
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(t)) iso = t + "T00:00:00Z";
+  else if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/.test(t)) return NaN;
+  return new Date(iso).getTime();
 }
 
-/** Said once per response: what `mcp_status` does and does not vouch for. */
+/** ISO UTC 'YYYY-MM-DDTHH:MM:SSZ' — the format the liveness writers store. */
+export const SQL_UTC_NOW = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')";
+
+function livenessOf(row: McpStatusInput): McpLivenessDisplay {
+  const raw = row.mcp_liveness ?? null;
+  const state: McpLivenessDisplay["state"] =
+    raw === "handshake" || raw === "reachable" || raw === "unreachable" ? raw : "unknown";
+  const endpoint = row.mcp_endpoint ?? null;
+  const probed = row.mcp_liveness_endpoint ?? null;
+  return {
+    state,
+    checked_at: state === "unknown" ? null : row.mcp_liveness_checked_at ?? null,
+    endpoint_matches: state !== "unknown" && !!endpoint && probed === endpoint,
+  };
+}
+
+/** True only for a handshake on the current endpoint, dated within the TTL and not in the future. */
+export function hasFreshHandshake(row: McpStatusInput, now: Date = new Date()): boolean {
+  const l = livenessOf(row);
+  if (l.state !== "handshake" || !l.endpoint_matches) return false;
+  const t = parseUtc(l.checked_at);
+  if (Number.isNaN(t)) return false;
+  const age = now.getTime() - t;
+  return age >= 0 && age <= MCP_LIVENESS_TTL_DAYS * DAY_MS;
+}
+
+export function displayMcpStatus(row: McpStatusInput, now: Date = new Date()): McpStatusDisplay {
+  // NULL is the column default ('official') — a provider claim, as before.
+  const stored = row.mcp_status ?? "official";
+  const mcp_liveness = livenessOf(row);
+
+  if ((row.archived ?? 0) === 1) return { mcp_status: "unverified", mcp_status_basis: "archived", mcp_liveness };
+  if (STORED_DEATH.has(stored)) return { mcp_status: "unverified", mcp_status_basis: "unreachable", mcp_liveness };
+  if (mcp_liveness.state === "unreachable" && mcp_liveness.endpoint_matches)
+    return { mcp_status: "unverified", mcp_status_basis: "unreachable", mcp_liveness };
+  if (stored === "verified") {
+    return hasFreshHandshake(row, now)
+      ? { mcp_status: "verified", mcp_status_basis: "handshake", mcp_liveness }
+      : { mcp_status: "unverified", mcp_status_basis: "no_fresh_handshake", mcp_liveness };
+  }
+  return { mcp_status: stored, mcp_status_basis: "provider_claim", mcp_liveness };
+}
+
+/**
+ * After a write that may have changed mcp_endpoint: an observation of another
+ * endpoint says nothing about the new one, so the three liveness columns go
+ * back to NULL. A write that kept the same endpoint keeps them.
+ */
+export const CLEAR_STALE_LIVENESS_SQL = `
+  UPDATE services
+  SET mcp_liveness = NULL, mcp_liveness_checked_at = NULL, mcp_liveness_endpoint = NULL
+  WHERE id = ? AND mcp_liveness_endpoint IS NOT NULL AND mcp_liveness_endpoint IS NOT mcp_endpoint`;
+
+/** Said once per response: what `mcp_status` and `mcp_liveness` do and do not vouch for. */
 export const MCP_STATUS_LEGEND = {
-  verified: "the weekly health probe completed an MCP handshake with mcp_endpoint within the last 30 days",
-  official: "the weekly health probe reached mcp_endpoint over HTTP within the last 30 days (it may require auth)",
+  mcp_status:
+    "who provides the MCP server, as the provider / catalogue claims it (official, third_party, community, api_only, ...). It is NOT a liveness check — liveness is mcp_liveness",
+  verified:
+    "the weekly health probe completed an MCP handshake with this exact mcp_endpoint within the last 30 days",
   unverified:
-    "no probe within the last 30 days stands behind a liveness claim — the shipped catalogue value is not shown as if it had been observed; archived or unreachable endpoints are shown this way too",
-  checked_at_means: "mcp_status_checked_at is the date of that probe; null means nobody has observed the endpoint",
+    "a liveness claim with no fresh handshake on the current endpoint behind it, or an endpoint that is archived or was found unreachable",
+  mcp_liveness:
+    "what the health probe last observed: handshake (MCP initialize answered), reachable (HTTP answered, may need auth), unreachable (404 / 410 / DNS / refused), unknown (never probed). checked_at is UTC; endpoint_matches=false means the observation was of a different endpoint than the current one and says nothing about it",
 } as const;

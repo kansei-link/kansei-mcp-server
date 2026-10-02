@@ -220,35 +220,48 @@ its own: the GitHub-over-operator overwrite, and the seed upgrade wiping a
 locally-held correction.
 
 **First implementation, 2026-10-02 (`fix/mcp-status-provenance`, marker M-002):
-`mcp_status` — probe > seed.** The marker found endpoints the weekly health probe
-had recorded as gone (404 / 410 / DNS failure) still shown as `verified` in
-production. Two writers competed for the column with no order: the probe wrote
-what it observed, and `seedDatabase()` wrote the shipped value back on the next
-start. The fix is the rank rule for this one field, done directly on the column
-rather than through `service_field_provenance` (which does not exist yet):
+`mcp_status` — split the two meanings.** The marker found endpoints the weekly
+health probe had recorded as gone (404 / 410 / DNS failure) still shown as
+`verified` in production. The first attempt (f4ec402) ranked the writers of
+`mcp_status` (probe > seed). That was the wrong cut: the column carried two
+meanings, and ranking them made one erase the other.
 
-- `services.mcp_status_source` (`'seed'` | `'probe'`) and
-  `services.mcp_status_checked_at` (when the probe observed it). Idempotent ALTER.
-- `health-probe.ts` (and the watchdog's zero-success mark) write
-  `source='probe'`, `checked_at=now`: handshake → `verified`, HTTP reachable →
-  `official`, 404 / 410 / DNS / refused → `unreachable` (new; the row is still
-  archived on 404 / 410 as before).
-- `seed.ts` overwrites `mcp_status` only while the row's source is the seed
-  (`CASE WHEN mcp_status_source = 'probe' THEN keep ELSE seed END`). The seed
-  stays authoritative where nothing has been observed; it never outranks an
-  observation. `archived` keeps its `MAX` rule.
-- The read side does not trust the stored value either: `get_service_detail` and
-  `search_services` show `verified` / `official` only while a probe within 30
-  days stands behind it (`utils/mcp-status.ts`), otherwise `unverified`, with
-  `mcp_status_checked_at` beside it — the same shape as `freshness`.
-- The 2026-09-20 backfill had counted a changelog `deprecated` row — the probe's
-  own death notice — as "an upstream answered". A second, audited migration
-  reverts rows whose only changelog entries are death notices to unverified, and
-  the backfill itself now excludes them.
+- *Who provides the server* — `official` / `third_party` / `community` /
+  `api_only` / `unknown` / `none`. The provider's claim. Written by the seed, the
+  registry sync, vendor submissions and approved proposals. Stays in
+  `mcp_status`.
+- *Whether it is alive* — an observation. Moves to its own columns, written ONLY
+  by the health probe and the watchdog: `mcp_liveness` (`handshake` |
+  `reachable` | `unreachable`), `mcp_liveness_checked_at` (ISO UTC), and
+  `mcp_liveness_endpoint` (the `mcp_endpoint` string that was probed, verbatim).
+  Idempotent ALTER. The probe no longer writes `mcp_status` at all; before, an
+  HTTP answer overwrote the provider's classification with `official`.
 
-This is the pattern the rest of Phase 1 generalises: **an observation outranks
-the catalogue, the catalogue outranks nothing that was observed, and the reader
-shows a claim only with the evidence's date next to it.**
+With the meanings apart there is nothing to rank: the seed keeps writing
+`mcp_status` (its value is the provider's claim) and never touches liveness.
+Vendor submissions and approved proposals may write `mcp_status`; when they
+change `mcp_endpoint`, the liveness columns go back to NULL. When the seed
+changes `mcp_endpoint`, `mcp_liveness_endpoint` no longer matches and the
+display drops to unverified on its own.
+
+The read side (`utils/mcp-status.ts` `displayMcpStatus()`, the only way any
+outward path — lookup tips / detail, search incl. compact, MCP resources, the
+HTTP rankings listing, audit_cost — shows `mcp_status`):
+`verified` only with a `handshake` on the CURRENT endpoint (exact string) within
+30 days; a stored `verified` without one, a stored `dead` / `unreachable`, an
+archived row, or `unreachable` on the same endpoint → `unverified`; every
+provider claim is shown as stored. `mcp_liveness {state, checked_at,
+endpoint_matches}` always sits beside it. Timestamps are read as UTC.
+
+The 2026-09-20 backfill had counted a changelog `deprecated` row — the probe's
+own death notice — as "an upstream answered". A second, audited migration
+reverts rows whose only changelog entries are death notices to unverified, and
+the backfill itself now excludes them.
+
+The pattern the rest of Phase 1 generalises: **before ranking writers, check
+that they are writing the same fact. A provider's claim and an observation are
+two fields; an observation is only evidence for the exact thing observed; and
+the reader shows a claim only with the evidence's date next to it.**
 
 ### Phase 2 — turn on Registry description refresh
 

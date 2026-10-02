@@ -804,15 +804,19 @@ export function initializeDb(db: Database.Database): void {
     tx();
   }
 
-  // mcp_status provenance (2026-10-02, marker M-002): where the status came
-  // from and when it was observed. 'seed' = the shipped catalogue; 'probe' = the
-  // health probe (or watchdog) observed it. The seeder never overwrites a
-  // probe-sourced status (seed.ts); the tools show a liveness claim only while a
-  // probe within 30 days stands behind it (utils/mcp-status.ts). Rows that
-  // predate the column have NULL source and are shown as unverified until probed.
-  if ((db.prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = 'mcp_status_source'").get() as { cnt: number }).cnt === 0) {
-    db.exec("ALTER TABLE services ADD COLUMN mcp_status_source TEXT");
-    db.exec("ALTER TABLE services ADD COLUMN mcp_status_checked_at TEXT");
+  // MCP liveness (2026-10-02, marker M-002): what the health probe observed, in
+  // columns of its own. mcp_status is the provider's claim (official /
+  // third_party / community ...) and is written by the seed, the registry,
+  // vendor submissions and approved proposals; liveness is written ONLY by the
+  // health probe and the watchdog. Sharing one column let each writer erase the
+  // other's meaning. Display rules: utils/mcp-status.ts.
+  //   mcp_liveness             'handshake' | 'reachable' | 'unreachable'
+  //   mcp_liveness_checked_at  ISO UTC 'YYYY-MM-DDTHH:MM:SSZ'
+  //   mcp_liveness_endpoint    the mcp_endpoint that was probed, verbatim
+  for (const col of ["mcp_liveness", "mcp_liveness_checked_at", "mcp_liveness_endpoint"]) {
+    if ((db.prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = ?").get(col) as { cnt: number }).cnt === 0) {
+      db.exec(`ALTER TABLE services ADD COLUMN ${col} TEXT`);
+    }
   }
 
   // Model-level performance stats per service (for audit_cost routing)
