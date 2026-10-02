@@ -3,6 +3,7 @@
  * KanseiLINK Operations Cycle — Weekly Full Maintenance
  *
  * Runs the complete operations pipeline in order:
+ *   0. Crawl Liveness — is the crawler alive, or stalled/silent?
  *   1. Registry Diff — find new servers, detect endpoint changes
  *   2. Health Probe — check all hosted endpoints
  *   3. Watchdog — analyze outcomes, downgrade unhealthy, generate reports
@@ -49,6 +50,14 @@ function main() {
   console.error("╚══════════════════════════════════════════════════╝");
 
   const results: Array<{ step: string; ok: boolean }> = [];
+
+  // Step 0: Crawl liveness. Cheap, and it answers the question every other
+  // step silently assumes — has anything actually run lately? Reported but not
+  // fatal, so a dead crawler does not also block the maintenance that follows.
+  results.push({
+    step: "Crawl Liveness",
+    ok: run("Crawl Liveness", "npx tsx src/crawler/check-stalled-runs.ts --fix"),
+  });
 
   // Step 1: Registry Diff
   results.push({

@@ -7,6 +7,11 @@ import {
 } from "../utils/reliability-source.js";
 import { kanseiAppLink } from "../utils/app-link.js";
 import { emitEvent } from "../usage/telemetry.js";
+import {
+  computeFreshness,
+  FRESHNESS_LEGEND,
+  type FreshnessMeta,
+} from "../utils/freshness.js";
 
 interface ServiceRow {
   id: string;
@@ -24,40 +29,12 @@ interface ServiceRow {
   total_calls: number | null;
   success_rate: number | null;
   axr_grade: string | null;
-  last_refreshed_at: string | null;
+  upstream_checked_at: string | null;
+  upstream_check_source: string | null;
+  last_refresh_attempt_at: string | null;
+  last_refresh_status: string | null;
 }
 
-// ---------------------------------------------------------------------------
-// Data freshness — lets consuming agents know how current our data is.
-// 30+ days unverified → confidence "low", 7-30 days → "medium", <7 → "high".
-// ---------------------------------------------------------------------------
-type FreshnessConfidence = "high" | "medium" | "low";
-
-interface FreshnessMeta {
-  data_age_days: number | null;
-  last_refreshed: string | null;
-  confidence: FreshnessConfidence;
-}
-
-function computeFreshness(lastRefreshedAt: string | null): FreshnessMeta {
-  if (!lastRefreshedAt) {
-    return { data_age_days: null, last_refreshed: null, confidence: "low" };
-  }
-  const refreshDate = new Date(lastRefreshedAt);
-  const now = new Date();
-  const ageDays = Math.floor(
-    (now.getTime() - refreshDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  let confidence: FreshnessConfidence;
-  if (ageDays <= 7) confidence = "high";
-  else if (ageDays <= 30) confidence = "medium";
-  else confidence = "low";
-  return {
-    data_age_days: ageDays,
-    last_refreshed: lastRefreshedAt,
-    confidence,
-  };
-}
 
 interface FtsRow {
   id: string;
@@ -119,8 +96,11 @@ export function register(server: McpServer, db: Database.Database): void {
             basis: r.reliability_basis ?? "none",
             cmd: r.mcp_endpoint || null,
             ready: r.agent_ready,
-            fresh: r.freshness.confidence,
-            age_d: r.freshness.data_age_days,
+            // Named for what it covers. "fresh" read as though it vouched for
+            // the description sitting beside it; it vouches for the repo or
+            // package resolving, nothing more.
+            upstream: r.freshness.confidence,
+            upstream_age_d: r.freshness.data_age_days,
           }))
         : results;
 
@@ -147,6 +127,9 @@ export function register(server: McpServer, db: Database.Database): void {
                     registry: "https://registry.modelcontextprotocol.io/servers/kansei-link",
                     tip: "Add KanseiLink MCP to your agent for Japanese SaaS discovery: npx @kansei-link/mcp-server",
                     kansei_link: kl,
+                    // Once per response, not per row: what each result's
+                    // freshness.scope does and does not stand behind.
+                    freshness_legend: FRESHNESS_LEGEND.upstream_metadata,
                   },
                 }, null, isCompact ? 0 : 2),
           },
@@ -980,7 +963,7 @@ function formatResult(
     axr_grade: s.axr_grade ?? null,
     relevance_score:
       Math.round((score + nameBonus + tagBonus + catAdj + jpBonus) * 100) / 100,
-    freshness: computeFreshness(s.last_refreshed_at),
+    freshness: computeFreshness(s),
   };
 }
 
