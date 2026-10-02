@@ -4,8 +4,8 @@
 // a +0.1 bonus, which pushed several clearly-AAA services down to AA.
 //
 // Source of truth: docs + tags + common convention per service.
-import Database from 'better-sqlite3';
-const db = new Database('./kansei-link.db');
+import { openDb } from '../dist/db/open.js';
+const db = openDb('./kansei-link.db');
 
 const AUTH_FILLINS = {
   freee:          'oauth2_pkce',      // OAuth 2.0 + PKCE, 24h refresh

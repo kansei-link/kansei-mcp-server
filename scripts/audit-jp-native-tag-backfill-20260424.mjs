@@ -11,7 +11,7 @@
  *   node scripts/audit-jp-native-tag-backfill-20260424.mjs
  *   node scripts/audit-jp-native-tag-backfill-20260424.mjs --dry-run
  */
-import Database from "better-sqlite3";
+import { openDb } from "../dist/db/open.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -32,7 +32,7 @@ const JP_NATIVE_IDS = [
   "toyocloud", "bmr", "edi-ace", "misoca",
 ];
 
-const db = new Database(dbPath);
+const db = openDb(dbPath);
 console.log("=== jp-native tag backfill ===");
 console.log(DRY_RUN ? "(dry-run — no changes)" : "");
 

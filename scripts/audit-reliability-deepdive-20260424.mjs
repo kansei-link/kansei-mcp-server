@@ -10,14 +10,14 @@
  *
  *   node scripts/audit-reliability-deepdive-20260424.mjs
  */
-import Database from "better-sqlite3";
+import { openDb } from "../dist/db/open.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, "..", "kansei-link.db");
 
-const db = new Database(dbPath);
+const db = openDb(dbPath);
 const targets = ["chatwork", "smarthr"];
 
 console.log("=== reliability deep-dive ===\n");

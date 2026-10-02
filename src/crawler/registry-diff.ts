@@ -13,7 +13,7 @@
  *   npx tsx src/crawler/registry-diff.ts               # scan + report
  *   npx tsx src/crawler/registry-diff.ts --ingest      # auto-queue new entries
  */
-import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
 import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
 import { crawlMcpRegistry, registryNameToServiceId, type RegistryServer } from "./sources/mcp-registry.js";
@@ -30,7 +30,7 @@ async function main() {
   const args = process.argv.slice(2);
   const autoIngest = args.includes("--ingest");
 
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
 
   // Get all service IDs + endpoints currently in DB

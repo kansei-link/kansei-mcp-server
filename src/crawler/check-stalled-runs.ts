@@ -22,6 +22,7 @@
  *   npx tsx src/crawler/check-stalled-runs.ts --stall-hours 12 --silence-days 2
  */
 import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
 import { resolve } from "node:path";
 
 const DB_PATH = resolve(import.meta.dirname, "../../kansei-link.db");
@@ -134,7 +135,7 @@ function main() {
     return Number.isFinite(v) && v > 0 ? v : fallback;
   };
 
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
 
   const report = checkLiveness(db, {

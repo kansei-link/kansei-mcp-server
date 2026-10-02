@@ -5,10 +5,10 @@
 //   - report_outcome + all other service-keyed tools
 //
 // Idempotent: uses INSERT OR IGNORE.
-import Database from 'better-sqlite3';
+import { openDb } from '../dist/db/open.js';
 import { readFileSync } from 'node:fs';
 
-const db = new Database('./kansei-link.db');
+const db = openDb('./kansei-link.db');
 
 const services = [
   {

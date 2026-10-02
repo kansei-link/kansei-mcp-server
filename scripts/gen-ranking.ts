@@ -3,11 +3,11 @@
  * Generate ranking table data for homepage from DB.
  * Outputs JS array for embedding in index.html.
  */
-import Database from "better-sqlite3";
+import { openDb } from "../src/db/open.js";
 import { resolve } from "node:path";
 
 const DB_PATH = resolve(import.meta.dirname, "../kansei-link.db");
-const db = new Database(DB_PATH);
+const db = openDb(DB_PATH);
 db.pragma("journal_mode = WAL");
 
 // Category mapping: all known DB category values → JA display

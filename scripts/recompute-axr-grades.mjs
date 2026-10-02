@@ -29,9 +29,9 @@
 //     C   ≥ 0.30
 //     D   < 0.30
 
-import Database from 'better-sqlite3';
+import { openDb } from '../dist/db/open.js';
 
-const db = new Database('./kansei-link.db');
+const db = openDb('./kansei-link.db');
 
 function computeScore(svc) {
   let score = 0;

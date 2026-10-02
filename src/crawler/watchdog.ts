@@ -14,7 +14,7 @@
  *   npx tsx src/crawler/watchdog.ts --report       # generate JSON report
  *   npx tsx src/crawler/watchdog.ts --fix          # auto-queue re-verification
  */
-import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
 import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
 import { SQL_UTC_NOW } from "../utils/mcp-status.js";
@@ -41,7 +41,7 @@ function main() {
   const generateReport = args.includes("--report");
   const autoFix = args.includes("--fix");
 
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
 
   // ── 1. Get all services with outcomes ──────────────────────────

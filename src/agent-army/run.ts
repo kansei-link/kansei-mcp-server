@@ -14,7 +14,7 @@
  *   DB_PATH             — SQLite path (default: kansei-link.db)
  */
 import Database from "better-sqlite3";
-import { initializeDb } from "../db/schema.js";
+import { openDb } from "../db/open.js";
 import { estimateCost } from "../utils/model-pricing.js";
 import { createAdapter } from "./adapters.js";
 import { runL1, runL2, runL3 } from "./tests.js";
@@ -381,8 +381,7 @@ async function main() {
 
   // Initialize DB
   const dbPath = process.env.DB_PATH || "kansei-link.db";
-  const db = new Database(dbPath);
-  initializeDb(db);
+  const db = openDb(dbPath);
 
   // Build task queue
   const tasks = buildTasks(db, levels, maxPerLevel);

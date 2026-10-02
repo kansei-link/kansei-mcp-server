@@ -12,6 +12,7 @@
  *   npx tsx src/crawler/health-probe.ts --dry-run      # show targets only
  */
 import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { SQL_UTC_NOW } from "../utils/mcp-status.js";
@@ -348,7 +349,7 @@ async function main() {
   const limitIdx = args.indexOf("--limit");
   const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 50;
 
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
   try {
     await runHealthProbe(db, { limit, dryRun });

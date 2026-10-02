@@ -1,0 +1,6315 @@
+{
+  "commit": "dc319cfdbc28473a010cc0d31581017916d84bb1",
+  "scope": "775a797..dc319cf; independent tests with synthetic data; no production DB or endpoint accessed",
+  "summary": {
+    "total": 223,
+    "conforming": 220,
+    "nonconforming": 3
+  },
+  "cases": [
+    {
+      "id": "calendar-reject-2026-09-31T12:00:00Z",
+      "input": {
+        "stamp": "2026-09-31T12:00:00Z"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-02-29T12:00:00Z",
+      "input": {
+        "stamp": "2026-02-29T12:00:00Z"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2100-02-29T00:00:00Z",
+      "input": {
+        "stamp": "2100-02-29T00:00:00Z"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2028-02-30T00:00:00Z",
+      "input": {
+        "stamp": "2028-02-30T00:00:00Z"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-00-01",
+      "input": {
+        "stamp": "2026-00-01"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-10-00",
+      "input": {
+        "stamp": "2026-10-00"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-13-01",
+      "input": {
+        "stamp": "2026-13-01"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-10-01T24:00:00Z",
+      "input": {
+        "stamp": "2026-10-01T24:00:00Z"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-10-01T23:59:60Z",
+      "input": {
+        "stamp": "2026-10-01T23:59:60Z"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-10-01T00:60:00Z",
+      "input": {
+        "stamp": "2026-10-01T00:60:00Z"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-10-01T00:00:00+24:00",
+      "input": {
+        "stamp": "2026-10-01T00:00:00+24:00"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-10-01T00:00:00+00:60",
+      "input": {
+        "stamp": "2026-10-01T00:00:00+00:60"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-2026-10-01T00:00:00Zgarbage",
+      "input": {
+        "stamp": "2026-10-01T00:00:00Zgarbage"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-reject-NaN",
+      "input": {
+        "stamp": "NaN"
+      },
+      "expected": true,
+      "actual": true,
+      "conforms": true
+    },
+    {
+      "id": "calendar-valid-2028-02-29 23:59:59",
+      "input": {
+        "stamp": "2028-02-29 23:59:59"
+      },
+      "expected": "2028-02-29T23:59:59.000Z",
+      "actual": "2028-02-29T23:59:59.000Z",
+      "conforms": true
+    },
+    {
+      "id": "calendar-valid-2000-02-29",
+      "input": {
+        "stamp": "2000-02-29"
+      },
+      "expected": "2000-02-29T00:00:00.000Z",
+      "actual": "2000-02-29T00:00:00.000Z",
+      "conforms": true
+    },
+    {
+      "id": "calendar-valid-0099-01-01T00:00:00Z",
+      "input": {
+        "stamp": "0099-01-01T00:00:00Z"
+      },
+      "expected": "0099-01-01T00:00:00.000Z",
+      "actual": "0099-01-01T00:00:00.000Z",
+      "conforms": true
+    },
+    {
+      "id": "calendar-valid-2026-10-02T21:00:00+0900",
+      "input": {
+        "stamp": "2026-10-02T21:00:00+0900"
+      },
+      "expected": "2026-10-02T12:00:00.000Z",
+      "actual": "2026-10-02T12:00:00.000Z",
+      "conforms": true
+    },
+    {
+      "id": "calendar-valid-2026-10-02T08:00:00-04:00",
+      "input": {
+        "stamp": "2026-10-02T08:00:00-04:00"
+      },
+      "expected": "2026-10-02T12:00:00.000Z",
+      "actual": "2026-10-02T12:00:00.000Z",
+      "conforms": true
+    },
+    {
+      "id": "display-fresh",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "verified",
+      "actual": "verified",
+      "conforms": true
+    },
+    {
+      "id": "display-30-days",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-09-02T12:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "verified",
+      "actual": "verified",
+      "conforms": true
+    },
+    {
+      "id": "display-over-30-days",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-09-02T11:59:59.999Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-future",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.001Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-invalid-calendar",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-09-31T12:00:00Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-missing-time",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": null,
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-never-probed",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-unreachable",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "unreachable",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-reachable",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "reachable",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-dead",
+      "input": {
+        "row": {
+          "mcp_status": "dead",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-stored-unreachable",
+      "input": {
+        "row": {
+          "mcp_status": "unreachable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-archived",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 1,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-endpoint-case",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": "HTTPS://FAKE-INDEPENDENT-DC.INVALID/MCP"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-endpoint-slash",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/"
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-endpoint-null",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": null,
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": null
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "display-endpoint-empty",
+      "input": {
+        "row": {
+          "mcp_status": "verified",
+          "mcp_endpoint": "",
+          "archived": 0,
+          "mcp_liveness": "handshake",
+          "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+          "mcp_liveness_endpoint": ""
+        },
+        "now": "2026-10-02T12:00:00.000Z"
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "provider-official-{\"mcp_liveness\":null}",
+      "input": {
+        "mcp_status": "official",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": null,
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "provider-official-{\"mcp_liveness\":\"reachable\"}",
+      "input": {
+        "mcp_status": "official",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "reachable",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "provider-official-{\"mcp_liveness_checked_at\":\"2020-01-01T00:00:00Z\"}",
+      "input": {
+        "mcp_status": "official",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2020-01-01T00:00:00Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "provider-official-{\"mcp_liveness_endpoint\":\"https://fake-independent-dc.invalid/mcp/other\"}",
+      "input": {
+        "mcp_status": "official",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "provider-third_party-{\"mcp_liveness\":null}",
+      "input": {
+        "mcp_status": "third_party",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": null,
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "third_party",
+      "actual": "third_party",
+      "conforms": true
+    },
+    {
+      "id": "provider-third_party-{\"mcp_liveness\":\"reachable\"}",
+      "input": {
+        "mcp_status": "third_party",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "reachable",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "third_party",
+      "actual": "third_party",
+      "conforms": true
+    },
+    {
+      "id": "provider-third_party-{\"mcp_liveness_checked_at\":\"2020-01-01T00:00:00Z\"}",
+      "input": {
+        "mcp_status": "third_party",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2020-01-01T00:00:00Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "third_party",
+      "actual": "third_party",
+      "conforms": true
+    },
+    {
+      "id": "provider-third_party-{\"mcp_liveness_endpoint\":\"https://fake-independent-dc.invalid/mcp/other\"}",
+      "input": {
+        "mcp_status": "third_party",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+      },
+      "expected": "third_party",
+      "actual": "third_party",
+      "conforms": true
+    },
+    {
+      "id": "provider-community-{\"mcp_liveness\":null}",
+      "input": {
+        "mcp_status": "community",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": null,
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "community",
+      "actual": "community",
+      "conforms": true
+    },
+    {
+      "id": "provider-community-{\"mcp_liveness\":\"reachable\"}",
+      "input": {
+        "mcp_status": "community",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "reachable",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "community",
+      "actual": "community",
+      "conforms": true
+    },
+    {
+      "id": "provider-community-{\"mcp_liveness_checked_at\":\"2020-01-01T00:00:00Z\"}",
+      "input": {
+        "mcp_status": "community",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2020-01-01T00:00:00Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "community",
+      "actual": "community",
+      "conforms": true
+    },
+    {
+      "id": "provider-community-{\"mcp_liveness_endpoint\":\"https://fake-independent-dc.invalid/mcp/other\"}",
+      "input": {
+        "mcp_status": "community",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+      },
+      "expected": "community",
+      "actual": "community",
+      "conforms": true
+    },
+    {
+      "id": "provider-api_only-{\"mcp_liveness\":null}",
+      "input": {
+        "mcp_status": "api_only",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": null,
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "api_only",
+      "actual": "api_only",
+      "conforms": true
+    },
+    {
+      "id": "provider-api_only-{\"mcp_liveness\":\"reachable\"}",
+      "input": {
+        "mcp_status": "api_only",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "reachable",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "api_only",
+      "actual": "api_only",
+      "conforms": true
+    },
+    {
+      "id": "provider-api_only-{\"mcp_liveness_checked_at\":\"2020-01-01T00:00:00Z\"}",
+      "input": {
+        "mcp_status": "api_only",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2020-01-01T00:00:00Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "api_only",
+      "actual": "api_only",
+      "conforms": true
+    },
+    {
+      "id": "provider-api_only-{\"mcp_liveness_endpoint\":\"https://fake-independent-dc.invalid/mcp/other\"}",
+      "input": {
+        "mcp_status": "api_only",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+      },
+      "expected": "api_only",
+      "actual": "api_only",
+      "conforms": true
+    },
+    {
+      "id": "provider-unknown-{\"mcp_liveness\":null}",
+      "input": {
+        "mcp_status": "unknown",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": null,
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "provider-unknown-{\"mcp_liveness\":\"reachable\"}",
+      "input": {
+        "mcp_status": "unknown",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "reachable",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "provider-unknown-{\"mcp_liveness_checked_at\":\"2020-01-01T00:00:00Z\"}",
+      "input": {
+        "mcp_status": "unknown",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2020-01-01T00:00:00Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "provider-unknown-{\"mcp_liveness_endpoint\":\"https://fake-independent-dc.invalid/mcp/other\"}",
+      "input": {
+        "mcp_status": "unknown",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+      },
+      "expected": "unknown",
+      "actual": "unknown",
+      "conforms": true
+    },
+    {
+      "id": "provider-none-{\"mcp_liveness\":null}",
+      "input": {
+        "mcp_status": "none",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": null,
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "none",
+      "actual": "none",
+      "conforms": true
+    },
+    {
+      "id": "provider-none-{\"mcp_liveness\":\"reachable\"}",
+      "input": {
+        "mcp_status": "none",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "reachable",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "none",
+      "actual": "none",
+      "conforms": true
+    },
+    {
+      "id": "provider-none-{\"mcp_liveness_checked_at\":\"2020-01-01T00:00:00Z\"}",
+      "input": {
+        "mcp_status": "none",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2020-01-01T00:00:00Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": "none",
+      "actual": "none",
+      "conforms": true
+    },
+    {
+      "id": "provider-none-{\"mcp_liveness_endpoint\":\"https://fake-independent-dc.invalid/mcp/other\"}",
+      "input": {
+        "mcp_status": "none",
+        "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+        "archived": 0,
+        "mcp_liveness": "handshake",
+        "mcp_liveness_checked_at": "2026-10-02T12:00:00.000Z",
+        "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+      },
+      "expected": "none",
+      "actual": "none",
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-unreachable",
+      "input": {
+        "id": "fake-independent-unreachable",
+        "patch": {
+          "mcp_liveness": "unreachable"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-unreachable",
+      "input": {
+        "id": "fake-independent-unreachable",
+        "patch": {
+          "mcp_liveness": "unreachable"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-unreachable",
+      "input": {
+        "id": "fake-independent-unreachable",
+        "patch": {
+          "mcp_liveness": "unreachable"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-search-unreachable",
+      "input": {
+        "id": "fake-independent-unreachable",
+        "patch": {
+          "mcp_liveness": "unreachable"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-unreachable",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-unreachable"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-none",
+      "input": {
+        "id": "fake-independent-none",
+        "patch": {
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": null,
+          "mcp_liveness_endpoint": null
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-none",
+      "input": {
+        "id": "fake-independent-none",
+        "patch": {
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": null,
+          "mcp_liveness_endpoint": null
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-none",
+      "input": {
+        "id": "fake-independent-none",
+        "patch": {
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": null,
+          "mcp_liveness_endpoint": null
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-search-none",
+      "input": {
+        "id": "fake-independent-none",
+        "patch": {
+          "mcp_liveness": null,
+          "mcp_liveness_checked_at": null,
+          "mcp_liveness_endpoint": null
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-none",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-none"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-old",
+      "input": {
+        "id": "fake-independent-old",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-09-01T12:52:36.398Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-old",
+      "input": {
+        "id": "fake-independent-old",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-09-01T12:52:36.398Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-old",
+      "input": {
+        "id": "fake-independent-old",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-09-01T12:52:36.398Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-search-old",
+      "input": {
+        "id": "fake-independent-old",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-09-01T12:52:36.398Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-old",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-old"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-future",
+      "input": {
+        "id": "fake-independent-future",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-10-03T12:52:36.398Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-future",
+      "input": {
+        "id": "fake-independent-future",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-10-03T12:52:36.398Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-future",
+      "input": {
+        "id": "fake-independent-future",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-10-03T12:52:36.398Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-search-future",
+      "input": {
+        "id": "fake-independent-future",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-10-03T12:52:36.398Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-future",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-future"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-bad-calendar",
+      "input": {
+        "id": "fake-independent-bad-calendar",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-09-31T12:00:00Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-bad-calendar",
+      "input": {
+        "id": "fake-independent-bad-calendar",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-09-31T12:00:00Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-bad-calendar",
+      "input": {
+        "id": "fake-independent-bad-calendar",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-09-31T12:00:00Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-search-bad-calendar",
+      "input": {
+        "id": "fake-independent-bad-calendar",
+        "patch": {
+          "mcp_liveness_checked_at": "2026-09-31T12:00:00Z"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-bad-calendar",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-bad-calendar"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-dead",
+      "input": {
+        "id": "fake-independent-dead",
+        "patch": {
+          "mcp_status": "dead"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-dead",
+      "input": {
+        "id": "fake-independent-dead",
+        "patch": {
+          "mcp_status": "dead"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-dead",
+      "input": {
+        "id": "fake-independent-dead",
+        "patch": {
+          "mcp_status": "dead"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-search-dead",
+      "input": {
+        "id": "fake-independent-dead",
+        "patch": {
+          "mcp_status": "dead"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-dead",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-dead"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-other",
+      "input": {
+        "id": "fake-independent-other",
+        "patch": {
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-other",
+      "input": {
+        "id": "fake-independent-other",
+        "patch": {
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-other",
+      "input": {
+        "id": "fake-independent-other",
+        "patch": {
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-search-other",
+      "input": {
+        "id": "fake-independent-other",
+        "patch": {
+          "mcp_liveness_endpoint": "https://fake-independent-dc.invalid/mcp/other"
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-other",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-other"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-archived",
+      "input": {
+        "id": "fake-independent-archived",
+        "patch": {
+          "archived": 1
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-archived",
+      "input": {
+        "id": "fake-independent-archived",
+        "patch": {
+          "archived": 1
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-archived",
+      "input": {
+        "id": "fake-independent-archived",
+        "patch": {
+          "archived": 1
+        }
+      },
+      "expected": "unverified",
+      "actual": "unverified",
+      "conforms": true
+    },
+    {
+      "id": "route-search-archived",
+      "input": {
+        "id": "fake-independent-archived",
+        "patch": {
+          "archived": 1
+        }
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-archived",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-archived"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-official",
+      "input": {
+        "id": "fake-independent-official",
+        "patch": {
+          "mcp_status": "official",
+          "mcp_liveness": null
+        }
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-official",
+      "input": {
+        "id": "fake-independent-official",
+        "patch": {
+          "mcp_status": "official",
+          "mcp_liveness": null
+        }
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-official",
+      "input": {
+        "id": "fake-independent-official",
+        "patch": {
+          "mcp_status": "official",
+          "mcp_liveness": null
+        }
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "route-search-official",
+      "input": {
+        "id": "fake-independent-official",
+        "patch": {
+          "mcp_status": "official",
+          "mcp_liveness": null
+        }
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-official",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-official"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "route-lookup-fresh",
+      "input": {
+        "id": "fake-independent-fresh",
+        "patch": {}
+      },
+      "expected": "verified",
+      "actual": "verified",
+      "conforms": true
+    },
+    {
+      "id": "route-detail-fresh",
+      "input": {
+        "id": "fake-independent-fresh",
+        "patch": {}
+      },
+      "expected": "verified",
+      "actual": "verified",
+      "conforms": true
+    },
+    {
+      "id": "route-resource-fresh",
+      "input": {
+        "id": "fake-independent-fresh",
+        "patch": {}
+      },
+      "expected": "verified",
+      "actual": "verified",
+      "conforms": true
+    },
+    {
+      "id": "route-search-fresh",
+      "input": {
+        "id": "fake-independent-fresh",
+        "patch": {}
+      },
+      "expected": "verified",
+      "actual": "verified",
+      "conforms": true
+    },
+    {
+      "id": "no-raw-observation-fresh",
+      "input": {
+        "route": "resource",
+        "id": "fake-independent-fresh"
+      },
+      "expected": false,
+      "actual": false,
+      "conforms": true
+    },
+    {
+      "id": "resource-summary-verified",
+      "input": {
+        "rows": [
+          "unreachable",
+          "none",
+          "old",
+          "future",
+          "bad-calendar",
+          "dead",
+          "other",
+          "archived",
+          "official",
+          "fresh"
+        ]
+      },
+      "expected": 1,
+      "actual": 1,
+      "conforms": true
+    },
+    {
+      "id": "resource-official-list",
+      "input": {},
+      "expected": [
+        "fake-independent-official"
+      ],
+      "actual": [
+        "fake-independent-official"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "F2-admin-propose-current-status",
+      "input": {
+        "route": "inspect mode=propose (admin-gated)",
+        "service_id": "fake-independent-unreachable",
+        "stored": "verified",
+        "liveness": "unreachable",
+        "same_endpoint": true
+      },
+      "expected": "unverified",
+      "actual": "verified",
+      "conforms": false
+    },
+    {
+      "id": "endpoint-vendor-1",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-vendor-2",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp/B",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-vendor-3",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp/B",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-vendor-4",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp/B",
+        "observed": null
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-vendor-5",
+      "input": {
+        "before": null,
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-vendor-6",
+      "input": {
+        "before": "",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-vendor-7",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": null,
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-vendor-8",
+      "input": {
+        "before": null,
+        "after": null,
+        "observed": null
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-proposal-9",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-proposal-10",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp/B",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-proposal-11",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp/B",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-proposal-12",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp/B",
+        "observed": null
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-proposal-13",
+      "input": {
+        "before": null,
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-proposal-14",
+      "input": {
+        "before": "",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-proposal-15",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": null,
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-proposal-16",
+      "input": {
+        "before": null,
+        "after": null,
+        "observed": null
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-sql-17",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-sql-18",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp/B",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-sql-19",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp/B",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-sql-20",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp/B",
+        "observed": null
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-sql-21",
+      "input": {
+        "before": null,
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-sql-22",
+      "input": {
+        "before": "",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-sql-23",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": null,
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-sql-24",
+      "input": {
+        "before": null,
+        "after": null,
+        "observed": null
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-registry-25",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-registry-26",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp/B",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-registry-27",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp/B",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-registry-28",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": "https://fake-independent-dc.invalid/mcp/B",
+        "observed": null
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-registry-29",
+      "input": {
+        "before": null,
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-registry-30",
+      "input": {
+        "before": "",
+        "after": "https://fake-independent-dc.invalid/mcp",
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-registry-31",
+      "input": {
+        "before": "https://fake-independent-dc.invalid/mcp",
+        "after": null,
+        "observed": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        "https://fake-independent-dc.invalid/mcp"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "endpoint-registry-32",
+      "input": {
+        "before": null,
+        "after": null,
+        "observed": null
+      },
+      "expected": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "actual": [
+        "handshake",
+        "2026-10-02T12:00:00.000Z",
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "seed-preserve",
+      "input": {
+        "selection": "first nonarchived stored-verified HTTP seed row, by shape only"
+      },
+      "expected": [
+        "unreachable",
+        "2026-10-02T12:52:39Z",
+        "https://tandem.ac/mcp"
+      ],
+      "actual": [
+        "unreachable",
+        "2026-10-02T12:52:39Z",
+        "https://tandem.ac/mcp"
+      ],
+      "conforms": true
+    },
+    {
+      "id": "seed-endpoint-reset",
+      "input": {
+        "selection": "same by-shape seed row",
+        "temporary_endpoint": "https://fake-independent-dc.invalid/mcp"
+      },
+      "expected": [
+        null,
+        null,
+        null
+      ],
+      "actual": [
+        null,
+        null,
+        null
+      ],
+      "conforms": true
+    },
+    {
+      "id": "migration-775a797-deprecated",
+      "input": {
+        "starting": "775a797",
+        "type": "deprecated"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-775a797-deprecation",
+      "input": {
+        "starting": "775a797",
+        "type": "deprecation"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-775a797-archived",
+      "input": {
+        "starting": "775a797",
+        "type": "archived"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-775a797-probe_failed",
+      "input": {
+        "starting": "775a797",
+        "type": "probe_failed"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-preserve-github",
+      "input": {
+        "starting": "775a797",
+        "source": "github"
+      },
+      "expected": "2026-09-30",
+      "actual": "2026-09-30",
+      "conforms": true
+    },
+    {
+      "id": "migration-preserve-npm",
+      "input": {
+        "starting": "775a797",
+        "source": "npm"
+      },
+      "expected": "2026-09-30",
+      "actual": "2026-09-30",
+      "conforms": true
+    },
+    {
+      "id": "migration-second-775a797",
+      "input": {
+        "starting": "775a797"
+      },
+      "expected": {
+        "rows": [
+          {
+            "id": "fake-github",
+            "name": "fake-github",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-30",
+            "upstream_checked_at": "2026-09-30",
+            "upstream_check_source": "github",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-archived",
+            "name": "fake-migration-archived",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-deprecated",
+            "name": "fake-migration-deprecated",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-deprecation",
+            "name": "fake-migration-deprecation",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-probe_failed",
+            "name": "fake-migration-probe_failed",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-npm",
+            "name": "fake-npm",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-30",
+            "upstream_checked_at": "2026-09-30",
+            "upstream_check_source": "npm",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          }
+        ],
+        "markers": [
+          {
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          },
+          {
+            "migration_id": "service_stats_rebuild_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          },
+          {
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          }
+        ],
+        "audit": [
+          {
+            "id": 1,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 2,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 3,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "quarantined_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 4,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 5,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 6,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 7,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "deleted_placeholder_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 8,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 9,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "backfilled_by_death_notice_only",
+            "value": 4,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 10,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "reverted_to_unverified",
+            "value": 4,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 11,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "date_recomputed",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          }
+        ]
+      },
+      "actual": {
+        "rows": [
+          {
+            "id": "fake-github",
+            "name": "fake-github",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-30",
+            "upstream_checked_at": "2026-09-30",
+            "upstream_check_source": "github",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-archived",
+            "name": "fake-migration-archived",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-deprecated",
+            "name": "fake-migration-deprecated",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-deprecation",
+            "name": "fake-migration-deprecation",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-probe_failed",
+            "name": "fake-migration-probe_failed",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-npm",
+            "name": "fake-npm",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": "2026-09-30",
+            "upstream_checked_at": "2026-09-30",
+            "upstream_check_source": "npm",
+            "last_refresh_attempt_at": null,
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          }
+        ],
+        "markers": [
+          {
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          },
+          {
+            "migration_id": "service_stats_rebuild_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          },
+          {
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          }
+        ],
+        "audit": [
+          {
+            "id": 1,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 2,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 3,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "quarantined_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 4,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 5,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 6,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 7,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "deleted_placeholder_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 8,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 9,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "backfilled_by_death_notice_only",
+            "value": 4,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 10,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "reverted_to_unverified",
+            "value": 4,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 11,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "date_recomputed",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "migration-pre-upstream-columns-deprecated",
+      "input": {
+        "starting": "pre-upstream-columns",
+        "type": "deprecated"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-pre-upstream-columns-deprecation",
+      "input": {
+        "starting": "pre-upstream-columns",
+        "type": "deprecation"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-pre-upstream-columns-archived",
+      "input": {
+        "starting": "pre-upstream-columns",
+        "type": "archived"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-pre-upstream-columns-probe_failed",
+      "input": {
+        "starting": "pre-upstream-columns",
+        "type": "probe_failed"
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "migration-second-pre-upstream-columns",
+      "input": {
+        "starting": "pre-upstream-columns"
+      },
+      "expected": {
+        "rows": [
+          {
+            "id": "fake-migration-archived",
+            "name": "fake-migration-archived",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": "2026-10-01",
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-deprecated",
+            "name": "fake-migration-deprecated",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": "2026-10-01",
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-deprecation",
+            "name": "fake-migration-deprecation",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": "2026-10-01",
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-probe_failed",
+            "name": "fake-migration-probe_failed",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": "2026-10-01",
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          }
+        ],
+        "markers": [
+          {
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          },
+          {
+            "migration_id": "service_stats_rebuild_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          },
+          {
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          }
+        ],
+        "audit": [
+          {
+            "id": 1,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 2,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 3,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "quarantined_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 4,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 5,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 6,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 7,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "deleted_placeholder_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 8,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 9,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "backfilled_by_death_notice_only",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 10,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "reverted_to_unverified",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 11,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "date_recomputed",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          }
+        ]
+      },
+      "actual": {
+        "rows": [
+          {
+            "id": "fake-migration-archived",
+            "name": "fake-migration-archived",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": "2026-10-01",
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-deprecated",
+            "name": "fake-migration-deprecated",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": "2026-10-01",
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-deprecation",
+            "name": "fake-migration-deprecation",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": "2026-10-01",
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          },
+          {
+            "id": "fake-migration-probe_failed",
+            "name": "fake-migration-probe_failed",
+            "namespace": null,
+            "description": null,
+            "category": null,
+            "tags": null,
+            "mcp_endpoint": null,
+            "mcp_status": "official",
+            "api_url": null,
+            "api_auth_method": null,
+            "trust_score": 0.5,
+            "axr_score": null,
+            "axr_grade": null,
+            "axr_dims": null,
+            "axr_facade": 0,
+            "usage_count": 0,
+            "created_at": "2026-10-02 12:52:55",
+            "mcp_tool_count": null,
+            "avg_tool_def_tokens": 500,
+            "archived": 0,
+            "github_stars": null,
+            "github_pushed_at": null,
+            "npm_version": null,
+            "last_refreshed_at": null,
+            "upstream_checked_at": null,
+            "upstream_check_source": null,
+            "last_refresh_attempt_at": "2026-10-01",
+            "last_refresh_status": null,
+            "mcp_liveness": null,
+            "mcp_liveness_checked_at": null,
+            "mcp_liveness_endpoint": null
+          }
+        ],
+        "markers": [
+          {
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          },
+          {
+            "migration_id": "service_stats_rebuild_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          },
+          {
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "applied_at": "2026-10-02 12:52:55"
+          }
+        ],
+        "audit": [
+          {
+            "id": 1,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 2,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "before_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 3,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "quarantined_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 4,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 5,
+            "migration_id": "service_stats_rebuild_v1",
+            "metric": "after_nonzero_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 6,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "before_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 7,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "deleted_placeholder_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 8,
+            "migration_id": "service_stats_placeholder_cleanup_v1",
+            "metric": "after_rows",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 9,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "backfilled_by_death_notice_only",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 10,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "reverted_to_unverified",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          },
+          {
+            "id": 11,
+            "migration_id": "upstream_backfill_death_notices_v1",
+            "metric": "date_recomputed",
+            "value": 0,
+            "recorded_at": "2026-10-02 12:52:55"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-401-0.2",
+      "input": {
+        "shape": "401",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-401-0.2",
+      "input": {
+        "shape": "401",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.45,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "auth",
+            "context_masked": "[health-probe] HTTP 401 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.45,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "auth",
+            "context_masked": "[health-probe] HTTP 401 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-401-0.8",
+      "input": {
+        "shape": "401",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-401-0.8",
+      "input": {
+        "shape": "401",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "auth",
+            "context_masked": "[health-probe] HTTP 401 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "auth",
+            "context_masked": "[health-probe] HTTP 401 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-403-0.2",
+      "input": {
+        "shape": "403",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-403-0.2",
+      "input": {
+        "shape": "403",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.45,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "auth",
+            "context_masked": "[health-probe] HTTP 403 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.45,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "auth",
+            "context_masked": "[health-probe] HTTP 403 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-403-0.8",
+      "input": {
+        "shape": "403",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-403-0.8",
+      "input": {
+        "shape": "403",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "auth",
+            "context_masked": "[health-probe] HTTP 403 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "auth",
+            "context_masked": "[health-probe] HTTP 403 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-404-0.2",
+      "input": {
+        "shape": "404",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-404-0.2",
+      "input": {
+        "shape": "404",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0,
+        "archived": 1,
+        "axr": null,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 404 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0,
+        "archived": 1,
+        "axr": null,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 404 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-404-0.8",
+      "input": {
+        "shape": "404",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-404-0.8",
+      "input": {
+        "shape": "404",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0,
+        "archived": 1,
+        "axr": null,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 404 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0,
+        "archived": 1,
+        "axr": null,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 404 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-410-0.2",
+      "input": {
+        "shape": "410",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-410-0.2",
+      "input": {
+        "shape": "410",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0,
+        "archived": 1,
+        "axr": null,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 410 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0,
+        "archived": 1,
+        "axr": null,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 410 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-410-0.8",
+      "input": {
+        "shape": "410",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-410-0.8",
+      "input": {
+        "shape": "410",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0,
+        "archived": 1,
+        "axr": null,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 410 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0,
+        "archived": 1,
+        "axr": null,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 410 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-500-0.2",
+      "input": {
+        "shape": "500",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-500-0.2",
+      "input": {
+        "shape": "500",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.2,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 500 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.2,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 500 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-500-0.8",
+      "input": {
+        "shape": "500",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-500-0.8",
+      "input": {
+        "shape": "500",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 500 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 500 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-handshake-0.2",
+      "input": {
+        "shape": "handshake",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-handshake-0.2",
+      "input": {
+        "shape": "handshake",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.6,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": null,
+            "context_masked": "[health-probe] HTTP 200 | OK | {\"name\":\"fake\",\"version\":\"0\"}",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.6,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": null,
+            "context_masked": "[health-probe] HTTP 200 | OK | {\"name\":\"fake\",\"version\":\"0\"}",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-handshake-0.8",
+      "input": {
+        "shape": "handshake",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-handshake-0.8",
+      "input": {
+        "shape": "handshake",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": null,
+            "context_masked": "[health-probe] HTTP 200 | OK | {\"name\":\"fake\",\"version\":\"0\"}",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": null,
+            "context_masked": "[health-probe] HTTP 200 | OK | {\"name\":\"fake\",\"version\":\"0\"}",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-reachable-0.2",
+      "input": {
+        "shape": "reachable",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-reachable-0.2",
+      "input": {
+        "shape": "reachable",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.45,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 200 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.45,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 200 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-reachable-0.8",
+      "input": {
+        "shape": "reachable",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-reachable-0.8",
+      "input": {
+        "shape": "reachable",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 200 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 1,
+            "latency_ms": null,
+            "error_type": "other",
+            "context_masked": "[health-probe] HTTP 200 | OK | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-ENOTFOUND-0.2",
+      "input": {
+        "shape": "ENOTFOUND",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-ENOTFOUND-0.2",
+      "input": {
+        "shape": "ENOTFOUND",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.2,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "config",
+            "context_masked": "[health-probe] HTTP N/A | fetch failed | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.2,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "config",
+            "context_masked": "[health-probe] HTTP N/A | fetch failed | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-ENOTFOUND-0.8",
+      "input": {
+        "shape": "ENOTFOUND",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-ENOTFOUND-0.8",
+      "input": {
+        "shape": "ENOTFOUND",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "config",
+            "context_masked": "[health-probe] HTTP N/A | fetch failed | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "config",
+            "context_masked": "[health-probe] HTTP N/A | fetch failed | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-ECONNREFUSED-0.2",
+      "input": {
+        "shape": "ECONNREFUSED",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-ECONNREFUSED-0.2",
+      "input": {
+        "shape": "ECONNREFUSED",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.2,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "config",
+            "context_masked": "[health-probe] HTTP N/A | fetch failed | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.2,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "config",
+            "context_masked": "[health-probe] HTTP N/A | fetch failed | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-ECONNREFUSED-0.8",
+      "input": {
+        "shape": "ECONNREFUSED",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-ECONNREFUSED-0.8",
+      "input": {
+        "shape": "ECONNREFUSED",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "config",
+            "context_masked": "[health-probe] HTTP N/A | fetch failed | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "config",
+            "context_masked": "[health-probe] HTTP N/A | fetch failed | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-timeout-0.2",
+      "input": {
+        "shape": "timeout",
+        "score": 0.2
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-timeout-0.2",
+      "input": {
+        "shape": "timeout",
+        "score": 0.2,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.2,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "connection",
+            "context_masked": "[health-probe] HTTP N/A | timeout | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.2,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "connection",
+            "context_masked": "[health-probe] HTTP N/A | timeout | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "probe-provider-preserved-timeout-0.8",
+      "input": {
+        "shape": "timeout",
+        "score": 0.8
+      },
+      "expected": "official",
+      "actual": "official",
+      "conforms": true
+    },
+    {
+      "id": "probe-parity-timeout-0.8",
+      "input": {
+        "shape": "timeout",
+        "score": 0.8,
+        "baseline": "775a797",
+        "excluded_columns": [
+          "created_at (wall-clock SQL time)"
+        ]
+      },
+      "expected": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "connection",
+            "context_masked": "[health-probe] HTTP N/A | timeout | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "actual": {
+        "trust": 0.8,
+        "archived": 0,
+        "axr": 90,
+        "grade": null,
+        "outcomes": [
+          {
+            "service_id": "fake-probe",
+            "agent_id_hash": "health-probe",
+            "success": 0,
+            "latency_ms": null,
+            "error_type": "connection",
+            "context_masked": "[health-probe] HTTP N/A | timeout | no-handshake",
+            "provenance": "kansei_probe",
+            "verification_status": "unverified",
+            "task_type": "reachability_probe"
+          }
+        ]
+      },
+      "conforms": true
+    },
+    {
+      "id": "search-parity-independentaudit-undefined",
+      "input": {
+        "query": "independentaudit",
+        "filter": null
+      },
+      "expected": [
+        {
+          "service_id": "fake-search-7",
+          "name": "fake-search-7",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.9000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.27,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-6",
+          "name": "fake-search-6",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.8,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.24,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-5",
+          "name": "fake-search-5",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.7,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.21,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-4",
+          "name": "fake-search-4",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.6000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.18,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.15,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-2",
+          "name": "fake-search-2",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.4,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.12,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-1",
+          "name": "fake-search-1",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.30000000000000004,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.09,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-0",
+          "name": "fake-search-0",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.2,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.06,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "actual": [
+        {
+          "service_id": "fake-search-7",
+          "name": "fake-search-7",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.9000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.27,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-6",
+          "name": "fake-search-6",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.8,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.24,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-5",
+          "name": "fake-search-5",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.7,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.21,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-4",
+          "name": "fake-search-4",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.6000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.18,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.15,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-2",
+          "name": "fake-search-2",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.4,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.12,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-1",
+          "name": "fake-search-1",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.30000000000000004,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.09,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-0",
+          "name": "fake-search-0",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.2,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.06,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-independentaudit-verified",
+      "input": {
+        "query": "independentaudit",
+        "filter": "verified"
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-independentaudit-connectable",
+      "input": {
+        "query": "independentaudit",
+        "filter": "connectable"
+      },
+      "expected": [
+        {
+          "service_id": "fake-search-7",
+          "name": "fake-search-7",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.9000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.27,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-6",
+          "name": "fake-search-6",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.8,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.24,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-5",
+          "name": "fake-search-5",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.7,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.21,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-4",
+          "name": "fake-search-4",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.6000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.18,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.15,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-2",
+          "name": "fake-search-2",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.4,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.12,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-1",
+          "name": "fake-search-1",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.30000000000000004,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.09,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-0",
+          "name": "fake-search-0",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.2,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.06,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "actual": [
+        {
+          "service_id": "fake-search-7",
+          "name": "fake-search-7",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.9000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.27,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-6",
+          "name": "fake-search-6",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.8,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.24,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-5",
+          "name": "fake-search-5",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.7,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.21,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-4",
+          "name": "fake-search-4",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.6000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.18,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.15,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-2",
+          "name": "fake-search-2",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.4,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.12,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-1",
+          "name": "fake-search-1",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.30000000000000004,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.09,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-0",
+          "name": "fake-search-0",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.2,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.06,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-independentaudit-info_only",
+      "input": {
+        "query": "independentaudit",
+        "filter": "info_only"
+      },
+      "expected": [
+        {
+          "service_id": "fake-search-7",
+          "name": "fake-search-7",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.9000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.27,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-6",
+          "name": "fake-search-6",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.8,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.24,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-5",
+          "name": "fake-search-5",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.7,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.21,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-4",
+          "name": "fake-search-4",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.6000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.18,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.15,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-2",
+          "name": "fake-search-2",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.4,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.12,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-1",
+          "name": "fake-search-1",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.30000000000000004,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.09,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-0",
+          "name": "fake-search-0",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.2,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.06,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "actual": [
+        {
+          "service_id": "fake-search-7",
+          "name": "fake-search-7",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.9000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.27,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-6",
+          "name": "fake-search-6",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.8,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.24,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-5",
+          "name": "fake-search-5",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.7,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.21,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-4",
+          "name": "fake-search-4",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.6000000000000001,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.18,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.15,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-2",
+          "name": "fake-search-2",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.4,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.12,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-1",
+          "name": "fake-search-1",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.30000000000000004,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.09,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        },
+        {
+          "service_id": "fake-search-0",
+          "name": "fake-search-0",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.2,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 1.06,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-fake-search-3-undefined",
+      "input": {
+        "query": "fake-search-3",
+        "filter": null
+      },
+      "expected": [
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 2.53,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "actual": [
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 2.53,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-fake-search-3-verified",
+      "input": {
+        "query": "fake-search-3",
+        "filter": "verified"
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-fake-search-3-connectable",
+      "input": {
+        "query": "fake-search-3",
+        "filter": "connectable"
+      },
+      "expected": [
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 2.53,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "actual": [
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 2.53,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-fake-search-3-info_only",
+      "input": {
+        "query": "fake-search-3",
+        "filter": "info_only"
+      },
+      "expected": [
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 2.53,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "actual": [
+        {
+          "service_id": "fake-search-3",
+          "name": "fake-search-3",
+          "namespace": null,
+          "description": "independentaudit",
+          "category": "fake-audit",
+          "agent_ready": "connectable",
+          "mcp_endpoint": "https://fake-independent-dc.invalid/mcp",
+          "api_url": null,
+          "api_auth_method": null,
+          "trust_score": 0.5,
+          "usage_count": 0,
+          "success_rate": null,
+          "axr_grade": null,
+          "relevance_score": 2.53,
+          "freshness": {
+            "scope": "upstream_metadata",
+            "data_age_days": null,
+            "last_checked": null,
+            "checked_source": null,
+            "confidence": "unverified",
+            "last_attempt": null,
+            "last_attempt_status": null,
+            "last_refreshed": null
+          },
+          "reliability_basis": "none",
+          "measured": false,
+          "estimated_success_rate": null
+        }
+      ],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-nothing-matches-undefined",
+      "input": {
+        "query": "nothing-matches",
+        "filter": null
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-nothing-matches-verified",
+      "input": {
+        "query": "nothing-matches",
+        "filter": "verified"
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-nothing-matches-connectable",
+      "input": {
+        "query": "nothing-matches",
+        "filter": "connectable"
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "search-parity-nothing-matches-info_only",
+      "input": {
+        "query": "nothing-matches",
+        "filter": "info_only"
+      },
+      "expected": [],
+      "actual": [],
+      "conforms": true
+    },
+    {
+      "id": "article-fresh",
+      "input": {
+        "state": "handshake",
+        "at": "2026-10-02T12:54:03.939Z",
+        "observed": "https://fake-extra.invalid/mcp",
+        "archived": 0,
+        "status": "official",
+        "mcp_tool_count": 100
+      },
+      "expected": "verified",
+      "actual": "verified",
+      "conforms": true
+    },
+    {
+      "id": "article-old",
+      "input": {
+        "state": "handshake",
+        "at": "2026-09-01T12:54:04.939Z",
+        "observed": "https://fake-extra.invalid/mcp",
+        "archived": 0,
+        "status": "official",
+        "mcp_tool_count": 100
+      },
+      "expected": "connectable",
+      "actual": "connectable",
+      "conforms": true
+    },
+    {
+      "id": "article-future",
+      "input": {
+        "state": "handshake",
+        "at": "2026-10-03T12:54:04.939Z",
+        "observed": "https://fake-extra.invalid/mcp",
+        "archived": 0,
+        "status": "official",
+        "mcp_tool_count": 100
+      },
+      "expected": "connectable",
+      "actual": "connectable",
+      "conforms": true
+    },
+    {
+      "id": "article-invalid",
+      "input": {
+        "state": "handshake",
+        "at": "2026-09-31T00:00:00Z",
+        "observed": "https://fake-extra.invalid/mcp",
+        "archived": 0,
+        "status": "official",
+        "mcp_tool_count": 100
+      },
+      "expected": "connectable",
+      "actual": "connectable",
+      "conforms": true
+    },
+    {
+      "id": "article-unreachable",
+      "input": {
+        "state": "unreachable",
+        "at": "2026-10-02T12:54:03.939Z",
+        "observed": "https://fake-extra.invalid/mcp",
+        "archived": 0,
+        "status": "official",
+        "mcp_tool_count": 100
+      },
+      "expected": "connectable",
+      "actual": "connectable",
+      "conforms": true
+    },
+    {
+      "id": "article-reachable",
+      "input": {
+        "state": "reachable",
+        "at": "2026-10-02T12:54:03.939Z",
+        "observed": "https://fake-extra.invalid/mcp",
+        "archived": 0,
+        "status": "official",
+        "mcp_tool_count": 100
+      },
+      "expected": "connectable",
+      "actual": "connectable",
+      "conforms": true
+    },
+    {
+      "id": "article-missing",
+      "input": {
+        "state": null,
+        "at": null,
+        "observed": null,
+        "archived": 0,
+        "status": "official",
+        "mcp_tool_count": 100
+      },
+      "expected": "connectable",
+      "actual": "connectable",
+      "conforms": true
+    },
+    {
+      "id": "article-other",
+      "input": {
+        "state": "handshake",
+        "at": "2026-10-02T12:54:03.939Z",
+        "observed": "https://fake-extra.invalid/mcp/other",
+        "archived": 0,
+        "status": "official",
+        "mcp_tool_count": 100
+      },
+      "expected": "connectable",
+      "actual": "connectable",
+      "conforms": true
+    },
+    {
+      "id": "article-archived",
+      "input": {
+        "state": "handshake",
+        "at": "2026-10-02T12:54:03.939Z",
+        "observed": "https://fake-extra.invalid/mcp",
+        "archived": 1,
+        "status": "official",
+        "mcp_tool_count": 100
+      },
+      "expected": null,
+      "actual": null,
+      "conforms": true
+    },
+    {
+      "id": "article-dead",
+      "input": {
+        "state": "handshake",
+        "at": "2026-10-02T12:54:03.939Z",
+        "observed": "https://fake-extra.invalid/mcp",
+        "archived": 0,
+        "status": "dead",
+        "mcp_tool_count": 100
+      },
+      "expected": "connectable",
+      "actual": "connectable",
+      "conforms": true
+    },
+    {
+      "id": "F8-standalone-probe-upgrade",
+      "input": {
+        "starting_schema": "775a797",
+        "entrypoint": "node dist/crawler/health-probe.js --limit 1",
+        "fetch": "preloaded fake handshake; no network",
+        "migration_before_cli": false
+      },
+      "expected": {
+        "exit": 0,
+        "trust": 0.6,
+        "outcomes": 1
+      },
+      "actual": {
+        "exit": 1,
+        "trust": 0.2,
+        "outcomes": 0
+      },
+      "conforms": false
+    },
+    {
+      "id": "standalone-probe-after-explicit-migration",
+      "input": {
+        "initializeDb_before_cli": true,
+        "fetch": "preloaded fake handshake"
+      },
+      "expected": {
+        "exit": 0,
+        "trust": 0.6,
+        "outcomes": 1,
+        "liveness": "handshake",
+        "provider": "official"
+      },
+      "actual": {
+        "exit": 0,
+        "trust": 0.6,
+        "outcomes": 1,
+        "liveness": "handshake",
+        "provider": "official"
+      },
+      "conforms": true
+    },
+    {
+      "id": "F8-watchdog-upgrade-exit",
+      "input": {
+        "starting_schema": "775a797",
+        "entrypoint": "node dist/crawler/watchdog.js --fix",
+        "initial_trust": 0.8,
+        "failed_outcomes": 5
+      },
+      "expected": 0,
+      "actual": 1,
+      "conforms": false
+    }
+  ]
+}

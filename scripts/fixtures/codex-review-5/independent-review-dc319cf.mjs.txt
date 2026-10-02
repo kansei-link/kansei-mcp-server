@@ -1,0 +1,130 @@
+import Database from 'better-sqlite3';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { resolve, dirname } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import ts from 'typescript';
+import { initializeDb } from '../dist/db/schema.js';
+import { seedDatabase } from '../dist/db/seed.js';
+import { displayMcpStatus, parseUtc } from '../dist/utils/mcp-status.js';
+import { vendorClaimWriter } from '../dist/crawler/sources/vendor-submissions-step.js';
+import { proposeUpdate, reviewUpdate } from '../dist/tools/propose-update.js';
+import { runHealthProbe } from '../dist/crawler/health-probe.js';
+import { searchServices, register as registerSearch } from '../dist/tools/search-services.js';
+import { register as registerLookup } from '../dist/tools/lookup.js';
+import { register as registerInspect } from '../dist/tools/inspect.js';
+import { register as registerArticle } from '../dist/tools/generate-aeo-article.js';
+import { registerResources } from '../dist/resources.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+
+const cases=[];
+const record=(id,input,expected,actual)=>cases.push({id,input,expected,actual,conforms:JSON.stringify(expected)===JSON.stringify(actual)});
+const quiet=async(fn)=>{const log=console.log,err=console.error; console.log=console.error=()=>{};try{return await fn();}finally{console.log=log;console.error=err;}};
+const freshDb=async()=>{const d=new Database(':memory:');await quiet(()=>initializeDb(d));return d;};
+const now=new Date('2026-10-02T12:00:00Z'), ep='https://fake-independent-dc.invalid/mcp';
+const base={mcp_status:'verified',mcp_endpoint:ep,archived:0,mcp_liveness:'handshake',mcp_liveness_checked_at:now.toISOString(),mcp_liveness_endpoint:ep};
+const live=r=>[r.mcp_liveness,r.mcp_liveness_checked_at,r.mcp_liveness_endpoint];
+function put(db,id,patch={}) {const data={id,name:id,description:'independentaudit',category:'fake-audit',trust_score:0.8,axr_score:90,...base,...patch};const fields=Object.keys(data);db.prepare(`INSERT INTO services(${fields}) VALUES(${fields.map(()=>'?')})`).run(...Object.values(data));}
+const row=(db,id)=>db.prepare('SELECT * FROM services WHERE id=?').get(id);
+function observe(db,id,state='handshake') {db.prepare("UPDATE services SET mcp_liveness=?,mcp_liveness_checked_at=strftime('%Y-%m-%dT%H:%M:%SZ','now'),mcp_liveness_endpoint=mcp_endpoint WHERE id=?").run(state,id);}
+async function baseline(file) {
+ const src=execFileSync('git',['show',`775a797:src/${file}.ts`],{encoding:'utf8'});
+ let js=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+ js=js.replace(/(from\s*["'])(\.[^"']+)(["'])/g,(_,a,p,z)=>a+pathToFileURL(resolve('dist',dirname(file),p)).href+z);
+ const path=resolve('work',`base-${file.replaceAll('/','-')}.mjs`);writeFileSync(path,js);return import(pathToFileURL(path).href);
+}
+
+// Calendar validity against explicit values, not against the implementation's parser.
+for(const stamp of ['2026-09-31T12:00:00Z','2026-02-29T12:00:00Z','2100-02-29T00:00:00Z','2028-02-30T00:00:00Z','2026-00-01','2026-10-00','2026-13-01','2026-10-01T24:00:00Z','2026-10-01T23:59:60Z','2026-10-01T00:60:00Z','2026-10-01T00:00:00+24:00','2026-10-01T00:00:00+00:60','2026-10-01T00:00:00Zgarbage','NaN']) {
+ record('calendar-reject-'+stamp,{stamp},true,Number.isNaN(parseUtc(stamp)));
+}
+for(const [stamp,want] of [['2028-02-29 23:59:59','2028-02-29T23:59:59.000Z'],['2000-02-29','2000-02-29T00:00:00.000Z'],['0099-01-01T00:00:00Z','0099-01-01T00:00:00.000Z'],['2026-10-02T21:00:00+0900','2026-10-02T12:00:00.000Z'],['2026-10-02T08:00:00-04:00','2026-10-02T12:00:00.000Z']])record('calendar-valid-'+stamp,{stamp},want,new Date(parseUtc(stamp)).toISOString());
+const patches=[['fresh',{},'verified'],['30-days',{mcp_liveness_checked_at:'2026-09-02T12:00:00Z'},'verified'],['over-30-days',{mcp_liveness_checked_at:'2026-09-02T11:59:59.999Z'},'unverified'],['future',{mcp_liveness_checked_at:'2026-10-02T12:00:00.001Z'},'unverified'],['invalid-calendar',{mcp_liveness_checked_at:'2026-09-31T12:00:00Z'},'unverified'],['missing-time',{mcp_liveness_checked_at:null},'unverified'],['never-probed',{mcp_liveness:null},'unverified'],['unreachable',{mcp_liveness:'unreachable'},'unverified'],['reachable',{mcp_liveness:'reachable'},'unverified'],['dead',{mcp_status:'dead'},'unverified'],['stored-unreachable',{mcp_status:'unreachable'},'unverified'],['archived',{archived:1},'unverified'],['endpoint-case',{mcp_liveness_endpoint:ep.toUpperCase()},'unverified'],['endpoint-slash',{mcp_liveness_endpoint:ep+'/'},'unverified'],['endpoint-null',{mcp_endpoint:null,mcp_liveness_endpoint:null},'unverified'],['endpoint-empty',{mcp_endpoint:'',mcp_liveness_endpoint:''},'unverified']];
+for(const [name,patch,expected] of patches)record('display-'+name,{row:{...base,...patch},now:now.toISOString()},expected,displayMcpStatus({...base,...patch},now).mcp_status);
+for(const status of ['official','third_party','community','api_only','unknown','none'])for(const patch of [{mcp_liveness:null},{mcp_liveness:'reachable'},{mcp_liveness_checked_at:'2020-01-01T00:00:00Z'},{mcp_liveness_endpoint:ep+'/other'}])record('provider-'+status+'-'+JSON.stringify(patch),{...base,mcp_status:status,...patch},status,displayMcpStatus({...base,mcp_status:status,...patch},now).mcp_status);
+
+// Actual MCP handlers, all data fake; dynamic dates avoid relying on machine date.
+const db=await freshDb();
+const server=new McpServer({name:'independent-dc-review',version:'0'});
+registerLookup(server,db);registerSearch(server,db);registerResources(server,db);registerInspect(server,db);registerArticle(server,db);
+const [ct,st]=InMemoryTransport.createLinkedPair();await server.connect(st);const client=new Client({name:'review-client',version:'0'});await client.connect(ct);
+const parse=r=>{const text=r.content[0].text;return JSON.parse(text.slice(text.indexOf('{')));};
+const call=async(name,args)=>parse(await client.callTool({name,arguments:args}));
+const find=(o,k)=>{if(!o||typeof o!=='object')return undefined;if(k in o)return o[k];for(const v of Object.values(o)){const r=find(v,k);if(r!==undefined)return r;}};
+const routePatches=[['unreachable',{mcp_liveness:'unreachable'},'unverified'],['none',{mcp_liveness:null,mcp_liveness_checked_at:null,mcp_liveness_endpoint:null},'unverified'],['old',{mcp_liveness_checked_at:new Date(Date.now()-31*86400000).toISOString()},'unverified'],['future',{mcp_liveness_checked_at:new Date(Date.now()+86400000).toISOString()},'unverified'],['bad-calendar',{mcp_liveness_checked_at:'2026-09-31T12:00:00Z'},'unverified'],['dead',{mcp_status:'dead'},'unverified'],['other',{mcp_liveness_endpoint:ep+'/other'},'unverified'],['archived',{archived:1},'unverified'],['official',{mcp_status:'official',mcp_liveness:null},'official'],['fresh',{},'verified']];
+for(const [name,patch,expected] of routePatches) {
+ const id='fake-independent-'+name;put(db,id,{mcp_liveness_checked_at:new Date(Date.now()-1000).toISOString(),...patch});
+ record('route-lookup-'+name,{id,patch},expected,find(await call('lookup',{service_id:id}),'connection').mcp_status);
+ record('route-detail-'+name,{id,patch},expected,find(await call('lookup',{service_id:id,detail:true}),'mcp_status'));
+ const resource=JSON.parse((await client.readResource({uri:`kansei://service/${id}`})).contents[0].text);
+ record('route-resource-'+name,{id,patch},expected,resource.mcp_status);
+ const compact=await call('search_services',{intent:id,compact:true,limit:20});const item=find(compact,'r')?.find(r=>r.id===id);
+ record('route-search-'+name,{id,patch},patch.archived?null:expected,item?.mcp??null);
+ record('no-raw-observation-'+name,{route:'resource',id},false,Object.hasOwn(resource,'mcp_liveness_endpoint')||Object.hasOwn(resource,'mcp_liveness_checked_at'));
+}
+const summary=JSON.parse((await client.readResource({uri:'kansei://mcp-status'})).contents[0].text);
+record('resource-summary-verified',{rows:routePatches.map(x=>x[0])},1,summary.summary.find(x=>x.status==='verified')?.count??0);
+record('resource-official-list',{},['fake-independent-official'],summary.official_mcp_servers.map(x=>x.id));
+const proposal=await call('inspect',{mode:'propose',propose_service_id:'fake-independent-unreachable',field:'mcp_status',new_value:'community',reason:'Independent fake-only display audit'});
+record('F2-admin-propose-current-status',{route:'inspect mode=propose (admin-gated)',service_id:'fake-independent-unreachable',stored:'verified',liveness:'unreachable',same_endpoint:true},'unverified',find(proposal,'diff')?.mcp_status?.current);
+await client.close();await server.close();
+
+// Every endpoint transition, including registry's real UPDATE shape.
+let seq=0;
+for(const writer of ['vendor','proposal','sql','registry'])for(const [a,b,observed] of [[ep,ep,ep],[ep,ep+'/B',ep],[ep+'/B',ep,ep],[ep,ep+'/B',null],[null,ep,ep],['',ep,ep],[ep,null,ep],[null,null,null]]) {
+ const id='fake-writer-'+(++seq);put(db,id,{mcp_endpoint:a,mcp_liveness_endpoint:observed});const before=live(row(db,id));
+ if(writer==='vendor')vendorClaimWriter(db).run('official',b,id);
+ else if(writer==='proposal'){const p=proposeUpdate(db,{service_id:id,changes:{mcp_endpoint:b},reason:'Fake transition '+seq,change_type:'update'});await quiet(()=>reviewUpdate(db,{proposal_id:p.proposal_id,action:'approve',reviewer:'fake-reviewer'}));}
+ else if(writer==='registry')db.prepare("UPDATE services SET mcp_endpoint=? WHERE id=? AND (mcp_endpoint IS NULL OR mcp_endpoint='')").run(b,id);
+ else db.prepare('UPDATE services SET mcp_endpoint=? WHERE id=?').run(b,id);
+ const changed=writer==='registry'?(a===null||a==='')&&a!==b:a!==b;
+ record('endpoint-'+writer+'-'+seq,{before:a,after:b,observed},changed?[null,null,null]:before,live(row(db,id)));
+}
+// Seed preservation includes all existing fake rows and a by-shape real seed conflict in this temporary DB.
+await quiet(()=>seedDatabase(db));
+const selected=db.prepare("SELECT id,mcp_endpoint FROM services WHERE mcp_status='verified' AND mcp_endpoint LIKE 'http%' AND COALESCE(archived,0)=0 AND mcp_liveness IS NULL ORDER BY id LIMIT 1").get();
+observe(db,selected.id,'unreachable');let before=live(row(db,selected.id));await quiet(()=>seedDatabase(db));record('seed-preserve',{selection:'first nonarchived stored-verified HTTP seed row, by shape only'},before,live(row(db,selected.id)));
+db.prepare('UPDATE services SET mcp_endpoint=? WHERE id=?').run(ep,selected.id);observe(db,selected.id);await quiet(()=>seedDatabase(db));record('seed-endpoint-reset',{selection:'same by-shape seed row',temporary_endpoint:ep},[null,null,null],live(row(db,selected.id)));
+db.close();
+
+// Baseline migration creates the actual 775a797 shape; source is loaded only from this clone's git objects.
+const {initializeDb:oldInit}=await baseline('db/schema');
+for(const starting of ['775a797','pre-upstream-columns']) {
+ const d=new Database(':memory:');await quiet(()=>oldInit(d));
+ if(starting==='pre-upstream-columns')for(const c of ['upstream_checked_at','upstream_check_source','last_refresh_attempt_at','last_refresh_status'])d.exec(`ALTER TABLE services DROP COLUMN ${c}`);
+ for(const type of ['deprecated','deprecation','archived','probe_failed']) {
+  const id='fake-migration-'+type;d.prepare('INSERT INTO services(id,name,last_refreshed_at) VALUES(?,?,?)').run(id,id,'2026-10-01');
+  if(starting==='775a797')d.prepare("UPDATE services SET upstream_checked_at='2026-10-01',upstream_check_source='changelog_backfill' WHERE id=?").run(id);
+  d.prepare('INSERT INTO service_changelog(service_id,change_date,change_type,summary) VALUES(?,?,?,?)').run(id,'2026-10-01',type,'Fake death');
+ }
+ if(starting==='775a797')for(const source of ['github','npm'])d.prepare('INSERT INTO services(id,name,upstream_checked_at,upstream_check_source,last_refreshed_at) VALUES(?,?,?,?,?)').run('fake-'+source,'fake-'+source,'2026-09-30',source,'2026-09-30');
+ await quiet(()=>initializeDb(d));
+ for(const type of ['deprecated','deprecation','archived','probe_failed'])record('migration-'+starting+'-'+type,{starting,type},null,row(d,'fake-migration-'+type).upstream_checked_at);
+ if(starting==='775a797')for(const source of ['github','npm'])record('migration-preserve-'+source,{starting,source},'2026-09-30',row(d,'fake-'+source).upstream_checked_at);
+ const snap=()=>({rows:d.prepare('SELECT * FROM services ORDER BY id').all(),markers:d.prepare('SELECT * FROM schema_migrations ORDER BY migration_id').all(),audit:d.prepare('SELECT * FROM migration_audit ORDER BY id').all()});const before=snap();await quiet(()=>initializeDb(d));record('migration-second-'+starting,{starting},before,snap());d.close();
+}
+
+// Stable clock makes the whole outcome row comparable, including time and latency.
+const {runHealthProbe:oldProbe}=await baseline('crawler/health-probe');
+const originalFetch=globalThis.fetch, originalNow=Date.now;
+const shapes={handshake:()=>new Response(JSON.stringify({result:{serverInfo:{name:'fake',version:'0'}}}),{headers:{'content-type':'application/json'}}),reachable:()=>new Response('{}',{headers:{'content-type':'application/json'}}),'401':()=>new Response('',{status:401}),'403':()=>new Response('',{status:403}),'404':()=>new Response('',{status:404}),'410':()=>new Response('',{status:410}),ENOTFOUND:()=>{throw new TypeError('fetch failed',{cause:Object.assign(new Error('getaddrinfo ENOTFOUND fake.invalid'),{code:'ENOTFOUND'})});},ECONNREFUSED:()=>{throw new TypeError('fetch failed',{cause:Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:9'),{code:'ECONNREFUSED'})});},timeout:()=>{throw new Error('operation aborted');},'500':()=>new Response('',{status:500})};
+for(const [shape,fake] of Object.entries(shapes))for(const score of [0.2,0.8]) {
+ const observed={};globalThis.fetch=async()=>fake();Date.now=()=>now.getTime();
+ try {for(const [version,probe] of [['base',oldProbe],['head',runHealthProbe]]) {
+  const d=await freshDb();put(d,'fake-probe',{trust_score:score,mcp_status:'official',mcp_liveness:null,mcp_liveness_checked_at:null,mcp_liveness_endpoint:null});await quiet(()=>probe(d,{limit:1}));
+  const s=row(d,'fake-probe');observed[version]={trust:s.trust_score,archived:s.archived,axr:s.axr_score,grade:s.axr_grade,outcomes:d.prepare('SELECT service_id,agent_id_hash,success,latency_ms,error_type,context_masked,provenance,verification_status,task_type FROM outcomes').all()};
+  if(version==='head')record('probe-provider-preserved-'+shape+'-'+score,{shape,score},'official',s.mcp_status);d.close();
+ }record('probe-parity-'+shape+'-'+score,{shape,score,baseline:'775a797',excluded_columns:['created_at (wall-clock SQL time)']},observed.base,observed.head);}finally{globalThis.fetch=originalFetch;Date.now=originalNow;}
+}
+
+// Search order/count/readiness/trust/freshness must be unchanged by response shaping.
+const {searchServices:oldSearch}=await baseline('tools/search-services');
+const sd=await freshDb();for(let i=0;i<8;i++)put(sd,'fake-search-'+i,{trust_score:0.2+i*0.1,mcp_status:i%2?'official':'verified',mcp_liveness:i%2?null:'unreachable'});
+const project=rows=>rows.map(({mcp_status,mcp_liveness,mcp_status_basis,...r})=>r);
+for(const query of ['independentaudit','fake-search-3','nothing-matches'])for(const filter of [undefined,'verified','connectable','info_only'])record('search-parity-'+query+'-'+filter,{query,filter:filter??null},project(oldSearch(sd,query,undefined,20,filter)),project(searchServices(sd,query,undefined,20,filter)));
+sd.close();
+const report={commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),scope:'775a797..dc319cf; independent tests with synthetic data; no production DB or endpoint accessed',summary:{total:cases.length,conforming:cases.filter(c=>c.conforms).length,nonconforming:cases.filter(c=>!c.conforms).length},cases};
+writeFileSync('work/independent-cases-dc319cf.json',JSON.stringify(report,null,2));
+console.log(JSON.stringify({summary:report.summary,nonconforming:cases.filter(c=>!c.conforms)},null,2));

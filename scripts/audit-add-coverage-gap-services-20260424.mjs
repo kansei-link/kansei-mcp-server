@@ -14,7 +14,7 @@
  *   node scripts/audit-add-coverage-gap-services-20260424.mjs
  *   node scripts/audit-add-coverage-gap-services-20260424.mjs --dry-run
  */
-import Database from "better-sqlite3";
+import { openDb } from "../dist/db/open.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -132,7 +132,7 @@ const services = [
   },
 ];
 
-const db = new Database(dbPath);
+const db = openDb(dbPath);
 console.log("=== add coverage-gap services (2026-04-24 audit) ===");
 console.log(DRY_RUN ? "(dry-run — no changes)" : "");
 

@@ -1,0 +1,45 @@
+import Database from 'better-sqlite3';
+import { readFileSync,writeFileSync,mkdirSync,copyFileSync } from 'node:fs';
+import { resolve,join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { execFileSync,spawnSync } from 'node:child_process';
+import ts from 'typescript';
+import { initializeDb } from '../dist/db/schema.js';
+import { initializeDb as oldInit } from './base-db-schema.mjs';
+import { generateArticle } from '../dist/tools/generate-aeo-article.js';
+import { displayMcpStatus } from '../dist/utils/mcp-status.js';
+const report=JSON.parse(readFileSync('work/independent-cases-dc319cf.json','utf8'));
+const record=(id,input,expected,actual)=>report.cases.push({id,input,expected,actual,conforms:JSON.stringify(expected)===JSON.stringify(actual)});
+const quiet=fn=>{const l=console.log,e=console.error;console.log=console.error=()=>{};try{return fn();}finally{console.log=l;console.error=e;}};
+const db=new Database(':memory:');quiet(()=>initializeDb(db));
+const now=Date.now(),ep='https://fake-extra.invalid/mcp';
+const states=[['fresh','handshake',new Date(now-1000).toISOString(),ep,0,'official','verified'],['old','handshake',new Date(now-31*86400000).toISOString(),ep,0,'official','connectable'],['future','handshake',new Date(now+86400000).toISOString(),ep,0,'official','connectable'],['invalid','handshake','2026-09-31T00:00:00Z',ep,0,'official','connectable'],['unreachable','unreachable',new Date(now-1000).toISOString(),ep,0,'official','connectable'],['reachable','reachable',new Date(now-1000).toISOString(),ep,0,'official','connectable'],['missing',null,null,null,0,'official','connectable'],['other','handshake',new Date(now-1000).toISOString(),ep+'/other',0,'official','connectable'],['archived','handshake',new Date(now-1000).toISOString(),ep,1,'official',null],['dead','handshake',new Date(now-1000).toISOString(),ep,0,'dead','connectable']];
+for(const [name,state,at,observed,archived,status] of states)db.prepare('INSERT INTO services(id,name,mcp_endpoint,mcp_status,mcp_liveness,mcp_liveness_checked_at,mcp_liveness_endpoint,archived,mcp_tool_count) VALUES(?,?,?,?,?,?,?,?,100)').run('fake-article-'+name,'fake-article-'+name,ep,status,state,at,observed,archived);
+const article=generateArticle(db,{quarter:'fake-test',format:'json',topN:100});
+for(const [name,state,at,observed,archived,status,want] of states)record('article-'+name,{state,at,observed,archived,status,mcp_tool_count:100},want,article.overall_top.find(r=>r.service_id==='fake-article-'+name)?.agent_ready??null);
+db.close();
+
+// Unmodified built CLI files in isolated trees; the DB is a synthetic old-schema DB.
+// Fetch is fully stubbed in a preload, so even a bug cannot hit a real endpoint.
+const folder=resolve('work/cli-upgrade');mkdirSync(folder,{recursive:true});
+const preload=join(folder,'fake-fetch.mjs');writeFileSync(preload,`globalThis.fetch=async()=>new Response(JSON.stringify({result:{serverInfo:{name:'fake',version:'0'}}}),{headers:{'content-type':'application/json'}});`);
+const cli={};
+for(const version of ['base','head']) {
+ const tree=join(folder,version);mkdirSync(join(tree,'dist/crawler'),{recursive:true});mkdirSync(join(tree,'dist/utils'),{recursive:true});mkdirSync(join(tree,'dist/data'),{recursive:true});
+ for(const name of ['health-probe','watchdog']) {
+  const target=join(tree,'dist/crawler',name+'.js');
+  if(version==='head')copyFileSync('dist/crawler/'+name+'.js',target);
+  else {const src=execFileSync('git',['show','775a797:src/crawler/'+name+'.ts'],{encoding:'utf8'});writeFileSync(target,ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);}
+ }
+ copyFileSync('dist/utils/mcp-status.js',join(tree,'dist/utils/mcp-status.js'));
+ const d=new Database(join(tree,'kansei-link.db'));quiet(()=>oldInit(d));d.prepare('INSERT INTO services(id,name,mcp_status,mcp_endpoint,trust_score) VALUES(?,?,?,?,?)').run('fake-cli-upgrade','fake-cli-upgrade','official',ep,0.2);d.close();
+ const r=spawnSync(process.execPath,['--import',pathToFileURL(preload).href,join(tree,'dist/crawler/health-probe.js'),'--limit','1'],{encoding:'utf8',timeout:30000});
+ const after=new Database(join(tree,'kansei-link.db'));
+ cli[version]={exit:r.status,trust:after.prepare('SELECT trust_score FROM services').get().trust_score,outcomes:after.prepare('SELECT count(*) n FROM outcomes').get().n,stderr:r.stderr};
+ after.close();
+}
+record('F8-standalone-probe-upgrade',{starting_schema:'775a797',entrypoint:'node dist/crawler/health-probe.js --limit 1',fetch:'preloaded fake handshake; no network',migration_before_cli:false}, {exit:cli.base.exit,trust:cli.base.trust,outcomes:cli.base.outcomes},{exit:cli.head.exit,trust:cli.head.trust,outcomes:cli.head.outcomes});
+writeFileSync('work/cli-upgrade-evidence.json',JSON.stringify(cli,null,2));
+report.summary={total:report.cases.length,conforming:report.cases.filter(c=>c.conforms).length,nonconforming:report.cases.filter(c=>!c.conforms).length};
+writeFileSync('work/independent-cases-dc319cf.json',JSON.stringify(report,null,2));
+console.log(JSON.stringify({summary:report.summary,nonconforming:report.cases.filter(c=>!c.conforms)},null,2));

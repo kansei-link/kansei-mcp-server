@@ -15,7 +15,7 @@
  *   node scripts/audit-remediation-20260424.mjs              # apply
  *   node scripts/audit-remediation-20260424.mjs --dry-run    # preview
  */
-import Database from "better-sqlite3";
+import { openDb } from "../dist/db/open.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -23,7 +23,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, "..", "kansei-link.db");
 const DRY_RUN = process.argv.includes("--dry-run");
 
-const db = new Database(dbPath);
+const db = openDb(dbPath);
 
 // ─── Action 1: Archive dead endpoints ─────────────────────────────
 const archives = [
