@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { z } from "zod";
 import { maskPii } from "../utils/pii-masker.js";
 import { recalculateTrustScores } from "../utils/trust-recalc.js";
+import { CLEAR_STALE_LIVENESS_SQL, displayMcpStatus, type McpStatusInput } from "../utils/mcp-status.js";
 
 /**
  * Stage 1 Autonomy: PR-model Data Updates
@@ -283,10 +284,19 @@ function proposeUpdate(
     .prepare("SELECT * FROM service_api_guides WHERE service_id = ?")
     .get(input.service_id) as Record<string, unknown> | undefined;
 
-  const diff: Record<string, { current: unknown; proposed: string; table: string }> = {};
+  // The diff goes OUT (to the proposer and, through inspect, to the operator). mcp_status
+  // leaves only through displayMcpStatus, with its basis and the liveness beside it —
+  // never the stored claim on its own (Codex review 5 of dc319cf, B). Nothing reads
+  // diff back; the stored row is untouched here.
+  const diff: Record<string, { current: unknown; current_basis?: string; current_liveness?: unknown; proposed: string; table: string }> = {};
   for (const [field, newValue] of Object.entries(input.changes)) {
     const isGuideField = (ALLOWED_GUIDE_FIELDS as readonly string[]).includes(field);
     const source = isGuideField ? currentGuide : currentService;
+    if (!isGuideField && field === "mcp_status" && currentService) {
+      const shown = displayMcpStatus(currentService as unknown as McpStatusInput);
+      diff[field] = { current: shown.mcp_status, current_basis: shown.mcp_status_basis, current_liveness: shown.mcp_liveness, proposed: newValue, table: "services" };
+      continue;
+    }
     diff[field] = {
       current: source?.[field] ?? null,
       proposed: newValue,
@@ -422,6 +432,11 @@ function reviewUpdate(
         value,
         proposal.service_id
       );
+    }
+    // mcp_status is the provider's claim and may be proposed; liveness is the
+    // probe's alone. A changed endpoint is not covered by the old observation.
+    if (serviceUpdates.some(([field]) => field === "mcp_endpoint")) {
+      db.prepare(CLEAR_STALE_LIVENESS_SQL).run(proposal.service_id);
     }
 
     // Apply guide table updates (UPSERT: guide row may not exist yet)

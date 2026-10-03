@@ -1,0 +1,127 @@
+Commit: c70c13134b0dae8e82c34927021e8c95b1642eec
+Read-only source evidence; line numbers are original source lines.
+
+C:\Users\HP\Documents\Codex\2026-10-02\files-pasted-by-the-user-kanseilink-4\kl-review-c70c131\src\db\open.ts
+5:  * The one way a CLI or script opens the catalog DB (Codex review 5 of dc319cf, A / F8).
+6:  *
+7:  * Every connection made here has gone through initializeDb before any statement
+8:  * runs, so a DB written by an older release gets the columns the code reads
+9:  * (e.g. mcp_liveness) before a probe, a watchdog pass or a script touches it.
+10:  * initializeDb is idempotent: on an up-to-date DB it changes nothing.
+11:  *
+12:  * Not for: read-only connections (initializeDb writes), the deliberate legacy
+13:  * shapes built by the migration smoke tests, and getDb (src/db/connection.ts),
+14:  * whose caller (the server) runs initializeDb itself.
+15:  */
+16: export function openDb(path: string, options?: Database.Options): Database.Database {
+17:   const db = new Database(path, options);
+18:   try {
+19:     initializeDb(db);
+20:   } catch (e) {
+21:     db.close();
+22:     throw e;
+23:   }
+24:   return db;
+25: }
+
+C:\Users\HP\Documents\Codex\2026-10-02\files-pasted-by-the-user-kanseilink-4\kl-review-c70c131\src\crawler\health-probe.ts
+346: async function main() {
+347:   const args = process.argv.slice(2);
+348:   const dryRun = args.includes("--dry-run");
+349:   const limitIdx = args.indexOf("--limit");
+350:   const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 50;
+351: 
+352:   const db = openDb(DB_PATH);
+353:   db.pragma("journal_mode = WAL");
+354:   try {
+355:     await runHealthProbe(db, { limit, dryRun });
+356:   } finally {
+357:     db.close();
+358:   }
+359: }
+360: 
+
+C:\Users\HP\Documents\Codex\2026-10-02\files-pasted-by-the-user-kanseilink-4\kl-review-c70c131\src\db\schema.ts
+418:   // rows default to legacy_unknown; we only reclassify rows whose writer is
+419:   // unambiguous. Unknown data must never be guessed into a public metric.
+420:   const outcomeColumns = db
+421:     .prepare("SELECT name FROM pragma_table_info('outcomes')")
+422:     .all() as { name: string }[];
+423:   const outcomeColumnNames = new Set(outcomeColumns.map((c) => c.name));
+424:   const outcomeMigrations: Array<[string, string]> = [
+425:     ["provenance", "TEXT NOT NULL DEFAULT 'legacy_unknown'"],
+426:     ["verification_status", "TEXT NOT NULL DEFAULT 'unverified'"],
+427:     ["attempt_id", "TEXT"],
+428:     ["recipe_id", "TEXT"],
+429:     ["recipe_version", "INTEGER"],
+430:     ["failed_step", "TEXT"],
+431:   ];
+432:   for (const [name, definition] of outcomeMigrations) {
+433:     if (!outcomeColumnNames.has(name)) {
+434:       db.exec(`ALTER TABLE outcomes ADD COLUMN ${name} ${definition}`);
+435:     }
+436:   }
+437: 
+438:   db.exec(`
+439:     UPDATE outcomes SET provenance = 'synthetic'
+440:       WHERE provenance = 'legacy_unknown'
+441:         AND agent_id_hash IN ('test-harness-v1','agent-army','scout_agent','self-test-fleet','agent1','agent2','agent3','agent4','agent5','agent6','test-agent');
+442:     UPDATE outcomes SET provenance = 'public'
+443:       WHERE provenance = 'legacy_unknown' AND agent_id_hash = 'github-issues-miner';
+444:     CREATE INDEX IF NOT EXISTS idx_outcomes_attempt ON outcomes(attempt_id);
+
+C:\Users\HP\Documents\Codex\2026-10-02\files-pasted-by-the-user-kanseilink-4\kl-review-c70c131\src\crawler\mcp-test-harness.ts
+237: 
+238: // ── DB Recording ─────────────────────────────────────────────────
+239: function recordResults(serviceId: string, results: TestPhaseResult[]) {
+240:   const db = openDb(DB_PATH);
+241:   db.pragma("journal_mode = WAL");
+242: 
+243:   const insertOutcome = db.prepare(`
+244:     INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, context_masked, created_at)
+245:     VALUES (?, 'self-test-fleet', ?, ?, ?, ?, datetime('now'))
+246:   `);
+247: 
+248:   const tx = db.transaction(() => {
+249:     for (const r of results) {
+250:       insertOutcome.run(
+251:         serviceId,
+252:         r.success ? 1 : 0,
+253:         r.latency_ms || null,
+254:         r.error ? "runtime" : null,
+255:         `[self-test] ${r.phase} | ${r.error || "OK"} | ${JSON.stringify(r.data || {}).slice(0, 300)}`,
+256:       );
+257:     }
+258:   });
+259:   tx();
+260: 
+
+C:\Users\HP\Documents\Codex\2026-10-02\files-pasted-by-the-user-kanseilink-4\kl-review-c70c131\scripts\smoke-codex-review-5-dc319cf.mjs
+49: symlinkSync(join(ROOT, 'dist'), join(TMP, 'dist'), 'junction');
+50: mkdirSync(join(TMP, 'work'));
+51: 
+52: const PORT_PATCH = {
+53:   from: " for(const name of ['health-probe','watchdog']) {\n  const target=join(tree,'dist/crawler',name+'.js');\n  if(version==='head')copyFileSync('dist/crawler/'+name+'.js',target);",
+54:   to: " if(version==='head')cpSync(realpathSync('dist'),join(tree,'dist'),{recursive:true}); // PORT: the head CLIs import dist/db/open.js\n for(const name of ['health-probe','watchdog']) {\n  const target=join(tree,'dist/crawler',name+'.js');\n  if(version==='head')continue;",
+55: };
+56: const runners = [
+57:   ['independent-review.mjs', readFileSync(join(FIX, 'independent-review-dc319cf.mjs.txt'), 'utf8')],
+58:   ['independent-extra.mjs', (() => {
+59:     const s = readFileSync(join(FIX, 'independent-extra-dc319cf.mjs.txt'), 'utf8');
+60:     if (!s.includes(PORT_PATCH.from)) throw new Error('port patch anchor missing');
+61:     return s.replace(PORT_PATCH.from, () => PORT_PATCH.to).replace("import { readFileSync,writeFileSync,mkdirSync,copyFileSync } from 'node:fs';", () => "import { readFileSync,writeFileSync,mkdirSync,copyFileSync,cpSync,realpathSync } from 'node:fs';");
+62:   })()],
+63:   ['verify-cli-migration.mjs', (() => {
+
+C:\Users\HP\Documents\Codex\2026-10-02\files-pasted-by-the-user-kanseilink-4\kl-review-c70c131\scripts\smoke-codex-review-5-dc319cf.mjs
+140:   ok('A watchdog --fix alone on a 775a797 DB: exit 0 (775a797: exit 0)', watch.head.exit === 0 && watch.base.exit === 0, watch.head.stderr);
+141:   ok('A watchdog: the new columns are added', !watch.head.hadCols && eq(watch.head.cols, NEW_COLS), JSON.stringify(watch.head.cols));
+142:   ok('A watchdog: trust and the outcome rows equal 775a797\'s', eq(watch.head.trust, watch.base.trust) && eq(watch.head.outcomes, watch.base.outcomes), JSON.stringify({ base: watch.base.trust, head: watch.head.trust }));
+143:   // idempotent: a second start of the same CLI on the now-current DB changes nothing in the schema
+144:   {
+145:     const tree = join(folder, 'head'), path = join(tree, 'kansei-link.db');
+146:     const snap = () => { const d = new Database(path); const s = { cols: cols(d), markers: d.prepare('SELECT migration_id FROM schema_migrations ORDER BY migration_id').all() }; d.close(); return s; };
+147:     const a = snap();
+148:     spawnSync(process.execPath, ['--import', preload, join(tree, 'dist', 'crawler', 'watchdog.js')], { encoding: 'utf8', timeout: 60000 });
+149:     ok('A openDb is idempotent: a second start leaves the columns and the migration markers as they were', eq(a, snap()));
+150:   }

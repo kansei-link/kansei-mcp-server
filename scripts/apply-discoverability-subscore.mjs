@@ -17,9 +17,9 @@
  *   +15 no bot-specific AI blocks on docs robots.txt; -5 per blocked bot (floor 0)
  * Platform-hosted services (GitHub-only): subscore null — no own-domain signals.
  */
-import Database from 'better-sqlite3';
+import { openDb } from '../dist/db/open.js';
 
-const db = new Database('kansei-link.db');
+const db = openDb('kansei-link.db');
 const latest = db.prepare(`SELECT MAX(scanned_at) d FROM discoverability_scans`).get().d;
 if (!latest) { console.error('no scans found'); process.exit(1); }
 

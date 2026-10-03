@@ -12,6 +12,7 @@ import {
   FRESHNESS_LEGEND,
   type FreshnessMeta,
 } from "../utils/freshness.js";
+import { displayMcpStatus, MCP_STATUS_LEGEND, type McpStatusBasis, type McpLivenessDisplay } from "../utils/mcp-status.js";
 
 interface ServiceRow {
   id: string;
@@ -22,6 +23,10 @@ interface ServiceRow {
   tags: string | null;
   mcp_endpoint: string | null;
   mcp_status: string | null;
+  archived: number | null;
+  mcp_liveness: string | null;
+  mcp_liveness_checked_at: string | null;
+  mcp_liveness_endpoint: string | null;
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
@@ -91,6 +96,8 @@ export function register(server: McpServer, db: Database.Database): void {
             name: r.name,
             grade: r.axr_grade || null,
             mcp: r.mcp_status,
+            // liveness beside the provider's claim, never folded into it
+            live: r.mcp_liveness,
             success: r.success_rate != null ? Math.round(r.success_rate * 100) / 100 : null,
             est: r.estimated_success_rate ?? null,
             basis: r.reliability_basis ?? "none",
@@ -130,6 +137,7 @@ export function register(server: McpServer, db: Database.Database): void {
                     // Once per response, not per row: what each result's
                     // freshness.scope does and does not stand behind.
                     freshness_legend: FRESHNESS_LEGEND.upstream_metadata,
+                    mcp_status_legend: MCP_STATUS_LEGEND,
                   },
                 }, null, isCompact ? 0 : 2),
           },
@@ -807,7 +815,10 @@ interface ScoredResult {
   category: string | null;
   agent_ready: AgentReady;
   mcp_endpoint: string | null;
+  /** the provider's claim; `verified` only on a fresh handshake with this endpoint (utils/mcp-status.ts) */
   mcp_status: string;
+  mcp_status_basis: McpStatusBasis;
+  mcp_liveness: McpLivenessDisplay;
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
@@ -954,7 +965,7 @@ function formatResult(
     category: s.category,
     agent_ready: classifyAgentReady(s),
     mcp_endpoint: s.mcp_endpoint || null,
-    mcp_status: s.mcp_status ?? "official",
+    ...displayMcpStatus(s),
     api_url: s.api_url ?? null,
     api_auth_method: s.api_auth_method ?? null,
     trust_score: s.trust_score,

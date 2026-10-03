@@ -7,13 +7,13 @@
  * - services table: inserts accepted row with mcp_status='community'
  * - crawl_queue: sets status='ingested' (+ ingested_service_id) or 'rejected' (+ reject_reason)
  */
-import Database from "better-sqlite3";
+import { openDb } from "../dist/db/open.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = path.join(__dirname, "..", "kansei-link.db");
-const db = new Database(dbPath);
+const db = openDb(dbPath);
 
 // Accept list — 15 items (Tier 1 + Tier 2)
 const ACCEPT_IDS = [80, 56, 54, 52, 68, 51, 83, 78, 37, 70, 76, 72, 65, 57, 86];

@@ -24,7 +24,7 @@
  *   DB table discoverability_scans (upsert per service_id+scan date)
  */
 
-import Database from 'better-sqlite3';
+import { openDb } from '../dist/db/open.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -58,7 +58,7 @@ const WRITE_DB = !args.includes('--no-db');
 const TODAY = new Date().toISOString().slice(0, 10);
 
 // ---- target selection ----
-const db = new Database(DB_PATH);
+const db = openDb(DB_PATH);
 db.pragma('journal_mode = WAL');
 
 function selectTargets() {

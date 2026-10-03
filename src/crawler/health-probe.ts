@@ -12,8 +12,10 @@
  *   npx tsx src/crawler/health-probe.ts --dry-run      # show targets only
  */
 import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { SQL_UTC_NOW } from "../utils/mcp-status.js";
 
 const DB_PATH = resolve(import.meta.dirname, "../../kansei-link.db");
 
@@ -35,6 +37,12 @@ interface ProbeResult {
   mcp_server_info: string | null;
   response_time_ms: number;
   error: string | null;
+  /**
+   * DNS failure / connection refused, read from err.cause as well as the
+   * message. Used ONLY for the liveness columns; `error` keeps the 775a797
+   * classification (message only) so trust and the outcome row are unchanged.
+   */
+  unreachable_cause: "dns_fail" | "connection_refused" | null;
 }
 
 async function probeEndpoint(serviceId: string, endpoint: string): Promise<ProbeResult> {
@@ -47,6 +55,7 @@ async function probeEndpoint(serviceId: string, endpoint: string): Promise<Probe
     mcp_server_info: null,
     response_time_ms: 0,
     error: null,
+    unreachable_cause: null,
   };
 
   // Skip endpoints with placeholders
@@ -123,6 +132,18 @@ async function probeEndpoint(serviceId: string, endpoint: string): Promise<Probe
       result.error = "ssl_error";
     } else {
       result.error = msg.slice(0, 100);
+    }
+    // Node's fetch reports every network failure as "fetch failed"; the
+    // ENOTFOUND / ECONNREFUSED that tells them apart is on err.cause, so the
+    // message-only branches above never saw them and a dead endpoint was never
+    // recorded as unreachable (2026-10-02). The cause is read here for the
+    // liveness columns only — `error` (and with it trust and the outcome row)
+    // stays as it was at 775a797 (Codex review 5, F8).
+    const cause = err instanceof Error ? (err.cause as { code?: string; message?: string } | undefined) : undefined;
+    const full = [msg, cause?.code, cause?.message].filter(Boolean).join(" ");
+    if (!full.includes("abort")) {
+      if (full.includes("ENOTFOUND") || full.includes("getaddrinfo")) result.unreachable_cause = "dns_fail";
+      else if (full.includes("ECONNREFUSED")) result.unreachable_cause = "connection_refused";
     }
   } finally {
     clearTimeout(timeout);
@@ -218,8 +239,12 @@ export async function runHealthProbe(
   }
 
   // ── Update DB ───────────────────────────────────────────────────
-  const updateMcpStatus = db.prepare(
-    "UPDATE services SET mcp_status = ? WHERE id = ?"
+  // The probe writes liveness ONLY — never mcp_status, which is the provider's
+  // claim (official / third_party / ...). It records what it saw, when (ISO
+  // UTC), and which endpoint string it saw it on, so an observation of one
+  // endpoint is never read as vouching for another (2026-10-02, marker M-002).
+  const updateLiveness = db.prepare(
+    `UPDATE services SET mcp_liveness = ?, mcp_liveness_checked_at = ${SQL_UTC_NOW}, mcp_liveness_endpoint = ? WHERE id = ?`
   );
   const insertOutcome = db.prepare(
     `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, context_masked, provenance, verification_status, task_type, created_at)
@@ -228,9 +253,6 @@ export async function runHealthProbe(
 
   const updateTrust = db.prepare(
     "UPDATE services SET trust_score = MAX(trust_score, ?) WHERE id = ? AND trust_score < ?"
-  );
-  const downgradeTrust = db.prepare(
-    "UPDATE services SET trust_score = MIN(trust_score, ?) WHERE id = ?"
   );
 
   // POST 404/410 on the registered endpoint = endpoint gone. Same archive
@@ -251,19 +273,18 @@ export async function runHealthProbe(
 
   let statusUpdated = 0;
   let trustBoosted = 0;
-  let trustDowngraded = 0;
   let archivedNew = 0;
   const tx = db.transaction(() => {
     for (const r of results) {
-      // Update mcp_status
+      // Record liveness
       if (r.mcp_handshake) {
-        updateMcpStatus.run("verified", r.service_id);
+        updateLiveness.run("handshake", r.endpoint, r.service_id);
         statusUpdated++;
         // Verified via handshake → boost to 0.6
         const b = updateTrust.run(0.6, r.service_id, 0.6);
         if (b.changes > 0) trustBoosted++;
       } else if (r.http_ok) {
-        updateMcpStatus.run("official", r.service_id);
+        updateLiveness.run("reachable", r.endpoint, r.service_id);
         statusUpdated++;
         // Reachable (may need auth) → boost to 0.45
         const b = updateTrust.run(0.45, r.service_id, 0.45);
@@ -273,6 +294,7 @@ export async function runHealthProbe(
           | { trust_score: number; axr_score: number | null; axr_grade: string | null }
           | undefined;
         archiveService.run(r.service_id);
+        updateLiveness.run("unreachable", r.endpoint, r.service_id); // the endpoint is gone: never 'verified' again until a probe shakes hands with it
         insertDeprecation.run(
           r.service_id,
           `Endpoint gone (POST initialize ${r.http_status}) — archived by weekly health probe`,
@@ -280,12 +302,13 @@ export async function runHealthProbe(
         );
         archivedNew++;
         statusUpdated++;
-      } else if (r.error === "dns_fail" || r.error === "connection_refused") {
-        updateMcpStatus.run("dead", r.service_id);
+      } else if (r.unreachable_cause || r.error === "dns_fail" || r.error === "connection_refused") {
+        // Liveness only. The 0.1 trust downgrade that used to sit here never
+        // ran at 775a797 (the branch was dead, see probeEndpoint), so enabling
+        // it now would silently re-rank search. Whether a dead endpoint should
+        // lose trust is Michie's call, in a separate PR (Codex review 5, F8).
+        updateLiveness.run("unreachable", r.endpoint, r.service_id);
         statusUpdated++;
-        // Dead endpoint → downgrade to 0.1
-        const d = downgradeTrust.run(0.1, r.service_id);
-        if (d.changes > 0) trustDowngraded++;
       }
 
       // Record as outcome (confirmed data!)
@@ -307,7 +330,7 @@ export async function runHealthProbe(
   });
   tx();
 
-  console.error(`\n  DB updated: ${statusUpdated} mcp_status changes, ${trustBoosted} trust boosted, ${trustDowngraded} trust downgraded, ${archivedNew} archived (endpoint gone)`);
+  console.error(`\n  DB updated: ${statusUpdated} liveness observations, ${trustBoosted} trust boosted, ${archivedNew} archived (endpoint gone)`);
   console.error("═══════════════════════════════════════");
 
   return {
@@ -326,7 +349,7 @@ async function main() {
   const limitIdx = args.indexOf("--limit");
   const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 50;
 
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
   try {
     await runHealthProbe(db, { limit, dryRun });

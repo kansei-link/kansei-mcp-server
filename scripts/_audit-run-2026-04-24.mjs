@@ -15,7 +15,7 @@
  * Finally the agent composes _audit-report-2026-04-24.md from these.
  */
 
-import Database from 'better-sqlite3';
+import { openDb } from '../dist/db/open.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
@@ -36,7 +36,7 @@ const BATCH_GAP_MS = 200;
 function nowIso() { return new Date().toISOString(); }
 
 // --- DB bootstrap ----------------------------------------------------
-const db = new Database(DB_PATH, { readonly: false, fileMustExist: true });
+const db = openDb(DB_PATH, { readonly: false, fileMustExist: true });
 db.pragma('journal_mode = WAL');
 
 // Verify schema

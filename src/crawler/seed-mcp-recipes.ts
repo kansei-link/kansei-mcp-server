@@ -10,7 +10,7 @@
  *   npx tsx src/crawler/seed-mcp-recipes.ts           # insert all
  *   npx tsx src/crawler/seed-mcp-recipes.ts --dry      # preview only
  */
-import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
 import { resolve } from "node:path";
 
 const DB_PATH = resolve(import.meta.dirname, "../../kansei-link.db");
@@ -609,7 +609,7 @@ const MCP_RECIPES: Recipe[] = [
 
 function main() {
   const dryRun = process.argv.includes("--dry");
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
 
   const insert = db.prepare(`

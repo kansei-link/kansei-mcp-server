@@ -15,7 +15,7 @@
  *   node scripts/cleanup-noise-services.mjs --dry-run   # preview only
  *   node scripts/cleanup-noise-services.mjs --delete    # actually DELETE (default: hide)
  */
-import Database from "better-sqlite3";
+import { openDb } from "../dist/db/open.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,7 +24,7 @@ const dbPath = path.join(__dirname, "..", "kansei-link.db");
 const DRY_RUN = process.argv.includes("--dry-run");
 const DELETE_MODE = process.argv.includes("--delete");
 
-const db = new Database(dbPath);
+const db = openDb(dbPath);
 
 // --- Classification patterns ---
 // Match on name OR description. Name match is definitive, description match

@@ -219,6 +219,66 @@ record; move `category` from writable to proposable. Fixes both live defects on
 its own: the GitHub-over-operator overwrite, and the seed upgrade wiping a
 locally-held correction.
 
+**First implementation, 2026-10-02 (`fix/mcp-status-provenance`, marker M-002):
+`mcp_status` — split the two meanings.** The marker found endpoints the weekly
+health probe had recorded as gone (404 / 410 / DNS failure) still shown as
+`verified` in production. The first attempt (f4ec402) ranked the writers of
+`mcp_status` (probe > seed). That was the wrong cut: the column carried two
+meanings, and ranking them made one erase the other.
+
+- *Who provides the server* — `official` / `third_party` / `community` /
+  `api_only` / `unknown` / `none`. The provider's claim. Written by the seed, the
+  registry sync, vendor submissions and approved proposals. Stays in
+  `mcp_status`.
+- *Whether it is alive* — an observation. Moves to its own columns, written ONLY
+  by the health probe and the watchdog: `mcp_liveness` (`handshake` |
+  `reachable` | `unreachable`), `mcp_liveness_checked_at` (ISO UTC), and
+  `mcp_liveness_endpoint` (the `mcp_endpoint` string that was probed, verbatim).
+  Idempotent ALTER. The probe no longer writes `mcp_status` at all; before, an
+  HTTP answer overwrote the provider's classification with `official`.
+
+With the meanings apart there is nothing to rank: the seed keeps writing
+`mcp_status` (its value is the provider's claim) and never writes liveness.
+When ANY writer changes `mcp_endpoint` — the seed's upsert, a vendor
+submission, an approved proposal, a future writer — one DB trigger
+(`services_endpoint_clears_liveness`, `AFTER UPDATE OF mcp_endpoint … WHEN OLD
+IS NOT NEW`) sets the three liveness columns to NULL. A rule per writer had
+compared against the probed endpoint and missed a return to an endpoint
+observed earlier and a NULL observation (Codex review 5); the trigger is the
+rule of record. The probe's own write never names `mcp_endpoint`, so it never
+fires it. So: unless the seed changes the endpoint, the liveness columns are
+the same before and after `seedDatabase()`.
+
+The read side (`utils/mcp-status.ts` `displayMcpStatus()`, the only way any
+outward path — lookup tips / detail, search incl. compact, MCP resources, the
+HTTP rankings listing, audit_cost — shows `mcp_status`):
+`verified` only with a `handshake` on the CURRENT endpoint (exact string) within
+30 days; a stored `verified` without one, a stored `dead` / `unreachable`, an
+archived row, or `unreachable` on the same endpoint → `unverified`; every
+provider claim is shown as stored. `mcp_liveness {state, checked_at,
+endpoint_matches}` always sits beside it. Timestamps are read as UTC, and a
+timestamp counts only if its value exists: the fields go through `Date.UTC`
+and are written back, and the written-back text must equal the stored one
+(2026-09-31, 02-29 in a common year, month 13, day 00, 24:00, 23:59:60 are no
+observation). The same lesson as the marker's sealed fingerprints and
+confirmation dates: a value that changes on a round trip has lost information.
+
+The probe's newly working DNS / connection-refused detection feeds the
+liveness columns only. The 0.1 trust downgrade in that branch had never run
+(the branch was dead) and is removed, so trust, archived and the outcome row
+are what they were at 775a797; whether a dead endpoint should lose trust (it
+moves search ranking) is a separate decision.
+
+The 2026-09-20 backfill had counted a changelog `deprecated` row — the probe's
+own death notice — as "an upstream answered". A second, audited migration
+reverts rows whose only changelog entries are death notices to unverified, and
+the backfill itself now excludes them.
+
+The pattern the rest of Phase 1 generalises: **before ranking writers, check
+that they are writing the same fact. A provider's claim and an observation are
+two fields; an observation is only evidence for the exact thing observed; and
+the reader shows a claim only with the evidence's date next to it.**
+
 ### Phase 2 — turn on Registry description refresh
 
 Now safe, because it cannot outrank a company statement and cannot silently

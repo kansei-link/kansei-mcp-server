@@ -17,7 +17,7 @@
  */
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
 import { resolve } from "node:path";
 
 const DB_PATH = resolve(import.meta.dirname, "../../kansei-link.db");
@@ -237,7 +237,7 @@ async function runTest(profile: ServiceProfile): Promise<TestPhaseResult[]> {
 
 // ── DB Recording ─────────────────────────────────────────────────
 function recordResults(serviceId: string, results: TestPhaseResult[]) {
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
 
   const insertOutcome = db.prepare(`

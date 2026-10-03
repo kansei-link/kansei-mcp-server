@@ -259,7 +259,12 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   //
   // axr_dims / axr_facade, name, description, category, mcp_endpoint,
   //   mcp_status, api_url ARE still overwritten — those are authoritative
-  //   from the seed source of truth.
+  //   from the seed source of truth. mcp_status is the provider's claim
+  //   (official / third_party / community ...), never liveness: liveness lives
+  //   in mcp_liveness*, which only the health probe writes and the seed never
+  //   touches. When the seed changes mcp_endpoint, mcp_liveness_endpoint no
+  //   longer matches and the display falls back to unverified on its own
+  //   (utils/mcp-status.ts, 2026-10-02, marker M-002).
   const insertService = db.prepare(`
     INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, axr_score, axr_grade, axr_dims, axr_facade, archived)
     VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score, @axr_score, @axr_grade, @axr_dims, @axr_facade, @archived)

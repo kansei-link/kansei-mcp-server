@@ -4,14 +4,14 @@
  * Verifies that v3 algorithm changes are working.
  */
 import { searchServices } from "../dist/tools/search-services.js";
-import Database from "better-sqlite3";
+import { openDb } from "../dist/db/open.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.KANSEI_DB_PATH || path.join(__dirname, "..", "kansei-link.db");
 
-const db = new Database(dbPath);
+const db = openDb(dbPath);
 
 const queries = [
   { intent: "AI inference API", expected: ["groq", "openai-api", "cohere", "mistral"] },

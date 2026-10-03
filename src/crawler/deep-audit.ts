@@ -18,7 +18,8 @@
  *   npx tsx src/crawler/deep-audit.ts --limit 20     # top 20 only
  *   npx tsx src/crawler/deep-audit.ts --dry-run      # show targets
  */
-import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
+import { selectDeepAuditTargets } from "./deep-audit-targets.js";
 import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
 
@@ -265,19 +266,13 @@ async function main() {
   const limitIdx = args.indexOf("--limit");
   const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 100;
 
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
 
-  // Get verified endpoints (handshake confirmed)
-  const targets = db
-    .prepare(
-      `SELECT id, name, mcp_endpoint, trust_score FROM services
-       WHERE mcp_status = 'verified'
-         AND mcp_endpoint IS NOT NULL
-       ORDER BY trust_score DESC
-       LIMIT ?`
-    )
-    .all(limit) as Array<{ id: string; name: string; mcp_endpoint: string; trust_score: number }>;
+  // Endpoints whose CURRENT mcp_endpoint passed the probe's handshake recently enough
+  // to be shown as live: the display function's own condition (30 days, a real and
+  // not-future date, not archived). mcp_status is the provider's claim, not liveness.
+  const targets = selectDeepAuditTargets(db, limit);
 
   console.error(`[deep-audit] Verified targets: ${targets.length}`);
 

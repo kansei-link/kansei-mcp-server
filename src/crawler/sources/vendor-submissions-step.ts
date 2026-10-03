@@ -13,6 +13,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type Database from "better-sqlite3";
 import { verifyVendorSubmission, isSafeFetchTarget, type VendorSubmission } from "./vendor-submission.js";
+import { CLEAR_STALE_LIVENESS_SQL } from "../../utils/mcp-status.js";
 
 export interface VendorIngestSummary {
   enabled: boolean;
@@ -46,6 +47,22 @@ async function fetchEvidence(url: string): Promise<string | null> {
   }
 }
 
+/**
+ * Writes a verified vendor's claim. mcp_status here is the provider's claim
+ * (official); liveness is the probe's alone. A new endpoint is not covered by
+ * an observation of the old one, so the liveness columns go back to NULL when
+ * the endpoint changes (2026-10-02, marker M-002).
+ */
+export function vendorClaimWriter(db: Database.Database): { run: (status: string, endpoint: string, id: string) => void } {
+  const updateStmt = db.prepare("UPDATE services SET mcp_status = ?, mcp_endpoint = ? WHERE id = ?");
+  const clearLiveness = db.prepare(CLEAR_STALE_LIVENESS_SQL);
+  const run = db.transaction((status: string, endpoint: string, id: string) => {
+    updateStmt.run(status, endpoint, id);
+    clearLiveness.run(id);
+  });
+  return { run: (status, endpoint, id) => { run(status, endpoint, id); } };
+}
+
 export async function ingestVendorSubmissions(
   db: Database.Database,
   opts: { dryRun?: boolean } = {}
@@ -61,7 +78,7 @@ export async function ingestVendorSubmissions(
   if (!files.length) return out;
 
   const getSvc = db.prepare("SELECT id, name, api_url FROM services WHERE id = ?");
-  const update = db.prepare("UPDATE services SET mcp_status = ?, mcp_endpoint = ? WHERE id = ?");
+  const update = vendorClaimWriter(db);
   const trail: unknown[] = [];
 
   for (const f of files) {

@@ -12,7 +12,7 @@
  * current stored category. Non-community (hand-curated BB+) rows are
  * skipped so manual overrides never get trampled.
  */
-import Database from "better-sqlite3";
+import { openDb } from "../dist/db/open.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -100,7 +100,7 @@ function refineCategory(name, description, current) {
   return current;
 }
 
-const db = new Database(dbPath);
+const db = openDb(dbPath);
 
 // Only target community-tier entries — hand-curated services have trusted
 // categories that we don't want to overwrite automatically.

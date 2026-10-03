@@ -13,7 +13,7 @@
  *   npx tsx src/crawler/sync-registry.ts --max 500            # limit to 500
  *   npx tsx src/crawler/sync-registry.ts --output registry.json  # save raw data
  */
-import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
@@ -69,7 +69,7 @@ async function main() {
   }
 
   // ── 2. Open DB and cross-reference ──────────────────────────────
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
 
   const existingServices = new Map<string, { name: string; mcp_endpoint: string | null; api_url: string | null }>();

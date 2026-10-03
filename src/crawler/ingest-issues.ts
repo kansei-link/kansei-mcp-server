@@ -10,7 +10,7 @@
  *   npx tsx src/crawler/ingest-issues.ts src/data/github-issues-180d.json
  *   npx tsx src/crawler/ingest-issues.ts src/data/github-issues-180d.json --dry-run
  */
-import Database from "better-sqlite3";
+import { openDb } from "../db/open.js";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { IssueFinding } from "./types.js";
@@ -41,7 +41,7 @@ function main() {
   console.error(`[ingest-issues] Generated: ${data.meta.generated_at}`);
   console.error(`[ingest-issues] Dry run: ${dryRun}`);
 
-  const db = new Database(DB_PATH);
+  const db = openDb(DB_PATH);
   db.pragma("journal_mode = WAL");
 
   // Check which service_ids actually exist in our DB

@@ -3,6 +3,7 @@ import { kanseiAppLink } from "../utils/app-link.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { getModelPricing, getKnownModels } from "../utils/model-pricing.js";
+import { displayMcpStatus } from "../utils/mcp-status.js";
 
 /* ── Row types ─────────────────────────────────────────────── */
 
@@ -29,6 +30,11 @@ interface ServiceAltRow {
   alt_name: string;
   alt_sr: number;
   alt_mcp_status: string | null;
+  alt_mcp_endpoint: string | null;
+  alt_archived: number | null;
+  alt_mcp_liveness: string | null;
+  alt_mcp_liveness_checked_at: string | null;
+  alt_mcp_liveness_endpoint: string | null;
 }
 
 interface ArchRow {
@@ -203,7 +209,9 @@ export function auditCost(
            ss1.success_rate as current_sr, ss1.total_calls as current_calls,
            s2.id as alt_id, s2.name as alt_name,
            ss2.success_rate as alt_sr,
-           s2.mcp_status as alt_mcp_status
+           s2.mcp_status as alt_mcp_status, s2.mcp_endpoint as alt_mcp_endpoint, s2.archived as alt_archived,
+           s2.mcp_liveness as alt_mcp_liveness, s2.mcp_liveness_checked_at as alt_mcp_liveness_checked_at,
+           s2.mcp_liveness_endpoint as alt_mcp_liveness_endpoint
     FROM services s1
     JOIN publishable_service_rollup ss1 ON s1.id = ss1.service_id
     JOIN services s2 ON s1.category = s2.category AND s1.id != s2.id
@@ -238,7 +246,15 @@ export function auditCost(
       reason: `Success rate ${currentSrPct}% → ${altSrPct}%. Fewer retries = ~${retryReduction}% token savings`,
       monthly_savings_usd: estimatedMonthlySavings,
       confidence: "medium",
-      alt_mcp_status: row.alt_mcp_status,
+      // through displayMcpStatus like every outward path (2026-10-02)
+      ...(() => {
+        const d = displayMcpStatus({
+          mcp_status: row.alt_mcp_status, mcp_endpoint: row.alt_mcp_endpoint, archived: row.alt_archived,
+          mcp_liveness: row.alt_mcp_liveness, mcp_liveness_checked_at: row.alt_mcp_liveness_checked_at,
+          mcp_liveness_endpoint: row.alt_mcp_liveness_endpoint,
+        });
+        return { alt_mcp_status: d.mcp_status, alt_mcp_liveness: d.mcp_liveness };
+      })(),
     });
   }
 

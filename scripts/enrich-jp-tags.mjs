@@ -6,8 +6,8 @@
 // Principle: add common JP query terms agents actually use, without touching
 // the existing English tags (we need both audiences).
 
-import Database from 'better-sqlite3';
-const db = new Database('./kansei-link.db');
+import { openDb } from '../dist/db/open.js';
+const db = openDb('./kansei-link.db');
 
 // Service ID → JP tags to ADD (merged with existing via comma-join, dedupe)
 const ENRICHMENTS = {

@@ -3,14 +3,14 @@
  * Export current DB state → seed JSON files for npm packaging.
  * Run before `npm publish` to ensure seed data matches the live DB.
  */
-import Database from "better-sqlite3";
+import { openDb } from "../src/db/open.js";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const DB_PATH = resolve(import.meta.dirname, "../kansei-link.db");
 const DATA_DIR = resolve(import.meta.dirname, "../src/data");
 
-const db = new Database(DB_PATH);
+const db = openDb(DB_PATH);
 db.pragma("journal_mode = WAL");
 
 // 1. Export services (exclude archived)
