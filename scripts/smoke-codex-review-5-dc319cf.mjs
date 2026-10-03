@@ -39,6 +39,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 const ROOT = resolve('.');
 const FIX = join(ROOT, 'scripts', 'fixtures', 'codex-review-5');
 const FIXTURE = JSON.parse(readFileSync(join(FIX, 'independent-cases-dc319cf.json'), 'utf8'));
+const readRunner = (name) => readFileSync(join(FIX, name), 'utf8').replace(/\r\n?/g, '\n');
 const GIT_DIR = execFileSync('git', ['rev-parse', '--absolute-git-dir'], { encoding: 'utf8' }).trim();
 let failures = 0;
 const ok = (label, cond, detail = '') => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${label}${cond || !detail ? '' : `  (${detail})`}`); if (!cond) failures++; };
@@ -54,9 +55,9 @@ const PORT_PATCH = {
   to: " if(version==='head')cpSync(realpathSync('dist'),join(tree,'dist'),{recursive:true}); // PORT: the head CLIs import dist/db/open.js\n for(const name of ['health-probe','watchdog']) {\n  const target=join(tree,'dist/crawler',name+'.js');\n  if(version==='head')continue;",
 };
 const runners = [
-  ['independent-review.mjs', readFileSync(join(FIX, 'independent-review-dc319cf.mjs.txt'), 'utf8')],
+  ['independent-review.mjs', readRunner('independent-review-dc319cf.mjs.txt')],
   ['independent-extra.mjs', (() => {
-    const s = readFileSync(join(FIX, 'independent-extra-dc319cf.mjs.txt'), 'utf8');
+    const s = readRunner('independent-extra-dc319cf.mjs.txt');
     if (!s.includes(PORT_PATCH.from)) throw new Error('port patch anchor missing');
     return s.replace(PORT_PATCH.from, () => PORT_PATCH.to).replace("import { readFileSync,writeFileSync,mkdirSync,copyFileSync } from 'node:fs';", () => "import { readFileSync,writeFileSync,mkdirSync,copyFileSync,cpSync,realpathSync } from 'node:fs';");
   })()],
@@ -65,7 +66,7 @@ const runners = [
     // reviewer's run left it — the 775a797-shaped DB with the one fake row and no outcome (the head CLI had died
     // before writing). With the fix the earlier head run succeeds and writes an outcome, so that state is rebuilt
     // here, exactly as independent-extra built it, before the reviewer's own statements run.
-    const s = readFileSync(join(FIX, 'verify-cli-migration-dc319cf.mjs.txt'), 'utf8');
+    const s = readRunner('verify-cli-migration-dc319cf.mjs.txt');
     const from = "const db=new Database(join(tree,'kansei-link.db'));initializeDb(db);db.close();";
     if (!s.includes(from)) throw new Error('port patch 2 anchor missing');
     const rebuild = "{const p=join(tree,'kansei-link.db');for(const x of ['','-wal','-shm'])rmSync(p+x,{force:true});const m=new Database(':memory:');oldInit(m);m.prepare('INSERT INTO services(id,name,mcp_status,mcp_endpoint,trust_score) VALUES(?,?,?,?,?)').run('fake-cli-upgrade','fake-cli-upgrade','official','https://fake-extra.invalid/mcp',0.2);await m.backup(p);m.close();} // PORT_PATCH_2\n";
@@ -143,16 +144,17 @@ try {
   // idempotent: a second start of the same CLI on the now-current DB changes nothing in the schema
   {
     const tree = join(folder, 'head'), path = join(tree, 'kansei-link.db');
-    const snap = () => { const d = new Database(path); const s = { cols: cols(d), markers: d.prepare('SELECT migration_id FROM schema_migrations ORDER BY migration_id').all() }; d.close(); return s; };
+    const snap = () => { const d = new Database(path); const s = { cols: cols(d), markers: d.prepare('SELECT migration_id FROM schema_migrations ORDER BY migration_id').all(), outcomes: d.prepare('SELECT * FROM outcomes ORDER BY id').all(), services: d.prepare('SELECT * FROM services ORDER BY id').all() }; d.close(); return s; };
     const a = snap();
-    spawnSync(process.execPath, ['--import', preload, join(tree, 'dist', 'crawler', 'watchdog.js')], { encoding: 'utf8', timeout: 60000 });
-    ok('A openDb is idempotent: a second start leaves the columns and the migration markers as they were', eq(a, snap()));
+    const restarted = spawnSync(process.execPath, ['--import', preload, join(tree, 'dist', 'crawler', 'watchdog.js')], { encoding: 'utf8', timeout: 60000 });
+    ok('A watchdog restart exits 0', restarted.status === 0, restarted.stderr);
+    ok('A openDb is idempotent: a second start leaves columns, markers, all outcome rows/columns and services unchanged', eq(a, snap()));
   }
   // ── finding (deep-audit.ts:276): its targets are chosen by the display function's own freshness test ──
   {
-    const { openDb } = await import('../dist/db/open.js');
+    const { initializeDb } = await import('../dist/db/schema.js');
     const { selectDeepAuditTargets } = await import('../dist/crawler/deep-audit-targets.js');
-    const d = quiet(() => openDb(':memory:'));
+    const d = new Database(':memory:'); quiet(() => initializeDb(d));
     const now = new Date('2026-10-02T12:00:00Z'), e = (id) => `https://${id}.invalid/mcp`;
     const rows = [
       ['da-fresh', 'handshake', '2026-10-02T11:00:00Z', null, 0, 0.9],

@@ -1,0 +1,77 @@
+import Database from 'better-sqlite3';
+import { openDb } from '../dist/db/open.js';
+import { proposeUpdate } from '../dist/tools/propose-update.js';
+import { selectDeepAuditTargets } from '../dist/crawler/deep-audit-targets.js';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { execFileSync, spawnSync } from 'node:child_process';
+import ts from 'typescript';
+const root = resolve('.'), dir = mkdtempSync(resolve('work/independent-c70c131-'));
+const cases=[];
+const record=(id,input,expected,actual)=>cases.push({id,input,expected,actual,conforms:JSON.stringify(expected)===JSON.stringify(actual)});
+const quiet=fn=>{const l=console.log,e=console.error;console.log=console.error=()=>{};try{return fn();}finally{console.log=l;console.error=e;}};
+const latest=()=>quiet(()=>openDb(':memory:'));
+const baseSource=execFileSync('git',['show','775a797:src/db/schema.ts'],{encoding:'utf8'});
+const legacyModule=join(dir,'legacy-schema.mjs');
+writeFileSync(legacyModule,ts.transpileModule(baseSource,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);
+const {initializeDb:legacyInit}=await import(pathToFileURL(legacyModule));
+const ep='https://fake-independent-c70.invalid/mcp';
+const seed=d=>{
+  d.prepare('INSERT INTO services(id,name,mcp_status,mcp_endpoint,trust_score) VALUES(?,?,?,?,?)').run('fake-independent-c70','fake-independent-c70','official',ep,0.8);
+  // Exact column list and agent marker of src/crawler/mcp-test-harness.ts:244-245.
+  d.prepare("INSERT INTO outcomes(service_id,agent_id_hash,success,latency_ms,error_type,context_masked,created_at) VALUES(?,'self-test-fleet',?,?,?,?,?)").run('fake-independent-c70',1,10,null,'[self-test] fake handshake','2026-10-01T00:00:00Z');
+};
+const snap=d=>({services:d.prepare('SELECT id,trust_score,mcp_status FROM services ORDER BY id').all(),outcomes:d.prepare('SELECT * FROM outcomes ORDER BY id').all()});
+const sourceDb=latest();seed(sourceDb);
+record('latest-fixture-writer-default',{writer:'mcp-test-harness recordResults, exact INSERT columns'},'legacy_unknown',sourceDb.prepare('SELECT provenance FROM outcomes').get().provenance);
+sourceDb.close();
+// Reverse only the reviewed openDb substitution to compare the previous CLI.
+const headCli=readFileSync('dist/crawler/health-probe.js','utf8');
+if(!headCli.includes('const db = openDb(DB_PATH);'))throw new Error('CLI reversal anchor missing');
+const oldCli=headCli.replace(/import \{ openDb \} from "\.\.\/db\/open.js";/,'import Database from "better-sqlite3";').replace('const db = openDb(DB_PATH);','const db = new Database(DB_PATH);');
+const legacyCli=ts.transpileModule(execFileSync('git',['show','775a797:src/crawler/health-probe.ts'],{encoding:'utf8'}),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+const evidence={};
+for(const shape of ['775a797','latest']) {
+  const seen={};
+  for(const version of ['775a797-cli','previous-entry','head']) {
+    const tree=join(dir,shape,version);mkdirSync(tree,{recursive:true});
+    cpSync(join(root,'dist'),join(tree,'dist'),{recursive:true});
+    writeFileSync(join(tree,'dist/crawler/health-probe.js'),version==='head'?headCli:version==='775a797-cli'?legacyCli:oldCli);
+    const mem=new Database(':memory:');quiet(()=>shape==='latest'?null:legacyInit(mem));
+    let d=mem;
+    if(shape==='latest'){mem.close();d=latest();}
+    seed(d);const before=snap(d);await d.backup(join(tree,'kansei-link.db'));d.close();
+    const preload=join(tree,'deny-network.mjs');writeFileSync(preload,"globalThis.fetch=async()=>{throw new Error('Independent audit prohibits all network');};");
+    const r=spawnSync(process.execPath,['--import',pathToFileURL(preload).href,join(tree,'dist/crawler/health-probe.js'),'--dry-run','--limit','1'],{encoding:'utf8',timeout:30000});
+    const afterDb=new Database(join(tree,'kansei-link.db'));const after=snap(afterDb);afterDb.close();
+    seen[version]={exit:r.status,before,after,stdout:r.stdout,stderr:r.stderr};
+    record(`${shape}-${version}-dry-run-exit`,{command:'health-probe --dry-run --limit 1',shape},0,r.status);
+    record(`${shape}-${version}-preserves-outcomes`,{command:'health-probe --dry-run --limit 1',shape,writer:'self-test-fleet current INSERT'},before,after);
+  }
+  record(`${shape}-CLI-behavior-parity`,{entry_change:'new Database -> openDb',command:'health-probe --dry-run --limit 1'},seen['previous-entry'].after,seen.head.after);
+  record(`${shape}-775a797-CLI-parity`,{baseline:'775a797:src/crawler/health-probe.ts transpiled unchanged',command:'health-probe --dry-run --limit 1'},seen['775a797-cli'].after,seen.head.after);
+  evidence[shape]=seen;
+}
+// Direct second-open check with normally generated harness output.
+const path=join(dir,'second-open.db');let d=quiet(()=>openDb(path));seed(d);const before=snap(d);d.close();d=quiet(()=>openDb(path));record('second-open-preserves-current-writer-outcomes',{schema:'latest',writer:'mcp-test-harness'},before,snap(d));d.close();
+// Readonly options must not mutate even when rejected by openDb.
+const roBefore=readFileSync(path);let error='';try{quiet(()=>openDb(path,{readonly:true}));}catch(e){error=String(e.message);}
+record('readonly-failure-keeps-file-bytes',{options:{readonly:true},error},true,roBefore.equals(readFileSync(path)));
+// Independent expected statuses, not calculated by displayMcpStatus.
+d=latest();
+const now=new Date(), fresh=new Date(now.getTime()-1000).toISOString();
+const scenarios=[['sentinel','zzrawclaimzz','unreachable',fresh,ep,0,'unverified','unreachable'],['unreachable','verified','unreachable',fresh,ep,0,'unverified','unreachable'],['fresh','verified','handshake',fresh,ep,0,'verified','fresh_handshake'],['mismatch','verified','handshake',fresh,ep+'/',0,'unverified','endpoint_changed'],['expired','verified','handshake',new Date(now.getTime()-31*86400000).toISOString(),ep,0,'unverified','no_fresh_handshake'],['official','official',null,null,null,0,'official','provider_claim']];
+for(const [name,status,state,at,observed,archived,want,basis] of scenarios){
+ const id='fake-independent-'+name;
+ d.prepare('INSERT INTO services(id,name,mcp_endpoint,mcp_status,mcp_liveness,mcp_liveness_checked_at,mcp_liveness_endpoint,archived) VALUES(?,?,?,?,?,?,?,?)').run(id,id,ep,status,state,at,observed,archived);
+ const prior=d.prepare('SELECT * FROM services WHERE id=?').get(id);
+ const r=proposeUpdate(d,{service_id:id,changes:{mcp_status:'community',description:'fake updated'},reason:'Independent fake audit',change_type:'update'});
+ record('B-propose-current-'+name,{status,state,at,observed,archived},want,r.diff?.mcp_status?.current);
+ record('B-propose-evidence-'+name,{status,state},true,typeof r.diff?.mcp_status?.current_basis==='string'&&typeof r.diff?.mcp_status?.current_liveness==='object');
+ record('B-proposal-does-not-mutate-'+name,{service_id:id},prior,d.prepare('SELECT * FROM services WHERE id=?').get(id));
+}
+record('deep-audit-current-fresh-only',{limit:100},['fake-independent-fresh'],selectDeepAuditTargets(d,100,now).map(x=>x.id));d.close();
+const report={commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),scope:'dc319cf..c70c131; independent temporary DBs; fake service IDs; no external network',summary:{total:cases.length,conforming:cases.filter(c=>c.conforms).length,nonconforming:cases.filter(c=>!c.conforms).length},cases};
+writeFileSync('work/independent-cases-c70c131.json',JSON.stringify(report,null,2));writeFileSync('work/independent-cli-evidence-c70c131.json',JSON.stringify(evidence,null,2));
+console.log(JSON.stringify({summary:report.summary,failures:cases.filter(c=>!c.conforms).map(c=>c.id)},null,2));

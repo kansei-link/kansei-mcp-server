@@ -11,7 +11,7 @@
  *   const summary = await runCrawler(db, { dryRun: false });
  */
 import Database from "better-sqlite3";
-import { openDb } from "../db/open.js";
+import { initializeDb } from "../db/schema.js";
 import { crawlGitHubTopics } from "./sources/github-topics.js";
 import { crawlAwesomeLists } from "./sources/awesome-lists.js";
 import { crawlJpWatchlist } from "./sources/jp-watchlist.js";
@@ -484,7 +484,8 @@ function parseFlags(argv: string[]): Record<string, string | boolean> {
 async function cli() {
   const flags = parseFlags(process.argv);
   const dbPath = process.env.DB_PATH || "kansei-link.db";
-  const db = openDb(dbPath);
+  const db = new Database(dbPath);
+  initializeDb(db);
 
   try {
     const summary = await runCrawler(db, {

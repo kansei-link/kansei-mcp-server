@@ -1,4 +1,5 @@
 import type Database from "better-sqlite3";
+import { ensureCliSchema } from "./cli-schema.js";
 
 /** Changelog entries OUR OWN probe / refresh write when an endpoint or repository is gone. They are never "an upstream answered". */
 export const DEATH_NOTICE_CHANGE_TYPES = "'deprecated', 'deprecation', 'archived', 'probe_failed'";
@@ -804,37 +805,8 @@ export function initializeDb(db: Database.Database): void {
     tx();
   }
 
-  // MCP liveness (2026-10-02, marker M-002): what the health probe observed, in
-  // columns of its own. mcp_status is the provider's claim (official /
-  // third_party / community ...) and is written by the seed, the registry,
-  // vendor submissions and approved proposals; liveness is written ONLY by the
-  // health probe and the watchdog. Sharing one column let each writer erase the
-  // other's meaning. Display rules: utils/mcp-status.ts.
-  //   mcp_liveness             'handshake' | 'reachable' | 'unreachable'
-  //   mcp_liveness_checked_at  ISO UTC 'YYYY-MM-DDTHH:MM:SSZ'
-  //   mcp_liveness_endpoint    the mcp_endpoint that was probed, verbatim
-  for (const col of ["mcp_liveness", "mcp_liveness_checked_at", "mcp_liveness_endpoint"]) {
-    if ((db.prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = ?").get(col) as { cnt: number }).cnt === 0) {
-      db.exec(`ALTER TABLE services ADD COLUMN ${col} TEXT`);
-    }
-  }
-  // An observation of one endpoint says nothing about another. When
-  // mcp_endpoint changes — by the seed's upsert, a vendor submission, an
-  // approved proposal or any future writer — the three liveness columns go back
-  // to NULL. One rule in the DB instead of one per writer (Codex review 5:
-  // per-writer clearing compared against the probed endpoint and missed A→B→A
-  // and NULL observations). The probe's own writes do not touch mcp_endpoint,
-  // so it never fires for them.
-  db.exec(`
-    CREATE TRIGGER IF NOT EXISTS services_endpoint_clears_liveness
-    AFTER UPDATE OF mcp_endpoint ON services
-    WHEN OLD.mcp_endpoint IS NOT NEW.mcp_endpoint
-    BEGIN
-      UPDATE services
-         SET mcp_liveness = NULL, mcp_liveness_checked_at = NULL, mcp_liveness_endpoint = NULL
-       WHERE id = NEW.id;
-    END;
-  `);
+  // Shared shape only; full server migrations and hygiene remain here.
+  ensureCliSchema(db);
 
   // Model-level performance stats per service (for audit_cost routing)
   db.exec(`
