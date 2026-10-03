@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "id": "agileworks-m007-mcp-and-auth-discovery-search",
+  "version": 1,
+  "service_id": "agile-works",
+  "category": "workflow",
+  "task_type": "marker",
+  "evidence_tier_target": "E2",
+  "risk": "R0",
+  "marker": {
+    "marker_id": "M-007",
+    "kind": "synthetic",
+    "kind_of_truth": "llm_answer",
+    "claim": "検索を使うエージェントは AgileWorks（エイトレッド）の公式 MCP の所在と Web API の認証方式を特定できる",
+    "commitment_file": "evidence/commitments/M-007.sha256",
+    "expected_digest": "98e32b39cb2a74bb6664830dad13bfdfc44a66eb829dd74ccf85bd1b853d1036",
+    "sealed_path_env": "KANSEI_M007_SEALED_PATH",
+    "providers": [
+      "perplexity"
+    ],
+    "verify_repo_via_github": true,
+    "report_readme": "founder-ops/research/Marker-M007_2026-10-04/README.md",
+    "max_readings": 23,
+    "note": "M-007 stage 1 (2026-10-04): the same question, the same closed two-line answer form, the same judgement and the same truth as M-004. THE SEAL HOLDS ONLY THE OFFICIAL MCP REPOSITORY URL (the same value as M-004, sealed again as M-007 with its own salt); the expected auth method is the rule constant AUTH_RULE. The only difference is the observer: an AI that uses web search (Perplexity sonar). The parts are the same bytes as when M-004 read sonar on 2026-09-29..2026-10-01: exec-harness/lib/llm-ask.mjs sha256 649c71201f5cdae433250c4cb118f90b5b768a3546585ba27b9a03160f63be5a and exec-harness/lib/llm-answer-rules.mjs sha256 014462eb9755ae931458914b70855c0e0ee8861d082538fbaf2e80a835671f1b. No attribution columns here: A and B are read once a day in the M-004 rows of the same day (no second human signature). The rules of the closed form and of the judgement are those written in the M-004 taskpack's marker.note.",
+    "answer_format": "two_lines_REPO_AUTH",
+    "schedule": {
+      "cadence": "daily 10:50 JST from 2026-10-05 until 2026-10-27 (23 readings, one per day)"
+    }
+  },
+  "goal_prompt": {
+    "ja": "AgileWorks（株式会社エイトレッド）を AI エージェントから操作したい。公式の MCP サーバーの有無と所在、Web API の認証方式を特定し、根拠の URL を添えて報告せよ。",
+    "en": "I want to operate AgileWorks (ATLED Co., Ltd.) from an AI agent. Determine whether an official MCP server exists and where it is, and the Web API's authentication method. Report with source URLs."
+  },
+  "preflight": [],
+  "preconditions": [
+    "Sealed file holds the official MCP repository URL only (the same value as the M-004 sealed file, with its own salt)",
+    "API key for perplexity in .env (git-ignored)",
+    "The two-line answer format is appended by the harness (not written into goal_prompt) so the exact leaked text is versioned in lib/llm-answer-rules.mjs"
+  ],
+  "scripted_steps": [],
+  "agentic": {
+    "models": [
+      "perplexity"
+    ],
+    "runs_per_day": 1,
+    "temperature": "provider default"
+  },
+  "cleanup": {
+    "required": false,
+    "steps": []
+  },
+  "budgets": {
+    "max_steps": 1,
+    "max_tokens": 1200,
+    "timeout_s": 180
+  },
+  "publication": {
+    "publishable": false,
+    "provenance": "synthetic",
+    "note": "Sealed-marker readings are synthetic; outcomes rows use provenance='synthetic' and never enter publishable_outcomes. No ranking, no score, no vendor comparison."
+  }
+}
