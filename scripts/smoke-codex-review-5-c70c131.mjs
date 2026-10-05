@@ -41,7 +41,10 @@ try {
   assert.deepEqual(actual.cases.map(c=>c.id),expected.cases.map(c=>c.id));
   // Only B's wall-clock fixture timestamps vary across runs; no expected
   // status, provenance, outcome value or CLI exit code is waived.
-  const stable=v=>Array.isArray(v)?v.map(stable):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,['created_at','mcp_liveness_checked_at'].includes(k)&&typeof x==='string'?'runtime-timestamp':stable(x)])):v;
+  // Columns added to services after c70c131 are not part of that review's oracle
+  // (B snapshots whole rows); they are named here one by one, never by pattern.
+  const LATER_COLUMNS=['mcp_repo_url'];
+  const stable=v=>Array.isArray(v)?v.map(stable):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).filter(([k])=>!LATER_COLUMNS.includes(k)).map(([k,x])=>[k,['created_at','mcp_liveness_checked_at'].includes(k)&&typeof x==='string'?'runtime-timestamp':stable(x)])):v;
   for(let i=0;i<38;i++){
     const oracle=actual.cases[i].id.startsWith('B-')?stable:v=>v;
     assert.deepEqual(oracle(actual.cases[i].expected),oracle(expected.cases[i].expected),`unchanged oracle: ${expected.cases[i].id}`);

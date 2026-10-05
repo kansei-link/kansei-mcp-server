@@ -21,6 +21,7 @@ interface ServiceRow {
   mcp_liveness: string | null;
   mcp_liveness_checked_at: string | null;
   mcp_liveness_endpoint: string | null;
+  mcp_repo_url: string | null;
   trust_score: number;
 }
 
@@ -104,7 +105,7 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
   // Get service info
   const service = db
     .prepare(
-      `SELECT id, name, category, api_url, api_auth_method, trust_score, ${MCP_STATUS_COLUMNS} FROM services WHERE id = ?`
+      `SELECT id, name, category, api_url, api_auth_method, trust_score, mcp_repo_url, ${MCP_STATUS_COLUMNS} FROM services WHERE id = ?`
     )
     .get(serviceId) as ServiceRow | undefined;
 
@@ -354,6 +355,8 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     // with this endpoint; liveness beside it (utils/mcp-status.ts).
     connection: {
       mcp_endpoint: service.mcp_endpoint ?? null,
+      // the official MCP server repository as the provider publishes it (null when not on record)
+      mcp_repo_url: service.mcp_repo_url ?? null,
       ...displayMcpStatus(service),
       mcp_status_legend: MCP_STATUS_LEGEND,
       api_url: service.api_url ?? guide?.base_url ?? null,
