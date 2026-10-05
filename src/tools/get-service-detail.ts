@@ -18,6 +18,7 @@ interface ServiceRow {
   mcp_liveness: string | null;
   mcp_liveness_checked_at: string | null;
   mcp_liveness_endpoint: string | null;
+  mcp_repo_url: string | null;
   api_url: string | null;
   api_auth_method: string | null;
   trust_score: number;
@@ -154,6 +155,7 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
       category: service.category,
       description: service.description,
       mcp_endpoint: service.mcp_endpoint || null,
+      mcp_repo_url: service.mcp_repo_url || null,
       ...mcp,
       mcp_status_legend: MCP_STATUS_LEGEND,
       api_url: service.api_url,
@@ -162,8 +164,10 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
       freshness,
       freshness_legend: FRESHNESS_LEGEND.upstream_metadata,
       connection_guide: null,
-      message:
-        "No detailed API connection guide available yet. Use api_url and api_auth_method as starting points.",
+      // With the official repository on record, point there: its README is the setup guide.
+      message: service.mcp_repo_url
+        ? `No detailed API connection guide here. The official MCP server repository is ${service.mcp_repo_url}; its README has the setup steps.`
+        : "No detailed API connection guide available yet. Use api_url and api_auth_method as starting points.",
       recent_changes: recentChanges,
     };
   }
@@ -174,6 +178,7 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     category: service.category,
     description: service.description,
     mcp_endpoint: service.mcp_endpoint || null,
+    mcp_repo_url: service.mcp_repo_url || null,
     ...mcp,
     mcp_status_legend: MCP_STATUS_LEGEND,
     trust_score: service.trust_score,

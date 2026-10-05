@@ -805,6 +805,16 @@ export function initializeDb(db: Database.Database): void {
     tx();
   }
 
+  // The official MCP server repository, as the provider publishes it (2026-10-05).
+  // Nullable and distinct from mcp_endpoint (how to connect) and api_url (the
+  // product / API page). Only the seed writes it, and only for rows that have one.
+  const hasMcpRepoUrl = db
+    .prepare("SELECT count(*) as cnt FROM pragma_table_info('services') WHERE name = 'mcp_repo_url'")
+    .get() as { cnt: number };
+  if (hasMcpRepoUrl.cnt === 0) {
+    db.exec("ALTER TABLE services ADD COLUMN mcp_repo_url TEXT");
+  }
+
   // Shared shape only; full server migrations and hygiene remain here.
   ensureCliSchema(db);
 

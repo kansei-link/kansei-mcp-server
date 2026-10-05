@@ -32,6 +32,19 @@ interface ServiceSeed {
   axr_facade?: number;
   /** 1 = endpoint confirmed dead (liveness sweep / weekly probe). Hidden from search. */
   archived?: number;
+  /** The official MCP server repository as the provider publishes it: https://github.com/<owner>/<repo>. */
+  mcp_repo_url?: string;
+}
+
+// The only form mcp_repo_url may take (no trailing slash, no .git). A seed value
+// outside it is not used (NULL) and reported once; the server still starts.
+const MCP_REPO_URL_RE = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+function seedMcpRepoUrl(service: ServiceSeed): string | null {
+  const v = service.mcp_repo_url;
+  if (v === undefined || v === null) return null;
+  if (typeof v === "string" && MCP_REPO_URL_RE.test(v) && !v.endsWith(".git")) return v;
+  console.warn(`[seed] ${service.id}: mcp_repo_url is not https://github.com/<owner>/<repo>; ignored (NULL)`);
+  return null;
 }
 
 interface RecipeSeed {
@@ -265,9 +278,12 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   //   touches. When the seed changes mcp_endpoint, mcp_liveness_endpoint no
   //   longer matches and the display falls back to unverified on its own
   //   (utils/mcp-status.ts, 2026-10-02, marker M-002).
+  //
+  // mcp_repo_url: overwritten only when the seed has a value for the row
+  //   (COALESCE): a row the seed says nothing about keeps what it has.
   const insertService = db.prepare(`
-    INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, axr_score, axr_grade, axr_dims, axr_facade, archived)
-    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score, @axr_score, @axr_grade, @axr_dims, @axr_facade, @archived)
+    INSERT INTO services (id, name, namespace, description, category, tags, mcp_endpoint, mcp_status, api_url, api_auth_method, trust_score, axr_score, axr_grade, axr_dims, axr_facade, archived, mcp_repo_url)
+    VALUES (@id, @name, @namespace, @description, @category, @tags, @mcp_endpoint, @mcp_status, @api_url, @api_auth_method, @trust_score, @axr_score, @axr_grade, @axr_dims, @axr_facade, @archived, @mcp_repo_url)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       namespace = excluded.namespace,
@@ -279,7 +295,8 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
       api_url = excluded.api_url,
       axr_dims = excluded.axr_dims,
       axr_facade = excluded.axr_facade,
-      archived = MAX(COALESCE(services.archived, 0), excluded.archived)
+      archived = MAX(COALESCE(services.archived, 0), excluded.archived),
+      mcp_repo_url = COALESCE(excluded.mcp_repo_url, services.mcp_repo_url)
   `);
 
   // Read existing tags so the seed loop can UNION (not overwrite) them — the
@@ -344,6 +361,7 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
         axr_dims: service.axr_dims ? JSON.stringify(service.axr_dims) : null,
         axr_facade: service.axr_facade ?? 0,
         archived: service.archived ?? 0,
+        mcp_repo_url: seedMcpRepoUrl(service),
       });
     }
 
