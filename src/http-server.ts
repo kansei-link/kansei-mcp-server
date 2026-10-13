@@ -52,6 +52,7 @@ import { resolveApiKey, fixedTierResolver } from "./entitlements.js";
 import { runCrawler } from "./crawler/run.js";
 import { handleSiteCheck, handleSiteCheckGet } from "./site-check.js";
 import { reportOutcome } from "./tools/report-outcome.js";
+import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
@@ -66,6 +67,10 @@ const app = express();
 // setting — `true` would trust arbitrarily many proxies and let clients
 // forge their IP.
 app.set("trust proxy", 1);
+
+// Every response carries X-Request-Id (Railway edge id when present, else a uuid),
+// so a caller can quote one value and we can find the same request in our logs.
+app.use(requestIdMiddleware);
 
 // ─── Database Initialization ─────────────────────────────────────
 // Ensure all tables (including subscriptions) exist before handling requests
@@ -633,6 +638,14 @@ app.get("/health", (_req: Request, res: Response) => {
     transport: "streamable-http",
   });
 });
+
+// ─── ARD entry cards (stage A) ────────────────────────────────────
+// kansei-link.com/.well-known/ard.json points each entry here so fetches can be
+// counted. Read-only, generated JSON (src/data/ard-*.json); no DB access.
+// Errors are RFC 9457 problem details. See src/ard.ts.
+app.get("/ard/entries/:file", handleArdEntry);
+app.get("/ard/openapi.json", handleArdOpenapi);
+app.get("/ard/stats.json", handleArdStats);
 
 // ─── Linksee-memory telemetry (opt-in, anonymous) ─────────────────
 // Receives Level 1 telemetry from linksee-memory clients (only if user
