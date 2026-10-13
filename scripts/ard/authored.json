@@ -1,0 +1,235 @@
+{
+  "_readme": "generate-ard.mjs の手書きの入力。CSV（一次資料の一覧・非公開）に無い物だけをここに持つ: service_id・表示名・問いの例（KanseiLINK が作成）・記録の段階。CSV の事実（URL・提供形態・認証）はここに書かない。match は CSV の company 列の先頭一致。",
+  "levels": {
+    "L0": "存在確認（一次資料で公式 MCP を確認。接続は未検証）",
+    "L1": "到達確認（封印した問いで毎日測った）",
+    "L2": "接続確認（起動・接続して操作定義を取得）",
+    "L3": "業務完了確認"
+  },
+  "evidence": {
+    "M-002": "https://github.com/kansei-link/kansei-mcp-server/blob/a5b8f521cc38619bc162afbd605022dd3d0c6b0b/evidence/commitments/M-002.sha256",
+    "M-004": "https://github.com/kansei-link/kansei-mcp-server/blob/26d1a7bdf29ef96ce859d05de8d5b697632a0c8b/evidence/commitments/M-004.sha256",
+    "M-007": "https://github.com/kansei-link/kansei-mcp-server/blob/ba78a09a76fc13fb544b973e625136a3f9cd6c8a/evidence/commitments/M-007.sha256"
+  },
+  "field_notes_json": "https://kansei-link.com/insights/agent-field-notes.json",
+  "companies": [
+    {
+      "match": "freee株式会社",
+      "service_id": "freee",
+      "company": "freee株式会社",
+      "display_name": "freee（freee株式会社）",
+      "failures": true,
+      "queries": ["freee会計の取引を AI エージェントから確認したい", "freee の公式 MCP サーバーのつなぎ方を知りたい", "connect an AI agent to freee accounting through its official MCP server"]
+    },
+    {
+      "match": "株式会社マネーフォワード",
+      "service_id": "moneyforward",
+      "company": "株式会社マネーフォワード",
+      "display_name": "マネーフォワード クラウド会計（株式会社マネーフォワード）",
+      "queries": ["マネーフォワード クラウド会計を AI エージェントから使いたい", "マネーフォワードの公式 MCP の接続先と認証方式を知りたい", "official MCP server for Money Forward Cloud Accounting"]
+    },
+    {
+      "match": "弥生株式会社",
+      "service_id": "misoca",
+      "company": "弥生株式会社",
+      "display_name": "Misoca（弥生株式会社）",
+      "queries": ["Misoca の請求書を AI エージェントから扱いたい", "Misoca を Claude のコネクタとしてつなぎたい", "official MCP connector for Misoca invoicing"]
+    },
+    {
+      "match": "株式会社kickflow",
+      "service_id": "kickflow",
+      "company": "株式会社kickflow",
+      "display_name": "kickflow（株式会社kickflow）",
+      "queries": ["kickflow のワークフローを AI エージェントから扱いたい", "kickflow の公式 MCP サーバーの設定方法を知りたい", "official MCP server for the kickflow approval workflow"]
+    },
+    {
+      "match": "株式会社TOKIUM",
+      "service_id": "tokium",
+      "company": "株式会社TOKIUM",
+      "display_name": "TOKIUM（株式会社TOKIUM）",
+      "queries": ["TOKIUM のワークフロー申請を AI エージェントから作りたい", "TOKIUM の MCP サーバーが公式に提供されているか知りたい", "official MCP server for TOKIUM workflow requests"]
+    },
+    {
+      "match": "株式会社エイトレッド",
+      "service_id": "agile-works",
+      "company": "株式会社エイトレッド",
+      "display_name": "AgileWorks（株式会社エイトレッド）",
+      "level": "L2",
+      "verified_on": "2026-10-07",
+      "level_basis": "L1: 封印した問い M-004・M-007 で毎日測定。L2: 2026-10-07 に公式リポジトリのサーバーを起動・接続して操作定義を取得（起動の記録は非公開）",
+      "evidence": ["M-004", "M-007"],
+      "queries": ["AgileWorks の申請を AI から検索したい", "AgileWorks の公式 MCP サーバーの認証の設定方法を知りたい", "official MCP server for the AgileWorks approval workflow"]
+    },
+    {
+      "match": "株式会社クエステトラ",
+      "service_id": "questetra",
+      "company": "株式会社クエステトラ",
+      "display_name": "Questetra BPM Suite（株式会社クエステトラ）",
+      "queries": ["Questetra の自分の担当タスクを AI エージェントから一覧したい", "Questetra BPM Suite の MCP サーバーの接続先を知りたい", "official MCP server for Questetra BPM Suite"]
+    },
+    {
+      "match": "LINE WORKS株式会社",
+      "service_id": "lineworks",
+      "company": "LINE WORKS株式会社",
+      "display_name": "LINE WORKS（LINE WORKS株式会社）",
+      "queries": ["LINE WORKS の予定を AI エージェントから確認したい", "WORKS MCP を管理者として有効にする方法を知りたい", "official MCP app for LINE WORKS mail, calendar and tasks"]
+    },
+    {
+      "match": "サイボウズ株式会社",
+      "service_id": "kintone",
+      "company": "サイボウズ株式会社",
+      "display_name": "kintone・Garoon（サイボウズ株式会社）",
+      "queries": ["kintone のレコードを AI エージェントから検索したい", "Garoon の予定を AI エージェントから確認したい", "official local MCP server for kintone"]
+    },
+    {
+      "match": "株式会社kubell",
+      "service_id": "chatwork",
+      "company": "株式会社kubell",
+      "display_name": "Chatwork（株式会社kubell）",
+      "queries": ["Chatwork のメッセージを AI エージェントから扱いたい", "Chatwork の公式 MCP サーバーの API トークンの渡し方を知りたい", "official MCP server for Chatwork"]
+    },
+    {
+      "match": "LINEヤフー株式会社",
+      "service_id": "line-messaging",
+      "company": "LINEヤフー株式会社",
+      "display_name": "LINE Messaging API（LINEヤフー株式会社）",
+      "queries": ["LINE公式アカウントからのメッセージ送信を AI エージェントに任せたい", "LINE Bot MCP Server の設定方法を知りたい", "official MCP server for the LINE Messaging API"]
+    },
+    {
+      "match": "SALES GO株式会社",
+      "service_id": "salesgo",
+      "company": "SALES GO株式会社",
+      "display_name": "GoCoo!（SALES GO株式会社）",
+      "queries": ["GoCoo! を AI エージェントから使いたい", "GoCoo! の MCP サーバー対応の一次資料を確認したい", "does the GoCoo! SFA offer an official MCP server"]
+    },
+    {
+      "match": "Sansan株式会社",
+      "service_id": "sansan",
+      "company": "Sansan株式会社",
+      "display_name": "Sansan・Contract One（Sansan株式会社）",
+      "queries": ["Sansan の情報を AI エージェントから検索したい", "Contract One の契約情報を AI エージェントから確認したい", "official MCP server for Sansan"]
+    },
+    {
+      "match": "トレジャーデータ株式会社",
+      "service_id": "treasure-data",
+      "company": "トレジャーデータ株式会社（Treasure Data, Inc.）",
+      "display_name": "Treasure Data CDP（トレジャーデータ株式会社）",
+      "queries": ["Treasure Data のデータを AI エージェントから問い合わせたい", "Treasure Data の公式 MCP サーバーの API キーの設定方法を知りたい", "official MCP server for Treasure Data CDP"]
+    },
+    {
+      "match": "株式会社データX",
+      "service_id": "bdash",
+      "company": "株式会社データX",
+      "display_name": "b→dash（株式会社データX）",
+      "queries": ["b→dash のデータを AI エージェントから使いたい", "b→dash の AI Connect（MCP）の一次資料を確認したい", "does b-dash offer an official MCP connection"]
+    },
+    {
+      "match": "株式会社プレイド",
+      "service_id": "karte",
+      "company": "株式会社プレイド",
+      "display_name": "KARTE（株式会社プレイド）",
+      "queries": ["KARTE のデータを AI エージェントから使いたい", "KARTE の Remote MCP（β版）の一次資料を確認したい", "does KARTE offer an official remote MCP server"]
+    },
+    {
+      "match": "株式会社ベーシック",
+      "service_id": "ferret-one",
+      "company": "株式会社ベーシック",
+      "display_name": "ferret One（株式会社ベーシック）",
+      "queries": ["ferret One を AI エージェントから使いたい", "ferret One の MCP（β版）の一次資料を確認したい", "does ferret One offer an official MCP server"]
+    },
+    {
+      "match": "株式会社マツリカ",
+      "service_id": "mazrica-engage",
+      "company": "株式会社マツリカ",
+      "display_name": "Mazrica Engage（株式会社マツリカ）",
+      "queries": ["Mazrica Engage を AI エージェントから使いたい", "Mazrica Engage の MCP 対応の一次資料を確認したい", "does Mazrica Engage offer an official MCP server"]
+    },
+    {
+      "match": "GMOイプシロン株式会社",
+      "service_id": "fincode",
+      "company": "GMOイプシロン株式会社（GMOペイメントゲートウェイと共同発表）",
+      "display_name": "fincode byGMO（GMOイプシロン株式会社）",
+      "queries": ["fincode の決済 API を AI エージェントから呼びたい", "fincode の API ドキュメントを AI エージェントに調べさせたい", "official MCP server for the fincode byGMO payment API"]
+    },
+    {
+      "match": "GMOペパボ株式会社",
+      "service_id": "colorme",
+      "company": "GMOペパボ株式会社",
+      "display_name": "カラーミーショップ・SUZURI（GMOペパボ株式会社）",
+      "queries": ["カラーミーショップのショップ情報を AI エージェントから確認したい", "SUZURI の MCP サーバーの接続方法を知りたい", "official remote MCP server for Color Me Shop"]
+    },
+    {
+      "match": "NE株式会社",
+      "service_id": "next-engine",
+      "company": "NE株式会社",
+      "display_name": "ネクストエンジン（NE株式会社）",
+      "queries": ["ネクストエンジンのデータを AI エージェントから参照したい", "ネクストエンジン MCP（β版）の一次資料を確認したい", "does Next Engine offer an official MCP server"]
+    },
+    {
+      "match": "株式会社ロジクラ",
+      "service_id": "logikura",
+      "company": "株式会社ロジクラ",
+      "display_name": "ロジクラ（株式会社ロジクラ）",
+      "queries": ["ロジクラのデータを AI エージェントから確認したい", "ロジクラ MCP サーバーの設定手順を知りたい", "official MCP server for Logikura"]
+    },
+    {
+      "match": "GMOグローバルサイン株式会社",
+      "service_id": "trustlogin",
+      "company": "GMOグローバルサイン株式会社",
+      "display_name": "GMOトラスト・ログイン（GMOグローバルサイン株式会社）",
+      "queries": ["GMOトラスト・ログインの設定を AI エージェントから参照したい", "GMOトラスト・ログインの MCP を Claude Code につなぐ手順を知りたい", "official MCP server for GMO TrustLogin"]
+    },
+    {
+      "match": "HENNGE株式会社",
+      "service_id": "hennge-one",
+      "company": "HENNGE株式会社",
+      "display_name": "HENNGE One — HENNGE Tadrill（HENNGE株式会社）",
+      "queries": ["HENNGE Tadrill の情報を AI エージェントから参照したい", "HENNGE Tadrill の MCP サーバーの接続手順を知りたい", "official MCP server for HENNGE Tadrill"]
+    },
+    {
+      "match": "株式会社PR TIMES",
+      "service_id": "jooto",
+      "company": "株式会社PR TIMES",
+      "display_name": "Jooto（株式会社PR TIMES）",
+      "queries": ["Jooto のタスクを AI エージェントから確認したい", "Jooto の公式 MCP サーバーの API キーの設定方法を知りたい", "official MCP server for Jooto task management"]
+    },
+    {
+      "match": "株式会社ヌーラボ",
+      "service_id": "backlog",
+      "company": "株式会社ヌーラボ",
+      "display_name": "Backlog（株式会社ヌーラボ）",
+      "queries": ["Backlog の課題を AI エージェントから検索したい", "Backlog の公式 MCP サーバーの設定方法を知りたい", "official MCP server for Nulab Backlog"]
+    },
+    {
+      "match": "ウイングアーク１ｓｔ株式会社",
+      "service_id": "dr-sum",
+      "company": "ウイングアーク１ｓｔ株式会社",
+      "display_name": "Dr.Sum（ウイングアーク１ｓｔ株式会社）",
+      "queries": ["Dr.Sum のデータを AI エージェントから問い合わせたい", "Dr.Sum の MCP サーバーをローカルで動かす方法を知りたい", "official MCP server for WingArc1st Dr.Sum"]
+    }
+  ],
+  "self": {
+    "service_id": "kansei-link-mcp",
+    "identifier": "urn:air:kansei-link.com:catalog:kansei-link-mcp",
+    "company": "Synapse Arrows PTE. LTD.",
+    "product": "KanseiLink MCP Server",
+    "display_name": "KanseiLink MCP Server（Synapse Arrows PTE. LTD.）",
+    "summary": "SaaS の接続方法・認証・落とし穴の記録を AI エージェントが引くための MCP サーバー（KanseiLINK 自身が運営）。",
+    "repo_url": "https://github.com/kansei-link/kansei-mcp-server",
+    "docs_url": "https://www.npmjs.com/package/@kansei-link/mcp-server",
+    "hosting": "self-hosted-local+vendor-hosted",
+    "auth_method": "none（無料の範囲は鍵なし。任意で x-api-key）",
+    "use_case_group": "開発・運用",
+    "level": "L2",
+    "verified_on": "2026-10-05",
+    "level_basis": "封印した問い M-002 で、MCP に接続してカタログを読む所までを毎日測定（2026-10-05 に合格）",
+    "evidence": ["M-002"],
+    "queries": ["日本の SaaS の公式 MCP サーバーを探したい", "SaaS の API の認証方法と落とし穴を AI エージェントに調べさせたい", "find the official MCP server and auth method for a Japanese SaaS"]
+  },
+  "openapi_entry": {
+    "identifier": "urn:air:kansei-link.com:catalog:ard-entries-api",
+    "display_name": "KanseiLINK ARD Entries API（OpenAPI 3.1）",
+    "description": "KanseiLINK の ARD エントリ取得 API の定義（OpenAPI 3.1）",
+    "queries": ["KanseiLINK の ARD エントリを API で取得したい", "日本の公式 MCP の一覧を機械可読で取得したい", "OpenAPI definition for fetching KanseiLINK ARD entry cards"]
+  }
+}

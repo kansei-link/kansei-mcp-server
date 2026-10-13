@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="ja"><head>
+  <!-- Google Analytics 4 (gtag-ga4:G-NHXMFKT579) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NHXMFKT579"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NHXMFKT579');
+  </script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>要求の形が合っていない（bad-request） | KanseiLink</title>
+<meta name="description" content="KanseiLINK の /ard/* が返すエラーの型 bad-request（HTTP 400）の説明。何が起きたか・次に何をするか。">
+<meta name="robots" content="index,follow"><link rel="canonical" href="https://kansei-link.com/problems/bad-request.html">
+<meta property="og:type" content="website"><meta property="og:title" content="要求の形が合っていない（bad-request）"><meta property="og:url" content="https://kansei-link.com/problems/bad-request.html"><meta property="og:locale" content="ja_JP">
+<style>:root{--b:#1a3fd6;--i:#101828;--m:#667085;--l:#e4e7ec;--s:#f4f5fd}*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans JP",system-ui,sans-serif;color:var(--i);line-height:1.85}nav,main,footer{max-width:1000px;margin:auto;padding:20px 28px}nav{display:flex;justify-content:space-between;border-bottom:1px solid var(--l)}a{color:var(--b)}.brand{font-size:22px;font-weight:800;text-decoration:none}.hero{background:linear-gradient(135deg,#0a1628,#1a3fd6);color:#fff;padding:52px 28px}.hero>div{max-width:1000px;margin:auto}.hero h1{font-size:clamp(26px,4.2vw,40px);line-height:1.35;margin:.2em 0}.hero p{font-size:17px;opacity:.92}h2{margin-top:46px;border-left:5px solid var(--b);padding-left:14px}.rule{background:var(--s);border-left:5px solid var(--b);padding:14px 18px;margin:18px 0}.wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}th,td{border-bottom:1px solid var(--l);padding:9px 10px;text-align:left;vertical-align:top}th{background:var(--s);white-space:nowrap}code{background:var(--s);padding:1px 5px;border-radius:4px;font-size:13px}.lv{display:inline-block;padding:1px 9px;border-radius:999px;font-weight:700;font-size:13px;white-space:nowrap}.lv0{background:#f2f4f7;color:#475467}.lv1,.lv2,.lv3{background:#e7f6ec;color:#067647}.note{color:var(--m);font-size:14px}footer{border-top:1px solid var(--l);margin-top:60px;color:var(--m)}</style>
+</head>
+<body><nav><a class="brand" href="/">KanseiLink</a><a href="/ard/">ARD の一覧</a></nav>
+<header class="hero"><div><div>PROBLEM TYPE · HTTP 400</div><h1>要求の形が合っていない（bad-request）</h1><p>type: <code>https://kansei-link.com/problems/bad-request</code></p></div></header>
+<main>
+<h2>何が起きたか</h2>
+<p>経路が <code>/ard/entries/&lt;service_id&gt;.json</code> の形になっていないか、<code>service_id</code> が文法（英小文字・数字・ハイフン、先頭は英小文字か数字、64 字まで）に合っていません。</p>
+<h2>次に何をするか</h2>
+<p>・末尾の <code>.json</code> を付けてください。<br>・id は <a href="/.well-known/ard.json">/.well-known/ard.json</a> の各エントリの <code>url</code> に入っている物をそのまま使ってください。<br>・経路の定義は <a href="https://kansei-link-mcp-production.up.railway.app/ard/openapi.json">/ard/openapi.json</a>（OpenAPI 3.1）にあります。</p>
+<h2>このエラーを報告する時</h2>
+<p>応答の <code>X-Request-Id</code> ヘッダ（本文の <code>instance</code> の <code>urn:kansei:request:</code> の後ろと同じ値）を添えてください。私たちの記録から同じ要求を探せます。</p>
+<h2>この型のエラーに紐づく現場メモ</h2>
+<p>まだ無い。</p>
+<p class="note">応答の形は RFC 9457（<code>application/problem+json</code>）です。もう一つの型: <a href="/problems/ard-entry-not-found.html">ard-entry-not-found</a></p>
+</main>
+<footer>© 2026 <a href="https://synapsearrows.com">Synapse Arrows Pte. Ltd.</a> · <a href="/ard/">ARD の一覧</a> · <a href="/insights/">Research &amp; Insights</a> · <a href="/independence.html">独立性のポリシー</a></footer>
+</body></html>
