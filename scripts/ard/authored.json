@@ -1,5 +1,5 @@
 {
-  "_readme": "generate-ard.mjs の手書きの入力。CSV（一次資料の一覧・非公開）に無い物だけをここに持つ: service_id・表示名・問いの例（KanseiLINK が作成）・記録の段階。CSV の事実（URL・提供形態・認証）はここに書かない。match は CSV の company 列の先頭一致。",
+  "_readme": "generate-ard.mjs の手書きの入力。CSV（一次資料の一覧・非公開）に無い物だけをここに持つ: service_id・表示名・問いの例（KanseiLINK が作成）・記録の段階。CSV の事実（URL・提供形態・認証）はここに書かない（認証の補足 auth_short／auth_method_note だけ例外）。publish_after（YYYY-MM-DD）がある会社は、生成日がその日以前の間、全部の出力から外す。match は CSV の company 列の先頭一致。",
   "levels": {
     "L0": "存在確認（一次資料で公式 MCP を確認。接続は未検証）",
     "L1": "到達確認（封印した問いで毎日測った）",
@@ -54,6 +54,9 @@
       "service_id": "agile-works",
       "company": "株式会社エイトレッド",
       "display_name": "AgileWorks（株式会社エイトレッド）",
+      "publish_after": "2026-10-27",
+      "auth_short": "OAuth 2.0（公式の Web API ガイドでは Basic 認証も選択可）",
+      "auth_method_note": "公式の Web API ガイドでは Basic 認証も選択可",
       "level": "L2",
       "verified_on": "2026-10-07",
       "level_basis": "L1: 封印した問い M-004・M-007 で毎日測定。L2: 2026-10-07 に公式リポジトリのサーバーを起動・接続して操作定義を取得（起動の記録は非公開）",
@@ -222,7 +225,7 @@
     "use_case_group": "開発・運用",
     "level": "L2",
     "verified_on": "2026-10-05",
-    "level_basis": "封印した問い M-002 で、MCP に接続してカタログを読む所までを毎日測定（2026-10-05 に合格）",
+    "level_basis": "封印した問い M-002 で、MCP に接続してカタログを読む所までを 2026-10-05 まで毎日測定し、同日に合格",
     "evidence": ["M-002"],
     "queries": ["日本の SaaS の公式 MCP サーバーを探したい", "SaaS の API の認証方法と落とし穴を AI エージェントに調べさせたい", "find the official MCP server and auth method for a Japanese SaaS"]
   },

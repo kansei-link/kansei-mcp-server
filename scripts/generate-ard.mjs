@@ -15,7 +15,9 @@
 //   src/data/ard-openapi.json            /ard/* の OpenAPI 3.1
 //   public/sitemap.xml                   新しい HTML の <url> を足す（無い時だけ）
 //
-// 使い方: node scripts/generate-ard.mjs --csv <一覧の CSV> [--date YYYY-MM-DD]
+// 使い方: node scripts/generate-ard.mjs --csv <一覧の CSV> [--as-of YYYY-MM-DD]
+//   --as-of は生成日（省略時は今日・日本時間）。authored.json で publish_after を持つ会社は、
+//   生成日がその日以前の間、全部の出力から外す（外した数だけを標準出力と一覧ページに出す）。
 //
 // 仕様の版: ards-project/ard-spec spec/ard.md v0.91（b76f235・2026-09-12）。
 // 記録の段階（L0〜L3）は authored.json が決め、ここは「L1 以上にだけ証拠と検証主体を付ける」を守らせる。
@@ -33,12 +35,11 @@ if (!csvPath) {
   console.error('generate-ard: --csv <一覧の CSV> が要る（元データは公開リポジトリに置かない）');
   process.exit(2);
 }
-const localDate = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-const TODAY = argOf('--date') ?? localDate();
-if (!/^\d{4}-\d{2}-\d{2}$/.test(TODAY)) throw new Error(`--date は YYYY-MM-DD: ${TODAY}`);
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** 今日（日本時間）。sv-SE の日付の書式は YYYY-MM-DD */
+const todayJst = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' }).format(new Date());
+const TODAY = argOf('--as-of') ?? todayJst();
+if (!DATE_RE.test(TODAY)) throw new Error(`--as-of は YYYY-MM-DD: ${TODAY}`);
 
 const ARD_SPEC = 'ards-project/ard-spec spec/ard.md v0.91 (b76f235, 2026-09-12)';
 const ARD_BASE_CONTEXT = 'https://agenticresourcediscovery.org/context/v1';
@@ -91,6 +92,7 @@ const authShort = (a) => {
   const head = a.split(/ \(| — |（/)[0].trim();
   return head === 'unclear' || head === '' ? '一次資料に記載なし' : head;
 };
+const authLabel = (r) => r.auth_short ?? authShort(r.auth_method);
 const hostingJa = (list) => list.map((h) => HOSTING_JA[h] ?? h).join('＋');
 const levelLabel = (lv) => `${lv} ${authored.levels[lv]}`;
 
@@ -108,12 +110,17 @@ function finishRecord(rec) {
 
 const records = [];
 const used = new Set();
+const withheld = []; // publish_after が生成日以後の会社。名前はどの出力にも出さない
 for (const row of official) {
   const hits = authored.companies.filter((c) => row.company.startsWith(c.match));
   if (hits.length !== 1) throw new Error(`authored.json の match が ${hits.length} 件: ${row.company}`);
   const a = hits[0];
   if (used.has(a.service_id)) throw new Error(`service_id が重複: ${a.service_id}`);
   used.add(a.service_id);
+  if (a.publish_after !== undefined) {
+    if (!DATE_RE.test(a.publish_after)) throw new Error(`publish_after は YYYY-MM-DD: ${a.service_id}`);
+    if (TODAY <= a.publish_after) { withheld.push(a.publish_after); continue; }
+  }
   records.push(finishRecord({
     service_id: a.service_id,
     identifier: `urn:air:kansei-link.com:jp-saas:${a.service_id}`,
@@ -126,7 +133,8 @@ for (const row of official) {
     docs_url: orNull(row.docs_url),
     official_registry: row.registry,
     hosting: splitHosting(row.hosting),
-    auth_method: row.auth_method,
+    auth_method: a.auth_method_note ? `${row.auth_method}／${a.auth_method_note}` : row.auth_method,
+    auth_short: a.auth_short ?? null,
     use_case_group: row.use_case_group,
     accessed_on: row.accessed_on,
     level: a.level ?? 'L0',
@@ -145,7 +153,7 @@ for (const r of records) {
   const stage = r.level === 'L0'
     ? `記録の段階: ${r.level} 存在確認（接続は未検証・確認日 ${r.accessed_on}）。`
     : `記録の段階: ${levelLabel(r.level)}。${r.level_basis}。`;
-  r.description = `${r.company}の「${r.product}」に公式 MCP があることを、${source}で確認した記録。提供形態: ${hostingJa(r.hosting)}。認証: ${authShort(r.auth_method)}。${stage}${QUERY_NOTE}`;
+  r.description = `${r.company}の「${r.product}」に公式 MCP があることを、${source}で確認した記録。提供形態: ${hostingJa(r.hosting)}。認証: ${authLabel(r)}。${stage}${QUERY_NOTE}`;
 }
 
 // 自社 MCP（手書きの一行）
@@ -542,7 +550,7 @@ function entryRow(r) {
   const stage = r.level === 'L0'
     ? `<span class="lv lv0">L0 存在確認のみ</span>`
     : `<span class="lv lv${r.level[1]}">${esc(r.level)} ${esc(authored.levels[r.level].split('（')[0])}</span><br><span class="note">${esc(r.level_basis)}</span>`;
-  return `<tr id="${esc(r.service_id)}"><td><strong>${esc(r.display_name)}</strong><br><span class="note">${esc(r.product)}</span></td><td>${stage}${proof ? `<br>${proof}` : ''}</td><td>${esc(hostingJa(r.hosting))}</td><td>${esc(authShort(r.auth_method))}</td><td>${links || '—'}</td><td>${link(cardUrl(r.service_id), 'JSON')}<br><span class="note">確認日 ${esc(r.verified_on)}</span></td></tr>`;
+  return `<tr id="${esc(r.service_id)}"><td><strong>${esc(r.display_name)}</strong><br><span class="note">${esc(r.product)}</span></td><td>${stage}${proof ? `<br>${proof}` : ''}</td><td>${esc(hostingJa(r.hosting))}</td><td>${esc(authLabel(r))}</td><td>${links || '—'}</td><td>${link(cardUrl(r.service_id), 'JSON')}<br><span class="note">確認日 ${esc(r.verified_on)}</span></td></tr>`;
 }
 const GROUP_ORDER = ['会計・人事', 'ワークフロー・経費', 'グループウェア・連絡', '営業・CRM', 'EC・決済', '開発・運用', '該当なし'];
 const third = records.filter((r) => r !== self);
@@ -552,6 +560,12 @@ if (leftover.length) throw new Error(`用途の束が一覧に無い: ${leftover
 const TABLE_HEAD = '<tr><th>製品（会社）</th><th>記録の段階</th><th>提供形態</th><th>認証</th><th>公式の所在・一次資料</th><th>カード</th></tr>';
 const countBy = (lv) => records.filter((r) => r.level === lv).length;
 const verifiedCount = records.filter((r) => r.level !== 'L0').length;
+
+// 外した会社の製品名・会社名・理由の詳細は書かない。数と、足す日だけ
+const dayAfter = (d) => new Date(Date.parse(`${d}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
+const withheldNote = withheld.length
+  ? `\n<p class="note">${withheld.length} 件は観測期間中のため ${dayAfter([...withheld].sort().pop())} 以降に追加します。</p>`
+  : '';
 
 const ardIndex = page({
   path: '/ard/',
@@ -568,7 +582,7 @@ const ardIndex = page({
 ・<strong>L1 到達確認</strong>: 封印した問いで、AI が公式の所在に辿り着けるかを毎日測った。<br>
 ・<strong>L2 接続確認</strong>: 実際に起動・接続して、操作の定義を取得した。<br>
 ・<strong>L3 業務完了確認</strong>: 業務を最後まで終えた。今は該当なし。<br>
-今の内訳: L0 が ${countBy('L0')} 件、L1 以上が ${verifiedCount} 件（${records.filter((r) => r.level !== 'L0').map((r) => esc(r.display_name)).join('・')}）。</div>
+今の内訳: L0 が ${countBy('L0')} 件、L1 以上が ${verifiedCount} 件（${records.filter((r) => r.level !== 'L0').map((r) => esc(r.display_name)).join('・')}）。</div>${withheldNote}
 <p class="note">「問いの例」（representativeQueries）は KanseiLINK が書いた物で、提供者の言葉ではありません。提供形態と認証は一次資料に書かれていた範囲で、書かれていなければ「一次資料に記載なし」としています。作成主体は <code>${AUTHOR}</code>、L1 以上の検証主体は <code>${VERIFIER}</code> です。</p>
 ${groups.map(([g, rs]) => `<h2>${esc(g === '該当なし' ? 'その他（用途の束に該当なし）' : g)}（${rs.length}）</h2>
 <div class="wrap"><table><thead>${TABLE_HEAD}</thead><tbody>
@@ -667,6 +681,7 @@ if (existsSync(sitemapFile)) {
 
 const levels = Object.keys(authored.levels).map((lv) => `${lv}=${countBy(lv)}`).join(' ');
 console.log(`[generate-ard] ${TODAY} entries=${manifest.entries.length} (jp-saas ${third.length} + self 1 + openapi 1) levels: ${levels}`);
+console.log(`[generate-ard] withheld until after publish_after (as of ${TODAY}): ${withheld.length}`);
 console.log(`[generate-ard] server.json version=${serverJson.version} remote=${serverJson.remotes[0].url}`);
 if (serverJson.description !== pkg.description) console.log(`[generate-ard] server.json description を 100 字に切った: "${serverJson.description}"`);
 for (const w of written) console.log(`  wrote ${w}`);
