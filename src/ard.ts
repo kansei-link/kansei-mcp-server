@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-function loadData<T>(filename: string): T | null {
+function loadData(filename: string): unknown {
   // seed.ts と同じ探し方: src/data（dev・Docker）→ dist/data
   const candidates = [
     path.join(__dirname, "..", "src", "data", filename),
@@ -27,7 +27,7 @@ function loadData<T>(filename: string): T | null {
   for (const file of candidates) {
     if (!existsSync(file)) continue;
     try {
-      return JSON.parse(readFileSync(file, "utf-8")) as T;
+      return JSON.parse(readFileSync(file, "utf-8")) as unknown;
     } catch (err) {
       console.error(`[ard] ${filename} を読めない（この機能だけ止める）:`, (err as Error).message);
       return null;
@@ -40,36 +40,50 @@ function loadData<T>(filename: string): T | null {
 type UaClass = "ai_crawler" | "mcp_client" | "browser" | "unknown";
 const UA_CLASSES: UaClass[] = ["ai_crawler", "mcp_client", "browser", "unknown"];
 
-interface UaData {
-  ai_crawlers: { token: string }[];
-  mcp_client_patterns: { tokens: string[] };
-  other_bot_pattern: { regex: string };
-  browser_pattern: { regex: string };
+const SERVICE_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-const entriesFile = loadData<{ entries: Record<string, unknown> }>("ard-entries.json");
-const cards: Record<string, unknown> = entriesFile?.entries ?? {};
-const openapiDoc = loadData<Record<string, unknown>>("ard-openapi.json");
-const uaData = loadData<UaData>("ai-user-agents.json");
+function invalidField(filename: string, field: string): void {
+  console.error(`[ard] ${filename} の ${field} の形が違う（空として扱う）`);
+}
 
-const aiTokens = (uaData?.ai_crawlers ?? []).map((c) => c.token);
-const mcpTokens = (uaData?.mcp_client_patterns?.tokens ?? []).map((t) => t.toLowerCase());
-const otherBotRe = safeRegex(uaData?.other_bot_pattern?.regex, "i");
-const browserRe = safeRegex(uaData?.browser_pattern?.regex, "");
+function objectData(filename: string): Record<string, unknown> {
+  const value = loadData(filename);
+  if (isObject(value)) return value;
+  invalidField(filename, "$root");
+  return {};
+}
 
-function safeRegex(src: string | undefined, flags: string): RegExp | null {
+function normalizedRegex(value: unknown, field: string, flags: string): RegExp | null {
+  if (value === undefined) return null;
+  if (!isObject(value) || typeof value.regex !== "string") {
+    invalidField("ai-user-agents.json", `${field}.regex`);
+    return null;
+  }
+  const src = value.regex;
   if (!src) return null;
   try {
     return new RegExp(src, flags);
   } catch {
+    invalidField("ai-user-agents.json", `${field}.regex`);
     return null;
   }
 }
 
+let cards: Record<string, unknown> = {};
+let openapiDoc: Record<string, unknown> | null = null;
+let aiTokens: { token: string; lower: string }[] = [];
+let mcpTokens: string[] = [];
+let otherBotRe: RegExp | null = null;
+let browserRe: RegExp | null = null;
+
 export function classifyUserAgent(ua: string): { uaClass: UaClass; crawler: string | null } {
   const lower = ua.toLowerCase();
-  for (const token of aiTokens) {
-    if (lower.includes(token.toLowerCase())) return { uaClass: "ai_crawler", crawler: token };
+  for (const { token, lower: tokenLower } of aiTokens) {
+    if (lower.includes(tokenLower)) return { uaClass: "ai_crawler", crawler: token };
   }
   if (mcpTokens.some((t) => lower.includes(t))) return { uaClass: "mcp_client", crawler: null };
   if (otherBotRe?.test(ua)) return { uaClass: "unknown", crawler: null };
@@ -108,11 +122,73 @@ const newCounter = (): Counter => ({
 
 const startedAt = new Date().toISOString();
 const entryCounters = new Map<string, Counter>();
-for (const id of Object.keys(cards)) entryCounters.set(id, newCounter());
 const openapiCounter = newCounter();
 const statsCounter = newCounter();
 const errorCounts = { not_found: 0, bad_request: 0 };
 const crawlerCounts = new Map<string, number>();
+
+// 形の検査に加え、読み込み・正規化・カウンタの準備全体も守る。
+// 全部が揃うまでデータを公開しないので、想定外の例外でも空のまま応答できる。
+try {
+  const entriesFile = objectData("ard-entries.json");
+  const normalizedCards: Record<string, unknown> = {};
+  if (!isObject(entriesFile.entries)) {
+    invalidField("ard-entries.json", "entries");
+  } else {
+    for (const [id, card] of Object.entries(entriesFile.entries)) {
+      if (!SERVICE_ID_RE.test(id) || !isObject(card)) {
+        invalidField("ard-entries.json", `entries[${JSON.stringify(id)}]`);
+        continue;
+      }
+      normalizedCards[id] = card;
+    }
+  }
+
+  const rawOpenapi = loadData("ard-openapi.json");
+  const normalizedOpenapi = isObject(rawOpenapi) ? rawOpenapi : null;
+  if (!normalizedOpenapi) invalidField("ard-openapi.json", "$root");
+
+  const uaData = objectData("ai-user-agents.json");
+  const normalizedAi: { token: string; lower: string }[] = [];
+  if (!Array.isArray(uaData.ai_crawlers)) {
+    invalidField("ai-user-agents.json", "ai_crawlers");
+  } else {
+    uaData.ai_crawlers.forEach((crawler: unknown, index: number) => {
+      if (!isObject(crawler) || typeof crawler.token !== "string" || !crawler.token.trim()) {
+        invalidField("ai-user-agents.json", `ai_crawlers[${index}].token`);
+        return;
+      }
+      normalizedAi.push({ token: crawler.token, lower: crawler.token.toLowerCase() });
+    });
+  }
+
+  const normalizedMcp: string[] = [];
+  const patterns = uaData.mcp_client_patterns;
+  if (!isObject(patterns) || !Array.isArray(patterns.tokens)) {
+    invalidField("ai-user-agents.json", "mcp_client_patterns.tokens");
+  } else {
+    patterns.tokens.forEach((token: unknown, index: number) => {
+      if (typeof token !== "string") {
+        invalidField("ai-user-agents.json", `mcp_client_patterns.tokens[${index}]`);
+        return;
+      }
+      normalizedMcp.push(token.toLowerCase());
+    });
+  }
+  const normalizedOtherBot = normalizedRegex(uaData.other_bot_pattern, "other_bot_pattern", "i");
+  const normalizedBrowser = normalizedRegex(uaData.browser_pattern, "browser_pattern", "");
+
+  for (const id of Object.keys(normalizedCards)) entryCounters.set(id, newCounter());
+  cards = normalizedCards;
+  openapiDoc = normalizedOpenapi;
+  aiTokens = normalizedAi;
+  mcpTokens = normalizedMcp;
+  otherBotRe = normalizedOtherBot;
+  browserRe = normalizedBrowser;
+} catch (err) {
+  entryCounters.clear();
+  console.error("[ard] データの初期化を完了できない（空として扱う）:", err instanceof Error ? err.message : "unknown error");
+}
 
 function bump(counter: Counter, uaClass: UaClass, now: string): void {
   counter.count++;
@@ -182,8 +258,6 @@ function sendProblem(res: Response, slug: ProblemSlug, detail: string): number {
     );
   return p.status;
 }
-
-const SERVICE_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 /** GET /ard/entries/<service_id>.json */
 export function handleArdEntry(req: Request, res: Response): void {
