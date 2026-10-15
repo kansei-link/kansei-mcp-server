@@ -1,0 +1,32 @@
+{
+  "_readme": "/ard/* の取得を UA で四つに分ける（ai_crawler / mcp_client / browser / unknown）ための一覧。token は User-Agent の部分一致（大文字小文字を区別しない）。source は token の記載を確かめた各社の公式ページ（checked_on に本文で名前を確認）。source が null の物は公式の記載を確認できていない。",
+  "checked_on": "2026-10-13",
+  "ai_crawlers": [
+    { "token": "GPTBot", "operator": "OpenAI", "source": "https://developers.openai.com/api/docs/bots" },
+    { "token": "ChatGPT-User", "operator": "OpenAI", "source": "https://developers.openai.com/api/docs/bots" },
+    { "token": "OAI-SearchBot", "operator": "OpenAI", "source": "https://developers.openai.com/api/docs/bots" },
+    { "token": "ClaudeBot", "operator": "Anthropic", "source": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler" },
+    { "token": "Claude-User", "operator": "Anthropic", "source": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler" },
+    { "token": "Claude-SearchBot", "operator": "Anthropic", "source": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler" },
+    { "token": "PerplexityBot", "operator": "Perplexity", "source": "https://docs.perplexity.ai/docs/resources/perplexity-crawlers" },
+    { "token": "Perplexity-User", "operator": "Perplexity", "source": "https://docs.perplexity.ai/docs/resources/perplexity-crawlers" },
+    { "token": "Google-Extended", "operator": "Google", "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers", "note": "robots.txt 用の名前。HTTP の User-Agent には現れないと公式に書かれているので、実際には一致しない見込み。一覧の完全さのために置く。" },
+    { "token": "Applebot", "operator": "Apple", "source": "https://support.apple.com/en-us/119829" },
+    { "token": "Amazonbot", "operator": "Amazon", "source": "https://developer.amazon.com/amazonbot" },
+    { "token": "CCBot", "operator": "Common Crawl", "source": "https://commoncrawl.org/ccbot" },
+    { "token": "DuckAssistBot", "operator": "DuckDuckGo", "source": "https://duckduckgo.com/duckduckgo-help-pages/results/duckassistbot" },
+    { "token": "MistralAI-User", "operator": "Mistral AI", "source": "https://docs.mistral.ai/robots" },
+    { "token": "Bytespider", "operator": "ByteDance", "source": null, "note": "公式ページで名前の記載を確認できなかった（2026-10-13）。広く報告されている UA として置く。" }
+  ],
+  "mcp_client_patterns": {
+    "_note": "MCP クライアントが名乗る UA の公式の一覧は無い。下は推定で、一致しない取得は unknown に入る。生の UA は一行ログに残るので、評価の時に見直す。",
+    "tokens": ["mcp", "modelcontextprotocol", "claude-code", "cursor", "cline", "windsurf", "codex"]
+  },
+  "other_bot_pattern": {
+    "_note": "AI クローラの一覧に無い bot（検索エンジンなど）は browser に数えず unknown に入れる。",
+    "regex": "bot|crawl|spider|slurp|fetch|monitor|preview"
+  },
+  "browser_pattern": {
+    "regex": "^Mozilla/.*(Chrome|Safari|Firefox|Edg|OPR)/"
+  }
+}

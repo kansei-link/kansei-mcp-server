@@ -1,0 +1,618 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "KanseiLINK ARD Entries API",
+    "summary": "Entry cards behind kansei-link.com/.well-known/ard.json",
+    "description": "Read-only. Each ARD entry published at https://kansei-link.com/.well-known/ard.json points to a card here, so that fetches can be counted. Cards are records KanseiLINK made from primary sources; they are not MCP Server Cards issued by the providers. Errors are RFC 9457 problem details.",
+    "version": "2026-10-13",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    },
+    "contact": {
+      "name": "KanseiLINK",
+      "url": "https://kansei-link.com/independence.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://kansei-link-mcp-production.up.railway.app",
+      "description": "Production (Railway)"
+    }
+  ],
+  "security": [],
+  "tags": [
+    {
+      "name": "ard",
+      "description": "ARD entry cards, their counts, and this document."
+    }
+  ],
+  "paths": {
+    "/ard/entries/{service_id}.json": {
+      "get": {
+        "operationId": "getArdEntryCard",
+        "tags": [
+          "ard"
+        ],
+        "summary": "Get the card of one ARD entry",
+        "description": "Returns the record for one service: where the official MCP lives, hosting, auth method, the level of the record (L0–L3) and its evidence.",
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "description": "The last segment of the entry's URN.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "freee",
+                "moneyforward",
+                "misoca",
+                "kickflow",
+                "tokium",
+                "questetra",
+                "lineworks",
+                "kintone",
+                "chatwork",
+                "line-messaging",
+                "salesgo",
+                "sansan",
+                "treasure-data",
+                "bdash",
+                "karte",
+                "ferret-one",
+                "mazrica-engage",
+                "fincode",
+                "colorme",
+                "next-engine",
+                "logikura",
+                "trustlogin",
+                "hennge-one",
+                "jooto",
+                "backlog",
+                "dr-sum",
+                "kansei-link-mcp"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The card.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryCard"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The path is not /ard/entries/<service_id>.json or the id breaks the grammar (type …/problems/bad-request).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No entry with this id (type …/problems/ard-entry-not-found).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/ard/stats.json": {
+      "get": {
+        "operationId": "getArdStats",
+        "tags": [
+          "ard"
+        ],
+        "summary": "Fetch counts since the last restart",
+        "description": "In-memory counts per entry and per User-Agent class. Reset when the server restarts.",
+        "responses": {
+          "200": {
+            "description": "The counts.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stats"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/ard/openapi.json": {
+      "get": {
+        "operationId": "getArdOpenapi",
+        "tags": [
+          "ard"
+        ],
+        "summary": "Get this document",
+        "description": "The OpenAPI 3.1 definition of the /ard/* routes.",
+        "responses": {
+          "200": {
+            "description": "This document.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The document is not available in this build.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "headers": {
+      "X-Request-Id": {
+        "description": "Identifier of this request. Quote it when reporting a problem; the same value is in the server log and in a problem document's `instance`.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "RateLimited": {
+        "description": "Too many requests (100 per minute per client). The body is the server-wide rate limiter's, not a problem document.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "EntryCard": {
+        "type": "object",
+        "required": [
+          "schema",
+          "service_id",
+          "identifier",
+          "displayName",
+          "company",
+          "product",
+          "official",
+          "hosting",
+          "auth_method",
+          "use_case_group",
+          "verification",
+          "failures",
+          "sources",
+          "accessed_on",
+          "manifest",
+          "generated_on"
+        ],
+        "properties": {
+          "schema": {
+            "type": "string",
+            "const": "kansei-ard-entry-card/v1"
+          },
+          "note": {
+            "type": "string"
+          },
+          "service_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+          },
+          "identifier": {
+            "type": "string",
+            "pattern": "^urn:air:[a-zA-Z0-9.-]+(:[a-zA-Z0-9._-]+)+$"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "official": {
+            "type": "object",
+            "description": "Where the official MCP lives, from primary sources.",
+            "required": [
+              "location",
+              "repo_url",
+              "docs_url",
+              "announcement_url",
+              "announcement_date",
+              "mcp_registry"
+            ],
+            "properties": {
+              "location": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri",
+                "description": "repo_url, else docs_url. null when the primary sources give neither."
+              },
+              "repo_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              },
+              "docs_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              },
+              "announcement_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              },
+              "announcement_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date"
+              },
+              "mcp_registry": {
+                "type": "string",
+                "description": "Whether it is listed in the official MCP Registry (\"no\", or \"yes: <name>\")."
+              }
+            }
+          },
+          "hosting": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "self-hosted-local",
+                "self-hosted-remote",
+                "vendor-hosted",
+                "unclear"
+              ]
+            }
+          },
+          "auth_method": {
+            "type": "string",
+            "description": "As written in primary sources. \"unclear\" = not stated there."
+          },
+          "use_case_group": {
+            "type": "string"
+          },
+          "verification": {
+            "type": "object",
+            "required": [
+              "level",
+              "label",
+              "basis",
+              "verified_on",
+              "author",
+              "verifier",
+              "evidence"
+            ],
+            "properties": {
+              "level": {
+                "type": "string",
+                "enum": [
+                  "L0",
+                  "L1",
+                  "L2",
+                  "L3"
+                ],
+                "description": "L0 existence confirmed in primary sources (not verified to connect) / L1 reached daily with a sealed question / L2 started, connected and tool definitions obtained / L3 task completed."
+              },
+              "label": {
+                "type": "string"
+              },
+              "basis": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "verified_on": {
+                "type": "string",
+                "format": "date"
+              },
+              "author": {
+                "type": "string"
+              },
+              "verifier": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Only for L1 and above."
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "description": "Only for L1 and above."
+              }
+            }
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Machine-readable field notes about this service."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "accessed_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "manifest": {
+            "type": "string",
+            "format": "uri"
+          },
+          "generated_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "mcpServer": {
+            "type": "object",
+            "description": "Only on kansei-link-mcp: the same content as the MCP Registry server.json."
+          }
+        }
+      },
+      "UaClassCounts": {
+        "type": "object",
+        "required": [
+          "ai_crawler",
+          "mcp_client",
+          "browser",
+          "unknown"
+        ],
+        "properties": {
+          "ai_crawler": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mcp_client": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "browser": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unknown": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "Counter": {
+        "type": "object",
+        "required": [
+          "count",
+          "last_fetched_at",
+          "by_ua_class"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "last_fetched_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "by_ua_class": {
+            "$ref": "#/components/schemas/UaClassCounts"
+          }
+        }
+      },
+      "Stats": {
+        "type": "object",
+        "required": [
+          "since",
+          "generated_at",
+          "totals",
+          "ai_crawlers",
+          "entries",
+          "openapi"
+        ],
+        "properties": {
+          "since": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this server process started."
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": "string"
+          },
+          "totals": {
+            "type": "object",
+            "required": [
+              "entries",
+              "entries_by_ua_class",
+              "openapi",
+              "stats",
+              "not_found",
+              "bad_request"
+            ],
+            "properties": {
+              "entries": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "entries_by_ua_class": {
+                "$ref": "#/components/schemas/UaClassCounts"
+              },
+              "openapi": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "stats": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "not_found": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bad_request": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "ai_crawlers": {
+            "type": "object",
+            "description": "Fetches by known AI crawler name.",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "entries": {
+            "type": "object",
+            "description": "Per service_id.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Counter"
+            }
+          },
+          "openapi": {
+            "$ref": "#/components/schemas/Counter"
+          }
+        }
+      },
+      "Problem": {
+        "type": "object",
+        "description": "RFC 9457 problem details.",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "instance"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri",
+            "enum": [
+              "https://kansei-link.com/problems/ard-entry-not-found",
+              "https://kansei-link.com/problems/bad-request"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              400,
+              404
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "pattern": "^urn:kansei:request:.+$"
+          }
+        }
+      }
+    }
+  }
+}
