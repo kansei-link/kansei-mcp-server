@@ -1,0 +1,118 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "kansei": "https://kansei-link.com/ns/ard/v1#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "kansei:verificationLevel": {
+      "@id": "kansei:verificationLevel"
+    },
+    "kansei:verifiedOn": {
+      "@id": "kansei:verifiedOn",
+      "@type": "xsd:date"
+    },
+    "kansei:verifiedUntil": {
+      "@id": "kansei:verifiedUntil",
+      "@type": "xsd:date"
+    },
+    "kansei:evidence": {
+      "@id": "kansei:evidence",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "kansei:author": {
+      "@id": "kansei:author"
+    },
+    "kansei:verifier": {
+      "@id": "kansei:verifier"
+    },
+    "kansei:sourceAnnouncement": {
+      "@id": "kansei:sourceAnnouncement",
+      "@type": "@id"
+    },
+    "kansei:hosting": {
+      "@id": "kansei:hosting",
+      "@container": "@set"
+    },
+    "kansei:authMethod": {
+      "@id": "kansei:authMethod"
+    },
+    "kansei:useCaseGroup": {
+      "@id": "kansei:useCaseGroup"
+    },
+    "kansei:failures": {
+      "@id": "kansei:failures",
+      "@type": "@id",
+      "@container": "@set"
+    }
+  },
+  "@graph": [
+    {
+      "@id": "kansei:verificationLevel",
+      "@type": "rdf:Property",
+      "rdfs:label": "記録の段階",
+      "rdfs:comment": "L0 存在確認（一次資料で公式 MCP を確認）／L1 到達確認（封印した問いで毎日測った）／L2 接続確認（起動・接続して操作定義を取得）／L3 業務完了確認。L0 は「検証済み」ではない。"
+    },
+    {
+      "@id": "kansei:verifiedOn",
+      "@type": "rdf:Property",
+      "rdfs:label": "確認日",
+      "rdfs:comment": "その段階を確かめた日（L0 は一次資料を開いた日）。"
+    },
+    {
+      "@id": "kansei:verifiedUntil",
+      "@type": "rdf:Property",
+      "rdfs:label": "有効期限",
+      "rdfs:comment": "この記録を確かめ直す期限。期限を決めていない記録には付けない。"
+    },
+    {
+      "@id": "kansei:evidence",
+      "@type": "rdf:Property",
+      "rdfs:label": "証拠",
+      "rdfs:comment": "L1 以上の記録の裏付け（測る前に封印した正解の指紋など）の URL。L0 には付かない。"
+    },
+    {
+      "@id": "kansei:author",
+      "@type": "rdf:Property",
+      "rdfs:label": "作成主体",
+      "rdfs:comment": "この記録を書いた主体。"
+    },
+    {
+      "@id": "kansei:verifier",
+      "@type": "rdf:Property",
+      "rdfs:label": "検証主体",
+      "rdfs:comment": "L1 以上を確かめた主体。L0 には付かない。"
+    },
+    {
+      "@id": "kansei:sourceAnnouncement",
+      "@type": "rdf:Property",
+      "rdfs:label": "一次資料",
+      "rdfs:comment": "公式 MCP の存在を確認した、提供者自身の発表・文書の URL。"
+    },
+    {
+      "@id": "kansei:hosting",
+      "@type": "rdf:Property",
+      "rdfs:label": "提供形態",
+      "rdfs:comment": "self-hosted-local（利用者の手元で実行）／self-hosted-remote（利用者が自分でリモートに設置）／vendor-hosted（提供者が運用）／unclear（一次資料に記載なし）。"
+    },
+    {
+      "@id": "kansei:authMethod",
+      "@type": "rdf:Property",
+      "rdfs:label": "認証方式",
+      "rdfs:comment": "一次資料に書かれた認証方式。unclear は一次資料に記載なし。"
+    },
+    {
+      "@id": "kansei:useCaseGroup",
+      "@type": "rdf:Property",
+      "rdfs:label": "用途の束",
+      "rdfs:comment": "用途で分けた束。順位ではない。"
+    },
+    {
+      "@id": "kansei:failures",
+      "@type": "rdf:Property",
+      "rdfs:label": "現場メモ",
+      "rdfs:comment": "エージェントが実務で詰まった記録（機械可読）の URL。"
+    }
+  ]
+}

@@ -6,13 +6,36 @@
 // CI（deploy-pages.yml）が Upload の前に呼ぶ。赤なら公開されない＝
 // 「新しい記事ほど計測されていない」「sitemapが404を指す」を構造的に再発させない。
 // 直すのは scripts/site-prepublish.mjs。
+import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkSite } from './lib/site-instrumentation.mjs';
 
-const pub = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const pub = resolve(root, 'public');
 const r = checkSite(pub);
-const problems = r.gaMissing.length + r.sitemapDead.length + r.notInSitemap.length;
+
+// 2026-10-13: MCP Registry の server.json が package.json とずれない（npm 1.2.4／Registry 1.1.1／
+// サイト 1.1.0 の三つが食い違っていた）。server.json は scripts/generate-ard.mjs が package.json から作り、
+// 自社カード（src/data/ard-entries.json の mcpServer）と同じ元から出る。直すのは生成器の再実行。
+function checkServerJson() {
+  const out = [];
+  const read = (...p) => { const f = resolve(root, ...p); return existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : null; };
+  const pkg = read('package.json');
+  const site = read('public', '.well-known', 'mcp', 'server.json');
+  const top = read('server.json');
+  const card = read('src', 'data', 'ard-entries.json')?.entries?.['kansei-link-mcp']?.mcpServer;
+  if (!site) return ['public/.well-known/mcp/server.json が無い'];
+  if (!card) return ['src/data/ard-entries.json の自社カードに mcpServer が無い'];
+  if (site.version !== pkg.version) out.push(`server.json version ${site.version} ≠ package.json ${pkg.version}`);
+  if (site.packages?.[0]?.version !== pkg.version) out.push(`server.json packages[0].version ${site.packages?.[0]?.version} ≠ package.json ${pkg.version}`);
+  if (site.remotes?.[0]?.url !== card.remotes?.[0]?.url) out.push(`server.json remotes[0].url ${site.remotes?.[0]?.url} ≠ 自社カード ${card.remotes?.[0]?.url}`);
+  if (JSON.stringify(site) !== JSON.stringify(card)) out.push('server.json と自社カードの mcpServer の内容が違う');
+  if (top && JSON.stringify(top) !== JSON.stringify(site)) out.push('リポジトリ直下の server.json と public/.well-known/mcp/server.json の内容が違う');
+  return out;
+}
+r.serverJsonMismatch = checkServerJson();
+const problems = r.gaMissing.length + r.sitemapDead.length + r.notInSitemap.length + r.serverJsonMismatch.length;
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ ok: problems === 0, ...r }, null, 2));
@@ -22,6 +45,7 @@ if (process.argv.includes('--json')) {
   show('GA4マーカー無し（計測されないページ）', r.gaMissing);
   show('sitemapが指すが実ファイル無し（404）', r.sitemapDead);
   show('indexableなのにsitemap未掲載（insights/services）', r.notInSitemap);
+  show('server.json が package.json／自社カードとずれている', r.serverJsonMismatch);
   console.log(problems === 0 ? '[site-gate] ✅ PASS' : `[site-gate] ❌ FAIL (${problems})  → node scripts/site-prepublish.mjs で修正`);
 }
 process.exit(problems === 0 ? 0 : 1);

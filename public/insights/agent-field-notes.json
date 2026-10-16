@@ -1,0 +1,53 @@
+{
+  "schema": "kansei-agent-field-notes/v1",
+  "description": "エージェントの現場メモの機械可読版。本文は page の HTML と同じ文。error_key は、エージェントが読んだエラーにメモを紐づける鍵（type_uri があればそれ、無ければ 操作＋HTTP 状態＋提供者のコード文字列）。一枚は一人の観測で、率・順位・比較は無い。",
+  "html": "https://kansei-link.com/insights/agent-field-notes-2026-10.html",
+  "items": [
+    {
+      "card_id": "AWT-001",
+      "kind": "lived",
+      "observer": "human:synapse-arrows",
+      "observed_on": "2026-09-24（〜2026-10-01・毎日の観測で再現）",
+      "service": "freee（カタログ service_id: freee）",
+      "component": "freee-mcp (official) tool freee_api_get",
+      "operation": null,
+      "error_key": {
+        "layer": "mcp",
+        "http_status": null,
+        "provider_code": null,
+        "type_uri": null,
+        "message_pattern": "contains freee_set_current_company",
+        "wrapper_message_pattern": null
+      },
+      "what_the_agent_saw": "freee_api_get に、現在の事業所と違う company_id を渡すと、エラーで拒否され、freee_set_current_company で切り替えるよう返される",
+      "what_was_true": "freee-mcp は「現在の事業所」を設定ファイルに永続化し、それと違う事業所への呼び出しを通さない。事業所の識別子は二つある（API の id は 8 桁・事業所番号は 10 桁）。freee_list_companies の出力は整形テキストで JSON ではない",
+      "how_resolved": "先に freee_set_current_company で切り替え、終わったら元に戻す。切り替えには API の id を使う",
+      "human_step_required": "no",
+      "published_on": "2026-10-07",
+      "page": "https://kansei-link.com/insights/agent-field-notes-2026-10.html#AWT-001"
+    },
+    {
+      "card_id": "AWT-002",
+      "kind": "lived",
+      "observer": "human:synapse-arrows",
+      "observed_on": "2026-09-20",
+      "service": "freee（カタログ service_id: freee）",
+      "component": "freee-mcp（0.26 系）＋ 自社の freee アプリ（OAuth の登録）",
+      "operation": "GET /api/1/invoices",
+      "error_key": {
+        "layer": "rest",
+        "http_status": 403,
+        "provider_code": "forbiddenError",
+        "type_uri": null,
+        "message_pattern": "このアプリケーションにはアクセス権限がないエンドポイントです",
+        "wrapper_message_pattern": "freee-mcp がレートリミットの可能性／再認証の示唆を添える"
+      },
+      "what_the_agent_saw": "認証は通り、事業所も見えるのに、請求書の API だけが権限エラーで拒否される。5 回の試みで 5 回とも",
+      "what_was_true": "接続している freee アプリ（OAuth の登録）に、請求書の権限が付いていなかった。トークンの期限や接続先の問題ではない。エラー文から自力で診断できる型。freee 側の問題ではなく、私たちの設定の不備",
+      "how_resolved": "unresolved（その時点）。人がアプリの設定で請求書の権限を付け、再同意する必要がある。エージェントからは直せない",
+      "human_step_required": "yes: アプリへの権限付与と再同意",
+      "published_on": "2026-10-07",
+      "page": "https://kansei-link.com/insights/agent-field-notes-2026-10.html#AWT-002"
+    }
+  ]
+}
