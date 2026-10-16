@@ -1,4 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { getDb } from "./db/connection.js";
 import { initializeDb } from "./db/schema.js";
 import { seedDatabase } from "./db/seed.js";
@@ -43,11 +46,22 @@ export interface CreateServerOptions {
   exposeAdminTools?: boolean;
 }
 
+// serverInfo.version is package.json's, read once at module load (same shape
+// as /health in http-server.ts; 2026-10-16: it was a stale literal "1.0.0").
+const PACKAGE_VERSION: string = (() => {
+  try {
+    const pkg = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")) as { version?: unknown };
+    return typeof pkg.version === "string" ? pkg.version : "unknown";
+  } catch {
+    return "unknown";
+  }
+})();
+
 export function createServer(options: CreateServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: "kansei-link",
-      version: "1.0.0",
+      version: PACKAGE_VERSION,
     },
     {
       instructions: [

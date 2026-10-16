@@ -167,7 +167,8 @@ export function register(
         "Default: tips (auth setup, pitfalls, workarounds). " +
         "Add detail: true for full connection guide, insights: true for usage data. " +
         "Pass goal: 'workflow description' to find multi-service recipes. " +
-        "This is step 2 of the standard KanseiLink flow: search_services → lookup → (execute) → report.",
+        "This is step 2 of the standard KanseiLink flow: search_services → lookup → (execute) → report. " +
+        "Each call records one attempt handle (attempt_id) and clears attempt handles older than 90 days.",
       inputSchema: z.object({
         service_id: z
           .string()
@@ -230,9 +231,13 @@ export function register(
           .optional()
           .describe("[voices] Filter by agent type (claude, gpt, gemini)"),
       }),
+      // lookup writes: one execution_attempts row per call, and it ages out
+      // its own handles after 90 days. Not read-only; not destructive to
+      // anything a user recorded.
       annotations: {
-        readOnlyHint: true,
+        readOnlyHint: false,
         destructiveHint: false,
+        idempotentHint: false,
         openWorldHint: false,
       },
     },
