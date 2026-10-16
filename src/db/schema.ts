@@ -64,6 +64,11 @@ export function initializeDb(db: Database.Database): void {
       recipe_id TEXT,
       recipe_version INTEGER,
       failed_step TEXT,
+      note_id TEXT,
+      provider_request_id TEXT,
+      provider_request_id_source TEXT,
+      provider_error_code TEXT,
+      evidence_grade TEXT NOT NULL DEFAULT 'self_reported',
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -429,6 +434,13 @@ export function initializeDb(db: Database.Database): void {
     ["recipe_id", "TEXT"],
     ["recipe_version", "INTEGER"],
     ["failed_step", "TEXT"],
+    // Traceable-evidence fields (2026-10-16). All optional on input; the
+    // grade is derived, never accepted. Nothing reads evidence_grade yet.
+    ["note_id", "TEXT"],
+    ["provider_request_id", "TEXT"],
+    ["provider_request_id_source", "TEXT"],
+    ["provider_error_code", "TEXT"],
+    ["evidence_grade", "TEXT NOT NULL DEFAULT 'self_reported'"],
   ];
   for (const [name, definition] of outcomeMigrations) {
     if (!outcomeColumnNames.has(name)) {

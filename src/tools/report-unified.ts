@@ -36,6 +36,10 @@ interface ReportParams {
   recipe_id?: string;
   recipe_version?: number;
   failed_step?: string;
+  note_id?: unknown;
+  provider_request_id?: unknown;
+  provider_request_id_source?: unknown;
+  provider_error_code?: unknown;
   // feedback params
   feedback_type?: string;
   subject?: string;
@@ -120,6 +124,10 @@ function dispatchOutcome(db: Database.Database, params: ReportParams): object {
     recipe_id: params.recipe_id,
     recipe_version: params.recipe_version,
     failed_step: params.failed_step,
+    note_id: params.note_id,
+    provider_request_id: params.provider_request_id,
+    provider_request_id_source: params.provider_request_id_source,
+    provider_error_code: params.provider_error_code,
   });
 }
 
@@ -168,7 +176,7 @@ export function register(server: McpServer, db: Database.Database): void {
     {
       title: "Report",
       description:
-        "Record what happened after using a service: success/failure outcome, feedback, API change events, or qualitative experience. Data is saved to this installation's LOCAL database only (improves local recovery hints and stats) — nothing is sent to KanseiLink unless you separately opt in to sharing. PII is auto-masked before storage. This is step 4 of the standard flow: search_services → lookup → (execute) → report.",
+        "Record what happened after using a service: success/failure outcome, feedback, API change events, or qualitative experience. Data is saved to this installation's LOCAL database only (improves local recovery hints and stats) — nothing is sent to KanseiLink unless you separately opt in to sharing. PII is auto-masked before storage. If the provider returned a request ID, including it as provider_request_id makes the record traceable in the provider's own logs. This is step 4 of the standard flow: search_services → lookup → (execute) → report.",
       inputSchema: z.object({
         mode: z
           .enum(["outcome", "feedback", "event", "voice"])
@@ -250,6 +258,12 @@ export function register(server: McpServer, db: Database.Database): void {
         recipe_id: z.string().optional().describe("[outcome] Recipe used for this attempt."),
         recipe_version: z.number().int().positive().optional().describe("[outcome] Recipe version returned by lookup."),
         failed_step: z.string().max(200).optional().describe("[outcome] Step identifier where execution stopped."),
+        // Not constrained here on purpose (see report-outcome.ts): a malformed
+        // value nulls that field and never rejects the whole report.
+        note_id: z.unknown().optional().describe("[outcome] Field-note ID this report belongs to (format AWT-000). Stored as null if the format does not match."),
+        provider_request_id: z.unknown().optional().describe("[outcome] Request or error ID the provider returned (e.g. from an x-request-id header). If present and well-formed, the record becomes traceable in the provider's own logs. Stored as null if the format does not match."),
+        provider_request_id_source: z.unknown().optional().describe("[outcome] Where the provider request ID came from: 'header:<name>' (e.g. header:x-request-id) or 'body:<field>' (e.g. body:id)."),
+        provider_error_code: z.unknown().optional().describe("[outcome] Provider's error code string (e.g. expired_access_token) or an RFC 9457 problem type URI (https://…, max 200 chars). Stored as null if the format does not match."),
 
         // --- Feedback mode ---
         feedback_type: z
