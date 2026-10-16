@@ -32,6 +32,10 @@ try {
   // Port 2: bootstrap the second-open fixture once BEFORE its first openDb.
   // Both tested opens, the inserted rows, and all 38 assertions stay unchanged.
   runner=replaceOnce(runner,"const path=join(dir,'second-open.db');let d=quiet(()=>openDb(path));","const path=join(dir,'second-open.db');{const setup=latest();await setup.backup(path);setup.close();}let d=quiet(()=>openDb(path));");
+  // Port 3 (2026-10-16): outcomes gained five traceable-evidence columns after
+  // c70c131. B snapshots whole outcome rows, so the runner's own conformance
+  // check would see keys the oracle never had. Drop exactly those keys, by name.
+  runner=replaceOnce(runner,"outcomes:d.prepare('SELECT * FROM outcomes ORDER BY id').all()","outcomes:d.prepare('SELECT * FROM outcomes ORDER BY id').all().map(r=>Object.fromEntries(Object.entries(r).filter(([k])=>!['note_id','provider_request_id','provider_request_id_source','provider_error_code','evidence_grade'].includes(k))))");
   writeFileSync(join(T,'work/runner.mjs'),runner);
   const env={...process.env,GIT_DIR:execFileSync('git',['rev-parse','--absolute-git-dir'],{encoding:'utf8'}).trim()};
   const result=spawnSync(process.execPath,['work/runner.mjs'],{cwd:T,env,encoding:'utf8',timeout:180000});
@@ -43,7 +47,8 @@ try {
   // status, provenance, outcome value or CLI exit code is waived.
   // Columns added to services after c70c131 are not part of that review's oracle
   // (B snapshots whole rows); they are named here one by one, never by pattern.
-  const LATER_COLUMNS=['mcp_repo_url'];
+  // outcomes columns added 2026-10-16 (traceable evidence) are listed the same way.
+  const LATER_COLUMNS=['mcp_repo_url','note_id','provider_request_id','provider_request_id_source','provider_error_code','evidence_grade'];
   const stable=v=>Array.isArray(v)?v.map(stable):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).filter(([k])=>!LATER_COLUMNS.includes(k)).map(([k,x])=>[k,['created_at','mcp_liveness_checked_at'].includes(k)&&typeof x==='string'?'runtime-timestamp':stable(x)])):v;
   for(let i=0;i<38;i++){
     const oracle=actual.cases[i].id.startsWith('B-')?stable:v=>v;
@@ -61,25 +66,34 @@ try {
   writeFileSync(oldFile,ts.transpileModule(execFileSync('git',['show','775a797:src/db/schema.ts'],{encoding:'utf8'}),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);
   const {initializeDb:oldInit}=await import(pathToFileURL(oldFile));
   const newCols=['mcp_liveness','mcp_liveness_checked_at','mcp_liveness_endpoint'];
+  // 2026-10-16: the CLI open also adds the five nullable/defaulted traceable-evidence
+  // columns to outcomes (same additive shape as the server migration). Existing
+  // outcome rows are snapshotted by their pre-open columns, like services.
+  const newOutcomeCols=['note_id','provider_request_id','provider_request_id_source','provider_error_code','evidence_grade'];
   for(const shape of ['775a797','latest','partial']){
     const p=join(T,shape+'.db');let db=new Database(p);quiet(()=>shape==='latest'?initializeDb(db):oldInit(db));
     if(shape==='partial')db.exec('ALTER TABLE services ADD COLUMN mcp_liveness TEXT');
     const cols=db.prepare('PRAGMA table_info(services)').all().map(c=>c.name);
+    const outCols=db.prepare('PRAGMA table_info(outcomes)').all().map(c=>c.name);
     db.prepare('INSERT INTO services(id,name,mcp_status,mcp_endpoint,trust_score) VALUES(?,?,?,?,?)').run('fake-shape','fake-shape','official','https://fake-shape.invalid/mcp',0.8);
     for(const agent of ['self-test-fleet','github-issues-miner','health-probe','fake-normal'])db.prepare('INSERT INTO outcomes(service_id,agent_id_hash,success) VALUES(?,?,0)').run('fake-shape',agent);
     if(shape==='latest')db.prepare("UPDATE services SET mcp_liveness='handshake',mcp_liveness_checked_at='2026-10-01T00:00:00Z',mcp_liveness_endpoint=mcp_endpoint").run();
-    const snap=d=>({outcomes:d.prepare('SELECT * FROM outcomes ORDER BY id').all(),services:d.prepare(`SELECT ${cols.map(c=>'"'+c+'"').join(',')} FROM services ORDER BY id`).all(),markers:d.prepare('SELECT * FROM schema_migrations ORDER BY migration_id').all(),audit:d.prepare('SELECT * FROM migration_audit ORDER BY id').all()});
+    const snap=d=>({outcomes:d.prepare(`SELECT ${outCols.map(c=>'"'+c+'"').join(',')} FROM outcomes ORDER BY id`).all(),services:d.prepare(`SELECT ${cols.map(c=>'"'+c+'"').join(',')} FROM services ORDER BY id`).all(),markers:d.prepare('SELECT * FROM schema_migrations ORDER BY migration_id').all(),audit:d.prepare('SELECT * FROM migration_audit ORDER BY id').all()});
     const before=JSON.stringify(snap(db));
     const oldObjects=db.prepare("SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").all();
     db.close();
     for(let n=1;n<=2;n++){
       db=openDb(p);assert.equal(JSON.stringify(snap(db)),before,`${shape} open ${n}: all data unchanged`);
       assert.deepEqual(db.prepare('PRAGMA table_info(services)').all().map(c=>c.name),[...cols,...newCols.filter(c=>!cols.includes(c))]);
+      assert.deepEqual(db.prepare('PRAGMA table_info(outcomes)').all().map(c=>c.name),[...outCols,...newOutcomeCols.filter(c=>!outCols.includes(c))]);
+      // Added outcome columns are null / 'self_reported' on every pre-existing row.
+      assert.equal(db.prepare("SELECT count(*) AS n FROM outcomes WHERE note_id IS NOT NULL OR provider_request_id IS NOT NULL OR provider_request_id_source IS NOT NULL OR provider_error_code IS NOT NULL OR evidence_grade <> 'self_reported'").get().n,0,`${shape} open ${n}: traceable columns untouched`);
       const objects=db.prepare("SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").all();
-      assert.deepEqual(objects.filter(o=>o.name!=='services'&&o.name!=='services_endpoint_clears_liveness'),oldObjects.filter(o=>o.name!=='services'&&o.name!=='services_endpoint_clears_liveness'));
+      const touched=o=>o.name==='services'||o.name==='services_endpoint_clears_liveness'||o.name==='outcomes';
+      assert.deepEqual(objects.filter(o=>!touched(o)),oldObjects.filter(o=>!touched(o)));
       assert.equal(objects.filter(o=>o.name==='services_endpoint_clears_liveness').length,1);db.close();
     }
-    console.log(`PASS ${shape}: both opens preserve whole outcomes, all existing service columns, markers and audit; only liveness DDL added`);
+    console.log(`PASS ${shape}: both opens preserve whole outcomes, all existing service columns, markers and audit; only liveness + traceable-evidence DDL added`);
   }
   // Full bootstrap remains at the two historically initializing entrypoints.
   // Compare the actual statements with 775a797, and verify server hygiene lives.

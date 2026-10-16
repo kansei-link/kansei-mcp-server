@@ -11,6 +11,20 @@ export function ensureCliSchema(db: Database.Database): void {
       db.exec(`ALTER TABLE services ADD COLUMN ${col} TEXT`);
     }
   }
+  // Traceable-evidence columns on outcomes (2026-10-16). Same shape as the
+  // server migration in schema.ts; additive only, no row is rewritten.
+  const outcomeColumns: Array<[string, string]> = [
+    ["note_id", "TEXT"],
+    ["provider_request_id", "TEXT"],
+    ["provider_request_id_source", "TEXT"],
+    ["provider_error_code", "TEXT"],
+    ["evidence_grade", "TEXT NOT NULL DEFAULT 'self_reported'"],
+  ];
+  for (const [col, definition] of outcomeColumns) {
+    if ((db.prepare("SELECT count(*) as cnt FROM pragma_table_info('outcomes') WHERE name = ?").get(col) as { cnt: number }).cnt === 0) {
+      db.exec(`ALTER TABLE outcomes ADD COLUMN ${col} ${definition}`);
+    }
+  }
   // DDL only: the UPDATE is the trigger body, not a statement run on open.
   // It runs later, only when a writer actually changes the endpoint verbatim.
   db.exec(`

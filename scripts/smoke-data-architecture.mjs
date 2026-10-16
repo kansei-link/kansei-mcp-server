@@ -32,7 +32,8 @@ initializeDb(db);
 const outcomeColumns = new Set(
   db.prepare("SELECT name FROM pragma_table_info('outcomes')").all().map((r) => r.name)
 );
-for (const name of ["provenance", "verification_status", "attempt_id", "recipe_id", "recipe_version", "failed_step"]) {
+for (const name of ["provenance", "verification_status", "attempt_id", "recipe_id", "recipe_version", "failed_step",
+  "note_id", "provider_request_id", "provider_request_id_source", "provider_error_code", "evidence_grade"]) {
   assert(outcomeColumns.has(name), `missing outcomes.${name}`);
 }
 

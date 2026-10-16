@@ -75,13 +75,17 @@ export function register(server: McpServer, db: Database.Database): void {
         recipe_id: z.string().optional().describe("Recipe used for this attempt"),
         recipe_version: z.number().int().positive().optional().describe("Recipe version returned by lookup"),
         failed_step: z.string().max(200).optional().describe("Step where execution stopped"),
+        note_id: z.string().max(32).optional().describe("Field-note ID this report belongs to (format AWT-000). Stored as null if the format does not match."),
+        provider_request_id: z.string().max(256).optional().describe("Request or error ID the provider returned (e.g. from an x-request-id header). If present and well-formed, the record becomes traceable in the provider's own logs. Stored as null if the format does not match."),
+        provider_request_id_source: z.string().max(80).optional().describe("Where the provider request ID came from: 'header:<name>' (e.g. header:x-request-id) or 'body:<field>' (e.g. body:id)."),
+        provider_error_code: z.string().max(200).optional().describe("Provider's error code string, or an RFC 9457 problem type URI (max 200 chars)."),
       }),
       annotations: {
         readOnlyHint: false,
         idempotentHint: false,
       },
     },
-    async ({ service_id, success, latency_ms, error_type, workaround, context, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, attempt_id, recipe_id, recipe_version, failed_step }) => {
+    async ({ service_id, success, latency_ms, error_type, workaround, context, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, attempt_id, recipe_id, recipe_version, failed_step, note_id, provider_request_id, provider_request_id_source, provider_error_code }) => {
       const result = reportOutcome(db, {
         service_id,
         success,
@@ -101,6 +105,10 @@ export function register(server: McpServer, db: Database.Database): void {
         recipe_id,
         recipe_version,
         failed_step,
+        note_id,
+        provider_request_id,
+        provider_request_id_source,
+        provider_error_code,
       });
       return {
         content: [
@@ -133,6 +141,59 @@ export interface OutcomeInput {
   recipe_id?: string;
   recipe_version?: number;
   failed_step?: string;
+  note_id?: string;
+  provider_request_id?: string;
+  provider_request_id_source?: string;
+  provider_error_code?: string;
+}
+
+// Traceable-evidence fields (2026-10-16). A report is never rejected because
+// one of these is malformed: the offending field is stored as null and the
+// response says so. provider_request_id is NOT passed through the PII masker
+// (the grammar admits no free text); context and workaround still are.
+const NOTE_ID_RE = /^AWT-[0-9]{3}$/;
+const PROVIDER_REQUEST_ID_RE = /^[A-Za-z0-9._:-]{4,128}$/;
+const PROVIDER_REQUEST_ID_SOURCE_RE = /^(header|body):[A-Za-z0-9_.-]{1,64}$/;
+const PROVIDER_ERROR_CODE_MAX = 200;
+
+export type EvidenceGrade = "provider_traceable" | "self_reported";
+
+export interface TraceableFields {
+  note_id: string | null;
+  provider_request_id: string | null;
+  provider_request_id_source: string | null;
+  provider_error_code: string | null;
+  evidence_grade: EvidenceGrade;
+  note_id_rejected: boolean;
+  request_id_rejected: boolean;
+  request_id_source_rejected: boolean;
+}
+
+export function normalizeTraceableFields(input: {
+  note_id?: string;
+  provider_request_id?: string;
+  provider_request_id_source?: string;
+  provider_error_code?: string;
+}): TraceableFields {
+  const noteGiven = typeof input.note_id === "string" && input.note_id !== "";
+  const noteOk = noteGiven && NOTE_ID_RE.test(input.note_id!);
+  const ridGiven = typeof input.provider_request_id === "string" && input.provider_request_id !== "";
+  const ridOk = ridGiven && PROVIDER_REQUEST_ID_RE.test(input.provider_request_id!);
+  const srcGiven = typeof input.provider_request_id_source === "string" && input.provider_request_id_source !== "";
+  const srcOk = srcGiven && PROVIDER_REQUEST_ID_SOURCE_RE.test(input.provider_request_id_source!);
+  const code = typeof input.provider_error_code === "string" && input.provider_error_code !== ""
+    ? input.provider_error_code.slice(0, PROVIDER_ERROR_CODE_MAX)
+    : null;
+  return {
+    note_id: noteOk ? input.note_id! : null,
+    provider_request_id: ridOk ? input.provider_request_id! : null,
+    provider_request_id_source: srcOk ? input.provider_request_id_source! : null,
+    provider_error_code: code,
+    evidence_grade: ridOk ? "provider_traceable" : "self_reported",
+    note_id_rejected: noteGiven && !noteOk,
+    request_id_rejected: ridGiven && !ridOk,
+    request_id_source_rejected: srcGiven && !srcOk,
+  };
 }
 
 interface RecoveryRecipe {
@@ -258,6 +319,7 @@ export function reportOutcome(
 
   const recovery = selectRecoveryRecipe(db, input);
   const retryAttemptId = attempt && recovery ? randomUUID() : null;
+  const traceable = normalizeTraceableFields(input);
 
   const insertOutcome = db.transaction(() => {
     if (attempt) {
@@ -268,8 +330,9 @@ export function reportOutcome(
       if (closed.changes !== 1) throw new Error("attempt_close_conflict");
     }
     db.prepare(
-      `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, provenance, verification_status, attempt_id, recipe_id, recipe_version, failed_step)
-       VALUES (?, 'anonymous', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user_reported', 'unverified', ?, ?, ?, ?)`
+      `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, provenance, verification_status, attempt_id, recipe_id, recipe_version, failed_step,
+                             note_id, provider_request_id, provider_request_id_source, provider_error_code, evidence_grade)
+       VALUES (?, 'anonymous', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user_reported', 'unverified', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       input.service_id, input.success ? 1 : 0, input.latency_ms ?? null,
       input.error_type ?? null, workaroundMasked, contextMasked,
@@ -278,7 +341,10 @@ export function reportOutcome(
       input.output_tokens ?? null, costUsd, input.attempt_id ?? null,
       input.recipe_id ?? attempt?.recipe_id ?? null,
       input.recipe_version ?? attempt?.recipe_version ?? null,
-      input.failed_step ?? null
+      input.failed_step ?? null,
+      traceable.note_id, traceable.provider_request_id,
+      traceable.provider_request_id_source, traceable.provider_error_code,
+      traceable.evidence_grade
     );
     if (retryAttemptId && recovery) {
       db.prepare(`INSERT INTO execution_attempts
@@ -367,6 +433,10 @@ export function reportOutcome(
     sharing_note: "Stored in this installation's local database only. Central sharing is a separate opt-in.",
     service_id: input.service_id,
     service_name: service.name,
+    evidence_grade: traceable.evidence_grade,
+    note_id_rejected: traceable.note_id_rejected ? true : undefined,
+    request_id_rejected: traceable.request_id_rejected ? true : undefined,
+    request_id_source_rejected: traceable.request_id_source_rejected ? true : undefined,
     masked_fields: maskedFields.length > 0 ? maskedFields : undefined,
     // These stats aggregate THIS local database (seed snapshot + your own
     // reports), not a central community pool. `community_stats` is kept one
