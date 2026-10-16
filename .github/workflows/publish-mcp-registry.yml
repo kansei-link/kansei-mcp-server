@@ -1,0 +1,100 @@
+# Publish server.json to the official MCP Registry via GitHub OIDC.
+#
+# Why OIDC: the registry grants `io.github.<repository_owner>/*` to a workflow
+# run from a repository owned by that account/org, so a run from
+# kansei-link/kansei-mcp-server is allowed to publish io.github.kansei-link/*.
+#
+# Manual only: Michie triggers this from the Actions tab ("Run workflow").
+name: Publish to MCP Registry
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  MCP_PUBLISHER_VERSION: "1.8.1"
+  REGISTRY_BASE: https://registry.modelcontextprotocol.io
+
+jobs:
+  publish:
+    name: Validate, verify versions, publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Install mcp-publisher (sha256-verified)
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/modelcontextprotocol/registry/releases/download/v${MCP_PUBLISHER_VERSION}"
+          ASSET="mcp-publisher_linux_amd64.tar.gz"
+          CHECKSUMS="registry_${MCP_PUBLISHER_VERSION}_checksums.txt"
+          mkdir -p "$RUNNER_TEMP/mcp-publisher"
+          cd "$RUNNER_TEMP/mcp-publisher"
+          curl -fsSL --retry 3 -o "$ASSET" "$BASE/$ASSET"
+          curl -fsSL --retry 3 -o "$CHECKSUMS" "$BASE/$CHECKSUMS"
+          grep -E "  ${ASSET}\$" "$CHECKSUMS" > expected.sha256
+          echo "Expected: $(cat expected.sha256)"
+          echo "Actual:   $(sha256sum "$ASSET")"
+          sha256sum --check --strict expected.sha256
+          tar -xzf "$ASSET" mcp-publisher
+          install -m 0755 mcp-publisher /usr/local/bin/mcp-publisher
+          mcp-publisher --version
+
+      - name: Verify server.json matches package.json and npm
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVER_VERSION="$(node -p 'require("./server.json").version')"
+          PACKAGE_VERSION="$(node -p 'require("./package.json").version')"
+          SERVER_NAME="$(node -p 'require("./server.json").name')"
+          NPM_PKG="$(node -p 'require("./server.json").packages[0].identifier')"
+          echo "server.json  version=${SERVER_VERSION} name=${SERVER_NAME}"
+          echo "package.json version=${PACKAGE_VERSION}"
+          if [ "$SERVER_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "::error::server.json version (${SERVER_VERSION}) != package.json version (${PACKAGE_VERSION})"
+            exit 1
+          fi
+          NPM_MCP_NAME="$(npm view "${NPM_PKG}@${SERVER_VERSION}" mcpName 2>/dev/null || true)"
+          echo "npm view ${NPM_PKG}@${SERVER_VERSION} mcpName -> '${NPM_MCP_NAME}'"
+          if [ -z "$NPM_MCP_NAME" ]; then
+            echo "::error::${NPM_PKG}@${SERVER_VERSION} is not on npm or has no mcpName field"
+            exit 1
+          fi
+          if [ "$NPM_MCP_NAME" != "$SERVER_NAME" ]; then
+            echo "::error::npm mcpName (${NPM_MCP_NAME}) != server.json name (${SERVER_NAME})"
+            exit 1
+          fi
+          echo "OK: ${SERVER_NAME} ${SERVER_VERSION}"
+
+      - name: Validate server.json
+        run: mcp-publisher validate
+
+      - name: Log in to the registry (GitHub OIDC)
+        run: mcp-publisher login github-oidc
+
+      - name: Publish
+        run: mcp-publisher publish
+
+      - name: Confirm the registry serves the new version
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVER_NAME="$(node -p 'require("./server.json").name')"
+          SERVER_VERSION="$(node -p 'require("./server.json").version')"
+          URL="${REGISTRY_BASE}/v0.1/servers?search=${SERVER_NAME}&version=latest"
+          echo "GET ${URL}"
+          BODY="$(curl -fsSL --retry 3 "$URL")"
+          echo "$BODY" | node -e '
+            const b = JSON.parse(require("fs").readFileSync(0, "utf8"));
+            const [name, want] = process.argv.slice(1);
+            const hit = (b.servers || []).map(s => s.server).find(s => s.name === name);
+            if (!hit) { console.error(`::error::${name} not found in registry response`); process.exit(1); }
+            console.log(`registry: ${hit.name} version=${hit.version}`);
+            if (hit.version !== want) { console.error(`::error::registry version ${hit.version} != server.json ${want}`); process.exit(1); }
+            console.log(`OK: registry serves ${name}@${want} as latest`);
+          ' "$SERVER_NAME" "$SERVER_VERSION"
