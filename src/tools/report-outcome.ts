@@ -75,10 +75,13 @@ export function register(server: McpServer, db: Database.Database): void {
         recipe_id: z.string().optional().describe("Recipe used for this attempt"),
         recipe_version: z.number().int().positive().optional().describe("Recipe version returned by lookup"),
         failed_step: z.string().max(200).optional().describe("Step where execution stopped"),
-        note_id: z.string().max(32).optional().describe("Field-note ID this report belongs to (format AWT-000). Stored as null if the format does not match."),
-        provider_request_id: z.string().max(256).optional().describe("Request or error ID the provider returned (e.g. from an x-request-id header). If present and well-formed, the record becomes traceable in the provider's own logs. Stored as null if the format does not match."),
-        provider_request_id_source: z.string().max(80).optional().describe("Where the provider request ID came from: 'header:<name>' (e.g. header:x-request-id) or 'body:<field>' (e.g. body:id)."),
-        provider_error_code: z.string().max(200).optional().describe("Provider's error code string, or an RFC 9457 problem type URI (max 200 chars)."),
+        // The four traceable-evidence fields are not constrained here on
+        // purpose: a malformed value must null that field, never reject the
+        // whole report. normalizeTraceableFields does every check.
+        note_id: z.unknown().optional().describe("Field-note ID this report belongs to (format AWT-000). Stored as null if the format does not match."),
+        provider_request_id: z.unknown().optional().describe("Request or error ID the provider returned (e.g. from an x-request-id header). If present and well-formed, the record becomes traceable in the provider's own logs. Stored as null if the format does not match."),
+        provider_request_id_source: z.unknown().optional().describe("Where the provider request ID came from: 'header:<name>' (e.g. header:x-request-id) or 'body:<field>' (e.g. body:id)."),
+        provider_error_code: z.unknown().optional().describe("Provider's error code string (e.g. expired_access_token) or an RFC 9457 problem type URI (https://…, max 200 chars). Stored as null if the format does not match."),
       }),
       annotations: {
         readOnlyHint: false,
@@ -141,20 +144,36 @@ export interface OutcomeInput {
   recipe_id?: string;
   recipe_version?: number;
   failed_step?: string;
-  note_id?: string;
-  provider_request_id?: string;
-  provider_request_id_source?: string;
-  provider_error_code?: string;
+  // Traceable-evidence fields: accepted as unknown on purpose; see
+  // normalizeTraceableFields. Anything but a well-formed string becomes null.
+  note_id?: unknown;
+  provider_request_id?: unknown;
+  provider_request_id_source?: unknown;
+  provider_error_code?: unknown;
 }
 
-// Traceable-evidence fields (2026-10-16). A report is never rejected because
-// one of these is malformed: the offending field is stored as null and the
-// response says so. provider_request_id is NOT passed through the PII masker
-// (the grammar admits no free text); context and workaround still are.
+// Traceable-evidence fields (2026-10-16, fix1 after Codex review of 0dd37ad).
+// A report is never rejected because one of these is malformed: the offending
+// field is stored as null and the response says so. The registration schemas
+// deliberately do not constrain these four fields (type or length) so that a
+// bad value cannot take the whole report down; every check lives here.
+// provider_request_id is NOT passed through the PII masker (the grammar admits
+// no free text); context and workaround still are.
 const NOTE_ID_RE = /^AWT-[0-9]{3}$/;
 const PROVIDER_REQUEST_ID_RE = /^[A-Za-z0-9._:-]{4,128}$/;
+// Phone-number shapes that the grammar above would otherwise admit.
+const PHONE_LIKE_RES = [/^0\d{1,4}-\d{1,4}-\d{3,4}$/, /^\+?\d{10,15}$/];
 const PROVIDER_REQUEST_ID_SOURCE_RE = /^(header|body):[A-Za-z0-9_.-]{1,64}$/;
+// provider_error_code: a provider's code string, or an RFC 9457 type URI.
+const PROVIDER_ERROR_CODE_STRING_RE = /^[A-Za-z][A-Za-z0-9_.:-]{0,79}$/;
+const PROVIDER_ERROR_CODE_URI_RE = /^https:\/\/[A-Za-z0-9.-]{1,253}(\/[A-Za-z0-9._~%/-]{0,180})?$/;
 const PROVIDER_ERROR_CODE_MAX = 200;
+// Any C0 control character or DEL rejects the field, whatever the grammar says.
+// eslint-disable-next-line no-control-regex
+const CONTROL_RE = /[\u0000-\u001f\u007f]/;
+// Longest value any grammar can accept; longer input is never inspected,
+// stored or logged beyond this length check.
+const MAX_INSPECTED_LENGTH = 256;
 
 export type EvidenceGrade = "provider_traceable" | "self_reported";
 
@@ -167,32 +186,63 @@ export interface TraceableFields {
   note_id_rejected: boolean;
   request_id_rejected: boolean;
   request_id_source_rejected: boolean;
+  error_code_rejected: boolean;
+}
+
+/** A non-empty string of inspectable length without control characters, else null. */
+function cleanText(value: unknown): string | null {
+  if (typeof value !== "string" || value === "") return null;
+  if (value.length > MAX_INSPECTED_LENGTH) return null;
+  if (CONTROL_RE.test(value)) return null;
+  return value;
+}
+
+function isValidProviderRequestId(value: string): boolean {
+  if (!PROVIDER_REQUEST_ID_RE.test(value)) return false;
+  return !PHONE_LIKE_RES.some((re) => re.test(value));
+}
+
+function isValidProviderErrorCode(value: string): boolean {
+  if (value.length > PROVIDER_ERROR_CODE_MAX) return false;
+  if (PROVIDER_ERROR_CODE_STRING_RE.test(value)) return true;
+  if (!PROVIDER_ERROR_CODE_URI_RE.test(value)) return false;
+  return !/[@\s?#]/.test(value);
+}
+
+/** `given` is true when the caller sent anything other than undefined / null / "". */
+function given(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== "";
 }
 
 export function normalizeTraceableFields(input: {
-  note_id?: string;
-  provider_request_id?: string;
-  provider_request_id_source?: string;
-  provider_error_code?: string;
+  note_id?: unknown;
+  provider_request_id?: unknown;
+  provider_request_id_source?: unknown;
+  provider_error_code?: unknown;
 }): TraceableFields {
-  const noteGiven = typeof input.note_id === "string" && input.note_id !== "";
-  const noteOk = noteGiven && NOTE_ID_RE.test(input.note_id!);
-  const ridGiven = typeof input.provider_request_id === "string" && input.provider_request_id !== "";
-  const ridOk = ridGiven && PROVIDER_REQUEST_ID_RE.test(input.provider_request_id!);
-  const srcGiven = typeof input.provider_request_id_source === "string" && input.provider_request_id_source !== "";
-  const srcOk = srcGiven && PROVIDER_REQUEST_ID_SOURCE_RE.test(input.provider_request_id_source!);
-  const code = typeof input.provider_error_code === "string" && input.provider_error_code !== ""
-    ? input.provider_error_code.slice(0, PROVIDER_ERROR_CODE_MAX)
-    : null;
+  const note = cleanText(input.note_id);
+  const noteOk = note !== null && NOTE_ID_RE.test(note);
+  const rid = cleanText(input.provider_request_id);
+  const ridOk = rid !== null && isValidProviderRequestId(rid);
+  const src = cleanText(input.provider_request_id_source);
+  const srcOk = src !== null && PROVIDER_REQUEST_ID_SOURCE_RE.test(src);
+  const code = cleanText(input.provider_error_code);
+  const codeOk = code !== null && isValidProviderErrorCode(code);
+  const ridGiven = given(input.provider_request_id);
+  const srcGiven = given(input.provider_request_id_source);
+  // A source without an accepted request id is meaningless: drop it too, but
+  // report only request_id_rejected (the source itself may have been fine).
+  const keepSrc = srcOk && ridOk;
   return {
-    note_id: noteOk ? input.note_id! : null,
-    provider_request_id: ridOk ? input.provider_request_id! : null,
-    provider_request_id_source: srcOk ? input.provider_request_id_source! : null,
-    provider_error_code: code,
+    note_id: noteOk ? note : null,
+    provider_request_id: ridOk ? rid : null,
+    provider_request_id_source: keepSrc ? src : null,
+    provider_error_code: codeOk ? code : null,
     evidence_grade: ridOk ? "provider_traceable" : "self_reported",
-    note_id_rejected: noteGiven && !noteOk,
+    note_id_rejected: given(input.note_id) && !noteOk,
     request_id_rejected: ridGiven && !ridOk,
     request_id_source_rejected: srcGiven && !srcOk,
+    error_code_rejected: given(input.provider_error_code) && !codeOk,
   };
 }
 
@@ -437,6 +487,7 @@ export function reportOutcome(
     note_id_rejected: traceable.note_id_rejected ? true : undefined,
     request_id_rejected: traceable.request_id_rejected ? true : undefined,
     request_id_source_rejected: traceable.request_id_source_rejected ? true : undefined,
+    error_code_rejected: traceable.error_code_rejected ? true : undefined,
     masked_fields: maskedFields.length > 0 ? maskedFields : undefined,
     // These stats aggregate THIS local database (seed snapshot + your own
     // reports), not a central community pool. `community_stats` is kept one

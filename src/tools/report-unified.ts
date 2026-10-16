@@ -36,10 +36,10 @@ interface ReportParams {
   recipe_id?: string;
   recipe_version?: number;
   failed_step?: string;
-  note_id?: string;
-  provider_request_id?: string;
-  provider_request_id_source?: string;
-  provider_error_code?: string;
+  note_id?: unknown;
+  provider_request_id?: unknown;
+  provider_request_id_source?: unknown;
+  provider_error_code?: unknown;
   // feedback params
   feedback_type?: string;
   subject?: string;
@@ -258,10 +258,12 @@ export function register(server: McpServer, db: Database.Database): void {
         recipe_id: z.string().optional().describe("[outcome] Recipe used for this attempt."),
         recipe_version: z.number().int().positive().optional().describe("[outcome] Recipe version returned by lookup."),
         failed_step: z.string().max(200).optional().describe("[outcome] Step identifier where execution stopped."),
-        note_id: z.string().max(32).optional().describe("[outcome] Field-note ID this report belongs to (format AWT-000). Stored as null if the format does not match."),
-        provider_request_id: z.string().max(256).optional().describe("[outcome] Request or error ID the provider returned (e.g. from an x-request-id header). If present and well-formed, the record becomes traceable in the provider's own logs. Stored as null if the format does not match."),
-        provider_request_id_source: z.string().max(80).optional().describe("[outcome] Where the provider request ID came from: 'header:<name>' (e.g. header:x-request-id) or 'body:<field>' (e.g. body:id)."),
-        provider_error_code: z.string().max(200).optional().describe("[outcome] Provider's error code string, or an RFC 9457 problem type URI (max 200 chars)."),
+        // Not constrained here on purpose (see report-outcome.ts): a malformed
+        // value nulls that field and never rejects the whole report.
+        note_id: z.unknown().optional().describe("[outcome] Field-note ID this report belongs to (format AWT-000). Stored as null if the format does not match."),
+        provider_request_id: z.unknown().optional().describe("[outcome] Request or error ID the provider returned (e.g. from an x-request-id header). If present and well-formed, the record becomes traceable in the provider's own logs. Stored as null if the format does not match."),
+        provider_request_id_source: z.unknown().optional().describe("[outcome] Where the provider request ID came from: 'header:<name>' (e.g. header:x-request-id) or 'body:<field>' (e.g. body:id)."),
+        provider_error_code: z.unknown().optional().describe("[outcome] Provider's error code string (e.g. expired_access_token) or an RFC 9457 problem type URI (https://…, max 200 chars). Stored as null if the format does not match."),
 
         // --- Feedback mode ---
         feedback_type: z
