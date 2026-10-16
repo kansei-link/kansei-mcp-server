@@ -423,7 +423,9 @@ export function register(server: McpServer, db: Database.Database): void {
       }),
       annotations: {
         readOnlyHint: false,
+        destructiveHint: false,
         idempotentHint: false,
+        openWorldHint: false,
       },
     },
     async (params) => {
