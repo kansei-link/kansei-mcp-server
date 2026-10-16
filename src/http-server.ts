@@ -21,7 +21,8 @@ import { statusProvenance } from "./crawler/sources/publisher-match.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { mkdirSync, readdirSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import * as nodePath from "node:path";
 import { createServer } from "./server.js";
 import { getDb, closeDb } from "./db/connection.js";
@@ -629,12 +630,21 @@ app.get("/api/dashboard/changelog", apiLimiter, (req: Request, res: Response) =>
 });
 
 // ─── MCP + Health ──────────────────────────────────────────────────
-// Health check endpoint
+// Health check endpoint. The version is package.json's, read once at startup
+// (2026-10-16: it was a stale literal "0.20.1" while the package was 1.2.4).
+const PACKAGE_VERSION: string = (() => {
+  try {
+    const pkg = JSON.parse(readFileSync(nodePath.join(nodePath.dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")) as { version?: unknown };
+    return typeof pkg.version === "string" ? pkg.version : "unknown";
+  } catch {
+    return "unknown";
+  }
+})();
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
     service: "kansei-link",
-    version: "0.20.1",
+    version: PACKAGE_VERSION,
     transport: "streamable-http",
   });
 });

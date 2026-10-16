@@ -85,7 +85,9 @@ export function register(server: McpServer, db: Database.Database): void {
       }),
       annotations: {
         readOnlyHint: false,
+        destructiveHint: false,
         idempotentHint: false,
+        openWorldHint: false,
       },
     },
     async ({ service_id, success, latency_ms, error_type, workaround, context, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, attempt_id, recipe_id, recipe_version, failed_step, note_id, provider_request_id, provider_request_id_source, provider_error_code }) => {

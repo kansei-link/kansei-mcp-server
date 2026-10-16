@@ -232,6 +232,7 @@ export function register(
       }),
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
         openWorldHint: false,
       },
     },
