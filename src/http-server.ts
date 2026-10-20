@@ -53,7 +53,7 @@ import { resolveApiKey, fixedTierResolver } from "./entitlements.js";
 import { runCrawler } from "./crawler/run.js";
 import { handleSiteCheck, handleSiteCheckGet } from "./site-check.js";
 import { reportOutcome } from "./tools/report-outcome.js";
-import { createNotesRouter } from "./notes/routes.js";
+import { createNotesHandlers } from "./notes/routes.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -154,7 +154,11 @@ app.use("/api", (_req: Request, res: Response, next) => {
 
 // ─── Stripe Billing API ────────────────────────────────────────────
 // Public, explicitly shared field notes; GET never creates or publishes notes.
-app.use("/api/v1", createNotesRouter(getDb()));
+const noteHandlers = createNotesHandlers(getDb());
+app.get("/api/v1/notes", noteHandlers.list);
+app.get("/api/v1/notes/:id", noteHandlers.detail);
+app.post("/api/v1/notes", noteHandlers.writes, noteHandlers.create);
+app.post("/api/v1/notes/:id/results", noteHandlers.writes, noteHandlers.result);
 
 // Public config: exposes price IDs for client-side checkout buttons (no secrets)
 app.get("/api/config", (_req: Request, res: Response) => {

@@ -27,6 +27,7 @@ const common = {
 };
 export const noteSchema = z.object({
   ...common,
+  scope: z.enum(["field", "verification"]).default("field"),
   task: text(300),
   symptom: text(600),
   procedure: text(2000),
@@ -43,6 +44,7 @@ export const resultSchema = z.object({
 }).strict();
 export const searchSchema = z.object({
   service_id: common.service_id,
+  scope: z.enum(["field", "verification"]).default("field"),
   q: z.string().trim().max(120).default(""),
   limit: z.coerce.number().int().min(1).max(20).default(10),
 });
@@ -53,6 +55,7 @@ export function ensureNotesSchema(db: Database.Database): void {
       id TEXT PRIMARY KEY, service_id TEXT NOT NULL REFERENCES services(id),
       request_id TEXT NOT NULL UNIQUE, session_hash TEXT NOT NULL,
       payload_hash TEXT NOT NULL, runtime TEXT NOT NULL,
+      scope TEXT NOT NULL DEFAULT 'field' CHECK(scope IN ('field','verification')),
       task TEXT NOT NULL, symptom TEXT NOT NULL, procedure TEXT NOT NULL,
       conditions TEXT NOT NULL, evidence TEXT NOT NULL,
       observation_kind TEXT NOT NULL,
@@ -71,6 +74,8 @@ export function ensureNotesSchema(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_note_results_note ON agent_note_results(note_id);
   `);
+  const columns = db.pragma("table_info(agent_notes)") as Array<{ name: string }>;
+  if (!columns.some(c => c.name === "scope")) db.exec("ALTER TABLE agent_notes ADD COLUMN scope TEXT NOT NULL DEFAULT 'field' CHECK(scope IN ('field','verification'))");
 }
 
 export class NoteError extends Error {
@@ -81,7 +86,7 @@ function requireService(db: Database.Database, id: string) {
   if (!db.prepare("SELECT 1 FROM services WHERE id = ?").get(id)) throw new NoteError(404, "service_not_found");
 }
 export function getNote(db: Database.Database, id: string) {
-  const note = db.prepare(`SELECT id, service_id, runtime, task, symptom, procedure,
+  const note = db.prepare(`SELECT id, service_id, scope, runtime, task, symptom, procedure,
     conditions, evidence, observation_kind, status, created_at FROM agent_notes WHERE id = ?`).get(id);
   if (!note) throw new NoteError(404, "note_not_found");
   const results = db.prepare(`SELECT r.id, r.runtime, r.outcome, r.conditions, r.evidence, r.created_at,
@@ -101,10 +106,10 @@ export function findNotes(db: Database.Database, raw: unknown) {
   const terms = sanitizeNote(input.q).split(/\s+/).filter(Boolean).slice(0, 6);
   const clauses = terms.map(() => "(task || ' ' || symptom || ' ' || procedure) LIKE ? ESCAPE '\\'");
   const values = terms.map(t => `%${t.replace(/[\\%_]/g, "\\$&")}%`);
-  const rows = db.prepare(`SELECT id, service_id, task, symptom, procedure, conditions, evidence,
-    runtime, observation_kind, status, created_at FROM agent_notes WHERE service_id = ?
+  const rows = db.prepare(`SELECT id, service_id, scope, task, symptom, procedure, conditions, evidence,
+    runtime, observation_kind, status, created_at FROM agent_notes WHERE service_id = ? AND scope = ?
     ${clauses.length ? `AND ${clauses.join(" AND ")}` : ""}
-    ORDER BY created_at DESC, id LIMIT ?`).all(input.service_id, ...values, input.limit) as Array<{ id: string }>;
+    ORDER BY created_at DESC, id LIMIT ?`).all(input.service_id, input.scope, ...values, input.limit) as Array<{ id: string }>;
   const notes = rows.map(row => {
     const detail = getNote(db, row.id);
     return { ...row, reuse: { counts: detail.counts, recent_results: detail.results.slice(0, 3) } };
@@ -122,9 +127,9 @@ export function recordNote(db: Database.Database, raw: unknown) {
   }
   const id = randomUUID();
   db.prepare(`INSERT INTO agent_notes
-    (id,service_id,request_id,session_hash,payload_hash,runtime,task,symptom,procedure,conditions,evidence,observation_kind)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`).run(id, input.service_id, input.request_id, hash(input.session_id), payloadHash,
-    input.runtime, input.task, input.symptom, input.procedure, input.conditions, input.evidence, input.observation_kind);
+    (id,service_id,request_id,session_hash,payload_hash,runtime,scope,task,symptom,procedure,conditions,evidence,observation_kind)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(id, input.service_id, input.request_id, hash(input.session_id), payloadHash,
+    input.runtime, input.scope, input.task, input.symptom, input.procedure, input.conditions, input.evidence, input.observation_kind);
   return { ...getNote(db, id), deduplicated: false };
 }
 export function recordResult(db: Database.Database, raw: unknown) {

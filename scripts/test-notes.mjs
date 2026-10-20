@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 import express from 'express';
 import { ensureNotesSchema, recordNote, recordResult, findNotes, getNote } from '../dist/notes/store.js';
-import { createNotesRouter } from '../dist/notes/routes.js';
+import { createNotesHandlers } from '../dist/notes/routes.js';
 import { register as registerLookup } from '../dist/tools/lookup.js';
 import { register as registerReport } from '../dist/tools/report-unified.js';
 
@@ -87,7 +87,9 @@ test('all narrative fields are redacted before persistence and public reads excl
   db.close();
 });
 test('HTTP API validates, persists, deduplicates and never publishes on GET', async () => {
-  const db = setup(); const app = express(); app.use(express.json()); app.use('/api/v1', createNotesRouter(db));
+  const db = setup(); const app = express(); app.use(express.json()); const handlers = createNotesHandlers(db);
+  app.get('/api/v1/notes', handlers.list); app.get('/api/v1/notes/:id', handlers.detail);
+  app.post('/api/v1/notes', handlers.writes, handlers.create); app.post('/api/v1/notes/:id/results', handlers.writes, handlers.result);
   const server = app.listen(0, '127.0.0.1'); await new Promise(r => server.once('listening', r));
   const base = `http://127.0.0.1:${server.address().port}/api/v1`;
   const post = (path, body) => fetch(base + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -109,7 +111,9 @@ test('HTTP API validates, persists, deduplicates and never publishes on GET', as
   } finally { await new Promise(r => server.close(r)); db.close(); }
 });
 test('HTTP writes are rate limited', async () => {
-  const db = setup(); const app = express(); app.use(express.json()); app.use('/api/v1', createNotesRouter(db));
+  const db = setup(); const app = express(); app.use(express.json()); const handlers = createNotesHandlers(db);
+  app.get('/api/v1/notes', handlers.list); app.get('/api/v1/notes/:id', handlers.detail);
+  app.post('/api/v1/notes', handlers.writes, handlers.create); app.post('/api/v1/notes/:id/results', handlers.writes, handlers.result);
   const server = app.listen(0, '127.0.0.1'); await new Promise(r => server.once('listening', r));
   try {
     let response;
@@ -135,4 +139,17 @@ test('existing MCP lookup/report expose the same store without a new tool or net
   assert.equal(reused.counts.succeeded, 1);
   assert.equal((await call('report', { mode: 'note' })).error, 'invalid_note_input');
   assert.deepEqual(Object.keys(tools), ['lookup', 'report']); db.close();
+});
+
+test('verification records are excluded from normal discovery, including reuse results', async () => {
+  const db = setup(); const { note } = recordNote(db, input({ scope: 'verification' }));
+  recordResult(db, result(note));
+  assert.equal(findNotes(db, { service_id: 'fixture' }).notes.length, 0);
+  assert.equal(findNotes(db, { service_id: 'fixture', scope: 'verification' }).notes[0].reuse.counts.succeeded, 1);
+  assert.equal(getNote(db, note.id).note.scope, 'verification');
+  const tools = {}; registerLookup({ registerTool(name, definition, handler) { tools[name] = { definition, handler }; } }, db);
+  const args = tools.lookup.definition.inputSchema.parse({ mode: 'notes', service_id: 'fixture', note_scope: 'verification' });
+  assert.equal(JSON.parse((await tools.lookup.handler(args)).content[0].text).notes[0].id, note.id);
+  assert.deepEqual(db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name), ['agent_note_results','agent_notes','services']);
+  db.close();
 });

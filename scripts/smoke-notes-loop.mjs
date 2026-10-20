@@ -6,13 +6,15 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import Database from 'better-sqlite3';
 import express from 'express';
-import { createNotesRouter } from '../dist/notes/routes.js';
+import { createNotesHandlers } from '../dist/notes/routes.js';
 const dir = mkdtempSync(join(tmpdir(), 'agent-notes-loop-'));
 const file = join(dir, 'fixture.sqlite');
 let db = new Database(file);
 db.pragma('foreign_keys=ON');
 db.exec("CREATE TABLE services(id TEXT PRIMARY KEY); INSERT INTO services VALUES ('loop-fixture');");
-const app = express(); app.use(express.json()); app.use('/api/v1', createNotesRouter(db));
+const app = express(); app.use(express.json()); const handlers = createNotesHandlers(db);
+app.get('/api/v1/notes', handlers.list); app.get('/api/v1/notes/:id', handlers.detail);
+app.post('/api/v1/notes', handlers.writes, handlers.create); app.post('/api/v1/notes/:id/results', handlers.writes, handlers.result);
 app.get('/fixture', (req, res) => req.get('x-fixture-protocol') === '2'
   ? res.json({ status: 'ok' }) : res.status(400).json({ error: 'protocol_header_missing', required_headers: { 'x-fixture-protocol': '2' } }));
 const server = app.listen(0, '127.0.0.1'); await new Promise(r => server.once('listening', r));

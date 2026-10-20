@@ -45,6 +45,7 @@ interface LookupParams {
   voice_question_filter?: string;
   voice_agent_type?: string;
   q?: string;
+  note_scope?: "field" | "verification";
 }
 
 function detectMode(params: LookupParams): Mode | null {
@@ -87,7 +88,7 @@ function dispatch(
 ): object | object[] {
   switch (mode) {
     case "notes":
-      return findNotes(db, { service_id: params.service_id, q: params.q });
+      return findNotes(db, { service_id: params.service_id, q: params.q, scope: params.note_scope });
     case "tips":
       return { ...getServiceTips(db, params.service_id!), field_notes: noteOperation(() => findNotes(db, { service_id: params.service_id, limit: 3 })) };
 
@@ -176,7 +177,7 @@ export function register(
         "Add detail: true for full connection guide, insights: true for usage data. " +
         "Pass goal: 'workflow description' to find multi-service recipes. " +
         "This is step 2 of the standard KanseiLink flow: search_services → lookup → (execute) → report. " +
-        "Each call records one attempt handle (attempt_id) and clears attempt handles older than 90 days.",
+        "Except notes mode, each call records one attempt handle (attempt_id) and clears attempt handles older than 90 days.",
       inputSchema: z.object({
         service_id: z
           .string()
@@ -214,6 +215,7 @@ export function register(
           .enum(["tips", "detail", "insights", "recipe", "combinations", "history", "feedback", "voices", "notes"])
           .optional()
           .describe("Explicit mode override"),
+        note_scope: z.enum(["field", "verification"]).optional().describe("[notes] Defaults to field. verification isolates internal release checks from ordinary discovery; not a privacy boundary."),
         q: z.string().max(120).optional().describe("[notes] Symptom or task keywords; omit to see recent notes for this service."),
 
         // --- Feedback mode (read community feedback) ---
@@ -254,7 +256,7 @@ export function register(
       const mode = detectMode(params);
       // Keep note reads free of execution-attempt writes and subscription calls.
       if (mode === "notes") {
-        const result = noteOperation(() => findNotes(db, { service_id: params.service_id, q: params.q }));
+        const result = noteOperation(() => findNotes(db, { service_id: params.service_id, q: params.q, scope: params.note_scope }));
         return { isError: "error" in result, content: [{ type: "text" as const, text: JSON.stringify(result) }] };
       }
 
