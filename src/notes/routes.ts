@@ -2,7 +2,7 @@ import { type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
 import type Database from "better-sqlite3";
 import { z } from "zod";
-import { ensureNotesSchema, findNotes, getNote, recordNote, recordResult, NoteError } from "./store.js";
+import { ensureNotesSchema, findNotes, getNote, recordNote, recordResult, setHidden, NoteError } from "./store.js";
 
 export function createNotesHandlers(db: Database.Database) {
   ensureNotesSchema(db);
@@ -24,5 +24,7 @@ export function createNotesHandlers(db: Database.Database) {
     detail: handle(req => getNote(db, z.string().uuid().parse(req.params.id))),
     create: handle(req => recordNote(db, req.body)),
     result: handle(req => recordResult(db, { ...req.body, note_id: req.params.id })),
+    // Admin only: the caller must pass the existing /admin/* secret check before this runs.
+    hide: handle(req => setHidden(db, req.body)),
   };
 }

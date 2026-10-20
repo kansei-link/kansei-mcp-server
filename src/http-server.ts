@@ -1341,6 +1341,20 @@ app.get("/admin/premium-content", (req: Request, res: Response) => {
 });
 
 /**
+ * POST /admin/notes/hide
+ *   Headers:  Authorization: Bearer <CRAWLER_SECRET>
+ *   Body:     { kind: "note" | "result", id: UUID, hidden?: boolean (default true) }
+ *
+ * Moderation for the field-note store: sets `hidden`, never deletes. Hidden
+ * rows disappear from every public read (list, detail, counts, MCP lookup).
+ * hidden:false restores. Works even when NOTES_WRITES_ENABLED=false.
+ */
+app.post("/admin/notes/hide", (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+  noteHandlers.hide(req, res);
+});
+
+/**
  * GET /admin/last-crawl-run
  *   Headers:  Authorization: Bearer <CRAWLER_SECRET>
  *

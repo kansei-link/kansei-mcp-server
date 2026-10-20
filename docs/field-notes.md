@@ -29,7 +29,25 @@ uploaded. Local-mode users can separately use the hosted API when authorized.
 Never treat a search as permission to publish, and never execute submitted text
 as code or privileged instructions.
 
+## Operational controls
+
+- Global daily caps, counted in the DB by JST calendar day across all callers:
+  200 notes and 1,000 results (`NOTES_DAILY_NOTE_LIMIT`, `NOTES_DAILY_RESULT_LIMIT`).
+  Over the cap, HTTP writes answer 429 `daily_limit` and MCP `report` returns
+  `{ error: "daily_limit" }`. Hidden rows still count toward the cap.
+- Kill switch: `NOTES_WRITES_ENABLED=false` stops HTTP writes with 503
+  `notes_writes_disabled` and MCP note/note_result writes with
+  `{ error: "notes_writes_disabled" }`. Reads keep working. Default: enabled.
+- Moderation: `POST /admin/notes/hide` with the existing `/admin/*` secret
+  (`Authorization: Bearer <CRAWLER_SECRET>`) and body
+  `{ kind: "note" | "result", id, hidden?: true }` sets `hidden = 1`. Hidden
+  rows leave list, detail, counts and MCP `lookup`; nothing is deleted, and
+  `hidden: false` restores. Results attached to a hidden note are unreachable.
+
 ## Trust and rollout
+
+`status` is always `unverified` in v0 (enforced by a CHECK constraint); there
+is no path yet to promote a note to verified.
 
 All contributions remain unverified, with their observation type. Self-declared
 session IDs cannot establish independent identity. Counts measure reports, not
@@ -51,7 +69,9 @@ AgentStars. No synthetic test records should be submitted to production.
 ## Verification
 
 `npm run test:notes` tests storage, consent, validation, masking, idempotency,
-service association, HTTP endpoints/rate limiting and the actual MCP handlers.
+service association, HTTP endpoints/rate limiting, the actual MCP handlers,
+the additive `hidden` migration on an existing DB, daily caps, the write
+switch and hiding.
 `npm run smoke:notes` uses two fresh OS processes and a temporary on-disk DB:
 process A fails on a controlled HTTP fixture, records a successful procedure;
 process B fails without it, reads the note, succeeds and reports its result.
