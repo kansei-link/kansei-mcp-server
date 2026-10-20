@@ -13,6 +13,7 @@ import { getServiceHistory } from "./get-service-history.js";
 import { readFeedback } from "./submit-feedback.js";
 import { readAgentVoices } from "./agent-voice.js";
 import { kanseiAppLink } from "../utils/app-link.js";
+import { ensureNotesSchema, findNotes, noteOperation } from "../notes/store.js";
 import {
   shapeLookupResult,
   fixedTierResolver,
@@ -24,7 +25,7 @@ import {
 // Priority order matches the spec: explicit mode > param inference.
 // ---------------------------------------------------------------------------
 
-type Mode = "tips" | "detail" | "insights" | "recipe" | "combinations" | "history" | "feedback" | "voices";
+type Mode = "tips" | "detail" | "insights" | "recipe" | "combinations" | "history" | "feedback" | "voices" | "notes";
 
 interface LookupParams {
   service_id?: string;
@@ -43,6 +44,8 @@ interface LookupParams {
   // voices params
   voice_question_filter?: string;
   voice_agent_type?: string;
+  q?: string;
+  note_scope?: "field" | "verification";
 }
 
 function detectMode(params: LookupParams): Mode | null {
@@ -84,8 +87,10 @@ function dispatch(
   params: LookupParams
 ): object | object[] {
   switch (mode) {
+    case "notes":
+      return findNotes(db, { service_id: params.service_id, q: params.q, scope: params.note_scope });
     case "tips":
-      return getServiceTips(db, params.service_id!);
+      return { ...getServiceTips(db, params.service_id!), field_notes: noteOperation(() => findNotes(db, { service_id: params.service_id, limit: 3 })) };
 
     case "detail":
       return getServiceDetail(db, params.service_id!);
@@ -130,6 +135,8 @@ function dispatch(
 
 function tipForMode(mode: Mode): string {
   switch (mode) {
+    case "notes":
+      return "After trying a note, report({ mode: 'note_result', note_result: {...} }). Share only an authorized, non-sensitive summary.";
     case "tips":
       return "Add detail: true for full connection guide, or insights: true for usage data.";
     case "detail":
@@ -158,6 +165,7 @@ export function register(
   db: Database.Database,
   tierResolver: TierResolver = fixedTierResolver("free")
 ): void {
+  ensureNotesSchema(db);
   server.registerTool(
     "lookup",
     {
@@ -165,10 +173,11 @@ export function register(
       description:
         "Get everything you need about a service before using it. " +
         "Default: tips (auth setup, pitfalls, workarounds). " +
+        "Use mode: 'notes', service_id and optional q to read reusable, unverified field notes without publishing anything. " +
         "Add detail: true for full connection guide, insights: true for usage data. " +
         "Pass goal: 'workflow description' to find multi-service recipes. " +
         "This is step 2 of the standard KanseiLink flow: search_services → lookup → (execute) → report. " +
-        "Each call records one attempt handle (attempt_id) and clears attempt handles older than 90 days.",
+        "Except notes mode, each call records one attempt handle (attempt_id) and clears attempt handles older than 90 days.",
       inputSchema: z.object({
         service_id: z
           .string()
@@ -203,9 +212,11 @@ export function register(
           .optional()
           .describe("Get aggregated usage data (success rate, trends, errors)"),
         mode: z
-          .enum(["tips", "detail", "insights", "recipe", "combinations", "history", "feedback", "voices"])
+          .enum(["tips", "detail", "insights", "recipe", "combinations", "history", "feedback", "voices", "notes"])
           .optional()
           .describe("Explicit mode override"),
+        note_scope: z.enum(["field", "verification"]).optional().describe("[notes] Defaults to field. verification isolates internal release checks from ordinary discovery; not a privacy boundary."),
+        q: z.string().max(120).optional().describe("[notes] Symptom or task keywords; omit to see recent notes for this service."),
 
         // --- Feedback mode (read community feedback) ---
         feedback_status: z
@@ -243,6 +254,11 @@ export function register(
     },
     async (params) => {
       const mode = detectMode(params);
+      // Keep note reads free of execution-attempt writes and subscription calls.
+      if (mode === "notes") {
+        const result = noteOperation(() => findNotes(db, { service_id: params.service_id, q: params.q, scope: params.note_scope }));
+        return { isError: "error" in result, content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+      }
 
       if (!mode) {
         return {
