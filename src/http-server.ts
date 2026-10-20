@@ -53,6 +53,7 @@ import { resolveApiKey, fixedTierResolver } from "./entitlements.js";
 import { runCrawler } from "./crawler/run.js";
 import { handleSiteCheck, handleSiteCheckGet } from "./site-check.js";
 import { reportOutcome } from "./tools/report-outcome.js";
+import { createNotesRouter } from "./notes/routes.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -137,7 +138,11 @@ app.use(express.json());
 // CORS for frontend API access
 app.use("/api", (_req: Request, res: Response, next) => {
   const origin = process.env.KANSEI_PUBLIC_URL ?? "https://kansei-link.com";
-  res.header("Access-Control-Allow-Origin", origin);
+  // Note forms POST directly so the existing IP limiter sees each visitor.
+  const noteOrigins = new Set([origin, "https://agent-stars.com", "https://www.agent-stars.com"]);
+  const requestOrigin = _req.get("Origin");
+  res.header("Access-Control-Allow-Origin", _req.path.startsWith("/v1/notes") && requestOrigin && noteOrigins.has(requestOrigin) ? requestOrigin : origin);
+  res.vary("Origin");
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, x-access-token, x-api-key");
   if (_req.method === "OPTIONS") {
@@ -148,6 +153,9 @@ app.use("/api", (_req: Request, res: Response, next) => {
 });
 
 // ─── Stripe Billing API ────────────────────────────────────────────
+// Public, explicitly shared field notes; GET never creates or publishes notes.
+app.use("/api/v1", createNotesRouter(getDb()));
+
 // Public config: exposes price IDs for client-side checkout buttons (no secrets)
 app.get("/api/config", (_req: Request, res: Response) => {
   res.json({

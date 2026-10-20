@@ -7,13 +7,14 @@ import { emitEvent, toModelFamily, toErrorClass } from "../usage/telemetry.js";
 import { submitFeedback } from "./submit-feedback.js";
 import { recordEvent } from "./record-event.js";
 import { recordAgentVoice, ensureAgentVoiceTable } from "./agent-voice.js";
+import { ensureNotesSchema, noteSchema, resultSchema, recordNote, recordResult, noteOperation } from "../notes/store.js";
 
 // ---------------------------------------------------------------------------
 // Mode detection — resolves which underlying function to call.
 // Priority order matches the spec: explicit mode > param inference.
 // ---------------------------------------------------------------------------
 
-type Mode = "outcome" | "feedback" | "event" | "voice";
+type Mode = "outcome" | "feedback" | "event" | "voice" | "note" | "note_result";
 
 interface ReportParams {
   mode?: Mode;
@@ -171,15 +172,16 @@ function dispatchVoice(db: Database.Database, params: ReportParams): object {
 // ---------------------------------------------------------------------------
 
 export function register(server: McpServer, db: Database.Database): void {
+  ensureNotesSchema(db);
   server.registerTool(
     "report",
     {
       title: "Report",
       description:
-        "Record what happened after using a service: success/failure outcome, feedback, API change events, or qualitative experience. Data is saved to this installation's LOCAL database only (improves local recovery hints and stats) — nothing is sent to KanseiLink unless you separately opt in to sharing. PII is auto-masked before storage. If the provider returned a request ID, including it as provider_request_id makes the record traceable in the provider's own logs. This is step 4 of the standard flow: search_services → lookup → (execute) → report.",
+        "Record outcomes, feedback, events or experience in this installation. Use mode 'note' with note to contribute a reusable summary; mode 'note_result' with note_result to report trying an existing note. These two modes require share:true: the summary is readable by others with access to this server (public on the hosted server). A local stdio installation does not upload it. Share only with user authorization; omit secrets and personal information. Other report modes retain their existing local storage and separate sharing consent behavior. For outcome mode, provider_request_id makes the record traceable in the provider's own logs.",
       inputSchema: z.object({
         mode: z
-          .enum(["outcome", "feedback", "event", "voice"])
+          .enum(["outcome", "feedback", "event", "voice", "note", "note_result"])
           .optional()
           .describe(
             "Explicit mode selection. Auto-detected from params if omitted: " +
@@ -187,6 +189,8 @@ export function register(server: McpServer, db: Database.Database): void {
           ),
 
         // --- Common ---
+        note: noteSchema.optional().describe("[note] Authorized summary to share in this server's field-note store. Use a fresh session UUID per execution and stable request UUID for retries."),
+        note_result: resultSchema.optional().describe("[note_result] Actual result of trying a note. Includes note_id, service_id, outcome, conditions and evidence."),
         service_id: z
           .string()
           .optional()
@@ -342,6 +346,10 @@ export function register(server: McpServer, db: Database.Database): void {
     },
     async (params) => {
       const mode = detectMode(params);
+      if (mode === "note" || mode === "note_result") {
+        const result = noteOperation(() => mode === "note" ? recordNote(db, params.note) : recordResult(db, params.note_result));
+        return { isError: "error" in result, content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+      }
 
       if (!mode) {
         return {
