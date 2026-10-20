@@ -150,7 +150,8 @@ test('verification records are excluded from normal discovery, including reuse r
   const tools = {}; registerLookup({ registerTool(name, definition, handler) { tools[name] = { definition, handler }; } }, db);
   const args = tools.lookup.definition.inputSchema.parse({ mode: 'notes', service_id: 'fixture', note_scope: 'verification' });
   assert.equal(JSON.parse((await tools.lookup.handler(args)).content[0].text).notes[0].id, note.id);
-  assert.deepEqual(db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name), ['agent_note_results','agent_notes','services']);
+  // ask v1 adds ask_log (+ sqlite_sequence for its AUTOINCREMENT); still no scoring/stats tables.
+  assert.deepEqual(db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name).filter(n => !['ask_log','sqlite_sequence'].includes(n)), ['agent_note_results','agent_notes','services']);
   db.close();
 });
 
