@@ -48,7 +48,7 @@ test('freee 403 forbiddenError → AWT-002 (error_key); company mismatch → AWT
   db.close();
 });
 
-test('ask_log keeps neither raw text nor secrets; only key, sha256 of masked text, ≤20 tokens, no IP column', () => {
+test('ask_log keeps neither raw text nor secrets; only key, sha256 of masked text, no words, no IP column', () => {
   const db = setup();
   const dirty = `403 forbiddenError Bearer abcDEFghiJKL0123456789 api_key=sk-live-SECRET9876543210 mail me at taro.yamada@example.com tenant https://acme-corp.cybozu.com/k/v1/record.json?token=hunter2hunter2`;
   ask(db, { service: 'freee', error: dirty }, opts());
@@ -59,7 +59,7 @@ test('ask_log keeps neither raw text nor secrets; only key, sha256 of masked tex
   }
   assert.ok(!('ip' in row) && !('error_text' in row));
   assert.match(row.error_sha256, /^[0-9a-f]{64}$/);
-  assert.ok(JSON.parse(row.tokens).length <= 20);
+  assert.equal(row.tokens, '[]');
   assert.equal(row.http_status, 403); assert.equal(row.provider_code, 'forbiddenError');
   console.log('ask_log row:', row);
   db.close();
@@ -195,9 +195,9 @@ test('fix1: Codex repros — secrets and names never reach ask_log.tokens; maski
   assert.ok(!maskSecrets('HTTP 403 {"access_token":"CedarRiverSecretValue"}').masked.includes('CedarRiverSecretValue'));
   assert.ok(!maskSecrets("HTTP 403 {'token':'CedarRiverSecretValue'}").masked.includes('CedarRiverSecretValue'));
   assert.ok(!maskSecrets('HTTP 401 bearer MapleForestSecretValue').masked.includes('MapleForestSecretValue'));
-  // Known vocabulary still survives (Japanese bigrams from the AWT-002 message).
+  // Since the re-review no words are stored at all, even for a matching question.
   ask(db, { service: 'freee', error: FREEE_403 }, opts());
-  assert.ok(JSON.parse(db.prepare('SELECT tokens FROM ask_log ORDER BY id DESC LIMIT 1').get().tokens).length > 0);
+  assert.equal(db.prepare('SELECT tokens FROM ask_log ORDER BY id DESC LIMIT 1').get().tokens, '[]');
   db.close();
 });
 
@@ -265,4 +265,23 @@ test('fix3: malformed JSON body → 400 invalid_json, body not logged (control w
     await new Promise(r => s2.close(r));
     assert.equal(big.status, 413); assert.deepEqual(await big.json(), { error: 'payload_too_large' });
   } finally { db.close(); }
+});
+
+// ── Codex re-review 2026-10-21: no words of the question are stored at all ──
+test('re-review: a secret made of ordinary words leaves no trace in any ask_log column; matching still works', () => {
+  const db = setup();
+  const repro = 'HTTP 403 {"password":"json oauth unresolved company_id"}';
+  ask(db, { service: 'freee', error: repro }, opts());
+  const row = db.prepare('SELECT * FROM ask_log ORDER BY id DESC LIMIT 1').get();
+  const all = JSON.stringify(row).toLowerCase();
+  for (const w of ['oauth', 'unresolved', 'company_id']) assert.ok(!all.includes(w), `${w} found in ask_log: ${all}`);
+  assert.equal(row.tokens, '[]');
+  console.log('re-review repro: ask_log row', JSON.stringify(row));
+  // Matching is unaffected: the AWT-002 and AWT-001 questions still match.
+  assert.equal(ask(db, { service: 'freee', error: FREEE_403 }, opts()).matches[0].id, 'AWT-002');
+  assert.equal(ask(db, { service: 'freee', error: FREEE_COMPANY }, opts()).matches[0].id, 'AWT-001');
+  // Second line: a quoted value is masked up to its closing quote, spaces included.
+  assert.equal(maskSecrets('{"password":"a b c d"}').masked, '{"password":"[SECRET]"}');
+  assert.ok(!maskSecrets("{'token':'a b c d'}").masked.includes('a b c d'));
+  db.close();
 });

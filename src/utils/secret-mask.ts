@@ -26,8 +26,11 @@ const patterns: Array<{ kind: string; regex: RegExp; replacement: string | ((m: 
   {
     kind: "KV_SECRET",
     // Also JSON / quoted keys: "access_token": "...", 'token':'...' (the key's closing quote may precede ":").
-    regex: /\b(access_token|refresh_token|id_token|api[_-]?key|apikey|client_secret|secret|password|passwd|token|signature|sig)(["']?\s*[=:]\s*)["']?[A-Za-z0-9\-._~+/%]{6,}["']?/gi,
-    replacement: "$1$2[SECRET]",
+    // A quoted value is masked up to its closing quote, spaces included ("password":"a b c d" →
+    // "password":"[SECRET]"); an unquoted value is masked as one run of token characters.
+    regex: /\b(access_token|refresh_token|id_token|api[_-]?key|apikey|client_secret|secret|password|passwd|token|signature|sig)(["']?\s*[=:]\s*)(?:"([^"\r\n]*)"|'([^'\r\n]*)'|[A-Za-z0-9\-._~+/%]{6,})/gi,
+    replacement: (_m: string, key: string, sep: string, dq?: string, sq?: string) =>
+      dq !== undefined ? `${key}${sep}"[SECRET]"` : sq !== undefined ? `${key}${sep}'[SECRET]'` : `${key}${sep}[SECRET]`,
   },
   // Emails
   { kind: "EMAIL", regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, replacement: "[EMAIL]" },

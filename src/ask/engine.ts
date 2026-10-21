@@ -5,9 +5,10 @@
 // out an error key (HTTP status + provider code), match it against checked
 // remedies, and answer 200 whether or not anything matched. Nothing an agent
 // sends is ever published: the only durable trace is one `ask_log` row
-// holding the error key, a sha256 of the MASKED text and up to 20 masked
-// tokens that also occur in the checked candidates' vocabulary (allow-list).
-// Raw text and IP addresses are never stored.
+// holding service, the error key (known provider codes only), the sha256 of
+// the MASKED text, the match count, runtime family, UA class and request id.
+// Nothing derived from the words of the question is stored: no raw text, no
+// tokens, no word order or word set (Codex re-review 2026-10-21). No IP.
 //
 // Matching parts (parseErrorKey / normalizeSymptom / tokenOverlap / isSimilar /
 // normalizeRuntime) were ported from the unpublished `ask-endpoint` branch
@@ -29,7 +30,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ASK_GET_MAX = 300;
 export const ASK_POST_MAX = 2000;
 export const ASK_MAX_MATCHES = 5;
-export const ASK_LOG_TOKENS_MAX = 20;
 export const ASK_LOG_RETENTION_DAYS = 180;
 export const ASK_DAILY_CAP_DEFAULT = 5000;
 
@@ -261,31 +261,10 @@ function loadNoteCandidates(db: Database.Database, serviceId: string): Candidate
   }));
 }
 
-// ─── Allow-lists built from the candidates (Codex review 2026-10-21) ──
-// What is kept from an ask is decided by what we already know, not by what masking managed to
-// remove: masking regexes always have holes. Tokens stored in ask_log must exist in the vocabulary
-// of the checked candidates; a provider_code is kept only if a checked candidate carries it.
-
-function candidateFields(c: Candidate): Array<string | null> {
-  return [c.text, c.message_pattern, c.applies_when, c.first_check, c.how_resolved, c.success_check];
-}
-export function vocabularyOf(candidates: Candidate[]): Set<string> {
-  const v = new Set<string>();
-  for (const c of candidates) for (const f of candidateFields(c)) if (f) for (const t of normalizeSymptom(f)) v.add(t);
-  return v;
-}
-let fileVocabCache: Set<string> | null = null;
-/** Vocabulary of the file-backed candidates (field notes + error cards); built once per process. */
-function fileVocabulary(): Set<string> {
-  if (!fileVocabCache) fileVocabCache = vocabularyOf([...loadFieldNotes(), ...loadErrorCards()]);
-  return fileVocabCache;
-}
-/** Tokens of the masked text that also appear in the candidates' vocabulary (max ASK_LOG_TOKENS_MAX). */
-export function allowedTokens(masked: string, noteCandidates: Candidate[]): string[] {
-  const base = fileVocabulary();
-  const extra = noteCandidates.length ? vocabularyOf(noteCandidates) : null;
-  return normalizeSymptom(masked).filter((t) => base.has(t) || !!extra?.has(t)).slice(0, ASK_LOG_TOKENS_MAX);
-}
+// ─── What is kept is decided by what we already know (Codex review 2026-10-21) ──
+// Masking regexes always have holes, and "known words" are no guarantee either: a secret can be
+// built from ordinary words (Codex re-review). So ask_log keeps no words at all, and a
+// provider_code is kept only if a checked candidate carries the same code.
 
 let fileCodesCache: Map<string, string> | null = null;
 function codesOf(candidates: Candidate[], into = new Map<string, string>()): Map<string, string> {
@@ -349,6 +328,7 @@ export function ensureAskSchema(db: Database.Database): void {
       http_status INTEGER,
       provider_code TEXT,
       error_sha256 TEXT NOT NULL,
+      -- Kept for schema stability only; always '[]'. Nothing derived from the question's words is stored.
       tokens TEXT NOT NULL,
       runtime TEXT,
       ua_class TEXT NOT NULL,
@@ -452,7 +432,7 @@ export function ask(db: Database.Database, raw: unknown, opts: AskOptions): AskR
     db.prepare(`INSERT INTO ask_log (service_id, layer, http_status, provider_code, code_known, error_sha256, tokens, runtime, ua_class, match_count, request_id)
       VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(input.service, key.layer, key.http_status, key.provider_code,
       codeKnown === null ? null : codeKnown ? 1 : 0, sha,
-      JSON.stringify(allowedTokens(masked, noteCandidates)), runtime, opts.uaClass, matches.length, requestId);
+      "[]", runtime, opts.uaClass, matches.length, requestId);
     // One-line log: never the error text; only the allow-listed key. ASK_LOG_ENABLED=false silences it too.
     console.log(`[ask] service=${input.service} key=${key.layer}/${key.http_status ?? "-"}/${key.provider_code ?? "-"} sha=${sha.slice(0, 16)} matches=${matches.length} ua=${opts.uaClass} rid=${requestId}`);
   }
