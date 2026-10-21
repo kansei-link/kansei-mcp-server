@@ -2,6 +2,7 @@
   "_readme": "公開APIルートのallowlist正本 (P0 #39)。実装のルート追加/削除/変更は scripts/route-gate.mjs が検知してFAILします。変更手順: SECレビューでreview_idを発番 → route-gate --print-routes の出力でroutesを置換 → sec_reviews にエントリ追記 → コミットメッセージにreview_id記載。sec_reviews の追記なしにroutesを書き換えるとRG2でFAILします。",
   "routes": [
     "DELETE /mcp",
+    "GET /admin/ask/candidates",
     "GET /admin/dualrun-digest",
     "GET /admin/last-crawl-run",
     "GET /admin/premium-content",
@@ -18,6 +19,8 @@
     "GET /api/dashboard/voices",
     "GET /api/premium",
     "GET /api/site-check/:id",
+    "GET /api/v1/ask",
+    "GET /api/v1/ask/stats",
     "GET /api/v1/metrics/was",
     "GET /api/v1/notes",
     "GET /api/v1/notes/:id",
@@ -44,6 +47,7 @@
     "POST /api/report-outcome",
     "POST /api/site-check",
     "POST /api/telemetry/linksee",
+    "POST /api/v1/ask",
     "POST /api/v1/events",
     "POST /api/v1/notes",
     "POST /api/v1/notes/:id/results",
@@ -75,6 +79,12 @@
       "routes_sha256": "4bee270c1eb30e6e8363a694a2bcae204d9539400afafc2ea3310089a8e838d1",
       "date": "2026-10-20",
       "note": "Agent Stars field-note routes (4 public + 1 admin hide): strict input, length limits, explicit sharing, redaction, no IP stored, 10/min/IP, daily caps 200/1000, write kill switch, hide-not-delete moderation, unverified status. Implemented by Codex, reviewed by Claude (P1 x2 closed in fceffe94; P1-3 distribution of free text deferred while store is empty). Founder ratified 2026-10-20. Canonical: founder-ops/SEC-REVIEW-2026-10-20-001_Route-AgentNotes.md"
+    },
+    {
+      "review_id": "SEC-2026-10-21-001",
+      "routes_sha256": "f53a3b873c866909841d4fcd85bf2396b982db582478e835c28af5ed49b03351",
+      "date": "2026-10-21",
+      "note": "ask v1 read-only lookup (3 public + 1 admin): length limits, 30/min/IP, daily cap 5000, returns verified/lived only, untrusted_data, no reflection. ask_log stores no question text, words or IP (service, known error key, sha256 of masked text, counts only); unknown provider codes nulled; kill switch stops DB and log line; malformed JSON answered without logging the body (all JSON routes). Implemented by Claude Code agent, reviewed by Claude and Codex (FAIL x2 → PASS at 13d0c518). Founder ratified 2026-10-21. Canonical: founder-ops/SEC-REVIEW-2026-10-21-001_Route-Ask.md"
     }
   ]
 }

@@ -14,6 +14,7 @@ import { readFeedback } from "./submit-feedback.js";
 import { readAgentVoices } from "./agent-voice.js";
 import { kanseiAppLink } from "../utils/app-link.js";
 import { ensureNotesSchema, findNotes, noteOperation } from "../notes/store.js";
+import { ask, askOperation, ensureAskSchema, ASK_POST_MAX } from "../ask/engine.js";
 import {
   shapeLookupResult,
   fixedTierResolver,
@@ -25,7 +26,7 @@ import {
 // Priority order matches the spec: explicit mode > param inference.
 // ---------------------------------------------------------------------------
 
-type Mode = "tips" | "detail" | "insights" | "recipe" | "combinations" | "history" | "feedback" | "voices" | "notes";
+type Mode = "tips" | "detail" | "insights" | "recipe" | "combinations" | "history" | "feedback" | "voices" | "notes" | "ask";
 
 interface LookupParams {
   service_id?: string;
@@ -46,6 +47,8 @@ interface LookupParams {
   voice_agent_type?: string;
   q?: string;
   note_scope?: "field" | "verification";
+  error?: string;
+  runtime?: string;
 }
 
 function detectMode(params: LookupParams): Mode | null {
@@ -54,6 +57,9 @@ function detectMode(params: LookupParams): Mode | null {
 
   // 2. goal present → recipe
   if (params.goal) return "recipe";
+
+  // 2b. service_id + error → ask (read-only error lookup)
+  if (params.service_id && params.error) return "ask";
 
   // 3. service_id + period or compare_with → history
   if (params.service_id && (params.period || params.compare_with)) return "history";
@@ -89,6 +95,8 @@ function dispatch(
   switch (mode) {
     case "notes":
       return findNotes(db, { service_id: params.service_id, q: params.q, scope: params.note_scope });
+    case "ask":
+      return ask(db, { service: params.service_id, error: params.error, runtime: params.runtime }, { uaClass: "mcp_client", maxErrorLength: ASK_POST_MAX });
     case "tips":
       return { ...getServiceTips(db, params.service_id!), field_notes: noteOperation(() => findNotes(db, { service_id: params.service_id, limit: 3 })) };
 
@@ -137,6 +145,8 @@ function tipForMode(mode: Mode): string {
   switch (mode) {
     case "notes":
       return "After trying a note, report({ mode: 'note_result', note_result: {...} }). Share only an authorized, non-sensitive summary.";
+    case "ask":
+      return "matches are checked remedies (verified/lived) only. Reading records nothing public; if your user allows, record what you tried with report({ mode: 'note' }).";
     case "tips":
       return "Add detail: true for full connection guide, or insights: true for usage data.";
     case "detail":
@@ -166,6 +176,7 @@ export function register(
   tierResolver: TierResolver = fixedTierResolver("free")
 ): void {
   ensureNotesSchema(db);
+  ensureAskSchema(db);
   server.registerTool(
     "lookup",
     {
@@ -174,6 +185,7 @@ export function register(
         "Get everything you need about a service before using it. " +
         "Default: tips (auth setup, pitfalls, workarounds). " +
         "Use mode: 'notes', service_id and optional q to read reusable, unverified field notes without publishing anything. " +
+        "Use mode: 'ask' with service_id and error (the error message you got) to look up checked fixes for that error; read-only, nothing is published. " +
         "Add detail: true for full connection guide, insights: true for usage data. " +
         "Pass goal: 'workflow description' to find multi-service recipes. " +
         "This is step 2 of the standard KanseiLink flow: search_services → lookup → (execute) → report. " +
@@ -212,11 +224,13 @@ export function register(
           .optional()
           .describe("Get aggregated usage data (success rate, trends, errors)"),
         mode: z
-          .enum(["tips", "detail", "insights", "recipe", "combinations", "history", "feedback", "voices", "notes"])
+          .enum(["tips", "detail", "insights", "recipe", "combinations", "history", "feedback", "voices", "notes", "ask"])
           .optional()
           .describe("Explicit mode override"),
         note_scope: z.enum(["field", "verification"]).optional().describe("[notes] Defaults to field. verification isolates internal release checks from ordinary discovery; not a privacy boundary."),
         q: z.string().max(120).optional().describe("[notes] Symptom or task keywords; omit to see recent notes for this service."),
+        error: z.string().max(ASK_POST_MAX).optional().describe("[ask] The error message you received (secrets are masked before anything is stored; send the message, not the whole trace)."),
+        runtime: z.string().max(40).optional().describe("[ask] Your runtime family (claude/codex/gpt/gemini/other)."),
 
         // --- Feedback mode (read community feedback) ---
         feedback_status: z
@@ -257,6 +271,11 @@ export function register(
       // Keep note reads free of execution-attempt writes and subscription calls.
       if (mode === "notes") {
         const result = noteOperation(() => findNotes(db, { service_id: params.service_id, q: params.q, scope: params.note_scope }));
+        return { isError: "error" in result, content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+      }
+      // ask: same matcher as /api/v1/ask; no attempt handle, no subscription call.
+      if (mode === "ask") {
+        const result = askOperation(() => ask(db, { service: params.service_id, error: params.error, runtime: params.runtime }, { uaClass: "mcp_client", maxErrorLength: ASK_POST_MAX }));
         return { isError: "error" in result, content: [{ type: "text" as const, text: JSON.stringify(result) }] };
       }
 

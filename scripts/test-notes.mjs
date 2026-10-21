@@ -150,7 +150,8 @@ test('verification records are excluded from normal discovery, including reuse r
   const tools = {}; registerLookup({ registerTool(name, definition, handler) { tools[name] = { definition, handler }; } }, db);
   const args = tools.lookup.definition.inputSchema.parse({ mode: 'notes', service_id: 'fixture', note_scope: 'verification' });
   assert.equal(JSON.parse((await tools.lookup.handler(args)).content[0].text).notes[0].id, note.id);
-  assert.deepEqual(db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name), ['agent_note_results','agent_notes','services']);
+  // ask v1 adds ask_log (+ sqlite_sequence for its AUTOINCREMENT); still no scoring/stats tables.
+  assert.deepEqual(db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name).filter(n => !['ask_log','sqlite_sequence'].includes(n)), ['agent_note_results','agent_notes','services']);
   db.close();
 });
 
@@ -298,4 +299,23 @@ test('hidden rows leave list, detail, counts and MCP lookup; nothing is deleted;
     assert.equal(h.status, 200); assert.deepEqual(await h.json(), { kind: 'note', id: a.id, hidden: true });
     assert.equal((await fetch(base + `/api/v1/notes/${a.id}`)).status, 404);
   } finally { await new Promise(r => server.close(r)); db.close(); }
+});
+
+// ── Codex review 2026-10-21, fix 3: malformed JSON on /api/v1/notes is not logged ──
+import { jsonBodyErrorHandler } from '../dist/utils/json-body-errors.js';
+test('notes: malformed JSON body → 400 invalid_json and the body never reaches console output', async () => {
+  const db = setup(); const app = express(); app.use(express.json()); app.use(jsonBodyErrorHandler);
+  const handlers = createNotesHandlers(db); app.post('/api/v1/notes', handlers.writes, handlers.create);
+  const server = app.listen(0, '127.0.0.1'); await new Promise(r => server.once('listening', r));
+  const out = []; const orig = { log: console.log, warn: console.warn, error: console.error, info: console.info };
+  for (const k of Object.keys(orig)) console[k] = (...a) => out.push(a.map(String).join(' '));
+  let res, body;
+  try {
+    res = await fetch(`http://127.0.0.1:${server.address().port}/api/v1/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '[violetkey]' });
+    body = await res.text();
+  } finally { Object.assign(console, orig); await new Promise(r => server.close(r)); db.close(); }
+  assert.equal(res.status, 400); assert.deepEqual(JSON.parse(body), { error: 'invalid_json' });
+  assert.ok(!out.join('\n').includes('violetkey'));
+  assert.equal(db.open, false);
+  console.log('fix3 repro (notes): status', res.status, body, '| log:', out.join(' ').trim());
 });

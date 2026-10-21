@@ -54,6 +54,8 @@ import { runCrawler } from "./crawler/run.js";
 import { handleSiteCheck, handleSiteCheckGet } from "./site-check.js";
 import { reportOutcome } from "./tools/report-outcome.js";
 import { createNotesHandlers } from "./notes/routes.js";
+import { createAskHandlers } from "./ask/routes.js";
+import { jsonBodyErrorHandler } from "./utils/json-body-errors.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -134,6 +136,8 @@ app.post(
 
 // JSON body parser for all other routes
 app.use(express.json());
+// Malformed / oversized JSON → 400 / 413 without echoing the body into the log (Codex review 2026-10-21).
+app.use(jsonBodyErrorHandler);
 
 // CORS for frontend API access
 app.use("/api", (_req: Request, res: Response, next) => {
@@ -159,6 +163,13 @@ app.get("/api/v1/notes", noteHandlers.list);
 app.get("/api/v1/notes/:id", noteHandlers.detail);
 app.post("/api/v1/notes", noteHandlers.writes, noteHandlers.create);
 app.post("/api/v1/notes/:id/results", noteHandlers.writes, noteHandlers.result);
+
+// ask v1: read-only "stuck on an error" lookup. Answers 200 with or without a match;
+// stores only error key + sha256 of the masked text (never raw text or IP).
+const askHandlers = createAskHandlers(getDb());
+app.get("/api/v1/ask", askHandlers.limiter, askHandlers.get);
+app.post("/api/v1/ask", askHandlers.limiter, askHandlers.post);
+app.get("/api/v1/ask/stats", apiLimiter, askHandlers.stats);
 
 // Public config: exposes price IDs for client-side checkout buttons (no secrets)
 app.get("/api/config", (_req: Request, res: Response) => {
@@ -1352,6 +1363,18 @@ app.get("/admin/premium-content", (req: Request, res: Response) => {
 app.post("/admin/notes/hide", (req: Request, res: Response) => {
   if (!requireAdminSecret(req, res)) return;
   noteHandlers.hide(req, res);
+});
+
+/**
+ * GET /admin/ask/candidates
+ *   Headers:  Authorization: Bearer <CRAWLER_SECRET>
+ *
+ * Verification queue for ask v1: unmatched service × error_key in the last
+ * 30 days, most frequent first. Not public; individual asks are not shown.
+ */
+app.get("/admin/ask/candidates", (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+  askHandlers.candidates(req, res);
 });
 
 /**
