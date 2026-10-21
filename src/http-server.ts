@@ -56,6 +56,7 @@ import { reportOutcome } from "./tools/report-outcome.js";
 import { createNotesHandlers } from "./notes/routes.js";
 import { createAskHandlers } from "./ask/routes.js";
 import { candidateSourceCounts } from "./ask/engine.js";
+import { adminActivity } from "./admin/activity.js";
 import { jsonBodyErrorHandler } from "./utils/json-body-errors.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
@@ -1383,6 +1384,24 @@ app.post("/admin/notes/hide", (req: Request, res: Response) => {
 app.get("/admin/ask/candidates", (req: Request, res: Response) => {
   if (!requireAdminSecret(req, res)) return;
   askHandlers.candidates(req, res);
+});
+
+/**
+ * GET /admin/activity
+ *   Headers:  Authorization: Bearer <CRAWLER_SECRET>
+ *
+ * Read-only summary for the founder's watch screen: note/result write counts,
+ * daily-cap usage, latest 20 notes (public text only, 200 chars), ask counts and
+ * top unmatched keys, and alerts. No IPs, raw user agents or question text. Writes nothing.
+ */
+app.get("/admin/activity", (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+  res.setHeader("Cache-Control", "no-store");
+  try {
+    res.json(adminActivity(getDb()));
+  } catch {
+    res.status(500).json({ error: "activity_unavailable" });
+  }
 });
 
 /**
