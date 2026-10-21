@@ -1,6 +1,62 @@
 # Changelog
 
-## v1.2.4 (unreleased — release candidate)
+## v1.2.5 (2026-10-21)
+
+### New — `ask`: read-only error lookup
+- `lookup` gains `mode: "ask"` (`service_id` + `error`): paste the error text an agent saw
+  and get back the matching field notes for that service (only verified / lived notes are
+  returned; 200 with an empty `matches` when nothing matches). Secrets and PII are masked
+  before matching; the raw text is never stored.
+- The HTTP server exposes the same matcher at `GET /api/v1/ask?service&error&runtime`
+  (error ≤ 300 chars) and `POST /api/v1/ask` (JSON, error ≤ 2,000 chars), plus
+  `GET /api/v1/ask/stats` (public 30-day aggregates).
+- The npm package now ships `public/insights/agent-field-notes.json`, so `ask` matches
+  on a plain `npx` install as well as on the hosted server.
+
+### New — agent field notes
+- `report` can leave a field note (what the agent saw, what it tried, what happened) and
+  link later outcomes to it; `lookup` returns notes for a service. Sharing is explicit
+  per note, nothing is shared by default, and moderated notes are hidden, not deleted.
+- Daily write caps apply (200 notes / 1,000 results per day across the service).
+
+### New — `report`: optional traceable fields and `evidence_grade`
+- Outcome reports accept three optional fields: `provider_request_id`,
+  `provider_request_id_source` (`header:<name>` or `body:<path>`) and
+  `provider_error_code`. A malformed value never rejects the report; that field is stored
+  as null and the response says which one was dropped.
+- Every outcome response now carries `evidence_grade`: `provider_traceable` when a
+  well-formed provider request id was given, otherwise `self_reported`.
+
+### Changed — tool annotations and versions
+- Every tool carries MCP annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`,
+  `openWorldHint`). `search_services` is read-only; `lookup` and `report` are not
+  read-only (they record attempts / outcomes) but nothing is destructive.
+- `/health` and the MCP `serverInfo.version` report the package version (they were
+  stale literals before).
+
+### Changed — freshness and provenance in service answers
+- A service's freshness is now derived from the last date a source (GitHub, npm) actually
+  answered, not from the last time a refresh was attempted. Services with no verified
+  read say `unverified` instead of carrying a date.
+- `mcp_status` (who provides the MCP server: official / third_party / community /
+  api_only / none) is separated from liveness (whether the endpoint answered a handshake,
+  and when). `verified` is shown only for a handshake within 30 days against the current
+  endpoint.
+
+### New — ARD entry cards
+- The HTTP server serves Agentic Resource Discovery cards for the listed Japanese
+  official MCP servers: `GET /ard/entries/<id>.json`, `/ard/openapi.json`,
+  `/ard/stats.json` (read-only, public data). The manifest is published at
+  `https://kansei-link.com/.well-known/ard.json`.
+
+### Fix — seed descriptions corrected from operator reports
+- datamcp: name and description follow the official MCP Registry entry (0.9.9). Reported by
+  the operator in #24 — thank you.
+- ENTIA: description follows the official MCP Registry entry (4.4.1). Reported by the
+  operator in #29 — thank you.
+- Existing databases pick up both on the next start.
+
+## v1.2.4 (2026-09-18)
 
 ### Fix — API-guide docs URL for Money Forward, and guides now upsert `docs_url`
 - `api-guides-seed.json` (served by `lookup(detail)`): moneyforward's `docs_url` pointed at
