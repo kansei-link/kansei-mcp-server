@@ -287,6 +287,25 @@ export function allowedTokens(masked: string, noteCandidates: Candidate[]): stri
   return normalizeSymptom(masked).filter((t) => base.has(t) || !!extra?.has(t)).slice(0, ASK_LOG_TOKENS_MAX);
 }
 
+let fileCodesCache: Map<string, string> | null = null;
+function codesOf(candidates: Candidate[], into = new Map<string, string>()): Map<string, string> {
+  for (const c of candidates) if (c.error_key.provider_code) into.set(c.error_key.provider_code.toLowerCase(), c.error_key.provider_code);
+  return into;
+}
+/**
+ * The ONLY place a parsed error key becomes usable. A provider_code is kept when a checked candidate
+ * carries the same code (returned in the candidate's spelling); otherwise it becomes null and
+ * codeKnown=false. The raw parsed key must not be passed anywhere after this call (ask_log, stats,
+ * candidates, logs, response).
+ */
+export function publicErrorKey(raw: ErrorKey, noteCandidates: Candidate[]): { key: ErrorKey; codeKnown: boolean | null } {
+  if (!raw.provider_code) return { key: { ...raw, provider_code: null }, codeKnown: null };
+  if (!fileCodesCache) fileCodesCache = codesOf([...loadFieldNotes(), ...loadErrorCards()]);
+  const lower = raw.provider_code.toLowerCase();
+  const known = fileCodesCache.get(lower) ?? codesOf(noteCandidates).get(lower) ?? null;
+  return { key: { ...raw, provider_code: known }, codeKnown: known !== null };
+}
+
 export interface AskMatch {
   source: MatchSource; id: string; status: MatchStatus;
   applies_when: string | null; first_check: string | null; how_resolved: string | null;
@@ -334,10 +353,15 @@ export function ensureAskSchema(db: Database.Database): void {
       runtime TEXT,
       ua_class TEXT NOT NULL,
       match_count INTEGER NOT NULL,
-      request_id TEXT NOT NULL
+      request_id TEXT NOT NULL,
+      code_known INTEGER
     );
     CREATE INDEX IF NOT EXISTS idx_ask_log_service_time ON ask_log(service_id, asked_at);
   `);
+  // code_known: NULL = no code parsed, 1 = matched a checked candidate's code, 0 = parsed but unknown
+  // (provider_code stored as null; counted for the admin queue only, never published).
+  const askCols = db.pragma("table_info(ask_log)") as Array<{ name: string }>;
+  if (!askCols.some((c) => c.name === "code_known")) db.exec("ALTER TABLE ask_log ADD COLUMN code_known INTEGER");
   // 180-day retention, applied at startup (no raw text is kept, but demand data is still bounded).
   db.prepare(`DELETE FROM ask_log WHERE asked_at < datetime('now', ?)`).run(`-${ASK_LOG_RETENTION_DAYS} days`);
 }
@@ -411,10 +435,11 @@ export function ask(db: Database.Database, raw: unknown, opts: AskOptions): AskR
   if (!takeDailySlot()) throw new AskError(429, "daily_limit", "ask has reached today's global capacity; try again tomorrow");
 
   const masked = cleanText(input.error, opts.maxErrorLength);
-  const key = parseErrorKey(masked);
   const runtime = normalizeRuntime(input.runtime);
   const requestId = opts.requestId ?? randomUUID();
   const noteCandidates = loadNoteCandidates(db, input.service);
+  // Converted once, right after parsing; the raw provider_code is not used past this line.
+  const { key, codeKnown } = publicErrorKey(parseErrorKey(masked), noteCandidates);
   const candidates = [...loadFieldNotes(), ...loadErrorCards(), ...noteCandidates];
   const matches = matchCandidates(candidates, input.service, masked, key);
 
@@ -424,12 +449,13 @@ export function ask(db: Database.Database, raw: unknown, opts: AskOptions): AskR
 
   const sha = createHash("sha256").update(masked).digest("hex");
   if (askLogEnabled()) {
-    db.prepare(`INSERT INTO ask_log (service_id, layer, http_status, provider_code, error_sha256, tokens, runtime, ua_class, match_count, request_id)
-      VALUES (?,?,?,?,?,?,?,?,?,?)`).run(input.service, key.layer, key.http_status, key.provider_code, sha,
+    db.prepare(`INSERT INTO ask_log (service_id, layer, http_status, provider_code, code_known, error_sha256, tokens, runtime, ua_class, match_count, request_id)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(input.service, key.layer, key.http_status, key.provider_code,
+      codeKnown === null ? null : codeKnown ? 1 : 0, sha,
       JSON.stringify(allowedTokens(masked, noteCandidates)), runtime, opts.uaClass, matches.length, requestId);
+    // One-line log: never the error text; only the allow-listed key. ASK_LOG_ENABLED=false silences it too.
+    console.log(`[ask] service=${input.service} key=${key.layer}/${key.http_status ?? "-"}/${key.provider_code ?? "-"} sha=${sha.slice(0, 16)} matches=${matches.length} ua=${opts.uaClass} rid=${requestId}`);
   }
-  // One-line log: never the error text.
-  console.log(`[ask] service=${input.service} key=${key.layer}/${key.http_status ?? "-"}/${key.provider_code ?? "-"} sha=${sha.slice(0, 16)} matches=${matches.length} ua=${opts.uaClass} rid=${requestId}`);
 
   return {
     service: input.service,
@@ -469,7 +495,8 @@ export function askStats(db: Database.Database) {
 /** Admin: unmatched service × error_key in the last 30 days, most frequent first — the verification queue. */
 export function askCandidates(db: Database.Database) {
   const rows = db.prepare(`SELECT service_id, layer, http_status, provider_code, count(*) AS asks,
-      max(asked_at) AS last_asked_at, count(DISTINCT error_sha256) AS distinct_messages
+      max(asked_at) AS last_asked_at, count(DISTINCT error_sha256) AS distinct_messages,
+      coalesce(sum(code_known = 0), 0) AS unknown_code_asks
     FROM ask_log WHERE match_count = 0 AND asked_at >= datetime('now', '-30 days')
     GROUP BY service_id, layer, http_status, provider_code
     ORDER BY asks DESC, last_asked_at DESC LIMIT 100`).all();

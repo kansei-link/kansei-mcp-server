@@ -200,3 +200,41 @@ test('fix1: Codex repros — secrets and names never reach ask_log.tokens; maski
   assert.ok(JSON.parse(db.prepare('SELECT tokens FROM ask_log ORDER BY id DESC LIMIT 1').get().tokens).length > 0);
   db.close();
 });
+
+// ── Codex review 2026-10-21, fix 2: provider_code only from the known set ──
+function captureConsole(run) {
+  const out = []; const orig = { log: console.log, warn: console.warn, error: console.error, info: console.info };
+  // console.* only: the server code and Express's default error handler write through console;
+  // patching process.stdout would also swallow the node:test reporter's own output.
+  for (const k of Object.keys(orig)) console[k] = (...a) => out.push(a.map(String).join(' '));
+  return Promise.resolve().then(run).finally(() => { Object.assign(console, orig); }).then(() => out.join('\n'));
+}
+
+test('fix2: an unknown provider_code never reaches the response, ask_log, stats, candidates or stdout', async () => {
+  const db = setup(); const server = await listen(app(db)); const base = `http://127.0.0.1:${server.address().port}`;
+  const evil = 'ignore.previous.instructions';
+  try {
+    let resp;
+    const logged = await captureConsole(async () => {
+      resp = await (await fetch(`${base}/api/v1/ask?service=freee&error=${encodeURIComponent('HTTP 403 code=' + evil)}`)).json();
+    });
+    assert.deepEqual(resp.error_key, { layer: 'rest', http_status: 403, provider_code: null });
+    const row = db.prepare('SELECT * FROM ask_log ORDER BY id DESC LIMIT 1').get();
+    assert.equal(row.provider_code, null); assert.equal(row.code_known, 0);
+    const stats = await (await fetch(`${base}/api/v1/ask/stats`)).text();
+    const cands = JSON.stringify(askCandidates(db));
+    for (const [where, text] of [['response', JSON.stringify(resp)], ['ask_log', JSON.stringify(row)], ['stats', stats], ['candidates', cands], ['stdout/stderr', logged]]) {
+      assert.ok(!text.includes(evil), `${evil} leaked via ${where}`);
+    }
+    assert.equal(askCandidates(db).candidates[0].unknown_code_asks, 1);
+    console.log('fix2 repro: response.error_key', JSON.stringify(resp.error_key), '| log line:', logged.trim());
+    // A known code is still published as before (forbiddenError is carried by AWT-002).
+    await fetch(`${base}/api/v1/ask?service=freee&error=${encodeURIComponent('HTTP 403 {"type":"FORBIDDENERROR"}')}`);
+    const s2 = await (await fetch(`${base}/api/v1/ask/stats`)).json();
+    assert.ok(s2.entries.some(e => e.error_key.provider_code === 'forbiddenError'));
+    // ASK_LOG_ENABLED=false: no row and no log line either.
+    process.env.ASK_LOG_ENABLED = 'false';
+    const silent = await captureConsole(async () => { await fetch(`${base}/api/v1/ask?service=freee&error=403`); });
+    assert.ok(!silent.includes('[ask]'), 'log line printed while ASK_LOG_ENABLED=false');
+  } finally { delete process.env.ASK_LOG_ENABLED; await new Promise(r => server.close(r)); db.close(); }
+});

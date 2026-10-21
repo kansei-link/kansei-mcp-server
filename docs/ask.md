@@ -42,9 +42,18 @@ Per ask: time, service, error_key (layer / http_status / provider_code), sha256 
 **masked** text, up to 20 masked tokens, runtime family, UA class
 (`src/data/ai-user-agents.json`: ai_crawler / mcp_client / browser / unknown; MCP calls
 are `mcp_client`), match count, request_id. **Raw text and IP are never stored.** Rows
-older than 180 days are deleted at startup. `ASK_LOG_ENABLED=false` stops logging only;
-matching keeps working. The server log line carries the error key and the first 16 hex of
-the sha256, never the text.
+older than 180 days are deleted at startup. `ASK_LOG_ENABLED=false` stops the row and the
+server log line; matching keeps working. The server log line carries the error key and the
+first 16 hex of the sha256, never the text.
+
+**Allow-lists, not masking, decide what is kept** (Codex review 2026-10-21). Masking is a
+second line of defence only.
+- `tokens`: a token is stored only if it occurs in the vocabulary built from the checked
+  candidates (field notes, error cards, verified/lived notes). Everything else is dropped.
+- `provider_code`: the parsed code is converted once, right after parsing. It is kept only
+  when a checked candidate carries the same code (in the candidate's spelling); otherwise it
+  becomes `null` everywhere (response `error_key`, `ask_log`, stats, admin candidates, log
+  line) and `code_known = 0` is stored for counting (`unknown_code_asks` in the admin queue).
 
 ## Not in v1
 
