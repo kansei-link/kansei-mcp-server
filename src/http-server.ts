@@ -55,6 +55,7 @@ import { handleSiteCheck, handleSiteCheckGet } from "./site-check.js";
 import { reportOutcome } from "./tools/report-outcome.js";
 import { createNotesHandlers } from "./notes/routes.js";
 import { createAskHandlers } from "./ask/routes.js";
+import { jsonBodyErrorHandler } from "./utils/json-body-errors.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -135,6 +136,8 @@ app.post(
 
 // JSON body parser for all other routes
 app.use(express.json());
+// Malformed / oversized JSON → 400 / 413 without echoing the body into the log (Codex review 2026-10-21).
+app.use(jsonBodyErrorHandler);
 
 // CORS for frontend API access
 app.use("/api", (_req: Request, res: Response, next) => {

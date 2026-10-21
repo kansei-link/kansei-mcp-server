@@ -238,3 +238,31 @@ test('fix2: an unknown provider_code never reaches the response, ask_log, stats,
     assert.ok(!silent.includes('[ask]'), 'log line printed while ASK_LOG_ENABLED=false');
   } finally { delete process.env.ASK_LOG_ENABLED; await new Promise(r => server.close(r)); db.close(); }
 });
+
+// ── Codex review 2026-10-21, fix 3: malformed JSON never reaches the log ──
+import { jsonBodyErrorHandler } from '../dist/utils/json-body-errors.js';
+
+test('fix3: malformed JSON body → 400 invalid_json, body not logged (control without the handler leaks)', async () => {
+  const db = setup();
+  const make = (withHandler) => { const a = express(); a.use(express.json()); if (withHandler) a.use(jsonBodyErrorHandler); const h = createAskHandlers(db); a.post('/api/v1/ask', h.post); return a; };
+  const post = (base) => fetch(`${base}/api/v1/ask`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '[violetkey]' });
+  try {
+    // Control: Express's default handler prints the SyntaxError, which quotes the body.
+    const s0 = await listen(make(false)); let leak;
+    const logged0 = await captureConsole(async () => { leak = await post(`http://127.0.0.1:${s0.address().port}`); });
+    await new Promise(r => s0.close(r));
+    assert.equal(leak.status, 400); assert.ok(logged0.includes('violetkey'), 'control should show the leak');
+    const s1 = await listen(make(true)); let r1, body;
+    const logged1 = await captureConsole(async () => { r1 = await post(`http://127.0.0.1:${s1.address().port}`); body = await r1.text(); });
+    await new Promise(r => s1.close(r));
+    assert.equal(r1.status, 400); assert.deepEqual(JSON.parse(body), { error: 'invalid_json' });
+    assert.ok(!logged1.includes('violetkey') && !body.includes('violetkey'));
+    console.log('fix3 repro (ask): status', r1.status, body, '| log:', logged1.trim());
+    // Oversized → 413 payload_too_large.
+    const a = express(); a.use(express.json({ limit: '1kb' })); a.use(jsonBodyErrorHandler); a.post('/x', (_q, s) => s.json({}));
+    const s2 = await listen(a);
+    const big = await fetch(`http://127.0.0.1:${s2.address().port}/x`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ v: 'violetkey'.repeat(300) }) });
+    await new Promise(r => s2.close(r));
+    assert.equal(big.status, 413); assert.deepEqual(await big.json(), { error: 'payload_too_large' });
+  } finally { db.close(); }
+});
