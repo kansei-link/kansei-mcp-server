@@ -59,9 +59,16 @@ export function notesWritesEnabled(): boolean {
   const v = (process.env.NOTES_WRITES_ENABLED ?? "").trim().toLowerCase();
   return !(v === "false" || v === "0");
 }
-function dailyLimit(name: "NOTES_DAILY_NOTE_LIMIT" | "NOTES_DAILY_RESULT_LIMIT", fallback: number): number {
+export function dailyLimit(name: "NOTES_DAILY_NOTE_LIMIT" | "NOTES_DAILY_RESULT_LIMIT", fallback: number): number {
   const n = Number.parseInt(process.env[name] ?? "", 10);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+/** Current daily caps (env override or default). Read-only; used by the admin activity summary. */
+export function notesDailyLimits(): { notes: number; results: number } {
+  return {
+    notes: dailyLimit("NOTES_DAILY_NOTE_LIMIT", NOTES_DAILY_NOTE_LIMIT_DEFAULT),
+    results: dailyLimit("NOTES_DAILY_RESULT_LIMIT", NOTES_DAILY_RESULT_LIMIT_DEFAULT),
+  };
 }
 // created_at is stored as UTC (datetime('now')); JST day = UTC + 9h.
 const JST_DAY = "date(created_at, '+9 hours') = date('now', '+9 hours')";

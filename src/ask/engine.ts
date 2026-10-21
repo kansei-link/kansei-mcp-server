@@ -370,6 +370,10 @@ export function takeDailySlot(now = new Date()): boolean {
   return true;
 }
 export function resetDailyCapForTests(): void { capDay = ""; capCount = 0; }
+/** Slots taken today (UTC day, this process). Read-only; the same counter the cap enforces. */
+export function dailySlotsUsed(now = new Date()): number {
+  return capDay === now.toISOString().slice(0, 10) ? capCount : 0;
+}
 
 // ─── The operation ─────────────────────────────────────────────────
 
