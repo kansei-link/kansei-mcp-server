@@ -258,7 +258,7 @@
     </div>
 
     <div class="contact-form">
-      <form id="enterprise-form" onsubmit="event.preventDefault(); const f=this; window.location.href='mailto:hello@kansei-link.com?subject='+encodeURIComponent('Enterprise Inquiry from '+f.name.value)+'&body='+encodeURIComponent('Name: '+f.name.value+'\nCompany: '+f.company.value+'\nEmail: '+f.email.value+'\nInterest: '+f.interest.value+'\nService: '+(f.service_name.value||'N/A')+'\n\n'+f.message.value); alert('メールクライアントが開きます / Opening email client...');" method="POST" action="#">
+      <form id="enterprise-form" onsubmit="event.preventDefault(); const f=this; window.location.href='mailto:hello@kansei-link.com?subject='+encodeURIComponent((f.interest.value==='agent-verification'?'検証の相談 from ':'Enterprise Inquiry from ')+f.name.value)+'&body='+encodeURIComponent('Name: '+f.name.value+'\nCompany: '+f.company.value+'\nEmail: '+f.email.value+'\nInterest: '+f.interest.value+'\nService: '+(f.service_name.value||'N/A')+'\n\n'+f.message.value); alert('メールクライアントが開きます / Opening email client...');" method="POST" action="#">
         <div class="form-group">
           <label>お名前<span class="req">*</span></label>
           <input type="text" name="name" required placeholder="山田太郎">
@@ -279,6 +279,7 @@
             <option value="api-consulting">API改善コンサルティング</option>
             <option value="mcp-support">MCP対応支援プログラム</option>
             <option value="team-plan">Teamプラン（複数サービス）</option>
+            <option value="agent-verification">AIエージェント検証の相談</option>
             <option value="other">その他</option>
           </select>
         </div>
@@ -336,5 +337,10 @@ document.querySelectorAll('.nav-links a').forEach(function(link) {
   });
 });
 </script>
+
+  <script id="topic-verify">
+  // /contact.html?topic=verify (from the "verify your own SaaS" card): preselect the topic and seed the message. Nothing is sent.
+  (function(){try{if(new URLSearchParams(location.search).get('topic')!=='verify')return;var f=document.getElementById('enterprise-form');if(!f)return;f.interest.value='agent-verification';if(!f.message.value)f.message.value='検証の相談\n対象サービス: \nエージェントに任せたい業務: \n';}catch(e){}})();
+  </script>
 </body>
 </html>
