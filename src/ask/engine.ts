@@ -6,7 +6,8 @@
 // remedies, and answer 200 whether or not anything matched. Nothing an agent
 // sends is ever published: the only durable trace is one `ask_log` row
 // holding the error key, a sha256 of the MASKED text and up to 20 masked
-// tokens. Raw text and IP addresses are never stored.
+// tokens that also occur in the checked candidates' vocabulary (allow-list).
+// Raw text and IP addresses are never stored.
 //
 // Matching parts (parseErrorKey / normalizeSymptom / tokenOverlap / isSimilar /
 // normalizeRuntime) were ported from the unpublished `ask-endpoint` branch
@@ -260,6 +261,32 @@ function loadNoteCandidates(db: Database.Database, serviceId: string): Candidate
   }));
 }
 
+// ─── Allow-lists built from the candidates (Codex review 2026-10-21) ──
+// What is kept from an ask is decided by what we already know, not by what masking managed to
+// remove: masking regexes always have holes. Tokens stored in ask_log must exist in the vocabulary
+// of the checked candidates; a provider_code is kept only if a checked candidate carries it.
+
+function candidateFields(c: Candidate): Array<string | null> {
+  return [c.text, c.message_pattern, c.applies_when, c.first_check, c.how_resolved, c.success_check];
+}
+export function vocabularyOf(candidates: Candidate[]): Set<string> {
+  const v = new Set<string>();
+  for (const c of candidates) for (const f of candidateFields(c)) if (f) for (const t of normalizeSymptom(f)) v.add(t);
+  return v;
+}
+let fileVocabCache: Set<string> | null = null;
+/** Vocabulary of the file-backed candidates (field notes + error cards); built once per process. */
+function fileVocabulary(): Set<string> {
+  if (!fileVocabCache) fileVocabCache = vocabularyOf([...loadFieldNotes(), ...loadErrorCards()]);
+  return fileVocabCache;
+}
+/** Tokens of the masked text that also appear in the candidates' vocabulary (max ASK_LOG_TOKENS_MAX). */
+export function allowedTokens(masked: string, noteCandidates: Candidate[]): string[] {
+  const base = fileVocabulary();
+  const extra = noteCandidates.length ? vocabularyOf(noteCandidates) : null;
+  return normalizeSymptom(masked).filter((t) => base.has(t) || !!extra?.has(t)).slice(0, ASK_LOG_TOKENS_MAX);
+}
+
 export interface AskMatch {
   source: MatchSource; id: string; status: MatchStatus;
   applies_when: string | null; first_check: string | null; how_resolved: string | null;
@@ -387,7 +414,8 @@ export function ask(db: Database.Database, raw: unknown, opts: AskOptions): AskR
   const key = parseErrorKey(masked);
   const runtime = normalizeRuntime(input.runtime);
   const requestId = opts.requestId ?? randomUUID();
-  const candidates = [...loadFieldNotes(), ...loadErrorCards(), ...loadNoteCandidates(db, input.service)];
+  const noteCandidates = loadNoteCandidates(db, input.service);
+  const candidates = [...loadFieldNotes(), ...loadErrorCards(), ...noteCandidates];
   const matches = matchCandidates(candidates, input.service, masked, key);
 
   const same = (db.prepare(`SELECT count(*) AS n FROM ask_log WHERE service_id = ? AND layer = ?
@@ -398,7 +426,7 @@ export function ask(db: Database.Database, raw: unknown, opts: AskOptions): AskR
   if (askLogEnabled()) {
     db.prepare(`INSERT INTO ask_log (service_id, layer, http_status, provider_code, error_sha256, tokens, runtime, ua_class, match_count, request_id)
       VALUES (?,?,?,?,?,?,?,?,?,?)`).run(input.service, key.layer, key.http_status, key.provider_code, sha,
-      JSON.stringify(normalizeSymptom(masked).slice(0, ASK_LOG_TOKENS_MAX)), runtime, opts.uaClass, matches.length, requestId);
+      JSON.stringify(allowedTokens(masked, noteCandidates)), runtime, opts.uaClass, matches.length, requestId);
   }
   // One-line log: never the error text.
   console.log(`[ask] service=${input.service} key=${key.layer}/${key.http_status ?? "-"}/${key.provider_code ?? "-"} sha=${sha.slice(0, 16)} matches=${matches.length} ua=${opts.uaClass} rid=${requestId}`);

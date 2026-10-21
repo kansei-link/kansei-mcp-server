@@ -175,3 +175,28 @@ test('parseErrorKey / cleanText basics', () => {
   assert.equal(parseErrorKey('freee-mcp tool call rejected').layer, 'mcp');
   assert.ok(!cleanText('token=abcdef123456 x', 100).includes('abcdef123456'));
 });
+
+// ── Codex review 2026-10-21, fix 1: ask_log.tokens keeps only known vocabulary ──
+import { maskSecrets } from '../dist/utils/secret-mask.js';
+
+test('fix1: Codex repros — secrets and names never reach ask_log.tokens; masking also catches them', () => {
+  const db = setup();
+  const repros = [
+    ['HTTP 403 {"access_token":"CedarRiverSecretValue"}', ['cedarriversecretvalue']],
+    ['HTTP 401 bearer MapleForestSecretValue', ['mapleforestsecretvalue']],
+    ['HTTP 403 user Alice Morgan denied', ['alice', 'morgan']],
+  ];
+  for (const [error, forbidden] of repros) {
+    ask(db, { service: 'freee', error }, opts());
+    const row = db.prepare('SELECT tokens FROM ask_log ORDER BY id DESC LIMIT 1').get();
+    for (const f of forbidden) assert.ok(!row.tokens.toLowerCase().includes(f), `${f} leaked into tokens: ${row.tokens}`);
+    console.log(`fix1 repro: ${JSON.stringify(error)} → tokens ${row.tokens}`);
+  }
+  assert.ok(!maskSecrets('HTTP 403 {"access_token":"CedarRiverSecretValue"}').masked.includes('CedarRiverSecretValue'));
+  assert.ok(!maskSecrets("HTTP 403 {'token':'CedarRiverSecretValue'}").masked.includes('CedarRiverSecretValue'));
+  assert.ok(!maskSecrets('HTTP 401 bearer MapleForestSecretValue').masked.includes('MapleForestSecretValue'));
+  // Known vocabulary still survives (Japanese bigrams from the AWT-002 message).
+  ask(db, { service: 'freee', error: FREEE_403 }, opts());
+  assert.ok(JSON.parse(db.prepare('SELECT tokens FROM ask_log ORDER BY id DESC LIMIT 1').get().tokens).length > 0);
+  db.close();
+});

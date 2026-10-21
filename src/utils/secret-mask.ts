@@ -14,7 +14,8 @@
 
 const patterns: Array<{ kind: string; regex: RegExp; replacement: string | ((m: string, ...g: string[]) => string) }> = [
   // Authorization: Bearer xxxxx / "Bearer xxxxx" / Basic xxxxx
-  { kind: "BEARER", regex: /\b(Bearer|Basic|Token)\s+[A-Za-z0-9\-._~+/=]{8,}/g, replacement: "$1 [TOKEN]" },
+  // Case-insensitive: "bearer xxx" in lower case is as much a credential as "Bearer xxx" (Codex review 2026-10-21).
+  { kind: "BEARER", regex: /\b(Bearer|Basic|Token)\s+[A-Za-z0-9\-._~+/=]{8,}/gi, replacement: "$1 [TOKEN]" },
   // Known key prefixes: OpenAI sk-, GitHub ghp_/gho_/ghu_/ghs_/ghr_/github_pat_, Slack xox[abpr]-, Stripe sk_live/pk_live/rk_, AWS AKIA, Anthropic sk-ant-
   {
     kind: "API_KEY",
@@ -24,7 +25,8 @@ const patterns: Array<{ kind: string; regex: RegExp; replacement: string | ((m: 
   // key=value style secrets in query strings / logs: token=..., api_key=..., access_token=..., secret=..., password=...
   {
     kind: "KV_SECRET",
-    regex: /\b(access_token|refresh_token|id_token|api[_-]?key|apikey|client_secret|secret|password|passwd|token|signature|sig)(\s*[=:]\s*)["']?[A-Za-z0-9\-._~+/%]{6,}["']?/gi,
+    // Also JSON / quoted keys: "access_token": "...", 'token':'...' (the key's closing quote may precede ":").
+    regex: /\b(access_token|refresh_token|id_token|api[_-]?key|apikey|client_secret|secret|password|passwd|token|signature|sig)(["']?\s*[=:]\s*)["']?[A-Za-z0-9\-._~+/%]{6,}["']?/gi,
     replacement: "$1$2[SECRET]",
   },
   // Emails
