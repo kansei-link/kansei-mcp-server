@@ -12,8 +12,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Linear MCP完全攻略 2026 — 公式リモートサーバー・OAuth 2.1・25+ツール、GraphQL専用APIで詰まる7つのポイント | KanseiLink</title>
-  <meta name="description" content="Linearが2025-26にCloudflare/Anthropicと組んで公開した公式MCPサーバーは、mcp.linear.app/mcpでホストされOAuth 2.1とDynamic Client Registrationを採用——GraphQL専用APIの複雑度ベースのレート制限、Bearerトークンとパーソナルキーで認証ヘッダーの仕様が違う罠、4月のOAuth切断バグまで、エージェント開発者が踏むべき/避けるべきポイントを実データで整理。">
-  <meta name="keywords" content="Linear MCP, Linear OAuth 2.1, Linear GraphQL, mcp.linear.app, MCP deep dive, project management MCP, dynamic client registration, AEO 2026">
+  <meta name="description" content="Linearが2025-26にCloudflare/Anthropicと組んで公開した公式MCPサーバーは、mcp.linear.app/mcpでホストされOAuth 2.1（Client ID Metadata Documents・Dynamic Client Registration）を採用——GraphQL専用APIの複雑度ベースのレート制限、Bearerトークンとパーソナルキーで認証ヘッダーの仕様が違う罠、4月のOAuth切断バグまで、エージェント開発者が踏むべき/避けるべきポイントを実データで整理。">
+  <meta name="keywords" content="Linear MCP, Linear OAuth 2.1, Linear GraphQL, mcp.linear.app, MCP deep dive, project management MCP, dynamic client registration, Client ID Metadata Documents, AEO 2026">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://kansei-link.com/insights/linear-mcp-deep-dive-2026">
@@ -35,7 +35,7 @@
   <meta property="article:section" content="MCP Deep Dive">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Linear MCP完全攻略 2026 — 公式リモートサーバー・OAuth 2.1・25+ツール">
-  <meta name="twitter:description" content="mcp.linear.app/mcp、OAuth 2.1 + DCR、GraphQL専用、複雑度1500/h制限——Linear MCPで詰まる7つのポイントを実データで解説。">
+  <meta name="twitter:description" content="mcp.linear.app/mcp、OAuth 2.1（CIMD・DCR）、GraphQL専用、複雑度1500/h制限——Linear MCPで詰まる7つのポイントを実データで解説。">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -44,13 +44,13 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "Linear MCP完全攻略 2026 — 公式リモートサーバー・OAuth 2.1・25+ツール、GraphQL専用APIで詰まる7つのポイント",
-    "description": "Linearの公式MCPサーバー(mcp.linear.app/mcp)はCloudflareと共同設計、OAuth 2.1とDCRを採用。GraphQL専用API、複雑度ベースのレート制限、Bearer/非Bearerの認証ヘッダー罠、4月のOAuth切断バグなど、実装者が踏むべきポイントをKanseiLinkデータで整理。",
+    "description": "Linearの公式MCPサーバー(mcp.linear.app/mcp)はCloudflareと共同設計、OAuth 2.1（CIMD・DCR）を採用。GraphQL専用API、複雑度ベースのレート制限、Bearer/非Bearerの認証ヘッダー罠、4月のOAuth切断バグなど、実装者が踏むべきポイントをKanseiLinkデータで整理。",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-14",
-    "dateModified": "2026-05-14",
+    "dateModified": "2026-10-21",
     "mainEntityOfPage": "https://kansei-link.com/insights/linear-mcp-deep-dive-2026",
-    "keywords": ["Linear MCP", "Linear OAuth 2.1", "GraphQL API", "Dynamic Client Registration", "MCP deep dive", "project management MCP"]
+    "keywords": ["Linear MCP", "Linear OAuth 2.1", "GraphQL API", "Dynamic Client Registration", "Client ID Metadata Documents", "MCP deep dive", "project management MCP"]
   }
   </script>
 
@@ -350,7 +350,7 @@
       <span class="tag">MCP Deep Dive</span>
       <!-- lang-switch --><p class="lang-switch" style="margin:0 0 8px;font-size:13px;line-height:1.4;"><a href="/en/insights/linear-mcp-deep-dive-2026" hreflang="en" lang="en" style="color:inherit;">English</a></p><!-- /lang-switch -->
       <h1>Linear MCP完全攻略 2026 — 公式リモートサーバー・OAuth 2.1・25+ツール、GraphQL専用APIで詰まる7つのポイント</h1>
-      <p class="subtitle">Linearが Cloudflare/Anthropic と共同設計した公式リモートMCPサーバー mcp.linear.app/mcp は、OAuth 2.1 + Dynamic Client Registration で『鍵を管理しない』エージェント連携を実現した。一方GraphQL専用・複雑度ベースのレート制限・Bearer/非Bearer混在の認証ヘッダー仕様など、実装者が踏むべき罠も多い。KanseiLinkデータと公式ドキュメントから、エージェント開発で押さえるべき要所を整理する。</p>
+      <p class="subtitle">Linearが Cloudflare/Anthropic と共同設計した公式リモートMCPサーバー mcp.linear.app/mcp は、OAuth 2.1（Client ID Metadata Documents・Dynamic Client Registration）で『鍵を管理しない』エージェント連携を実現した。一方GraphQL専用・複雑度ベースのレート制限・Bearer/非Bearer混在の認証ヘッダー仕様など、実装者が踏むべき罠も多い。KanseiLinkデータと公式ドキュメントから、エージェント開発で押さえるべき要所を整理する。</p>
       <div class="article-meta">
         <span>2026-05-14</span>
         <span class="divider"></span>
@@ -368,7 +368,7 @@
       <ol>
         <li><a href="#why">なぜLinear MCPが2026年の注目株なのか</a></li>
         <li><a href="#architecture">アーキテクチャ — リモートホスト型MCPの真価</a></li>
-        <li><a href="#auth">認証の落とし穴 — Bearer問題と Dynamic Client Registration</a></li>
+        <li><a href="#auth">認証の落とし穴 — Bearer問題・CIMD・Dynamic Client Registration</a></li>
         <li><a href="#api">GraphQL専用APIと複雑度ベースのレート制限</a></li>
         <li><a href="#tools">25+ツール・新機能 — Initiatives / Milestones / Project Updates</a></li>
         <li><a href="#pitfalls">エージェント開発で詰まる7つのポイント</a></li>
@@ -386,7 +386,7 @@
 
     <div class="insight-box">
       <div class="label">2026年のMCP潮流</div>
-      <p>Linearは『リモートホスト型MCP』の代表例。Anthropic/Cloudflareの仕様提案を実装の段階で取り込み、OAuth 2.1 Dynamic Client Registration(DCR)に対応。ユーザーごとの個別アプリ登録が不要で、エージェント側の設定が極めて軽い。今後のenterprise-readyなMCPサーバーは、ほぼ全てこの方向に収束していくと予想される。</p>
+      <p>Linearは『リモートホスト型MCP』の代表例。Anthropic/Cloudflareの仕様提案を実装の段階で取り込み、OAuth 2.1 の Client ID Metadata Documents(CIMD) と Dynamic Client Registration(DCR) の両方に対応。ユーザーごとの個別アプリ登録が不要で、エージェント側の設定が極めて軽い。今後のenterprise-readyなMCPサーバーは、ほぼ全てこの方向に収束していくと予想される。</p>
     </div>
 
     <h2 id="architecture">アーキテクチャ — リモートホスト型MCPの真価</h2>
@@ -427,18 +427,20 @@
       </div>
     </div>
 
-    <h2 id="auth">認証の落とし穴 — Bearer問題と Dynamic Client Registration</h2>
+    <h2 id="auth">認証の落とし穴 — Bearer問題・CIMD・Dynamic Client Registration</h2>
 
-    <p>Linearは二つの認証方式を併存させている: <strong>Personal API Key (PAT)</strong> と <strong>OAuth 2.0/2.1</strong>。MCPサーバー経由ではOAuth 2.1 + DCRが推奨されるが、自前スクリプトやサービスアカウント用途ではPATも使われる。ここに最大の罠がある。</p>
+    <p>Linearは二つの認証方式を併存させている: <strong>Personal API Key (PAT)</strong> と <strong>OAuth 2.0/2.1</strong>。MCPサーバー経由ではOAuth 2.1を使う。ここで二つを分けて押さえたい。<strong>Linearの対応状況:</strong> 2026-10-21時点の authorization server metadata には <code>client_id_metadata_document_supported: true</code> と DCR の <code>registration_endpoint</code> の両方があり、Linear は Client ID Metadata Documents(CIMD) と Dynamic Client Registration(DCR) のどちらも受け付ける。<strong>MCP仕様の勧め:</strong> 2026-07-28 版で DCR は非推奨(deprecated)となり、新しいクライアントは事前登録→CIMD→DCR(後方互換のフォールバック)の順で試すことが推奨される。一方、自前スクリプトやサービスアカウント用途ではPATも使われる。ここに最大の罠がある。</p>
 
     <div class="warning-box">
       <div class="label">⚠️ Authorizationヘッダーで詰まる代表的バグ</div>
       <p>Personal API Keyを使う場合、ヘッダーは <code>Authorization: lin_api_xxxxx</code> のように <strong>『Bearer』をつけない</strong>。一方OAuthトークンは <code>Authorization: Bearer xxxxx</code> と Bearer が必要。多くのHTTPクライアントやMCPフレームワークは『Authorization: Bearer』を自動付与するため、Personal API Keyを設定すると意図せずBearerが付き、<code>401 Unauthorized</code> で詰まる事例が頻発する。</p>
     </div>
 
-    <h3>Dynamic Client Registration (DCR) の効果</h3>
+    <h3>Dynamic Client Registration (DCR) の効果と、後継の CIMD</h3>
 
     <p>2025年末からLinear MCPがサポートしたDCRは、エージェント運用にとって重要な意味を持つ。従来は『各ユーザーが個別にOAuthアプリを登録し、Client ID/Secretを生成し、コールバックURLを設定し…』という煩雑な前段が必要だった。DCRでは <strong>MCPクライアントが初回接続時に自動的にOAuthクライアントを動的登録</strong> し、ユーザーは『Linearにログインしてスコープ承認するだけ』で完了する。</p>
+
+    <p>その後、MCP 仕様 2026-07-28 で DCR は非推奨(deprecated)となり、後継として <strong>Client ID Metadata Documents(CIMD)</strong> が置かれた。CIMD ではクライアントが自分のメタデータを HTTPS の URL で公開し、その URL をそのまま <code>client_id</code> として使うため、登録の呼び出し自体が不要になる。DCR は後方互換のために残り(仕様は 12 か月以上の移行期間を置く)、Linear は現時点で両方を受け付ける。仕様が勧めるクライアント側の優先順は、事前登録→CIMD→DCR→利用者に入力を求める、の順。</p>
 
     <p>2026年4月9日には、Linearが『MCP OAuth接続が約24時間後に切断される』バグを修正したリリースをアナウンスしている。これはトークンの自動リフレッシュフローが特定クライアント実装で機能していなかったことが原因で、長時間稼働するエージェントが翌日突然失敗する厄介な挙動を示していた。<strong>長期セッションを前提とするエージェントは、OAuthエラー時に自動再認可フローを起動するフォールバックを今も推奨される。</strong></p>
 
@@ -538,7 +540,7 @@ Content-Type: application/json
         <tr>
           <td><strong>Linear</strong></td>
           <td>公式リモート(connectable)</td>
-          <td>OAuth 2.1 + DCR / PAT</td>
+          <td>OAuth 2.1（CIMD・DCR）/ PAT</td>
           <td>GraphQL専用</td>
           <td>複雑度ベース 1.5-5K/h</td>
         </tr>
@@ -566,13 +568,13 @@ Content-Type: application/json
       </tbody>
     </table>
 
-    <p>Linearの強みは『OAuth 2.1 + DCR + リモートホスト』という最新仕様の採用と、新機能の継続追加の速度。一方Backlogは <strong>AEOグレードAAA・91ユースケース蓄積</strong>と対応の厚みがあり、その意味では現時点で『AAA』はBacklogの方。<strong>新規プロジェクト向け・グローバルチームならLinear、日本市場での実績・既存導入率ならBacklog</strong>という棲み分けが妥当だ。</p>
+    <p>Linearの強みは『OAuth 2.1（CIMD・DCR）+ リモートホスト』という最新仕様の採用と、新機能の継続追加の速度。一方Backlogは <strong>AEOグレードAAA・91ユースケース蓄積</strong>と対応の厚みがあり、その意味では現時点で『AAA』はBacklogの方。<strong>新規プロジェクト向け・グローバルチームならLinear、日本市場での実績・既存導入率ならBacklog</strong>という棲み分けが妥当だ。</p>
 
     <h2 id="checklist">本番投入前チェックリスト</h2>
 
     <ul class="checklist">
       <li>MCPクライアントのAuthorizationヘッダー自動Bearer付与の挙動を確認した</li>
-      <li>OAuth 2.1 + DCRフローで初回認可が完了することを確認した</li>
+      <li>OAuth 2.1 のフロー(CIMD を優先、DCR は後方互換の経路)で初回認可が完了することを確認した</li>
       <li>OAuthトークンのリフレッシュ失敗時の再認可フローを実装した</li>
       <li>全issue検索ではなく <code>teamId</code> でスコープを絞っている</li>
       <li>GraphQLクエリは必要フィールドのみを指定する『最小フィールド原則』を守っている</li>
@@ -592,10 +594,10 @@ Content-Type: application/json
     <h2 id="faq">FAQ</h2>
 
     <h3>Q1. Linear MCPはセルフホストできますか?</h3>
-    <p>公式版はリモートホスト型のみです(mcp.linear.app/mcp)。コミュニティ製の <code>npm @linear/mcp-server</code> stdio型も存在しますが、Anthropic/Cloudflareと共同設計された最新機能(DCR等)は公式リモートが先行。新規開発は公式リモート、特殊な要件があれば3rdパーティを検討してください。</p>
+    <p>公式版はリモートホスト型のみです(mcp.linear.app/mcp)。コミュニティ製の <code>npm @linear/mcp-server</code> stdio型も存在しますが、Anthropic/Cloudflareと共同設計された最新機能(CIMD・DCR等)は公式リモートが先行。新規開発は公式リモート、特殊な要件があれば3rdパーティを検討してください。</p>
 
     <h3>Q2. Personal API Keyの『Bearer問題』を避けるには?</h3>
-    <p>MCPクライアントの実装で『PAT用には Authorization をそのまま、OAuthには Bearer を前置』と分岐を入れる。あるいはOAuthに統一してPATは使わない方針が最も安全。本番のエージェント運用では OAuth 2.1 + DCR が推奨です。</p>
+    <p>MCPクライアントの実装で『PAT用には Authorization をそのまま、OAuthには Bearer を前置』と分岐を入れる。あるいはOAuthに統一してPATは使わない方針が最も安全。本番のエージェント運用では OAuth 2.1 を推奨します。クライアント登録は CIMD を優先し、DCR は後方互換の経路として残してください(MCP 仕様 2026-07-28 で DCR は非推奨)。</p>
 
     <h3>Q3. GraphQL複雑度の見積もり方は?</h3>
     <p>Linearは公式に各フィールドの重み一覧を公開していませんが、<code>X-Complexity</code> レスポンスヘッダーで実測できます。<strong>ステージング環境で本番想定クエリを流し、ヘッダー値を集計</strong>するのが王道。1クエリで100超なら設計見直しを検討してください。</p>
@@ -612,6 +614,7 @@ Content-Type: application/json
     <div class="disclosure-box">
       <div class="label">データ開示・免責事項</div>
       <p>本記事のLinear MCPに関する技術情報(エンドポイント・認証方式・レート制限・ツール一覧)はKanseiLink MCP <code>get_service_detail</code> および <code>get_service_tips</code> ツールが2026-05-14時点で返したデータと、Linear公式ドキュメント(developers.linear.app)、Linear changelog、Anthropic/Cloudflareの公開資料に基づきます。「2026-04-09 OAuth切断バグ修正」「2026-02 initiatives/milestones追加」はLinear公式changelog・MCP関連ブログから確認した日付ですが、ドキュメントのバージョンによって表記が異なる場合があります。KanseiLinkデータの <code>confidence_score</code> は実エージェント使用データが未蓄積のため0(no_data)ですが、技術仕様部分は信頼スコア0.7のサービスメタデータに基づきます。価格・仕様・APIスキーマは予告なく変更される可能性があるため、本番運用時は公式ドキュメントの最新版をご確認ください。</p>
+      <p><strong>2026-10-21 更新:</strong> MCP 仕様 2026-07-28 の DCR 非推奨に合わせ、認証の勧めを改訂（外部からの指摘による）。</p>
     </div>
 
     <div class="related-section">
