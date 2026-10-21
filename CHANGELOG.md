@@ -52,8 +52,8 @@
 ### Fix — seed descriptions corrected from operator reports
 - datamcp: name and description follow the official MCP Registry entry (0.9.9). Reported by
   the operator in #24 — thank you.
-- ENTIA: description follows the official MCP Registry entry (4.4.1); the old text
-  overstated the free tier. Reported by the operator in #29 — thank you.
+- ENTIA: description follows the official MCP Registry entry (4.4.1). Reported by the
+  operator in #29 — thank you.
 - Existing databases pick up both on the next start.
 
 ## v1.2.4 (2026-09-18)
