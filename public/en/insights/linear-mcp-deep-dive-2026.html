@@ -11,9 +11,9 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 + DCR, 25+ Tools, and 7 GraphQL Pitfalls | KanseiLink</title>
-  <meta name="description" content="Linear's official remote MCP server at mcp.linear.app/mcp — co-designed with Cloudflare and Anthropic — uses OAuth 2.1 with Dynamic Client Registration. This deep dive covers the Bearer-header trap of mixed PAT vs OAuth auth, GraphQL-only API with complexity-based rate limits, the April 2026 OAuth-disconnect bug, and the 7 most common pitfalls developers hit when building agents on Linear.">
-  <meta name="keywords" content="Linear MCP, Linear OAuth 2.1, Linear GraphQL API, mcp.linear.app, MCP deep dive, project management MCP, Dynamic Client Registration, AEO 2026">
+  <title>Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 (CIMD / DCR), 25+ Tools, and 7 GraphQL Pitfalls | KanseiLink</title>
+  <meta name="description" content="Linear's official remote MCP server at mcp.linear.app/mcp — co-designed with Cloudflare and Anthropic — uses OAuth 2.1 (Client ID Metadata Documents or Dynamic Client Registration). This deep dive covers the Bearer-header trap of mixed PAT vs OAuth auth, GraphQL-only API with complexity-based rate limits, the April 2026 OAuth-disconnect bug, and the 7 most common pitfalls developers hit when building agents on Linear.">
+  <meta name="keywords" content="Linear MCP, Linear OAuth 2.1, Linear GraphQL API, mcp.linear.app, MCP deep dive, project management MCP, Dynamic Client Registration, Client ID Metadata Documents, AEO 2026">
   <meta name="author" content="KanseiLink Research">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://kansei-link.com/en/insights/linear-mcp-deep-dive-2026">
@@ -22,7 +22,7 @@
   <link rel="alternate" hreflang="x-default" href="https://kansei-link.com/insights/linear-mcp-deep-dive-2026">
 
   <!-- OGP -->
-  <meta property="og:title" content="Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 + DCR, 25+ Tools, and 7 GraphQL Pitfalls">
+  <meta property="og:title" content="Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 (CIMD / DCR), 25+ Tools, and 7 GraphQL Pitfalls">
   <meta property="og:description" content="Linear's MCP is a hosted, remote server co-designed with Cloudflare and Anthropic. The Bearer-vs-no-Bearer auth quirk, complexity-based rate limits, and April's OAuth disconnect bug all matter — here is the operator's view.">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://kansei-link.com/en/insights/linear-mcp-deep-dive-2026">
@@ -34,8 +34,8 @@
   <meta property="article:author" content="KanseiLink Research">
   <meta property="article:section" content="MCP Deep Dive">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 + DCR, 25+ Tools">
-  <meta name="twitter:description" content="mcp.linear.app/mcp, OAuth 2.1 + DCR, GraphQL-only, 1,500 complexity points/h — Linear MCP's 7 most common operator pitfalls with data.">
+  <meta name="twitter:title" content="Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 (CIMD / DCR), 25+ Tools">
+  <meta name="twitter:description" content="mcp.linear.app/mcp, OAuth 2.1 (CIMD / DCR), GraphQL-only, 1,500 complexity points/h — Linear MCP's 7 most common operator pitfalls with data.">
   <meta name="twitter:image" content="https://kansei-link.com/img/ogp-default.png">
 
   <!-- JSON-LD: Article -->
@@ -43,14 +43,14 @@
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 + DCR, 25+ Tools, and 7 GraphQL Pitfalls",
-    "description": "Linear's official MCP server at mcp.linear.app/mcp is co-designed with Cloudflare and uses OAuth 2.1 with Dynamic Client Registration. Covers GraphQL-only API, complexity-based rate limiting, Bearer-header pitfalls, and the April 2026 OAuth-disconnect bug.",
+    "headline": "Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 (CIMD / DCR), 25+ Tools, and 7 GraphQL Pitfalls",
+    "description": "Linear's official MCP server at mcp.linear.app/mcp is co-designed with Cloudflare and uses OAuth 2.1 (Client ID Metadata Documents or Dynamic Client Registration). Covers GraphQL-only API, complexity-based rate limiting, Bearer-header pitfalls, and the April 2026 OAuth-disconnect bug.",
     "author": { "@type": "Organization", "name": "KanseiLink Research", "url": "https://kansei-link.com" },
     "publisher": { "@type": "Organization", "name": "Synapse Arrows PTE. LTD.", "url": "https://kansei-link.com" },
     "datePublished": "2026-05-14",
-    "dateModified": "2026-05-14",
+    "dateModified": "2026-10-21",
     "mainEntityOfPage": "https://kansei-link.com/en/insights/linear-mcp-deep-dive-2026",
-    "keywords": ["Linear MCP", "Linear OAuth 2.1", "GraphQL API", "Dynamic Client Registration", "MCP deep dive", "project management MCP"]
+    "keywords": ["Linear MCP", "Linear OAuth 2.1", "GraphQL API", "Dynamic Client Registration", "Client ID Metadata Documents", "MCP deep dive", "project management MCP"]
   }
   </script>
 
@@ -349,8 +349,8 @@
     <div class="inner">
       <span class="tag">MCP Deep Dive</span>
       <!-- lang-switch --><p class="lang-switch" style="margin:0 0 8px;font-size:13px;line-height:1.4;"><a href="/insights/linear-mcp-deep-dive-2026" hreflang="ja" lang="ja" style="color:inherit;">日本語版</a></p><!-- /lang-switch -->
-      <h1>Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 + DCR, 25+ Tools, and 7 GraphQL Pitfalls</h1>
-      <p class="subtitle">Linear's official remote MCP server at mcp.linear.app/mcp — co-designed with Cloudflare and Anthropic — uses OAuth 2.1 with Dynamic Client Registration, freeing agents from key management entirely. But GraphQL-only access, complexity-based rate limits, and a Bearer-vs-no-Bearer header quirk all bite production teams. This piece walks through the architecture, the auth model, and the seven pitfalls every Linear MCP integrator should know.</p>
+      <h1>Linear MCP Deep Dive 2026 — Official Remote Server, OAuth 2.1 (CIMD / DCR), 25+ Tools, and 7 GraphQL Pitfalls</h1>
+      <p class="subtitle">Linear's official remote MCP server at mcp.linear.app/mcp — co-designed with Cloudflare and Anthropic — uses OAuth 2.1 (Client ID Metadata Documents or Dynamic Client Registration), freeing agents from key management entirely. But GraphQL-only access, complexity-based rate limits, and a Bearer-vs-no-Bearer header quirk all bite production teams. This piece walks through the architecture, the auth model, and the seven pitfalls every Linear MCP integrator should know.</p>
       <div class="article-meta">
         <span>2026-05-14</span>
         <span class="divider"></span>
@@ -368,7 +368,7 @@
       <ol>
         <li><a href="#why">Why Linear MCP is one of 2026's standout integrations</a></li>
         <li><a href="#architecture">Architecture — the case for remote-hosted MCP</a></li>
-        <li><a href="#auth">Authentication pitfalls — the Bearer trap and DCR</a></li>
+        <li><a href="#auth">Authentication pitfalls — the Bearer trap, CIMD and DCR</a></li>
         <li><a href="#api">GraphQL-only access and complexity-based rate limits</a></li>
         <li><a href="#tools">25+ tools — Initiatives, Milestones, Project Updates</a></li>
         <li><a href="#pitfalls">7 pitfalls in agent development</a></li>
@@ -386,7 +386,7 @@
 
     <div class="insight-box">
       <div class="label">The 2026 MCP trend</div>
-      <p>Linear typifies the remote-hosted MCP model. By implementing OAuth 2.1 with Dynamic Client Registration (DCR), it removes per-user OAuth app setup entirely — the agent ships with no API keys to manage. Most enterprise-grade MCP servers will converge on this pattern through the rest of 2026.</p>
+      <p>Linear typifies the remote-hosted MCP model. By implementing OAuth 2.1 with Client ID Metadata Documents (CIMD) and Dynamic Client Registration (DCR), it removes per-user OAuth app setup entirely — the agent ships with no API keys to manage. Most enterprise-grade MCP servers will converge on this pattern through the rest of 2026.</p>
     </div>
 
     <h2 id="architecture">Architecture — the case for remote-hosted MCP</h2>
@@ -427,18 +427,20 @@
       </div>
     </div>
 
-    <h2 id="auth">Authentication pitfalls — the Bearer trap and DCR</h2>
+    <h2 id="auth">Authentication pitfalls — the Bearer trap, CIMD and DCR</h2>
 
-    <p>Linear supports two auth methods: a <strong>Personal API Key (PAT)</strong> and <strong>OAuth 2.0/2.1</strong>. The MCP server prefers OAuth 2.1 + DCR, but personal scripts and service accounts often use PATs. That's where the most common bug lives.</p>
+    <p>Linear supports two auth methods: a <strong>Personal API Key (PAT)</strong> and <strong>OAuth 2.0/2.1</strong>. Over the MCP server, OAuth 2.1 is the path. Two things are worth keeping apart here. <strong>What Linear supports:</strong> as of 2026-10-21 its authorization-server metadata advertises both <code>client_id_metadata_document_supported: true</code> and a DCR <code>registration_endpoint</code>, so Linear accepts Client ID Metadata Documents (CIMD) and Dynamic Client Registration (DCR) alike. <strong>What the MCP spec recommends:</strong> the 2026-07-28 revision deprecates DCR, and new clients should try pre-registration first, then CIMD, then DCR only as a backward-compatible fallback. Personal scripts and service accounts, meanwhile, often use PATs. That's where the most common bug lives.</p>
 
     <div class="warning-box">
       <div class="label">⚠️ The Authorization header gotcha</div>
       <p>Personal API Keys go in the header as <code>Authorization: lin_api_xxxxx</code> — <strong>without the word "Bearer"</strong>. OAuth tokens use <code>Authorization: Bearer xxxxx</code> — with "Bearer". Many HTTP clients and MCP frameworks auto-prepend "Bearer" to the Authorization header, which silently breaks PAT auth and produces 401 Unauthorized.</p>
     </div>
 
-    <h3>Dynamic Client Registration (DCR)</h3>
+    <h3>Dynamic Client Registration (DCR) — and its successor, CIMD</h3>
 
     <p>DCR support, added in late 2025, is a meaningful upgrade for agent operations. Previously, each user had to manually register an OAuth app, generate Client ID/Secret pairs, and configure callback URLs. With DCR, <strong>the MCP client dynamically registers its OAuth client on first connection</strong>, leaving the user with one step: "log in and approve scopes."</p>
+
+    <p>Since then the MCP specification (2026-07-28) has deprecated DCR in favour of <strong>Client ID Metadata Documents (CIMD)</strong>: the client publishes its metadata at an HTTPS URL that doubles as its <code>client_id</code>, so no registration call is needed at all. DCR remains allowed for backward compatibility (the spec sets a transition period of at least 12 months), and Linear accepts both today. The client-side order the spec recommends is: pre-registered client → CIMD → DCR → ask the user for credentials.</p>
 
     <p>On April 9, 2026, Linear announced a fix for a bug where MCP OAuth connections could disconnect after roughly 24 hours. The root cause was that the automatic token-refresh flow wasn't working for certain client implementations — long-running agents would simply fail the next day. The bug is fixed, but <strong>long-session agents should still implement a fallback that re-initiates the OAuth flow on auth errors</strong>.</p>
 
@@ -538,7 +540,7 @@ Content-Type: application/json
         <tr>
           <td><strong>Linear</strong></td>
           <td>Official remote (connectable)</td>
-          <td>OAuth 2.1 + DCR / PAT</td>
+          <td>OAuth 2.1 (CIMD / DCR) / PAT</td>
           <td>GraphQL only</td>
           <td>Complexity-based 1.5-5K/h</td>
         </tr>
@@ -566,13 +568,13 @@ Content-Type: application/json
       </tbody>
     </table>
 
-    <p>Linear's edge is the OAuth 2.1 + DCR + remote-hosted architecture, plus the pace of new tool additions. Backlog wins on breadth of coverage — <strong>AEO grade AAA, 91 logged use cases in KanseiLink</strong>. A reasonable split: <strong>Linear for new greenfield/global-team work, Backlog for proven Japanese-market deployments</strong>.</p>
+    <p>Linear's edge is the OAuth 2.1 (CIMD / DCR) + remote-hosted architecture, plus the pace of new tool additions. Backlog wins on breadth of coverage — <strong>AEO grade AAA, 91 logged use cases in KanseiLink</strong>. A reasonable split: <strong>Linear for new greenfield/global-team work, Backlog for proven Japanese-market deployments</strong>.</p>
 
     <h2 id="checklist">Production-readiness checklist</h2>
 
     <ul class="checklist">
       <li>Verified your MCP client's auto-Bearer behaviour for the Authorization header</li>
-      <li>Confirmed OAuth 2.1 + DCR flow completes on first connect</li>
+      <li>Confirmed the OAuth 2.1 flow (CIMD preferred; DCR as the backward-compatible path) completes on first connect</li>
       <li>Implemented an auth-error fallback that re-runs the OAuth flow</li>
       <li>Scope queries with <code>teamId</code> instead of listing all issues</li>
       <li>Apply the minimum-fields principle to every GraphQL query</li>
@@ -592,10 +594,10 @@ Content-Type: application/json
     <h2 id="faq">FAQ</h2>
 
     <h3>Q1. Can I self-host Linear's MCP server?</h3>
-    <p>The official version is remote-hosted only (mcp.linear.app/mcp). A community <code>npm @linear/mcp-server</code> stdio variant exists, but Anthropic/Cloudflare-aligned features (DCR, etc.) land first on the official remote. For new builds, prefer the official remote unless you have specific reasons to self-host.</p>
+    <p>The official version is remote-hosted only (mcp.linear.app/mcp). A community <code>npm @linear/mcp-server</code> stdio variant exists, but Anthropic/Cloudflare-aligned features (CIMD, DCR, etc.) land first on the official remote. For new builds, prefer the official remote unless you have specific reasons to self-host.</p>
 
     <h3>Q2. How do I avoid the PAT "Bearer trap"?</h3>
-    <p>Either branch your MCP client's header logic by auth method, or commit to OAuth-only. For production agents, OAuth 2.1 + DCR is the recommended path.</p>
+    <p>Either branch your MCP client's header logic by auth method, or commit to OAuth-only. For production agents, OAuth 2.1 is the recommended path: prefer Client ID Metadata Documents (CIMD) for client registration, and keep DCR only as the backward-compatible fallback, since the MCP specification (2026-07-28) deprecates it.</p>
 
     <h3>Q3. How do I estimate GraphQL query complexity?</h3>
     <p>Linear doesn't publish per-field weights, but <code>X-Complexity</code> response headers let you measure directly. <strong>Run representative production queries against staging and aggregate the headers</strong>. Anything that exceeds ~100 per call deserves a rewrite.</p>
@@ -612,6 +614,7 @@ Content-Type: application/json
     <div class="disclosure-box">
       <div class="label">Data disclosures & disclaimers</div>
       <p>Technical specs (endpoint, auth, rate limit, tool list) come from KanseiLink MCP's <code>get_service_detail</code> and <code>get_service_tips</code> tools as of 2026-05-14, supplemented by Linear's official developer docs (developers.linear.app), Linear changelog, and public Anthropic/Cloudflare materials. "April 9, 2026 OAuth disconnect fix" and "February 2026 initiatives/milestones release" come from Linear changelog entries and MCP-related blog posts; exact wording may evolve. KanseiLink's <code>confidence_score</code> for Linear's real-world reliability data is 0 (no_data) — the service metadata itself carries a trust score of 0.7. Pricing, specs, and API schemas can change without notice; always confirm against the latest official documentation in production.</p>
+      <p><strong>Updated 2026-10-21:</strong> revised the authentication guidance to follow the MCP specification of 2026-07-28, which deprecates DCR (prompted by an external reader's report).</p>
     </div>
 
     <div class="related-section">
