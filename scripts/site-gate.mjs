@@ -7,10 +7,12 @@
 // 「新しい記事ほど計測されていない」「sitemapが404を指す」を構造的に再発させない。
 // 直すのは scripts/site-prepublish.mjs。
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkSite } from './lib/site-instrumentation.mjs';
 import { listHtml, analyse, hasBlock } from './add-language-links.mjs';
+import { findHtml } from './lib/site-instrumentation.mjs';
+import { checkAskLine, seedServiceIds } from './lib/ask-line.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pub = resolve(root, 'public');
@@ -55,7 +57,20 @@ function checkLangSwitch() {
 const lang = checkLangSwitch();
 r.langSwitchMissing = lang.missing;
 r.langSwitchTargetAbsent = lang.targetAbsent;
-const problems = r.gaMissing.length + r.sitemapDead.length + r.notInSitemap.length + r.serverJsonMismatch.length + r.langSwitchMissing.length;
+// 2026-10-21: the visible ask line (scripts/add-ask-line.mjs). Markers must be paired, one per page, and the
+// service id must be one the production ask accepts (services-seed.json) — otherwise the line sends readers to a 404.
+function checkAskLines() {
+  const ids = seedServiceIds(root);
+  const out = [];
+  for (const f of findHtml(pub)) {
+    const html = readFileSync(f, 'utf8');
+    if (!html.includes('ask-line')) continue;
+    for (const p of checkAskLine(html, ids)) out.push(`${f.slice(pub.length + 1).replaceAll(sep, '/')}: ${p}`);
+  }
+  return out;
+}
+r.askLineBroken = checkAskLines();
+const problems = r.gaMissing.length + r.sitemapDead.length + r.notInSitemap.length + r.serverJsonMismatch.length + r.langSwitchMissing.length + r.askLineBroken.length;
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ ok: problems === 0, ...r }, null, 2));
@@ -67,6 +82,7 @@ if (process.argv.includes('--json')) {
   show('indexableなのにsitemap未掲載（insights/services）', r.notInSitemap);
   show('server.json が package.json／自社カードとずれている', r.serverJsonMismatch);
   show('hreflang の対があるのに本文に相手言語へのリンク無し（lang-switch）', r.langSwitchMissing);
+  show('ask の一行の印が壊れている／id が seed に無い', r.askLineBroken);
   if (r.langSwitchTargetAbsent.length) console.log(`  ・参考（失敗にしない）: hreflang の相手のファイルが public/ に無い: ${r.langSwitchTargetAbsent.length}`);
   console.log(problems === 0 ? '[site-gate] ✅ PASS' : `[site-gate] ❌ FAIL (${problems})  → node scripts/site-prepublish.mjs／add-language-links.mjs で修正`);
 }
