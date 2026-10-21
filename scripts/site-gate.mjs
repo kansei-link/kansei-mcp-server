@@ -10,6 +10,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkSite } from './lib/site-instrumentation.mjs';
+import { listHtml, analyse, hasBlock } from './add-language-links.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pub = resolve(root, 'public');
@@ -35,7 +36,26 @@ function checkServerJson() {
   return out;
 }
 r.serverJsonMismatch = checkServerJson();
-const problems = r.gaMissing.length + r.sitemapDead.length + r.notInSitemap.length + r.serverJsonMismatch.length;
+
+// 2026-10-21: hreflang の対（ja と en）を持つページは、本文に相手言語への見えるリンクを持つ
+// （<!-- lang-switch --> の中）。巡回が <head> の hreflang ではなく本文のリンクを辿るため。
+// 相手のファイルが public/ に無いページは数えるだけ（hreflang 側の不備・別件）。
+// 直すのは node scripts/add-language-links.mjs。
+function checkLangSwitch() {
+  const missing = [], targetAbsent = [];
+  for (const file of listHtml(pub)) {
+    const html = readFileSync(file, 'utf8');
+    const info = analyse(pub, file, html);
+    if (!info.paired) continue;
+    if (!info.targetExists) { targetAbsent.push(`${info.rel} → ${info.target?.path ?? '?'}`); continue; }
+    if (!hasBlock(html, info)) missing.push(info.rel);
+  }
+  return { missing, targetAbsent };
+}
+const lang = checkLangSwitch();
+r.langSwitchMissing = lang.missing;
+r.langSwitchTargetAbsent = lang.targetAbsent;
+const problems = r.gaMissing.length + r.sitemapDead.length + r.notInSitemap.length + r.serverJsonMismatch.length + r.langSwitchMissing.length;
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ ok: problems === 0, ...r }, null, 2));
@@ -46,6 +66,8 @@ if (process.argv.includes('--json')) {
   show('sitemapが指すが実ファイル無し（404）', r.sitemapDead);
   show('indexableなのにsitemap未掲載（insights/services）', r.notInSitemap);
   show('server.json が package.json／自社カードとずれている', r.serverJsonMismatch);
-  console.log(problems === 0 ? '[site-gate] ✅ PASS' : `[site-gate] ❌ FAIL (${problems})  → node scripts/site-prepublish.mjs で修正`);
+  show('hreflang の対があるのに本文に相手言語へのリンク無し（lang-switch）', r.langSwitchMissing);
+  if (r.langSwitchTargetAbsent.length) console.log(`  ・参考（失敗にしない）: hreflang の相手のファイルが public/ に無い: ${r.langSwitchTargetAbsent.length}`);
+  console.log(problems === 0 ? '[site-gate] ✅ PASS' : `[site-gate] ❌ FAIL (${problems})  → node scripts/site-prepublish.mjs／add-language-links.mjs で修正`);
 }
 process.exit(problems === 0 ? 0 : 1);
