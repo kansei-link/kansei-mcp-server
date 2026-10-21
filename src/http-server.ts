@@ -55,6 +55,7 @@ import { handleSiteCheck, handleSiteCheckGet } from "./site-check.js";
 import { reportOutcome } from "./tools/report-outcome.js";
 import { createNotesHandlers } from "./notes/routes.js";
 import { createAskHandlers } from "./ask/routes.js";
+import { candidateSourceCounts } from "./ask/engine.js";
 import { jsonBodyErrorHandler } from "./utils/json-body-errors.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
@@ -167,6 +168,13 @@ app.post("/api/v1/notes/:id/results", noteHandlers.writes, noteHandlers.result);
 // ask v1: read-only "stuck on an error" lookup. Answers 200 with or without a match;
 // stores only error key + sha256 of the masked text (never raw text or IP).
 const askHandlers = createAskHandlers(getDb());
+{
+  // One line, counts only. 0 field notes means the file is missing from the image (ask then matches DB notes only).
+  const c = candidateSourceCounts();
+  const line = `[ask] candidates field_notes=${c.field_notes} error_cards=${c.error_cards}`;
+  if (c.field_notes === 0) console.warn(`WARN ${line} (public/insights/agent-field-notes.json not found or empty)`);
+  else console.log(line);
+}
 app.get("/api/v1/ask", askHandlers.limiter, askHandlers.get);
 app.post("/api/v1/ask", askHandlers.limiter, askHandlers.post);
 app.get("/api/v1/ask/stats", apiLimiter, askHandlers.stats);

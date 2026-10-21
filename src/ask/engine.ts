@@ -285,6 +285,11 @@ export function publicErrorKey(raw: ErrorKey, noteCandidates: Candidate[]): { ke
   return { key: { ...raw, provider_code: known }, codeKnown: known !== null };
 }
 
+/** Startup diagnostic: how many verified/lived candidates each file source contributes (counts only). */
+export function candidateSourceCounts(): { field_notes: number; error_cards: number } {
+  return { field_notes: loadFieldNotes().length, error_cards: loadErrorCards().length };
+}
+
 export interface AskMatch {
   source: MatchSource; id: string; status: MatchStatus;
   applies_when: string | null; first_check: string | null; how_resolved: string | null;

@@ -18,6 +18,10 @@ RUN npm run build
 # 開発用スクリプトまで本番イメージに載るので、必要な1本だけコピーする
 COPY scripts/dualrun-reconcile.mjs ./scripts/
 
+# ask v1 reads the published field notes at runtime (dist/ask/engine.js -> ../../public/insights/...).
+# Copy only this one file, not public/ as a whole (the site is served from GitHub Pages, not this image).
+COPY public/insights/agent-field-notes.json ./public/insights/agent-field-notes.json
+
 # Remove dev dependencies after build to slim down image
 RUN npm prune --omit=dev
 
