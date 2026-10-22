@@ -1,0 +1,177 @@
+{
+  "_comment": "第 1 段（tier 1）の 20 サービスと、機械で記録する出典。scripts/tier1-snapshot.mjs が週 1 回（.github/workflows/tier1-diff.yml）値を取り、前回と比べる。出典は mcp-ja-pages.json の出典と深掘り記事に書いてある物だけ。記事や一次資料に無い出典は空のまま（推測で埋めない）。足し引きは 1 行。認証が要る接続先には繋がない。",
+  "design": "founder-ops/research/Freshness_2026-10/DESIGN-tier1-source-diff-v0.md",
+  "as_of": "2026-10-22",
+  "fields": {
+    "registry_search": "公式 MCP Registry の検索語（/v0/servers?search=）。件数・名前・版・isLatest・説明を記録",
+    "npm": "npm のパッケージ名。版と公開日を記録",
+    "github_repo": "owner/repo。最新リリースと README の認証の節を記録",
+    "docs": "公式の文書・サポートページ。本文を正規化した sha256 と、MCP／OAuth／トークン／認証／接続先 URL を含む行を記録",
+    "endpoint": "公開されている接続先。HTTP 状態と /.well-known/oauth-authorization-server の主な欄を記録（認証はしない）",
+    "news": "お知らせの一覧ページ。見出しのうち MCP を含む物を記録",
+    "version_fields": "小（版だけ）の差分で自動 PR が書き換える欄。file と id で mcp-ja-pages.json の該当行を指す"
+  },
+  "services": [
+    {
+      "id": "jobcan", "name": "ジョブカン", "group": "mcp-ja",
+      "registry_search": "jobcan", "npm": null, "github_repo": null,
+      "docs": ["https://jobcan.zendesk.com/hc/ja"],
+      "endpoint": null,
+      "news": ["https://www.donuts.ne.jp/news/"],
+      "version_fields": []
+    },
+    {
+      "id": "kingoftime", "name": "KING OF TIME", "group": "mcp-ja",
+      "registry_search": "kingoftime", "npm": null, "github_repo": null,
+      "docs": ["https://developer.kingoftime.jp/", "https://support.ta.kingoftime.jp/hc/ja/articles/360038857633"],
+      "endpoint": null,
+      "news": ["https://www.kingoftime.jp/news/", "http://www.h-t.co.jp/news"],
+      "version_fields": []
+    },
+    {
+      "id": "hrmos", "name": "HRMOS", "group": "mcp-ja",
+      "registry_search": "hrmos", "npm": null, "github_repo": null,
+      "docs": ["https://ieyasu.co/docs/api"],
+      "endpoint": null,
+      "news": ["https://hrmos.co/info/news/"],
+      "version_fields": []
+    },
+    {
+      "id": "garoon", "name": "Garoon", "group": "mcp-ja",
+      "registry_search": "garoon", "npm": "@garoon/mcp-server", "github_repo": "garoon/garoon-mcp-server",
+      "docs": ["https://cybozu.dev/ja/garoon/ai/garoon-mcp-server/", "https://cybozu.dev/ja/garoon/news/api-updates/2025-10-mcp/"],
+      "endpoint": null,
+      "news": [],
+      "version_fields": [{ "file": "src/data/mcp-ja-pages.json", "id": "garoon", "path": "location.note", "source": "npm" }]
+    },
+    {
+      "id": "misoca", "name": "Misoca", "group": "mcp-ja",
+      "registry_search": "misoca", "npm": null, "github_repo": null,
+      "docs": ["https://www.yayoi-kk.co.jp/seikyusho/scene/mcp/", "https://support.yayoi-kk.co.jp/subcontents.html?page_id=31438", "https://doc.misoca.jp/"],
+      "endpoint": "https://mcp.misoca.jp/mcp",
+      "news": ["https://www.yayoi-kk.co.jp/company/pressrelease/detail.20260915/"],
+      "version_fields": []
+    },
+    {
+      "id": "lineworks", "name": "LINE WORKS", "group": "mcp-ja",
+      "registry_search": "line works", "npm": null, "github_repo": null,
+      "docs": ["https://line-works.com/line-works/appdirectory/works-mcp/", "https://developers.worksmobile.com/jp/docs/auth-oauth"],
+      "endpoint": null,
+      "news": ["https://line-works.com/pr/"],
+      "version_fields": []
+    },
+    {
+      "id": "chatwork", "name": "Chatwork", "group": "mcp-ja",
+      "registry_search": "chatwork", "npm": "@chatwork/mcp-server", "github_repo": "chatwork/chatwork-mcp-server",
+      "docs": ["https://developer.chatwork.com/"],
+      "endpoint": null,
+      "news": ["https://www.kubell.com/news/", "https://go.chatwork.com/ja/news/"],
+      "version_fields": [{ "file": "src/data/mcp-ja-pages.json", "id": "chatwork", "path": "location.note", "source": "npm" }]
+    },
+    {
+      "id": "sansan", "name": "Sansan", "group": "mcp-ja",
+      "registry_search": "sansan", "npm": null, "github_repo": null,
+      "docs": ["https://contract-one.com/functions/", "https://docs.ap.sansan.com/en/api/openapi/v3.1/index.html"],
+      "endpoint": null,
+      "news": ["https://jp.corp-sansan.com/news/2025/1121_01.html", "https://jp.corp-sansan.com/news/2026/0420.html"],
+      "version_fields": []
+    },
+    {
+      "id": "kickflow", "name": "kickflow", "group": "mcp-ja",
+      "registry_search": "kickflow", "npm": "@kickflow/mcp-server", "github_repo": "kickflow/kickflow-mcp-server",
+      "docs": ["https://developer.kickflow.com/mcp/", "https://developer.kickflow.com/rest/"],
+      "endpoint": null,
+      "news": ["https://kickflow.com/update/20260401_mcp_server"],
+      "version_fields": [{ "file": "src/data/mcp-ja-pages.json", "id": "kickflow", "path": "location.note", "source": "npm" }]
+    },
+    {
+      "id": "next-engine", "name": "ネクストエンジン", "group": "mcp-ja",
+      "registry_search": "next engine", "npm": null, "github_repo": null,
+      "docs": ["https://next-engine.net/lp/next-engine-mcp", "https://developer.next-engine.com/guides/auth/"],
+      "endpoint": null,
+      "news": ["https://ne-inc.jp/news/"],
+      "version_fields": []
+    },
+
+    {
+      "id": "backlog", "name": "Backlog", "group": "deep-dive",
+      "registry_search": "backlog", "npm": null, "github_repo": null,
+      "docs": ["https://developer.nulab.com/docs/backlog/"],
+      "endpoint": null,
+      "news": [],
+      "version_fields": []
+    },
+    {
+      "id": "freee", "name": "freee", "group": "deep-dive",
+      "registry_search": "freee", "npm": null, "github_repo": null,
+      "docs": ["https://developer.freee.co.jp/"],
+      "endpoint": null,
+      "news": [],
+      "version_fields": []
+    },
+    {
+      "id": "github", "name": "GitHub", "group": "deep-dive",
+      "registry_search": "github-mcp-server", "npm": null, "github_repo": "github/github-mcp-server",
+      "docs": ["https://docs.github.com/en/rest"],
+      "endpoint": null,
+      "news": [],
+      "version_fields": []
+    },
+    {
+      "id": "kintone", "name": "kintone", "group": "deep-dive",
+      "registry_search": "kintone", "npm": null, "github_repo": null,
+      "docs": [],
+      "endpoint": null,
+      "news": [],
+      "version_fields": []
+    },
+    {
+      "id": "linear", "name": "Linear", "group": "deep-dive",
+      "registry_search": "linear", "npm": null, "github_repo": null,
+      "docs": ["https://developers.linear.app/"],
+      "endpoint": "https://mcp.linear.app/mcp",
+      "news": [],
+      "version_fields": []
+    },
+    {
+      "id": "moneyforward", "name": "マネーフォワード クラウド", "group": "deep-dive",
+      "registry_search": "moneyforward", "npm": null, "github_repo": null,
+      "docs": ["https://developer.moneyforward.com/"],
+      "endpoint": null,
+      "news": [],
+      "version_fields": []
+    },
+    {
+      "id": "notion", "name": "Notion", "group": "deep-dive",
+      "registry_search": "notion", "npm": null, "github_repo": null,
+      "docs": [],
+      "endpoint": null,
+      "news": [],
+      "version_fields": []
+    },
+    {
+      "id": "slack", "name": "Slack", "group": "deep-dive",
+      "registry_search": "slack", "npm": null, "github_repo": null,
+      "docs": ["https://api.slack.com/apps"],
+      "endpoint": null,
+      "news": [],
+      "version_fields": []
+    },
+    {
+      "id": "smarthr", "name": "SmartHR", "group": "deep-dive",
+      "registry_search": "smarthr", "npm": null, "github_repo": null,
+      "docs": ["https://developer.smarthr.jp/", "https://developer.smarthr.jp/api/"],
+      "endpoint": null,
+      "news": [],
+      "version_fields": []
+    },
+    {
+      "id": "stripe-global", "name": "Stripe", "group": "deep-dive",
+      "registry_search": "stripe", "npm": null, "github_repo": null,
+      "docs": ["https://docs.stripe.com/mcp", "https://docs.stripe.com/agents"],
+      "endpoint": "https://mcp.stripe.com",
+      "news": [],
+      "version_fields": []
+    }
+  ]
+}
