@@ -1,0 +1,125 @@
+# SCHEDULER for the daily crawl (2026-10-22, founder-ops/research/Freshness_2026-10/
+# INSTRUCTION-agent-crawl-trigger-actions.md).
+#
+# Why here: the previous trigger was an external cron-job.org job calling POST /admin/run-crawler.
+# Its secret drifted from Railway's CRAWLER_SECRET, it got 401 twenty-six times and switched itself
+# off on 2026-09-30; nobody noticed for 48 days. db-backup.yml already calls the same server with
+# the same secret every day and succeeds, so the trigger now lives next to it: one secret, one place,
+# and a failed run shows up as a red "scheduled Actions" row on the watch screen.
+#
+# What it does: POST /admin/run-crawler (202) → poll /admin/last-crawl-run for up to 30 minutes →
+# the job FAILS unless the run finished with status "success". 409 (a crawl is already running) is
+# tolerated only if that run started less than an hour ago; then we wait for it instead.
+# Only counts (discovered / accepted / review_queue / errors) go to the job summary — never the
+# secret, never a full response body.
+#
+# SETUP (Michie): the repo secret KANSEI_CRAWLER_SECRET is the one db-backup.yml already uses.
+# Until it is set, the workflow exits successfully with a notice (same as db-backup.yml).
+# After merge: run workflow_dispatch once with dry_run=true, read the result, then once with
+# dry_run=false, then leave the schedule to it. The old cron-job.org job is to be deleted.
+
+name: crawl-scheduler
+on:
+  schedule:
+    - cron: "0 17 * * *" # daily 17:00 UTC (02:00 JST); db-backup runs at 00:30 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "dry_run: discover and classify only, write nothing (true) / full run (false)"
+        type: boolean
+        default: true
+
+permissions: {}
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Trigger /admin/run-crawler and wait for the result
+        env:
+          SECRET: ${{ secrets.KANSEI_CRAWLER_SECRET }}
+          BASE: https://kansei-link-mcp-production.up.railway.app
+          # scheduled runs are real runs; manual runs default to dry_run=true
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          set -u
+          if [ -z "$SECRET" ]; then
+            echo "KANSEI_CRAWLER_SECRET not configured — skipping (nothing was triggered)"
+            exit 0
+          fi
+          auth="Authorization: Bearer $SECRET"
+          # j '<js expression over o>'  — read one value out of the JSON on stdin (node is on every runner)
+          j() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let o=null;try{o=JSON.parse(s||"null")}catch{}const v=new Function("o",`return (${process.argv[1]})`)(o);process.stdout.write(v==null?"":(typeof v==="object"?JSON.stringify(v):String(v)))})' "$1"; }
+          last() { curl -sS --max-time 60 -H "$auth" "$BASE/admin/last-crawl-run"; }
+          age_seconds() { # arg: started_at as the server stores it (UTC, "YYYY-MM-DD HH:MM:SS")
+            local s; s=$(date -u -d "$1 UTC" +%s 2>/dev/null || echo 0)
+            echo $(( $(date -u +%s) - s ))
+          }
+
+          before=$(last)
+          prev_id=$(echo "$before" | j 'o?.last_run?.id ?? 0')
+          echo "last run on record: id=$prev_id status=$(echo "$before" | j 'o?.last_run?.status ?? "none"') started_at=$(echo "$before" | j 'o?.last_run?.started_at ?? "-"')"
+
+          echo "triggering run-crawler (dry_run=$DRY_RUN)"
+          code=$(curl -sS --max-time 60 -o trigger.json -w '%{http_code}' -X POST \
+            -H "$auth" -H "Content-Type: application/json" \
+            -d "{\"dry_run\": $DRY_RUN}" "$BASE/admin/run-crawler")
+          target_id=$((prev_id + 1))
+          case "$code" in
+            202)
+              echo "accepted: $(j '({status:o?.status, options:o?.options})' < trigger.json)"
+              ;;
+            409)
+              now=$(last)
+              started=$(echo "$now" | j 'o?.last_run?.started_at ?? ""')
+              age=$(age_seconds "$started")
+              if [ "$(echo "$now" | j 'o?.running')" != "true" ] || [ "$age" -ge 3600 ]; then
+                echo "::error::409 crawler_already_running, but the run on record started ${age}s ago (>= 1h) or is not marked running — treating as a stuck run"
+                exit 1
+              fi
+              echo "a crawl started ${age}s ago is still running — waiting for that one instead"
+              target_id=$(echo "$now" | j 'o?.last_run?.id ?? 0')
+              ;;
+            *)
+              echo "::error::run-crawler returned HTTP $code"
+              exit 1
+              ;;
+          esac
+
+          # Poll up to 30 minutes for the run to finish.
+          final=""
+          for i in $(seq 1 30); do
+            sleep 60
+            now=$(last)
+            id=$(echo "$now" | j 'o?.last_run?.id ?? 0')
+            running=$(echo "$now" | j 'o?.running')
+            status=$(echo "$now" | j 'o?.last_run?.status ?? ""')
+            echo "poll $i: id=$id running=$running status=$status"
+            if [ "${id:-0}" -ge "$target_id" ] && [ "$running" != "true" ] && [ "$status" != "running" ]; then
+              final="$now"; break
+            fi
+          done
+          if [ -z "$final" ]; then
+            echo "::error::the crawl did not finish within 30 minutes"
+            exit 1
+          fi
+
+          status=$(echo "$final" | j 'o.last_run.status')
+          run_id=$(echo "$final" | j 'o.last_run.id')
+          discovered=$(echo "$final" | j 'o.last_run.discovered_count ?? 0')
+          accepted=$(echo "$final" | j 'o.last_run.auto_accepted_count ?? 0')
+          review=$(echo "$final" | j 'o.last_run.review_queue_count ?? 0')
+          errors=$(echo "$final" | j '(e=>Array.isArray(e)?e.length:typeof e==="string"?(()=>{try{return JSON.parse(e).length}catch{return 0}})():0)(o.last_run.errors)')
+          {
+            echo "## crawl ($( [ "$DRY_RUN" = "true" ] && echo dry-run || echo full ))"
+            echo ""
+            echo "| run id | status | discovered | accepted | review_queue | errors |"
+            echo "|---|---|---|---|---|---|"
+            echo "| $run_id | $status | $discovered | $accepted | $review | $errors |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "result: status=$status discovered=$discovered accepted=$accepted review_queue=$review errors=$errors"
+          if [ "$status" != "success" ]; then
+            echo "::error::crawl finished with status '$status' (errors=$errors) — see /admin/last-crawl-run"
+            exit 1
+          fi
