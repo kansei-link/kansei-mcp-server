@@ -42,13 +42,15 @@ export function resolveTarget(pub, url) {
   return { path, file: join(pub, ...file.split('/').filter(Boolean)) };
 }
 
-/** Classify one page. self = 'en' if under public/en/, else 'ja'. */
+/** Classify one page. self = 'en' if under public/en/ or the page declares <html lang="en"> (the English
+ *  service pages live at /services/<id>/ and pair with the Japanese /mcp/<id>/ pages, 2026-10-22), else 'ja'. */
 export function analyse(pub, file, html) {
   const ja = hreflangHref(html, 'ja');
   const en = hreflangHref(html, 'en');
   if (!ja || !en) return { paired: false };
   const rel = relative(pub, file).split(sep).join('/');
-  const self = rel.startsWith('en/') ? 'en' : 'ja';
+  const htmlLang = html.match(/<html[^>]*\s+lang=["']([a-zA-Z-]+)["']/i)?.[1]?.toLowerCase() ?? null;
+  const self = rel.startsWith('en/') || htmlLang === 'en' ? 'en' : 'ja';
   const other = self === 'en' ? 'ja' : 'en';
   const target = resolveTarget(pub, other === 'ja' ? ja : en);
   return {
