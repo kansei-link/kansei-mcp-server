@@ -1,0 +1,91 @@
+# tier1-diff — 第 1 段（src/data/tier1.json の 20 サービス）の出典ごとの記録と差分。
+#
+# 毎週月曜 00:00 UTC（09:00 JST）＋手動。設計: founder-ops/research/Freshness_2026-10/DESIGN-tier1-source-diff-v0.md
+#   記録      … `snapshots` ブランチの tier1/YYYY-MM-DD.json（main は触らない）
+#   小（版だけ）… 対応する欄を書き換えたブランチ freshness/<日付>-<id> と PR を自動で作る。自動マージはしない。
+#   中・大・失敗… サービスごとに Issue（ラベル freshness）。開いていれば追記。
+#   要約      … 件数だけ（小 n・中 n・大 n・失敗 n）
+# 初回は記録だけ（比べる前回が無い）。鍵は持たない（認証が要る接続先には繋がない）。
+# GITHUB_TOKEN で作った PR は他の workflow（pack-gate など）を起動しない → PR を開いた後に人が確認する。
+name: tier1-diff
+on:
+  schedule:
+    - cron: "0 0 * * 1" # Monday 00:00 UTC = 09:00 JST
+  workflow_dispatch: {}
+
+permissions:
+  contents: write      # snapshots ブランチへの push・freshness/* ブランチの push
+  pull-requests: write # 小の自動 PR
+  issues: write        # 中・大・失敗の Issue
+
+concurrency:
+  group: tier1-diff
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Prepare snapshots branch (worktree)
+        run: |
+          set -e
+          if git ls-remote --exit-code --heads origin snapshots >/dev/null 2>&1; then
+            git fetch origin snapshots
+            git worktree add .snapshots origin/snapshots
+            (cd .snapshots && git checkout -B snapshots origin/snapshots)
+          else
+            git worktree add --detach .snapshots
+            (cd .snapshots && git checkout --orphan snapshots && git rm -rfq . && mkdir -p tier1 && echo "# tier1 snapshots (machine-written; see .github/workflows/tier1-diff.yml)" > README.md)
+          fi
+          mkdir -p .snapshots/tier1
+
+      - name: Snapshot and diff
+        id: snap
+        run: |
+          set -e
+          DATE=$(date -u +%F)
+          PREV=$(ls .snapshots/tier1/*.json 2>/dev/null | grep -v "/$DATE.json" | sort | tail -1 || true)
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          echo "prev=${PREV:-}" >> "$GITHUB_OUTPUT"
+          if [ -n "$PREV" ]; then
+            node scripts/tier1-snapshot.mjs --out ".snapshots/tier1/$DATE.json" --prev "$PREV" --diff tier1-diff.json
+          else
+            node scripts/tier1-snapshot.mjs --out ".snapshots/tier1/$DATE.json" --diff tier1-diff.json
+          fi
+
+      - name: Push snapshot
+        run: |
+          set -e
+          cd .snapshots
+          git config user.name "tier1-diff[bot]"
+          git config user.email "tier1-diff@users.noreply.github.com"
+          git add -A
+          git commit -q -m "tier1 snapshot ${{ steps.snap.outputs.date }}" || echo "nothing to commit"
+          git push origin snapshots
+
+      - name: PRs and Issues from the diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          git config user.name "tier1-diff[bot]"
+          git config user.email "tier1-diff@users.noreply.github.com"
+          node scripts/tier1-report.mjs --diff tier1-diff.json --repo "${{ github.repository }}" --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the diff as an artifact (14 days)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tier1-diff-${{ steps.snap.outputs.date }}
+          path: tier1-diff.json
+          retention-days: 14
