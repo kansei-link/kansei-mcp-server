@@ -623,6 +623,20 @@ const OFF_CATEGORY_PENALTY = 1.0;
 const TAG_MATCH_BOOST = 0.3;
 
 /**
+ * Evidence boost (2026-10-23, INSTRUCTION-agent-search-ranking): in intent searches, services an
+ * agent can actually use rank above look-alikes. Not "higher grade = higher rank" — only evidence:
+ *   official   … the provider ships an official MCP (mcp_status = 'official')
+ *   handshake  … our probe completed an MCP handshake with the current endpoint within 30 days
+ *                (mcp_status_basis = 'handshake'; absent or stale → nothing)
+ *   reported   … ≥ EVIDENCE_MIN_REPORTS publishable external reports (user_reported / kansei_measured
+ *                via publishable_service_stats) → a small share of their success rate
+ * All three together (+1.0) stay below CATEGORY_BOOST (1.5), so category intent still leads.
+ * Named searches (the intent contains a service name) are left untouched.
+ */
+const EVIDENCE_BOOST = { official: 0.4, handshake: 0.3, reported: 0.3 } as const;
+const EVIDENCE_MIN_REPORTS = 3;
+
+/**
  * Intent detection result: maps each detected category to the number of
  * intent tokens that voted for it. Higher vote count = stronger signal.
  */
@@ -721,9 +735,14 @@ export function searchServices(
   // When intent categories are detected, also fetch top services from those
   // categories directly — ensures category-relevant services appear even when
   // FTS tokenization misses them (e.g. "manage" vs "management")
-  const categoryResults = intentCategories.size > 0 && !category
-    ? categorySearch(db, signal, limit, intentLower)
-    : [];
+  // 2026-10-23: with an explicit `category` the same fetch runs for that category — otherwise
+  // the pool is only what FTS/LIKE matched, and a service with the best evidence (e.g. freee for
+  // 「請求書作成と会計処理を自動化したい」 category=accounting) never enters the ranking at all.
+  const categoryResults = category
+    ? categorySearch(db, { categories: new Set([category]), votes: new Map([[category, 1]]), maxVotes: 1, topCategories: new Set([category]) }, limit, intentLower)
+    : intentCategories.size > 0
+      ? categorySearch(db, signal, limit, intentLower)
+      : [];
 
   // Merge and deduplicate: FTS > LIKE > category, keep highest score per service
   const merged = new Map<string, ScoredResult>();
@@ -739,6 +758,12 @@ export function searchServices(
   let results = [...merged.values()]
     .sort((a, b) => b.relevance_score - a.relevance_score);
 
+  // Named search? (the intent carries a service name) → the evidence boost stays off and the
+  // order above is final. Only name/id are read, so a ScoredResult stands in for ServiceRow here.
+  const namedSearch = results.some((r) =>
+    nameMatchBonus({ name: r.name, id: r.service_id } as ServiceRow, intentLower) > 0
+  );
+
   // Provenance-aware readiness must be computed before filtering or slicing;
   // otherwise seed-derived service_stats can leak into the "verified" filter.
   for (const r of results) {
@@ -746,6 +771,18 @@ export function searchServices(
     r.reliability_basis = relSource.basis;
     r.measured = relSource.measured;
     r.usage_count = relSource.public_reports;
+
+    // Evidence boost (intent searches only). Each part is small and needs real evidence.
+    if (!namedSearch) {
+      let boost = 0;
+      if (r.mcp_status === "official") boost += EVIDENCE_BOOST.official;
+      if (r.mcp_status_basis === "handshake") boost += EVIDENCE_BOOST.handshake;
+      if (relSource.public_reports >= EVIDENCE_MIN_REPORTS && relSource.public_success_rate != null) {
+        boost += EVIDENCE_BOOST.reported * relSource.public_success_rate;
+      }
+      r.evidence_boost = Math.round(boost * 100) / 100;
+      r.relevance_score = Math.round((r.relevance_score + r.evidence_boost) * 100) / 100;
+    }
 
     if (relSource.public_success_rate != null) {
       r.success_rate = Math.round(relSource.public_success_rate * 100) / 100;
@@ -761,6 +798,7 @@ export function searchServices(
       r.agent_ready = r.mcp_endpoint || r.api_url ? "connectable" : "info_only";
     }
   }
+  if (!namedSearch) results.sort((a, b) => b.relevance_score - a.relevance_score);
 
   // Filter by agent readiness level if specified
   if (agentReadyFilter) {
@@ -827,6 +865,8 @@ interface ScoredResult {
   success_rate: number | null;
   axr_grade: string | null;
   relevance_score: number;
+  /** evidence boost folded into relevance_score (0 on named searches); see EVIDENCE_BOOST */
+  evidence_boost?: number;
   freshness: FreshnessMeta;
   // Reliability provenance — populated for the returned top-N results so that
   // estimated (seed/eval) numbers never masquerade as measured live telemetry.
