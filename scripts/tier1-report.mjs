@@ -27,7 +27,7 @@ const diff = JSON.parse(readFileSync(resolve(DIFF_FILE), 'utf8'));
 const tier1 = JSON.parse(readFileSync(resolve(ROOT, 'src/data/tier1.json'), 'utf8'));
 const byId = Object.fromEntries(tier1.services.map((s) => [s.id, s]));
 const LABEL = 'freshness';
-const LEVEL_JA = { small: '小（版だけ）', medium: '中', large: '大', failed: '取得失敗', note: '記録だけ' };
+const LEVEL_JA = { small: '小（版だけ）', medium: '中', large: '大', failed: '取得失敗', refused: 'CI から拒否', transient: '一時的な失敗（記録だけ）', note: '記録だけ' };
 
 const sh = (cmd, a, input) => execFileSync(cmd, a, { encoding: 'utf8', input, stdio: ['pipe', 'pipe', 'inherit'], maxBuffer: 20 * 1024 * 1024 }).trim();
 const gh = (a, input) => (DRY ? (console.log(`[dry-run] gh ${a.join(' ')}${input ? `\n${input}` : ''}`), '') : sh('gh', ['-R', REPO, ...a], input));
@@ -112,7 +112,7 @@ for (const [id, items] of perService) {
   const worst = items.some((x) => x.level === 'large') ? 'large' : items.some((x) => x.level === 'medium') ? 'medium' : 'failed';
   const table = [
     `### ${diff.date}（前回 ${diff.prev_date || 'なし'}）`, '',
-    ...items.map((x) => [`- **${LEVEL_JA[x.level]}** ${x.kind} ${x.field}`, `  - 出典: ${x.url}`, `  - 前: ${x.before === null ? '—' : ''}`, x.before === null ? '' : fence(x.before), `  - 今:`, fence(x.after)].filter(Boolean).join('\n')), '',
+    ...items.map((x) => [`- **${LEVEL_JA[x.level]}** ${x.kind} ${x.field}${x.note ? `（${x.note}）` : ''}`, `  - 出典: ${x.url}`, `  - 前: ${x.before === null ? '—' : ''}`, x.before === null ? '' : fence(x.before), `  - 今:`, fence(x.after)].filter(Boolean).join('\n')), '',
     '対応: 一次資料で確かめてから直す（自動では書き換えない）。',
   ].join('\n');
   const title = `freshness: ${name}（${LEVEL_JA[worst]}）`;
@@ -132,7 +132,7 @@ for (const [id, items] of perService) {
 const c = diff.counts;
 const lines = [
   `## 第 1 段の差分 ${diff.date}（前回 ${diff.prev_date || 'なし・初回は記録だけ'}）`, '',
-  `| 小 | 中 | 大 | 取得失敗 | 記録だけ |`, `|---|---|---|---|---|`, `| ${c.small} | ${c.medium} | ${c.large} | ${c.failed} | ${c.note} |`, '',
+  `| 小 | 中 | 大 | 取得失敗 | CI から拒否 | 一時的（記録だけ） | 記録だけ |`, `|---|---|---|---|---|---|---|`, `| ${c.small} | ${c.medium} | ${c.large} | ${c.failed} | ${c.refused ?? 0} | ${c.transient ?? 0} | ${c.note} |`, '',
   `- 自動で作った PR: ${results.prs.length}${results.prs.length ? '（' + results.prs.map((p) => p.url || p.title).join('・') + '）' : ''}`,
   `- 新しい Issue: ${results.issues_created.length}・追記した Issue: ${results.issues_appended.length}`,
   `- 小のうち書き換える欄が無い物: ${results.small_without_field.length}`,
