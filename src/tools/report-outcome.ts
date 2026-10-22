@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type Database from "better-sqlite3";
+import { agentIdHash } from "../agent-id.js";
 import { z } from "zod";
 import { maskPii } from "../utils/pii-masker.js";
 import { detectAnomalies } from "../utils/anomaly-detector.js";
@@ -152,6 +153,10 @@ export interface OutcomeInput {
   provider_request_id?: unknown;
   provider_request_id_source?: unknown;
   provider_error_code?: unknown;
+  // Material for agent_id_hash (an Mcp-Session-Id, a body session_id, or the
+  // local install id). Hashed with AGENT_HASH_SALT and never stored itself;
+  // absent → 'anonymous'. See src/agent-id.ts.
+  agent_material?: string | null;
 }
 
 // Traceable-evidence fields (2026-10-16, fix1 after Codex review of 0dd37ad).
@@ -384,9 +389,9 @@ export function reportOutcome(
     db.prepare(
       `INSERT INTO outcomes (service_id, agent_id_hash, success, latency_ms, error_type, workaround, context_masked, is_retry, estimated_users, model_name, agent_type, task_type, input_tokens, output_tokens, cost_usd, provenance, verification_status, attempt_id, recipe_id, recipe_version, failed_step,
                              note_id, provider_request_id, provider_request_id_source, provider_error_code, evidence_grade)
-       VALUES (?, 'anonymous', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user_reported', 'unverified', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user_reported', 'unverified', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
-      input.service_id, input.success ? 1 : 0, input.latency_ms ?? null,
+      input.service_id, agentIdHash(input.agent_material), input.success ? 1 : 0, input.latency_ms ?? null,
       input.error_type ?? null, workaroundMasked, contextMasked,
       input.is_retry ? 1 : 0, input.estimated_users ?? null, normalizedModel,
       agentType, input.task_type ?? null, input.input_tokens ?? null,

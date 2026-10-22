@@ -13,6 +13,7 @@ import { seedInfrastructureTips } from "./db/seed-tips.js";
 import { register as registerSearchServices } from "./tools/search-services.js";
 import { register as registerLookup } from "./tools/lookup.js";
 import { register as registerReport } from "./tools/report-unified.js";
+import { installMaterial, warnIfNoAgentSalt } from "./agent-id.js";
 
 // ---------------------------------------------------------------------------
 // Tier 2 — internal / admin tools (2 unified)
@@ -44,6 +45,12 @@ export interface CreateServerOptions {
    * `false`.
    */
   exposeAdminTools?: boolean;
+
+  /**
+   * stdio only: hash outcome reports by this installation's random id (kept in
+   * the local DB). HTTP leaves it off and uses the request's Mcp-Session-Id.
+   */
+  agentIdFromInstall?: boolean;
 }
 
 // serverInfo.version is package.json's, read once at module load (same shape
@@ -149,7 +156,8 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
   // --- Tier 1: External agent tools (3 unified) ---
   registerSearchServices(server, db);
   registerLookup(server, db, tierResolver);
-  registerReport(server, db);
+  warnIfNoAgentSalt();
+  registerReport(server, db, { installMaterial: options.agentIdFromInstall ? installMaterial(db) : null });
 
   // --- Tier 2: Internal / admin tools (2 unified) — GATED ---
   // inspect/analyze can propose AND auto-apply changes to the live services

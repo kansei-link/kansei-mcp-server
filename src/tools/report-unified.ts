@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { z } from "zod";
 
 import { reportOutcome } from "./report-outcome.js";
+import { sessionMaterial } from "../agent-id.js";
 import { emitEvent, toModelFamily, toErrorClass } from "../usage/telemetry.js";
 import { submitFeedback } from "./submit-feedback.js";
 import { recordEvent } from "./record-event.js";
@@ -83,7 +84,7 @@ function detectMode(params: ReportParams): Mode | null {
 // Dispatchers — call the right extracted handler based on mode.
 // ---------------------------------------------------------------------------
 
-function dispatchOutcome(db: Database.Database, params: ReportParams): object {
+function dispatchOutcome(db: Database.Database, params: ReportParams, agentMaterial: string | null): object {
   // Event Contract v1: pseudonymous outcome event (only when consented).
   void emitEvent("outcome_reported", {
     service_id: params.service_id,
@@ -99,6 +100,7 @@ function dispatchOutcome(db: Database.Database, params: ReportParams): object {
     failed_step: params.failed_step && /^[0-9]{1,3}$/.test(params.failed_step) ? params.failed_step : undefined,
   });
   return reportOutcome(db, {
+    agent_material: agentMaterial,
     service_id: params.service_id!,
     success: params.success!,
     latency_ms: params.latency_ms,
@@ -171,7 +173,12 @@ function dispatchVoice(db: Database.Database, params: ReportParams): object {
 // Registration
 // ---------------------------------------------------------------------------
 
-export function register(server: McpServer, db: Database.Database): void {
+export interface ReportRegisterOptions {
+  /** stdio: the local install id. Absent (HTTP): the request's Mcp-Session-Id, if any. */
+  installMaterial?: string | null;
+}
+
+export function register(server: McpServer, db: Database.Database, options: ReportRegisterOptions = {}): void {
   ensureNotesSchema(db);
   server.registerTool(
     "report",
@@ -344,7 +351,7 @@ export function register(server: McpServer, db: Database.Database): void {
         openWorldHint: false,
       },
     },
-    async (params) => {
+    async (params, extra) => {
       const mode = detectMode(params);
       if (mode === "note" || mode === "note_result") {
         const result = noteOperation(() => mode === "note" ? recordNote(db, params.note) : recordResult(db, params.note_result));
@@ -372,7 +379,13 @@ export function register(server: McpServer, db: Database.Database): void {
       let result: object;
       switch (mode) {
         case "outcome":
-          result = dispatchOutcome(db, params);
+          result = dispatchOutcome(
+            db,
+            params,
+            options.installMaterial ??
+              sessionMaterial(extra?.sessionId) ??
+              sessionMaterial(extra?.requestInfo?.headers?.["mcp-session-id"])
+          );
           break;
         case "feedback":
           result = dispatchFeedback(db, params);
