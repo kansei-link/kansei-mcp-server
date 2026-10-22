@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 import express from 'express';
-import { ask, askStats, askCandidates, ensureAskSchema, resetDailyCapForTests, parseErrorKey, cleanText, ASK_POST_MAX } from '../dist/ask/engine.js';
+import { ask, askStats, askCandidates, askUnknownServiceIds, ensureAskSchema, resetDailyCapForTests, parseErrorKey, cleanText, ASK_POST_MAX } from '../dist/ask/engine.js';
 import { createAskHandlers } from '../dist/ask/routes.js';
 import { ensureNotesSchema, recordNote } from '../dist/notes/store.js';
 import { register as registerLookup } from '../dist/tools/lookup.js';
@@ -283,5 +283,35 @@ test('re-review: a secret made of ordinary words leaves no trace in any ask_log 
   // Second line: a quoted value is masked up to its closing quote, spaces included.
   assert.equal(maskSecrets('{"password":"a b c d"}').masked, '{"password":"[SECRET]"}');
   assert.ok(!maskSecrets("{'token':'a b c d'}").masked.includes('a b c d'));
+  db.close();
+});
+
+test('discovery v1: unknown service ids are counted only when they look like an id; malformed strings leave no content', async () => {
+  const db = setup();
+  const o = opts();
+  for (const s of ['freee-invoice', 'freee-invoice', 'kintone2']) assert.throws(() => ask(db, { service: s, error: 'HTTP 404' }, o), (e) => e.code === 'service_not_found');
+  for (const s of ['Freee', 'a.b', 'x'.repeat(70), '_under']) assert.throws(() => ask(db, { service: s, error: 'HTTP 404' }, o), (e) => e.code === 'service_not_found');
+  assert.throws(() => ask(db, { service: 'bad id', error: 'HTTP 404' }, o), (e) => e.name === 'ZodError'); // never reaches the table
+  const u = askUnknownServiceIds(db, 7, 20);
+  assert.deepEqual(u.ids.map((r) => [r.service_id, r.asks]), [['freee-invoice', 2], ['kintone2', 1]]);
+  assert.equal(u.malformed, 4);
+  const stored = db.prepare('SELECT service_id FROM ask_unknown_service').all().map((r) => r.service_id);
+  for (const s of ['Freee', 'a.b', 'x'.repeat(70), '_under', 'bad id']) assert.ok(!stored.includes(s), `${s} must not be stored`);
+  assert.equal(stored.filter((s) => s === null).length, 4);
+  assert.ok(!Object.keys(db.prepare('SELECT * FROM ask_unknown_service LIMIT 1').get()).some((c) => /ip|text|error/i.test(c)), 'no ip/text columns');
+  // existing services never land in the table; HTTP path records the same way
+  ask(db, { service: 'freee', error: 'HTTP 500 x' }, o);
+  assert.equal(db.prepare('SELECT count(*) AS n FROM ask_unknown_service').get().n, 7);
+  const server = await listen(app(db)); const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const nf = await fetch(`${base}/api/v1/ask?service=hubspot-jp&error=403`); assert.equal(nf.status, 404);
+    assert.equal(askUnknownServiceIds(db).ids.find((r) => r.service_id === 'hubspot-jp').asks, 1);
+    const bad = await fetch(`${base}/api/v1/ask?service=${encodeURIComponent('bad id')}&error=403`); assert.equal(bad.status, 400);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM ask_unknown_service').get().n, 8);
+  } finally { await new Promise(r => server.close(r)); }
+  // ASK_LOG_ENABLED=false records nothing
+  process.env.ASK_LOG_ENABLED = 'false';
+  try { assert.throws(() => ask(db, { service: 'nothing-here', error: 'x' }, o)); assert.equal(db.prepare('SELECT count(*) AS n FROM ask_unknown_service').get().n, 8); }
+  finally { delete process.env.ASK_LOG_ENABLED; }
   db.close();
 });
