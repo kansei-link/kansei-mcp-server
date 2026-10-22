@@ -73,19 +73,38 @@ async function tryGet(fn) {
 }
 
 // ── 公式 MCP Registry ──
+// fix2: 時間を測って記録する（原因＝遅い／拒否／特定の語だけ、を実行ごとに見分けるため）。
+const registryTimings = []; // { q, attempt, ms, status }
+async function registryProbe() {
+  // 実行の最初に 1 回だけ、軽い問い合わせ（limit=1）で Registry の応答時間と状態を測る。結果は snapshot の meta とログに残す。
+  const t0 = Date.now();
+  try {
+    const { status } = await get('https://registry.modelcontextprotocol.io/v0/servers?limit=1', 'application/json', { timeout: REGISTRY_TIMEOUT, retryRefusedWithBrowserUa: false });
+    const ms = Date.now() - t0;
+    console.error(`registry probe: HTTP ${status} in ${ms} ms`);
+    return { status, ms };
+  } catch (e) {
+    const ms = Date.now() - t0; const f = classifyError(e);
+    console.error(`registry probe: ${f.kind} (${f.message}) after ${ms} ms`);
+    return { status: null, ms, error: f.message, kind: f.kind };
+  }
+}
 async function registry(q) {
-  // 60 秒・最大 3 回（間を空けて）。最後の失敗だけを返す。
+  // 60 秒・最大 3 回（間を空けて）。最後の失敗だけを返す。各回の時間を記録する。
   let last;
   for (let attempt = 1; attempt <= REGISTRY_ATTEMPTS; attempt++) {
+    const t0 = Date.now();
     try {
       const { status, text } = await get(`https://registry.modelcontextprotocol.io/v0/servers?search=${encodeURIComponent(q)}&limit=100`, 'application/json', { timeout: REGISTRY_TIMEOUT, retryRefusedWithBrowserUa: false });
+      registryTimings.push({ q, attempt, ms: Date.now() - t0, status });
       if (status !== 200) throw httpFailure(status);
       return parseRegistry(JSON.parse(text));
     } catch (e) {
       last = e;
-      const kind = classifyError(e).kind;
-      if (kind !== 'transient' || attempt === REGISTRY_ATTEMPTS) break;
-      console.error(`  registry ${q}: attempt ${attempt} failed (${classifyError(e).message}), retrying`);
+      const f = classifyError(e);
+      if (!registryTimings.some((t) => t.q === q && t.attempt === attempt)) registryTimings.push({ q, attempt, ms: Date.now() - t0, status: null, error: f.message });
+      if (f.kind !== 'transient' || attempt === REGISTRY_ATTEMPTS) break;
+      console.error(`  registry ${q}: attempt ${attempt} failed (${f.message}) after ${Date.now() - t0} ms, retrying`);
       await sleep(5_000 * attempt);
     }
   }
@@ -192,7 +211,8 @@ async function endpoint(url) {
 // ── run ──
 const cfg = JSON.parse(readFileSync(resolve(ROOT, 'src/data/tier1.json'), 'utf8'));
 const prev = PREV ? JSON.parse(readFileSync(resolve(PREV), 'utf8')) : null;
-const snap = { schema: 'tier1-snapshot/0', date: new Date().toISOString().slice(0, 10), generated_at: new Date().toISOString(), tier1_as_of: cfg.as_of, services: {} };
+const snap = { schema: 'tier1-snapshot/0', date: new Date().toISOString().slice(0, 10), generated_at: new Date().toISOString(), tier1_as_of: cfg.as_of, meta: {}, services: {} };
+snap.meta.registry_probe = await registryProbe();
 
 for (const s of cfg.services) {
   if (ONLY && !ONLY.has(s.id)) continue;
@@ -208,11 +228,22 @@ for (const s of cfg.services) {
   console.error(`${s.id}: ${n.length} sources, ${bad.length} failed${bad.length ? ` (${bad.map((x) => x.failure_kind).join(',')})` : ''}`);
   await sleep(1_500); // サービス間も少し間を空ける（Registry に続けて当てない）
 }
+snap.meta.registry_timings = registryTimings;
+{
+  const ok = registryTimings.filter((t) => t.status === 200), bad = registryTimings.filter((t) => t.status !== 200);
+  const avg = ok.length ? Math.round(ok.reduce((a, t) => a + t.ms, 0) / ok.length) : null;
+  const max = ok.length ? Math.max(...ok.map((t) => t.ms)) : null;
+  console.error(`registry timings: ok ${ok.length} (avg ${avg} ms, max ${max} ms) / failed attempts ${bad.length}${bad.length ? ` [${bad.map((t) => `${t.q}#${t.attempt} ${t.error || t.status} ${t.ms}ms`).join(', ')}]` : ''}`);
+}
 mkdirSync(dirname(resolve(OUT)), { recursive: true });
 writeFileSync(resolve(OUT), JSON.stringify(snap, null, 1) + '\n');
 
 // ── diff ──
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// fix2: 「2 週続いたら」は日付で数える。前回の記録が 6 日以上前（＝前の週の実行）で、かつ今回も失敗の時だけ Issue。
+// 同じ週の手動実行（同じ日・数日後）は数えない。
+const TRANSIENT_MIN_GAP_DAYS = 6;
+const prevAgeDays = prev?.date ? Math.round((new Date(snap.date) - new Date(prev.date)) / 86_400_000) : null;
 function diffSources(id, name, cur, before) {
   const out = [];
   const push = (level, key, src, field, prevV, nowV, note) => out.push({ level, service: id, service_name: name, source: key, kind: src.kind, url: src.url, field, before: prevV ?? null, after: nowV ?? null, note: note || undefined });
@@ -222,8 +253,9 @@ function diffSources(id, name, cur, before) {
       // fix1: 失敗の種類で分ける。refused → 記録だけ（CI から拒否）／permanent → すぐ Issue／transient → 2 週続いた時だけ Issue
       const prevWord = old ? (old.ok ? 'ok' : `failed (${old.failure_kind || '?'})`) : null;
       const kind = src.failure_kind || 'transient';
-      const level = kind === 'refused' ? 'refused' : kind === 'permanent' ? 'failed' : (old && !old.ok ? 'failed' : 'transient');
-      push(level, key, src, 'fetch', prevWord, src.error, kind === 'transient' && level === 'failed' ? '2 回続けて失敗' : undefined);
+      const failedLastWeek = Boolean(old && !old.ok && prevAgeDays != null && prevAgeDays >= TRANSIENT_MIN_GAP_DAYS);
+      const level = kind === 'refused' ? 'refused' : kind === 'permanent' ? 'failed' : (failedLastWeek ? 'failed' : 'transient');
+      push(level, key, src, 'fetch', prevWord, src.error, kind === 'transient' && level === 'failed' ? `前の週（${prev.date}）に続けて失敗` : undefined);
       continue;
     }
     if (!old || !old.ok) continue; // 前回が無い／失敗 → 比べない（今回の値は記録に残る）
@@ -274,7 +306,7 @@ if (DIFF) {
   // 初回（前回なし）も同じ分け方: 失敗だけが出る（permanent → failed・transient → 記録だけ・refused → CI から拒否）
   for (const [id, cur] of Object.entries(snap.services)) items.push(...diffSources(id, cur.name, cur, prev?.services?.[id]));
   const count = (lv) => items.filter((x) => x.level === lv).length;
-  const diff = { schema: 'tier1-diff/1', date: snap.date, prev_date: prev?.date || null, first_run: !prev,
+  const diff = { schema: 'tier1-diff/1', date: snap.date, prev_date: prev?.date || null, prev_age_days: prevAgeDays, first_run: !prev, registry_probe: snap.meta.registry_probe,
     counts: { small: count('small'), medium: count('medium'), large: count('large'), failed: count('failed'), refused: count('refused'), transient: count('transient'), note: count('note') }, items };
   writeFileSync(resolve(DIFF), JSON.stringify(diff, null, 1) + '\n');
   console.error(`diff vs ${prev?.date || '(none)'}: small ${diff.counts.small} / medium ${diff.counts.medium} / large ${diff.counts.large} / failed ${diff.counts.failed} / refused ${diff.counts.refused} / transient ${diff.counts.transient} / note ${diff.counts.note}`);
