@@ -488,7 +488,7 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
     ["npx @qdrant/mcp-server", "uvx mcp-server-qdrant"],
     ["npx supabase-mcp-server", "npx @supabase/mcp-server-supabase"],
     // 2026-09-18: developer.moneyforward.com no longer resolves; the official developer site is developers.biz.moneyforward.com
-    ["https://developer.moneyforward.com/docs/accounting", "https://developers.biz.moneyforward.com/"],
+    ["https://developer.moneyforward.com/docs/accounting", "https://developers.api-accounting.moneyforward.com/"], // 2026-10-22: 会計 API 仕様書（developers.biz.moneyforward.com →「API クラウド会計」→ ot09.html →「クラウド会計API仕様書」で確認）
     ["register at developer.moneyforward.com, get client_id/secret", "register the app at the App Portal (https://app-portal.moneyforward.com/; docs: https://developers.biz.moneyforward.com/), get client_id/secret"],
   ];
   const guideTextCols = [

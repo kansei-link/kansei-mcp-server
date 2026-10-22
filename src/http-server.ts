@@ -278,7 +278,9 @@ app.get("/api/dashboard/stats", apiLimiter, (_req: Request, res: Response) => {
       SELECT
         COUNT(*) as total,
         ROUND(AVG(CASE WHEN axr_score IS NOT NULL THEN axr_score / 100.0 END), 2) as avg_aeo,
-        SUM(CASE WHEN mcp_status = 'official' OR mcp_endpoint IS NOT NULL THEN 1 ELSE 0 END) as mcp_count
+        -- 2026-10-22: 「公式 MCP の有無」で数える。以前は mcp_endpoint があれば数えていたため、
+        -- community の npx 指定まで含んで 11,293/11,293 = 100% と出ていた（集計の定義の直し・経路は不変）。
+        SUM(CASE WHEN mcp_status = 'official' THEN 1 ELSE 0 END) as mcp_count
       FROM services
     `).get() as any;
 

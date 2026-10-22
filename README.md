@@ -99,7 +99,7 @@ The core reason agents waste tokens on SaaS APIs: they search docs, guess auth f
 
 | | Count | Description |
 |---|---|---|
-| Services | **11,000+** | MCP servers and SaaS APIs across 23 categories (2,257 MCP-verified via handshake) |
+| Services | **11,293** | MCP servers and SaaS APIs across 49 categories (2,257 endpoints answered our MCP handshake probe as of 2026-06-09) |
 | Recipes | **200** | Multi-service workflow compositions (standup, PR review, incident response, onboarding...) |
 | API Guides | **199** | Auth setup, endpoints, rate limits, pitfalls, and workarounds |
 | Trust Scores | **Weekly** | Based on automated health probes + real agent usage data |
