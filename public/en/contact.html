@@ -256,7 +256,7 @@
     </div>
 
     <div class="contact-form">
-      <form id="enterprise-form" onsubmit="event.preventDefault(); const f=this; window.location.href='mailto:hello@kansei-link.com?subject='+encodeURIComponent('Enterprise Inquiry from '+f.name.value)+'&body='+encodeURIComponent('Name: '+f.name.value+'\nCompany: '+f.company.value+'\nEmail: '+f.email.value+'\nInterest: '+f.interest.value+'\nService: '+(f.service_name.value||'N/A')+'\n\n'+f.message.value); alert('Opening email client...');" method="POST" action="#">
+      <form id="enterprise-form" onsubmit="event.preventDefault(); const f=this; window.location.href='mailto:hello@kansei-link.com?subject='+encodeURIComponent((f.interest.value==='agent-verification'?'Verification inquiry from ':'Enterprise Inquiry from ')+f.name.value)+'&body='+encodeURIComponent('Name: '+f.name.value+'\nCompany: '+f.company.value+'\nEmail: '+f.email.value+'\nInterest: '+f.interest.value+'\nService: '+(f.service_name.value||'N/A')+'\n\n'+f.message.value); alert('Opening email client...');" method="POST" action="#">
         <div class="form-group">
           <label>Name<span class="req">*</span></label>
           <input type="text" name="name" required placeholder="John Doe">
@@ -277,6 +277,7 @@
             <option value="api-consulting">API Improvement Consulting</option>
             <option value="mcp-support">MCP Support Program</option>
             <option value="team-plan">Team Plan (Multiple Services)</option>
+            <option value="agent-verification">Agent verification (run an AI agent against our SaaS)</option>
             <option value="other">Other</option>
           </select>
         </div>
@@ -334,5 +335,10 @@ document.querySelectorAll('.nav-links a').forEach(function(link) {
   });
 });
 </script>
+
+  <script id="topic-verify">
+  // /contact.html?topic=verify (from the "verify your own SaaS" card): preselect the topic and seed the message. Nothing is sent.
+  (function(){try{if(new URLSearchParams(location.search).get('topic')!=='verify')return;var f=document.getElementById('enterprise-form');if(!f)return;f.interest.value='agent-verification';if(!f.message.value)f.message.value='Verification inquiry\nService to verify: \nTask the agent should complete: \n';}catch(e){}})();
+  </script>
 </body>
 </html>
