@@ -57,6 +57,7 @@ import { createNotesHandlers } from "./notes/routes.js";
 import { createAskHandlers } from "./ask/routes.js";
 import { candidateSourceCounts } from "./ask/engine.js";
 import { adminActivity } from "./admin/activity.js";
+import { adminSiteChecks, siteCheckRows, siteChecksCsv, parseDays as parseSiteCheckDays } from "./admin/site-checks.js";
 import { jsonBodyErrorHandler } from "./utils/json-body-errors.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
@@ -1403,6 +1404,32 @@ app.get("/admin/activity", (req: Request, res: Response) => {
     res.json(adminActivity(getDb()));
   } catch {
     res.status(500).json({ error: "activity_unavailable" });
+  }
+});
+
+/**
+ * GET /admin/site-checks
+ *   Headers:  Authorization: Bearer <CRAWLER_SECRET>
+ *   Query:    days=1..365 (default 30), format=csv (optional)
+ *
+ * Read-only log of the free site checker (/site-checker/): totals, checks per
+ * day, grades, score bands, top domains and the latest checks. Domains, scores
+ * and grades only — never ip_hash values (distinct requesters as a count) or raw
+ * signals. format=csv returns every row in the window. Writes nothing.
+ */
+app.get("/admin/site-checks", (req: Request, res: Response) => {
+  if (!requireAdminSecret(req, res)) return;
+  res.setHeader("Cache-Control", "no-store");
+  try {
+    const days = parseSiteCheckDays(req.query.days);
+    if (req.query.format === "csv") {
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename=site-checks-${days}d.csv`);
+      return res.send(siteChecksCsv(siteCheckRows(getDb(), days)));
+    }
+    res.json(adminSiteChecks(getDb(), days));
+  } catch {
+    res.status(500).json({ error: "site_checks_unavailable" });
   }
 });
 
