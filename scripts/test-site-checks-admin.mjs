@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import Database from 'better-sqlite3';
-import { adminSiteChecks, siteCheckRows, siteChecksCsv, domainOf, parseDays } from '../dist/admin/site-checks.js';
+import { adminSiteChecks, siteCheckRows, siteChecksCsv, domainOf, parseDays, neutralizeFormula } from '../dist/admin/site-checks.js';
 
 // Test DBs only (in-memory). Never the production DB.
 
@@ -58,9 +58,31 @@ test('csv: BOM, header, one line per row in window', () => {
   assert.ok(!csv.includes('x,'));
 });
 
+test('a value that is not a URL never leaks its path or query', () => {
+  assert.equal(domainOf('not a url /path?q=secret'), '(invalid-url)');
+  assert.equal(domainOf(''), '(invalid-url)');
+  const db = setup();
+  add(db, 'ccccccccccc1', 'not a url /path?q=secret', 10, 'CCC', 'z', '-1 hours');
+  const a = adminSiteChecks(db, 30);
+  assert.equal(a.latest[0].domain, '(invalid-url)');
+  assert.equal(a.top_domains[0].domain, '(invalid-url)');
+  const text = JSON.stringify(a) + siteChecksCsv(siteCheckRows(db, 30));
+  assert.ok(!text.includes('secret'));
+  assert.ok(!text.includes('/path'));
+});
+
+test('csv: cells a spreadsheet would run as a formula are prefixed with a quote', () => {
+  for (const v of ['=1+1', '+1', '-1', '@SUM(A1)', '\tx', '\rx', '\nx']) assert.equal(neutralizeFormula(v), `'${v}`);
+  for (const v of ['example.com', '2026-10-22 01:02:03', 'AAA', '(invalid-url)']) assert.equal(neutralizeFormula(v), v);
+  const csv = siteChecksCsv([
+    { id: '=HYPERLINK("x")', domain: '+cmd', score: 1, grade: '-A', created_at: '@now' },
+  ]);
+  const line = csv.split('\n')[1];
+  assert.equal(line, `"'=HYPERLINK(""x"")",'+cmd,1,'-A,'@now`);
+});
+
 test('helpers', () => {
   assert.equal(domainOf('https://WWW.Foo.co.jp/path?q=1'), 'foo.co.jp');
-  assert.equal(domainOf('not a url'), 'not a url');
   assert.equal(parseDays(undefined), 30);
   assert.equal(parseDays('0'), 30);
   assert.equal(parseDays('abc'), 30);

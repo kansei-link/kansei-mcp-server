@@ -14,12 +14,16 @@ const GRADES = ["AAA", "AA", "A", "BBB", "BB", "B", "CCC"] as const;
 
 export type SiteCheckRow = { id: string; domain: string; score: number; grade: string; created_at: string };
 
-/** Hostname without a leading "www.", or the raw value when it is not a URL. */
+export const INVALID_URL_DOMAIN = "(invalid-url)";
+
+/** Hostname without a leading "www.". A value that is not a URL returns a fixed
+ *  marker — never the raw string, which could carry a path or query. */
 export function domainOf(url: string): string {
   try {
-    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+    const host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+    return host || INVALID_URL_DOMAIN;
   } catch {
-    return url.slice(0, 200);
+    return INVALID_URL_DOMAIN;
   }
 }
 
@@ -99,9 +103,18 @@ export function adminSiteChecks(db: Database.Database, days = SITE_CHECKS_DEFAUL
   };
 }
 
-/** CSV of every row in the window (UTF-8 with BOM so Excel opens it as Japanese-safe). */
+/** Prefix a cell that a spreadsheet would read as a formula (=, +, -, @, tab, CR, LF). */
+export function neutralizeFormula(v: string): string {
+  return /^[=+\-@\t\r\n]/.test(v) ? `'${v}` : v;
+}
+
+/** CSV of every row in the window (UTF-8 with BOM so Excel opens it as Japanese-safe).
+ *  Text cells are formula-neutralized before quoting, since the file is meant for Excel. */
 export function siteChecksCsv(rows: SiteCheckRow[]): string {
-  const esc = (v: string) => (/[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  const lines = rows.map((r) => [r.id, esc(r.domain), String(r.score), r.grade, r.created_at].join(","));
+  const esc = (raw: string) => {
+    const v = neutralizeFormula(raw);
+    return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+  };
+  const lines = rows.map((r) => [esc(r.id), esc(r.domain), String(r.score), esc(r.grade), esc(r.created_at)].join(","));
   return "﻿id,domain,score,grade,created_at_utc\n" + lines.join("\n") + (lines.length ? "\n" : "");
 }
