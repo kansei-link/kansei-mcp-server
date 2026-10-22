@@ -10,7 +10,9 @@
 //   接続先（公開物のみ）… HTTP 状態・/.well-known/oauth-authorization-server の主な欄
 //                                                       状態が 2xx/4xx 以外→大／欄の変化→大
 //   お知らせ           … 「MCP」を含む見出し               新しい見出し→中
-//   取得に失敗した出典  … 「取得失敗」（ページの移転・廃止の兆し）
+//   取得に失敗した出典  … 名前解決できない・404 →「取得失敗」（ページの移転・廃止の兆し・すぐ Issue）
+//                        タイムアウト・5xx・接続切れ → 「一時的」（記録だけ・2 週続けば「取得失敗」）
+//                        403/429（ブラウザ UA で取り直しても）→「CI から拒否」（記録だけ・Issue は立てない）
 //
 // 依存なし（Node 20+ の fetch）。認証が要る接続先には繋がない（鍵を持たない）。スクリーンショットは使わない。
 //
@@ -24,7 +26,12 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const UA = 'kansei-tier1-diff/0.1 (+https://kansei-link.com; weekly freshness check)';
+// 403/429 で「手元では取れる」型は、1 回だけ普通のブラウザに近い UA で取り直す（fix1: 初回の雑音 12 件のうち 3 件）。
+const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 const TIMEOUT = 25_000;
+const REGISTRY_TIMEOUT = 60_000; // Registry は遅い（20 秒では時々切れる・60 秒なら返る）
+const REGISTRY_ATTEMPTS = 3;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const args = process.argv.slice(2);
 const opt = (k, d = null) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -35,19 +42,75 @@ if (!OUT) { console.error('usage: --out <file> [--prev <file>] [--diff <file>] [
 const sha = (s) => createHash('sha256').update(s).digest('hex');
 const trunc = (s, n = 400) => (s.length > n ? s.slice(0, n) + '…' : s);
 
-async function get(url, accept = 'text/html,application/json;q=0.9,*/*;q=0.8') {
-  const r = await fetch(url, { headers: { 'user-agent': UA, accept }, redirect: 'follow', signal: AbortSignal.timeout(TIMEOUT) });
-  const text = await r.text();
-  return { status: r.status, url: r.url, text };
+// Failure kinds (fix1):
+//   refused   … 403/429 のまま（ブラウザ UA で取り直しても）＝CI からの取得を拒まれている。記録だけ・Issue は立てない
+//   permanent … 名前解決できない（ENOTFOUND）・404/410 ＝ページの移転や廃止の兆し。すぐ Issue
+//   transient … タイムアウト・5xx・接続切れ ＝ 2 週続いた時だけ Issue
+class FetchFailure extends Error { constructor(kind, message) { super(message); this.kind = kind; } }
+const httpFailure = (status) => new FetchFailure(status === 403 || status === 429 ? 'refused' : (status === 404 || status === 410) ? 'permanent' : 'transient', `HTTP ${status}`);
+function classifyError(e) {
+  if (e instanceof FetchFailure) return e;
+  const code = e?.cause?.code || e?.code || '';
+  const msg = String(e?.message || e);
+  if (/ENOTFOUND|EAI_AGAIN/.test(code) || /ENOTFOUND|getaddrinfo/.test(msg)) return new FetchFailure('permanent', `名前解決できない（${code || 'ENOTFOUND'}）`);
+  if (e?.name === 'TimeoutError' || /timeout|aborted/i.test(msg)) return new FetchFailure('transient', 'timeout');
+  return new FetchFailure('transient', trunc(`${msg}${code ? ` (${code})` : ''}`, 200));
 }
-// Every source returns { ok, value } or { ok:false, error }. Errors are strings only (no stack, no headers).
-async function tryGet(fn) { try { return { ok: true, value: await fn() }; } catch (e) { return { ok: false, error: trunc(String(e?.message || e), 200) }; } }
+async function get(url, accept = 'text/html,application/json;q=0.9,*/*;q=0.8', { timeout = TIMEOUT, retryRefusedWithBrowserUa = true } = {}) {
+  const once = async (ua) => {
+    const r = await fetch(url, { headers: { 'user-agent': ua, accept, 'accept-language': 'ja,en;q=0.8' }, redirect: 'follow', signal: AbortSignal.timeout(timeout) });
+    return { status: r.status, url: r.url, text: await r.text() };
+  };
+  let res = await once(UA);
+  if ((res.status === 403 || res.status === 429) && retryRefusedWithBrowserUa) { await sleep(2000); res = await once(BROWSER_UA); res.retried_with_browser_ua = true; }
+  return res;
+}
+const expect200 = (res) => { if (res.status !== 200) throw httpFailure(res.status); return res; };
+// Every source returns { ok, value } or { ok:false, failure_kind, error }. Errors are strings only (no stack, no headers).
+async function tryGet(fn) {
+  try { return { ok: true, value: await fn() }; }
+  catch (e) { const f = classifyError(e); return { ok: false, failure_kind: f.kind, error: trunc(f.message, 200) }; }
+}
 
 // ── 公式 MCP Registry ──
+// fix2: 時間を測って記録する（原因＝遅い／拒否／特定の語だけ、を実行ごとに見分けるため）。
+const registryTimings = []; // { q, attempt, ms, status }
+async function registryProbe() {
+  // 実行の最初に 1 回だけ、軽い問い合わせ（limit=1）で Registry の応答時間と状態を測る。結果は snapshot の meta とログに残す。
+  const t0 = Date.now();
+  try {
+    const { status } = await get('https://registry.modelcontextprotocol.io/v0/servers?limit=1', 'application/json', { timeout: REGISTRY_TIMEOUT, retryRefusedWithBrowserUa: false });
+    const ms = Date.now() - t0;
+    console.error(`registry probe: HTTP ${status} in ${ms} ms`);
+    return { status, ms };
+  } catch (e) {
+    const ms = Date.now() - t0; const f = classifyError(e);
+    console.error(`registry probe: ${f.kind} (${f.message}) after ${ms} ms`);
+    return { status: null, ms, error: f.message, kind: f.kind };
+  }
+}
 async function registry(q) {
-  const { status, text } = await get(`https://registry.modelcontextprotocol.io/v0/servers?search=${encodeURIComponent(q)}&limit=100`, 'application/json');
-  if (status !== 200) throw new Error(`HTTP ${status}`);
-  const j = JSON.parse(text);
+  // 60 秒・最大 3 回（間を空けて）。最後の失敗だけを返す。各回の時間を記録する。
+  let last;
+  for (let attempt = 1; attempt <= REGISTRY_ATTEMPTS; attempt++) {
+    const t0 = Date.now();
+    try {
+      const { status, text } = await get(`https://registry.modelcontextprotocol.io/v0/servers?search=${encodeURIComponent(q)}&limit=100`, 'application/json', { timeout: REGISTRY_TIMEOUT, retryRefusedWithBrowserUa: false });
+      registryTimings.push({ q, attempt, ms: Date.now() - t0, status });
+      if (status !== 200) throw httpFailure(status);
+      return parseRegistry(JSON.parse(text));
+    } catch (e) {
+      last = e;
+      const f = classifyError(e);
+      if (!registryTimings.some((t) => t.q === q && t.attempt === attempt)) registryTimings.push({ q, attempt, ms: Date.now() - t0, status: null, error: f.message });
+      if (f.kind !== 'transient' || attempt === REGISTRY_ATTEMPTS) break;
+      console.error(`  registry ${q}: attempt ${attempt} failed (${f.message}) after ${Date.now() - t0} ms, retrying`);
+      await sleep(5_000 * attempt);
+    }
+  }
+  throw last;
+}
+function parseRegistry(j) {
   const servers = (j.servers || []).map((x) => ({
     name: x.server?.name, version: x.server?.version,
     is_latest: Boolean(x._meta?.['io.modelcontextprotocol.registry/official']?.isLatest),
@@ -59,8 +122,7 @@ async function registry(q) {
 
 // ── npm ──
 async function npm(name) {
-  const { status, text } = await get(`https://registry.npmjs.org/${encodeURIComponent(name).replace('%40', '@')}`, 'application/json');
-  if (status !== 200) throw new Error(`HTTP ${status}`);
+  const { text } = expect200(await get(`https://registry.npmjs.org/${encodeURIComponent(name).replace('%40', '@')}`, 'application/json'));
   const j = JSON.parse(text);
   const latest = j['dist-tags']?.latest || null;
   return { version: latest, published_at: latest ? (j.time?.[latest] || null) : null };
@@ -88,10 +150,9 @@ async function github(repo) {
   else if (rel.status === 404) {
     const tags = await get(`https://api.github.com/repos/${repo}/tags?per_page=1`, 'application/vnd.github+json');
     if (tags.status === 200) { const t = JSON.parse(tags.text)[0]; release = t ? { tag: t.name, published_at: null, from: 'tags' } : null; }
-    else throw new Error(`tags HTTP ${tags.status}`);
-  } else throw new Error(`releases HTTP ${rel.status}`);
-  const readme = await get(`https://raw.githubusercontent.com/${repo}/HEAD/README.md`, 'text/plain');
-  if (readme.status !== 200) throw new Error(`README HTTP ${readme.status}`);
+    else throw httpFailure(tags.status);
+  } else throw httpFailure(rel.status);
+  const readme = expect200(await get(`https://raw.githubusercontent.com/${repo}/HEAD/README.md`, 'text/plain'));
   const auth = authSection(readme.text);
   return { release, readme_sha256: sha(readme.text), auth_section: { sha256: sha(auth), length: auth.length, text: trunc(auth, 1500) } };
 }
@@ -115,23 +176,21 @@ function normalise(text) {
     .join('\n');
 }
 async function docPage(url) {
-  const { status, text, url: finalUrl } = await get(url);
-  if (status !== 200) throw new Error(`HTTP ${status}`);
+  const { text, url: finalUrl, retried_with_browser_ua } = expect200(await get(url));
   const body = normalise(htmlToText(text));
   const lines = [...new Set(body.split('\n').filter((l) => RELEVANT.test(l)).map((l) => trunc(l, 300)))].slice(0, 80);
-  return { final_url: finalUrl !== url ? finalUrl : undefined, sha256: sha(body), length: body.length, relevant_lines: lines, relevant_sha256: sha(lines.join('\n')) };
+  return { final_url: finalUrl !== url ? finalUrl : undefined, browser_ua: retried_with_browser_ua || undefined, sha256: sha(body), length: body.length, relevant_lines: lines, relevant_sha256: sha(lines.join('\n')) };
 }
 
 // ── お知らせ: headings containing MCP ──
 async function newsPage(url) {
-  const { status, text } = await get(url);
-  if (status !== 200) throw new Error(`HTTP ${status}`);
+  const { text, retried_with_browser_ua } = expect200(await get(url));
   const heads = [];
   for (const m of text.matchAll(/<(h[1-4]|a|li|dt|p)\b[^>]*>([\s\S]*?)<\/\1>/gi)) {
     const t = htmlToText(m[2]).replace(/\s+/g, ' ').trim();
     if (/\bMCP\b/i.test(t) && t.length >= 6 && t.length <= 200) heads.push(t);
   }
-  return { mcp_headings: [...new Set(heads)].slice(0, 50) };
+  return { browser_ua: retried_with_browser_ua || undefined, mcp_headings: [...new Set(heads)].slice(0, 50) };
 }
 
 // ── 接続先（公開物のみ・認証しない）──
@@ -152,7 +211,8 @@ async function endpoint(url) {
 // ── run ──
 const cfg = JSON.parse(readFileSync(resolve(ROOT, 'src/data/tier1.json'), 'utf8'));
 const prev = PREV ? JSON.parse(readFileSync(resolve(PREV), 'utf8')) : null;
-const snap = { schema: 'tier1-snapshot/0', date: new Date().toISOString().slice(0, 10), generated_at: new Date().toISOString(), tier1_as_of: cfg.as_of, services: {} };
+const snap = { schema: 'tier1-snapshot/0', date: new Date().toISOString().slice(0, 10), generated_at: new Date().toISOString(), tier1_as_of: cfg.as_of, meta: {}, services: {} };
+snap.meta.registry_probe = await registryProbe();
 
 for (const s of cfg.services) {
   if (ONLY && !ONLY.has(s.id)) continue;
@@ -164,20 +224,40 @@ for (const s of cfg.services) {
   if (s.endpoint) rec.sources[`endpoint:${s.endpoint}`] = { kind: 'endpoint', url: s.endpoint, ...(await tryGet(() => endpoint(s.endpoint))) };
   for (const u of s.news || []) rec.sources[`news:${u}`] = { kind: 'news', url: u, ...(await tryGet(() => newsPage(u))) };
   snap.services[s.id] = rec;
-  const n = Object.values(rec.sources); const bad = n.filter((x) => !x.ok).length;
-  console.error(`${s.id}: ${n.length} sources, ${bad} failed`);
+  const n = Object.values(rec.sources); const bad = n.filter((x) => !x.ok);
+  console.error(`${s.id}: ${n.length} sources, ${bad.length} failed${bad.length ? ` (${bad.map((x) => x.failure_kind).join(',')})` : ''}`);
+  await sleep(1_500); // サービス間も少し間を空ける（Registry に続けて当てない）
+}
+snap.meta.registry_timings = registryTimings;
+{
+  const ok = registryTimings.filter((t) => t.status === 200), bad = registryTimings.filter((t) => t.status !== 200);
+  const avg = ok.length ? Math.round(ok.reduce((a, t) => a + t.ms, 0) / ok.length) : null;
+  const max = ok.length ? Math.max(...ok.map((t) => t.ms)) : null;
+  console.error(`registry timings: ok ${ok.length} (avg ${avg} ms, max ${max} ms) / failed attempts ${bad.length}${bad.length ? ` [${bad.map((t) => `${t.q}#${t.attempt} ${t.error || t.status} ${t.ms}ms`).join(', ')}]` : ''}`);
 }
 mkdirSync(dirname(resolve(OUT)), { recursive: true });
 writeFileSync(resolve(OUT), JSON.stringify(snap, null, 1) + '\n');
 
 // ── diff ──
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// fix2: 「2 週続いたら」は日付で数える。前回の記録が 6 日以上前（＝前の週の実行）で、かつ今回も失敗の時だけ Issue。
+// 同じ週の手動実行（同じ日・数日後）は数えない。
+const TRANSIENT_MIN_GAP_DAYS = 6;
+const prevAgeDays = prev?.date ? Math.round((new Date(snap.date) - new Date(prev.date)) / 86_400_000) : null;
 function diffSources(id, name, cur, before) {
   const out = [];
   const push = (level, key, src, field, prevV, nowV, note) => out.push({ level, service: id, service_name: name, source: key, kind: src.kind, url: src.url, field, before: prevV ?? null, after: nowV ?? null, note: note || undefined });
   for (const [key, src] of Object.entries(cur.sources)) {
     const old = before?.sources?.[key];
-    if (!src.ok) { push('failed', key, src, 'fetch', old?.ok ? 'ok' : (old ? 'failed' : null), src.error); continue; }
+    if (!src.ok) {
+      // fix1: 失敗の種類で分ける。refused → 記録だけ（CI から拒否）／permanent → すぐ Issue／transient → 2 週続いた時だけ Issue
+      const prevWord = old ? (old.ok ? 'ok' : `failed (${old.failure_kind || '?'})`) : null;
+      const kind = src.failure_kind || 'transient';
+      const failedLastWeek = Boolean(old && !old.ok && prevAgeDays != null && prevAgeDays >= TRANSIENT_MIN_GAP_DAYS);
+      const level = kind === 'refused' ? 'refused' : kind === 'permanent' ? 'failed' : (failedLastWeek ? 'failed' : 'transient');
+      push(level, key, src, 'fetch', prevWord, src.error, kind === 'transient' && level === 'failed' ? `前の週（${prev.date}）に続けて失敗` : undefined);
+      continue;
+    }
     if (!old || !old.ok) continue; // 前回が無い／失敗 → 比べない（今回の値は記録に残る）
     const a = old.value, b = src.value;
     switch (src.kind) {
@@ -223,11 +303,11 @@ function diffSources(id, name, cur, before) {
 }
 if (DIFF) {
   const items = [];
-  if (prev) for (const [id, cur] of Object.entries(snap.services)) items.push(...diffSources(id, cur.name, cur, prev.services?.[id]));
-  else for (const [id, cur] of Object.entries(snap.services)) for (const [key, src] of Object.entries(cur.sources)) if (!src.ok) items.push({ level: 'failed', service: id, service_name: cur.name, source: key, kind: src.kind, url: src.url, field: 'fetch', before: null, after: src.error });
+  // 初回（前回なし）も同じ分け方: 失敗だけが出る（permanent → failed・transient → 記録だけ・refused → CI から拒否）
+  for (const [id, cur] of Object.entries(snap.services)) items.push(...diffSources(id, cur.name, cur, prev?.services?.[id]));
   const count = (lv) => items.filter((x) => x.level === lv).length;
-  const diff = { schema: 'tier1-diff/0', date: snap.date, prev_date: prev?.date || null, first_run: !prev,
-    counts: { small: count('small'), medium: count('medium'), large: count('large'), failed: count('failed'), note: count('note') }, items };
+  const diff = { schema: 'tier1-diff/1', date: snap.date, prev_date: prev?.date || null, prev_age_days: prevAgeDays, first_run: !prev, registry_probe: snap.meta.registry_probe,
+    counts: { small: count('small'), medium: count('medium'), large: count('large'), failed: count('failed'), refused: count('refused'), transient: count('transient'), note: count('note') }, items };
   writeFileSync(resolve(DIFF), JSON.stringify(diff, null, 1) + '\n');
-  console.error(`diff vs ${prev?.date || '(none)'}: small ${diff.counts.small} / medium ${diff.counts.medium} / large ${diff.counts.large} / failed ${diff.counts.failed} / note ${diff.counts.note}`);
+  console.error(`diff vs ${prev?.date || '(none)'}: small ${diff.counts.small} / medium ${diff.counts.medium} / large ${diff.counts.large} / failed ${diff.counts.failed} / refused ${diff.counts.refused} / transient ${diff.counts.transient} / note ${diff.counts.note}`);
 }
