@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.3.0 (unreleased — disclosure stage 1)
+## v1.3.0 (2026-10-23)
 
 ### Changed — the package ships the public copy of the data, not the full seed
 - `src/data/public/` (written by `npm run data:public`) is what the npm package carries now:
