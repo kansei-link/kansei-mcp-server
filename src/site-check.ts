@@ -20,6 +20,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { getDb } from "./db/connection.js";
+import { clientIp } from "./utils/client-ip.js";
 
 const USER_AGENT =
   "KanseiLink-SiteChecker/1.0 (+https://kansei-link.com/site-checker/)";
@@ -611,7 +612,7 @@ export async function handleSiteCheck(req: Request, res: Response): Promise<void
     const result = await runSiteCheck(url);
     const id = randomBytes(6).toString("hex");
     const ipHash = createHash("sha256")
-      .update(req.ip ?? "unknown")
+      .update(clientIp(req))
       .digest("hex")
       .slice(0, 16);
     getDb()

@@ -14,7 +14,7 @@ import { transmissionAllowed } from "./consent.js";
 import { getInstallation } from "./installation.js";
 
 const ENDPOINT_BASE =
-  process.env.KANSEI_ENDPOINT_BASE || "https://kansei-link-mcp-production.up.railway.app";
+  process.env.KANSEI_ENDPOINT_BASE || "https://mcp.kansei-link.com";
 export const EVENT_CONTRACT_VERSION = "1.0";
 
 // catalog_version = the npm package version whose bundled seed this

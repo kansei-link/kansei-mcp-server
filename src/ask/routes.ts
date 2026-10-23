@@ -1,5 +1,6 @@
 import { type Request, type Response } from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import { clientIp } from "../utils/client-ip.js";
 import type Database from "better-sqlite3";
 import { z } from "zod";
 import { classifyUserAgent, requestIdOf } from "../ard.js";
@@ -24,6 +25,7 @@ export function createAskHandlers(db: Database.Database) {
   ensureAskSchema(db);
   // 30/min/IP on the ask endpoints; the global 5,000/day cap lives in the engine (shared with MCP).
   const limiter = rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false,
+    keyGenerator: (req) => ipKeyGenerator(clientIp(req)), // the visitor, not the Cloudflare edge
     message: { error: "rate_limited" } });
 
   function run(req: Request, res: Response, raw: unknown, maxErrorLength: number): void {

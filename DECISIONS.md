@@ -165,5 +165,10 @@ OPEN: (1) Michie: review 32 pending_updates (esp. freeeサイン reference path)
 
 ---
 
+## 2026-10-24 — 自社の URL は https://mcp.kansei-link.com（旧 railway.app は別名として残す）
+DECISION: 自社の公開 URL（MCP・ask・API・サイトの JS・npm の既定値）は `https://mcp.kansei-link.com` に揃える。旧 `https://kansei-link-mcp-production.up.railway.app` は**止めない**。1.2.x 以前の利用者・過去の記事・Registry の古い版がそこを叩くため、今後も同じサーバーの別名として生かす（CHANGELOG の過去の項・reports/・GitHub Actions の管理用呼び出しは旧 URL のまま）。
+WHY: 10/24 に Railway カスタムドメイン＋Cloudflare で開通。npm 1.3.0 と Registry の remotes は既に新 URL。
+REVERSIBILITY: High — どちらの名前も同じ Railway サービスを指す。
+
 <!-- Add new decisions above this line. Never edit existing entries;
      correct with a new entry that references the old one by date. -->

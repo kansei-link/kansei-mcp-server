@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Changed — our own URLs are `https://mcp.kansei-link.com`
+- The defaults baked into the package (`KANSEI_ENDPOINT_BASE` for `--share` telemetry and
+  `kansei-link-report-hook`, `KANSEI_API_BASE` for key validation) now point at
+  `https://mcp.kansei-link.com`. Effective from the next published version; installed 1.3.0 and
+  older keep using `kansei-link-mcp-production.up.railway.app`, which stays up as an alias.
+- Hosted server: behind Cloudflare the rate limiters and the IP hashes (ask, site checker,
+  telemetry) now key on the visitor (`CF-Connecting-IP`, trusted only when the direct sender is a
+  Cloudflare address) instead of the Cloudflare edge. `CLOUDFLARE_IP_RANGES` overrides the
+  built-in range list. Site, `llms.txt`, ask lines, the self card and the ARD manifest say the new host.
+
 ## v1.3.0 (2026-10-23)
 
 ### Front door — connect by URL first

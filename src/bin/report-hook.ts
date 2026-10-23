@@ -47,7 +47,7 @@ const LOG_MAX_BYTES = 1024 * 1024;
 // Override with KANSEI_ENDPOINT for local or staging runs.
 const DEFAULT_ENDPOINT =
   process.env.KANSEI_ENDPOINT ||
-  "https://kansei-link-mcp-production.up.railway.app/api/report-outcome";
+  "https://mcp.kansei-link.com/api/report-outcome";
 
 // S2a (Consent Contract v1): ALL central transmission flows through the
 // single consent gate. Priority: DO_NOT_TRACK / explicit OFF > explicit ON
