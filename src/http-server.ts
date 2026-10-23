@@ -61,6 +61,7 @@ import { adminActivity } from "./admin/activity.js";
 import { adminSiteChecks, siteCheckRows, siteChecksCsv, parseDays as parseSiteCheckDays } from "./admin/site-checks.js";
 import { jsonBodyErrorHandler } from "./utils/json-body-errors.js";
 import { isVendorOfficial } from "./utils/vendor-official.js";
+import { listWindow } from "./utils/list-window.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -340,8 +341,10 @@ app.get("/api/dashboard/stats", apiLimiter, (_req: Request, res: Response) => {
 app.get("/api/dashboard/rankings", apiLimiter, (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 1000);
-    const offset = parseInt(req.query.offset as string) || 0;
+    // 2026-10-23 security hardening v1: one page is at most 50 rows and only the first
+    // DASHBOARD_MAX_OFFSET rows are reachable (the full list is not a public bulk export).
+    // Before: limit up to 1,000 — and a negative limit (e.g. -1) became SQLite "LIMIT -1" = no limit.
+    const { limit, offset } = listWindow(req.query.limit, req.query.offset, 50);
 
     const rows = db.prepare(`
       SELECT s.id, s.name, s.category, s.axr_grade, s.axr_score,
@@ -637,8 +640,8 @@ app.get("/api/dashboard/freshness", apiLimiter, (_req: Request, res: Response) =
 app.get("/api/dashboard/changelog", apiLimiter, (req: Request, res: Response) => {
   try {
     const db = getDb();
-    const limit = Math.min(parseInt((req.query.limit as string) || "30"), 200);
-    const offset = parseInt((req.query.offset as string) || "0") || 0;
+    // 2026-10-23: same window as rankings (≤ 50 per page, bounded offset; negative values no longer mean "all").
+    const { limit, offset } = listWindow(req.query.limit, req.query.offset, 30);
     const category = typeof req.query.category === "string" ? req.query.category : null;
 
     // Graceful fallback if service_changelog table doesn't exist yet in

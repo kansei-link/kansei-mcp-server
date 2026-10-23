@@ -1194,7 +1194,7 @@ function downloadFile(content, filename, mime) {
 
 async function fetchExportData() {
   const [rankRes, statsRes, voicesRes] = await Promise.all([
-    fetch(API_BASE + '/api/dashboard/rankings?limit=225', { mode: 'cors' }).catch(() => null),
+    fetch(API_BASE + '/api/dashboard/rankings?limit=50', { mode: 'cors' }).catch(() => null),
     fetch(API_BASE + '/api/dashboard/stats', { mode: 'cors' }).catch(() => null),
     fetch(API_BASE + '/api/dashboard/voices', { mode: 'cors' }).catch(() => null),
   ]);
@@ -1253,7 +1253,7 @@ async function loadDashboardData() {
     // Load stats + rankings in parallel
     const [statsRes, rankingsRes, voicesRes, recipesRes] = await Promise.all([
       fetch(API_BASE + '/api/dashboard/stats', { mode: 'cors' }).catch(() => null),
-      fetch(API_BASE + '/api/dashboard/rankings?limit=225', { mode: 'cors' }).catch(() => null),
+      fetch(API_BASE + '/api/dashboard/rankings?limit=50', { mode: 'cors' }).catch(() => null),
       fetch(API_BASE + '/api/dashboard/voices', { mode: 'cors' }).catch(() => null),
       fetch(API_BASE + '/api/dashboard/recipes', { mode: 'cors' }).catch(() => null),
     ]);
