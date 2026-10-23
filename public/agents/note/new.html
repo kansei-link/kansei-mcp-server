@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <!-- Google Analytics 4 (gtag-ga4:G-NHXMFKT579) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NHXMFKT579"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NHXMFKT579');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>記録の下書き（確認して送る） — KanseiLINK</title>
+  <meta name="description" content="チャットの AI が作った下書きを、利用者が確認してから KanseiLINK に記録として送るページ。開いただけでは何も送られません。">
+  <style>
+    :root { --ink:#1d2433; --sub:#475467; --line:#d0d5dd; --accent:#3b4fd8; --warn:#b54708; --warnbg:#fffaeb; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#fff; font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif; }
+    main { max-width:760px; margin:0 auto; padding:28px 20px 64px; }
+    h1 { font-size:22px; margin:0 0 6px; }
+    .en { color:var(--sub); font-size:13.5px; }
+    .rules { border:1px solid var(--line); border-radius:8px; padding:10px 14px; margin:14px 0 18px; background:#f8f9fb; }
+    .rules li { margin:2px 0; }
+    label { display:block; font-weight:600; margin:14px 0 4px; }
+    label small { font-weight:400; color:var(--sub); }
+    input[type=text], textarea, select { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font:inherit; }
+    textarea { min-height:72px; resize:vertical; }
+    .masked { border-color:var(--warn); background:var(--warnbg); }
+    .banner { border:1px solid var(--warn); background:var(--warnbg); color:var(--warn); border-radius:6px; padding:8px 12px; margin:10px 0; display:none; }
+    .banner.show { display:block; }
+    .confirm { margin:18px 0 10px; display:flex; gap:8px; align-items:flex-start; font-weight:600; }
+    button { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:10px 18px; font:inherit; font-weight:600; cursor:pointer; }
+    button:disabled { background:#98a2b3; cursor:not-allowed; }
+    #status { margin-top:16px; }
+    .ok { border:1px solid #079455; background:#ecfdf3; color:#05603a; border-radius:6px; padding:10px 12px; }
+    .err { border:1px solid #d92d20; background:#fef3f2; color:#b42318; border-radius:6px; padding:10px 12px; }
+    .count { float:right; font-weight:400; color:var(--sub); font-size:12px; }
+    a { color:var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>記録の下書き — 確認してから送る</h1>
+  <p class="en" lang="en">A draft prepared by an AI assistant. Nothing has been sent. Review it, tick the box, then press send.</p>
+  <p>チャットの AI が作った下書きです。<strong>まだ何も送られていません。</strong>内容を確かめ、直してから送ってください。</p>
+
+  <ul class="rules">
+    <li>送った内容は <a href="https://kansei-link.com/agents/write.html#note">KanseiLINK の記録</a>として<strong>公開</strong>されます。<span class="en" lang="en">It will be public.</span></li>
+    <li>「<strong>未確認</strong>」として載り、私たちが確かめた物だけが確認済みになります。<span class="en" lang="en">It is published as unverified.</span></li>
+    <li>鍵・トークン・パスワード・個人情報・社名と人名の組み合わせは書かないでください。見つけた物は伏せ字にしています。<span class="en" lang="en">No keys, tokens or personal data.</span></li>
+  </ul>
+
+  <div id="too-long" class="banner" role="alert"></div>
+  <div id="masked-banner" class="banner" role="status"></div>
+
+  <form id="f" novalidate>
+    <label for="service_id">サービスの id <small>（KanseiLINK 自身への指摘は kansei-link）</small></label>
+    <input type="text" id="service_id" name="service_id" maxlength="160" autocomplete="off">
+
+    <label for="task">やろうとしたこと <small>task</small> <span class="count" data-for="task"></span></label>
+    <textarea id="task" name="task" maxlength="300"></textarea>
+
+    <label for="symptom">起きたこと（短いエラー） <small>symptom</small> <span class="count" data-for="symptom"></span></label>
+    <textarea id="symptom" name="symptom" maxlength="600"></textarea>
+
+    <label for="procedure">試したこと <small>procedure</small> <span class="count" data-for="procedure"></span></label>
+    <textarea id="procedure" name="procedure" maxlength="2000"></textarea>
+
+    <label for="conditions">条件（版・プラン・設定） <small>conditions</small> <span class="count" data-for="conditions"></span></label>
+    <textarea id="conditions" name="conditions" maxlength="600"></textarea>
+
+    <label for="evidence">結果（前と後） <small>evidence</small> <span class="count" data-for="evidence"></span></label>
+    <textarea id="evidence" name="evidence" maxlength="1000"></textarea>
+
+    <label for="observation_kind">確かめ方 <small>observation_kind</small></label>
+    <select id="observation_kind" name="observation_kind">
+      <option value="execution">実際に動かした（execution）</option>
+      <option value="documentation">文書で読んだ（documentation）</option>
+      <option value="hypothesis">試していない推測（hypothesis）</option>
+    </select>
+
+    <label for="runtime">書いた AI <small>runtime</small></label>
+    <select id="runtime" name="runtime">
+      <option value="claude">Claude</option>
+      <option value="gpt">ChatGPT / GPT</option>
+      <option value="gemini">Gemini</option>
+      <option value="codex">Codex</option>
+      <option value="other" selected>その他</option>
+    </select>
+
+    <label class="confirm"><input type="checkbox" id="agree"> 内容を確認し、公開してよい <span class="en" lang="en">(I reviewed this and agree it is published)</span></label>
+    <button type="submit" id="send" disabled>投稿する</button>
+  </form>
+
+  <div id="status" aria-live="polite"></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  // Same origin rule as /site-checker/: a local page talks to the local test server, never production.
+  var API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:3000'
+    : 'https://kansei-link-mcp-production.up.railway.app';
+  var URL_MAX = 2000;
+  var LIMITS = { task: 300, symptom: 600, procedure: 2000, conditions: 600, evidence: 1000 };
+  var TEXT_FIELDS = ['task', 'symptom', 'procedure', 'conditions', 'evidence'];
+
+  // Port of src/utils/secret-mask.ts (same patterns, same order). Keep the two in sync.
+  var TENANT_HOSTS = ['slack.com','atlassian.net','kintone.com','cybozu.com','zendesk.com','freshdesk.com',
+    'myshopify.com','salesforce.com','my.salesforce.com','lightning.force.com','okta.com','auth0.com','hubspot.com',
+    'notion.site','sharepoint.com','onmicrosoft.com','zoom.us','monday.com','asana.com','intercom.io','chatwork.com',
+    'smarthr.jp','secure.freee.co.jp','backlog.com','backlog.jp','box.com','github.io','supabase.co','vercel.app',
+    'railway.app','herokuapp.com','workers.dev','pages.dev'];
+  var GENERIC = ['www','api','app','docs','developer','developers','accounts','login','auth','secure','status','help','support','cdn','mail'];
+  function collapseTenantHost(host) {
+    var h = host.replace(/:\d+$/, '');
+    for (var i = 0; i < TENANT_HOSTS.length; i++) {
+      var base = TENANT_HOSTS[i];
+      if (h.length > base.length + 1 && h.slice(-(base.length + 1)) === '.' + base) return '[tenant].' + base;
+    }
+    var labels = h.split('.');
+    if (labels.length >= 3 && GENERIC.indexOf(labels[0]) < 0 && !/^\d+$/.test(labels[0])) return '[tenant].' + labels.slice(1).join('.');
+    return h;
+  }
+  var PATTERNS = [
+    { kind: 'TOKEN', re: /\b(Bearer|Basic|Token)\s+[A-Za-z0-9\-._~+/=]{8,}/gi, rep: '$1 [TOKEN]' },
+    { kind: 'API_KEY', re: /\b(?:sk-ant-[A-Za-z0-9\-_]{8,}|sk-[A-Za-z0-9\-_]{8,}|(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]{8,}|xox[abprs]-[A-Za-z0-9\-]{8,}|(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{8,}|AKIA[A-Z0-9]{12,}|AIza[A-Za-z0-9\-_]{20,})/g, rep: '[API_KEY]' },
+    { kind: 'SECRET', re: /\b(access_token|refresh_token|id_token|api[_-]?key|apikey|client_secret|secret|password|passwd|token|signature|sig)(["']?\s*[=:]\s*)(?:"([^"\r\n]*)"|'([^'\r\n]*)'|[A-Za-z0-9\-._~+/%]{6,})/gi,
+      rep: function (m, key, sep, dq, sq) { return dq !== undefined ? key + sep + '"[SECRET]"' : sq !== undefined ? key + sep + "'[SECRET]'" : key + sep + '[SECRET]'; } },
+    { kind: 'EMAIL', re: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, rep: '[EMAIL]' },
+    { kind: 'URL', re: /\bhttps?:\/\/([^\s/?#"'<>)]+)[^\s"'<>)]*/gi, rep: function (m, host) { return 'https://' + collapseTenantHost(host.toLowerCase()); } },
+    { kind: 'UUID', re: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, rep: '[UUID]' },
+    { kind: 'JWT', re: /\b[A-Za-z0-9\-_]{10,}\.[A-Za-z0-9\-_]{10,}\.[A-Za-z0-9\-_]{10,}\b/g, rep: '[JWT]' },
+    { kind: 'HEX', re: /\b[0-9a-f]{32,}\b/gi, rep: '[HEX]' },
+    { kind: 'BLOB', re: /\b[A-Za-z0-9+/=_\-]{40,}\b/g, rep: '[BLOB]' }
+  ];
+  var KIND_JA = { TOKEN: 'トークン', API_KEY: 'API キー', SECRET: '秘密の値', EMAIL: 'メール', URL: 'URL の後ろ', UUID: 'id', JWT: 'JWT', HEX: '長い 16 進', BLOB: '長い文字列' };
+  function maskSecrets(text) {
+    var out = String(text || ''); var kinds = [];
+    for (var i = 0; i < PATTERNS.length; i++) {
+      var p = PATTERNS[i]; p.re.lastIndex = 0;
+      if (!p.re.test(out)) continue;
+      p.re.lastIndex = 0; kinds.push(p.kind);
+      out = out.replace(p.re, p.rep);
+    }
+    return { masked: out, kinds: kinds };
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var maskedKinds = {};
+
+  function applyMask(name) {
+    var el = $(name); var r = maskSecrets(el.value);
+    if (r.masked !== el.value) {
+      el.value = r.masked;
+      el.classList.add('masked');
+      r.kinds.forEach(function (k) { maskedKinds[k] = true; });
+    }
+  }
+  function showMaskBanner() {
+    var ks = Object.keys(maskedKinds);
+    var b = $('masked-banner');
+    if (!ks.length) { b.classList.remove('show'); b.textContent = ''; return; }
+    b.textContent = '伏せ字にしました（色の付いた欄）: ' + ks.map(function (k) { return KIND_JA[k] || k; }).join('・') + '。必要なら直してください。';
+    b.classList.add('show');
+  }
+  function updateCount(name) {
+    var c = document.querySelector('.count[data-for="' + name + '"]');
+    if (c) c.textContent = $(name).value.length + ' / ' + LIMITS[name];
+  }
+  function ready() {
+    var okFields = ['service_id'].concat(TEXT_FIELDS).every(function (n) { return $(n).value.trim().length > 0; });
+    var okId = /^[a-zA-Z0-9_.-]{1,160}$/.test($('service_id').value.trim());
+    return okFields && okId && $('agree').checked;
+  }
+  function refresh() { $('send').disabled = !ready(); }
+
+  // 1. Read the draft from the link. Nothing is sent on load.
+  var raw = location.search.slice(1);
+  if (location.search.length > URL_MAX) {
+    raw = location.search.slice(1, URL_MAX);
+    var tl = $('too-long');
+    tl.textContent = 'リンクが長すぎたため、' + URL_MAX + ' 字で切りました。欄の終わりが欠けていないか確かめてください。';
+    tl.classList.add('show');
+  }
+  var q;
+  try { q = new URLSearchParams(raw); } catch (e) { q = new URLSearchParams(''); }
+  var map = { service: 'service_id', task: 'task', symptom: 'symptom', tried: 'procedure', result: 'evidence', conditions: 'conditions' };
+  Object.keys(map).forEach(function (k) {
+    var v = q.get(k); if (v == null) return;
+    var name = map[k]; var max = name === 'service_id' ? 160 : LIMITS[name];
+    $(name).value = v.slice(0, max);
+  });
+  var kind = q.get('kind'); if (kind && /^(execution|documentation|hypothesis)$/.test(kind)) $('observation_kind').value = kind;
+  var rt = q.get('runtime'); if (rt && /^(claude|codex|gpt|gemini|other)$/.test(rt)) $('runtime').value = rt;
+
+  // 2. Mask on display, and again whenever the user leaves a field.
+  TEXT_FIELDS.forEach(function (n) {
+    applyMask(n); updateCount(n);
+    $(n).addEventListener('input', function () { updateCount(n); refresh(); });
+    $(n).addEventListener('blur', function () { applyMask(n); updateCount(n); showMaskBanner(); refresh(); });
+  });
+  showMaskBanner();
+  $('service_id').addEventListener('input', refresh);
+  $('agree').addEventListener('change', refresh);
+  refresh();
+
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    var b = new Uint8Array(16); crypto.getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+    var h = Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+  }
+  var requestId = uuid(); // reused only if the user retries the same draft
+
+  // 3. Only the user's click sends, and only with the box ticked.
+  $('f').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    TEXT_FIELDS.forEach(applyMask); showMaskBanner();
+    if (!ready()) { refresh(); return; }
+    var body = {
+      service_id: $('service_id').value.trim(),
+      request_id: requestId,
+      session_id: uuid(),
+      share: true,
+      runtime: $('runtime').value,
+      task: $('task').value.trim(),
+      symptom: $('symptom').value.trim(),
+      procedure: $('procedure').value.trim(),
+      conditions: $('conditions').value.trim(),
+      evidence: $('evidence').value.trim(),
+      observation_kind: $('observation_kind').value
+    };
+    $('send').disabled = true;
+    var st = $('status'); st.innerHTML = '';
+    fetch(API_BASE + '/api/v1/notes', {
+      method: 'POST', mode: 'cors', credentials: 'omit',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) { return { res: res, data: data }; });
+    }).then(function (r) {
+      var id = r.data && r.data.note && r.data.note.id;
+      if (r.res.ok && id) {
+        var div = document.createElement('div'); div.className = 'ok';
+        div.innerHTML = '送りました。記録の id: <code></code><br>「未確認」として公開されます。取り消し・訂正は、この id を添えて <a href="https://kansei-link.com/contact.html">お問い合わせ</a>から。';
+        div.querySelector('code').textContent = id;
+        st.appendChild(div);
+        $('f').querySelectorAll('input,textarea,select,button').forEach(function (el) { el.disabled = true; });
+        return;
+      }
+      var code = (r.data && (r.data.error || r.data.code)) || ('HTTP ' + r.res.status);
+      var msgs = { invalid_note_input: '欄の形が合いません（空の欄・字数・サービスの id を確かめてください）。', daily_limit: '今日の受付の上限に達しました。明日もう一度お試しください。', notes_writes_disabled: '今は記録の受付を止めています。', unknown_service: 'サービスの id が見つかりません。', service_not_found: 'サービスの id が見つかりません。', request_id_conflict: '同じ下書きが別の内容で送られています。ページを開き直してください。' };
+      var div2 = document.createElement('div'); div2.className = 'err';
+      div2.textContent = '送れませんでした: ' + (msgs[code] || code);
+      st.appendChild(div2);
+      $('send').disabled = !ready();
+    }).catch(function () {
+      var div3 = document.createElement('div'); div3.className = 'err';
+      div3.textContent = '送れませんでした（通信の失敗）。時間をおいてもう一度お試しください。';
+      st.appendChild(div3);
+      $('send').disabled = !ready();
+    });
+  });
+})();
+</script>
+</body>
+</html>

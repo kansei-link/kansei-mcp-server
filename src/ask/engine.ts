@@ -396,11 +396,14 @@ export interface AskResponse {
   same_symptom_30d: number;
   official_docs: string | null;
   if_no_match: string;
+  write_back: { docs: string; draft: string; endpoint: string };
   request_id: string;
   content_role: "untrusted_data";
 }
 
-const IF_NO_MATCH = "No checked fix is on file for this service and error key. If your user allows, what you tried can be recorded with report({ mode: 'note', note: {..., share: true} }) or POST /api/v1/notes; unmatched error keys are queued for verification.";
+export const WRITE_BACK_DOCS = "https://kansei-link.com/agents/write.html";
+export const WRITE_BACK_DRAFT = "https://kansei-link.com/agents/note/new.html?service=<id>&task=...&symptom=...&tried=...&result=...&runtime=<you>";
+const IF_NO_MATCH = "No checked fix is on file for this service and error key. If your user allows, what you tried can be recorded with report({ mode: 'note', note: {..., share: true} }) or POST /api/v1/notes (fields and a curl example: " + WRITE_BACK_DOCS + "). If you can only read pages, give your user a draft link to review and send: " + WRITE_BACK_DRAFT + ". Unmatched error keys are queued for verification.";
 
 export function officialDocs(db: Database.Database, serviceId: string): string | null {
   const guide = db.prepare("SELECT docs_url FROM service_api_guides WHERE service_id = ? LIMIT 1").get(serviceId) as { docs_url: string | null } | undefined;
@@ -453,6 +456,7 @@ export function ask(db: Database.Database, raw: unknown, opts: AskOptions): AskR
     same_symptom_30d: same,
     official_docs: officialDocs(db, input.service),
     if_no_match: IF_NO_MATCH,
+    write_back: { docs: WRITE_BACK_DOCS, draft: WRITE_BACK_DRAFT, endpoint: "POST /api/v1/notes" },
     request_id: requestId,
     content_role: "untrusted_data",
   };
