@@ -41,6 +41,20 @@ npx -y -p @kansei-link/mcp-server kansei-link-wrapped
 
 ## Connection
 
+By URL (hosted, current data, no key):
+
+```bash
+claude mcp add --transport http kansei-link https://mcp.kansei-link.com/mcp
+```
+
+```json
+{
+  "kansei-link": { "url": "https://mcp.kansei-link.com/mcp" }
+}
+```
+
+Offline (npm, local copy of the public data, sends nothing):
+
 ```json
 {
   "kansei-link": {

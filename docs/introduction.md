@@ -57,30 +57,20 @@ Most agents only need the first 3.
 
 ::: code-group
 
-```bash [Claude Code CLI]
+```bash [By URL (Claude Code CLI)]
+claude mcp add --transport http kansei-link https://mcp.kansei-link.com/mcp
+```
+
+```json [By URL (Cursor / Windsurf / Cline)]
+{
+  "mcpServers": {
+    "kansei-link": { "url": "https://mcp.kansei-link.com/mcp" }
+  }
+}
+```
+
+```bash [Offline (npm, sends nothing)]
 claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
-```
-
-```json [claude_desktop_config.json]
-{
-  "mcpServers": {
-    "kansei-link": {
-      "command": "npx",
-      "args": ["-y", "@kansei-link/mcp-server"]
-    }
-  }
-}
-```
-
-```json [Cursor / Windsurf (.cursor/mcp.json)]
-{
-  "mcpServers": {
-    "kansei-link": {
-      "command": "npx",
-      "args": ["-y", "@kansei-link/mcp-server"]
-    }
-  }
-}
 ```
 
 :::

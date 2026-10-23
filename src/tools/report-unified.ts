@@ -62,7 +62,7 @@ interface ReportParams {
   confidence?: string;
 }
 
-function detectMode(params: ReportParams): Mode | null {
+export function detectMode(params: ReportParams): Mode | null {
   // 1. Explicit mode override
   if (params.mode) return params.mode;
 
