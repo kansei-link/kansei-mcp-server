@@ -3,6 +3,7 @@ import type Database from "better-sqlite3";
 import { z } from "zod";
 
 import { reportOutcome } from "./report-outcome.js";
+import { outcomeAgentMaterial } from "../agent-id.js";
 import { emitEvent, toModelFamily, toErrorClass } from "../usage/telemetry.js";
 import { submitFeedback } from "./submit-feedback.js";
 import { recordEvent } from "./record-event.js";
@@ -40,6 +41,7 @@ interface ReportParams {
   note_id?: unknown;
   provider_request_id?: unknown;
   provider_request_id_source?: unknown;
+  session_id?: unknown;
   provider_error_code?: unknown;
   // feedback params
   feedback_type?: string;
@@ -83,7 +85,7 @@ function detectMode(params: ReportParams): Mode | null {
 // Dispatchers — call the right extracted handler based on mode.
 // ---------------------------------------------------------------------------
 
-function dispatchOutcome(db: Database.Database, params: ReportParams): object {
+function dispatchOutcome(db: Database.Database, params: ReportParams, agentMaterial: string | null): object {
   // Event Contract v1: pseudonymous outcome event (only when consented).
   void emitEvent("outcome_reported", {
     service_id: params.service_id,
@@ -99,6 +101,7 @@ function dispatchOutcome(db: Database.Database, params: ReportParams): object {
     failed_step: params.failed_step && /^[0-9]{1,3}$/.test(params.failed_step) ? params.failed_step : undefined,
   });
   return reportOutcome(db, {
+    agent_material: agentMaterial,
     service_id: params.service_id!,
     success: params.success!,
     latency_ms: params.latency_ms,
@@ -171,7 +174,12 @@ function dispatchVoice(db: Database.Database, params: ReportParams): object {
 // Registration
 // ---------------------------------------------------------------------------
 
-export function register(server: McpServer, db: Database.Database): void {
+export interface ReportRegisterOptions {
+  /** stdio: the local install id. Absent (HTTP): the request's Mcp-Session-Id, if any. */
+  installMaterial?: string | null;
+}
+
+export function register(server: McpServer, db: Database.Database, options: ReportRegisterOptions = {}): void {
   ensureNotesSchema(db);
   server.registerTool(
     "report",
@@ -267,6 +275,7 @@ export function register(server: McpServer, db: Database.Database): void {
         note_id: z.unknown().optional().describe("[outcome] Field-note ID this report belongs to (format AWT-000). Stored as null if the format does not match."),
         provider_request_id: z.unknown().optional().describe("[outcome] Request or error ID the provider returned (e.g. from an x-request-id header). If present and well-formed, the record becomes traceable in the provider's own logs. Stored as null if the format does not match."),
         provider_request_id_source: z.unknown().optional().describe("[outcome] Where the provider request ID came from: 'header:<name>' (e.g. header:x-request-id) or 'body:<field>' (e.g. body:id)."),
+        session_id: z.unknown().optional().describe("[outcome] Optional. A UUID you generate once and reuse for every report during one task, so reports from the same task count as one agent (only a salted hash is stored, never this value). Anything that is not a UUID is ignored."),
         provider_error_code: z.unknown().optional().describe("[outcome] Provider's error code string (e.g. expired_access_token) or an RFC 9457 problem type URI (https://…, max 200 chars). Stored as null if the format does not match."),
 
         // --- Feedback mode ---
@@ -344,7 +353,7 @@ export function register(server: McpServer, db: Database.Database): void {
         openWorldHint: false,
       },
     },
-    async (params) => {
+    async (params, extra) => {
       const mode = detectMode(params);
       if (mode === "note" || mode === "note_result") {
         const result = noteOperation(() => mode === "note" ? recordNote(db, params.note) : recordResult(db, params.note_result));
@@ -372,7 +381,17 @@ export function register(server: McpServer, db: Database.Database): void {
       let result: object;
       switch (mode) {
         case "outcome":
-          result = dispatchOutcome(db, params);
+          result = dispatchOutcome(
+            db,
+            params,
+            // Mcp-Session-Id → the tool's session_id (UUID) → stdio install id → anonymous
+            outcomeAgentMaterial({
+              transportSessionId: extra?.sessionId,
+              sessionHeader: extra?.requestInfo?.headers?.["mcp-session-id"],
+              argSessionId: params.session_id,
+              installMaterial: options.installMaterial,
+            })
+          );
           break;
         case "feedback":
           result = dispatchFeedback(db, params);

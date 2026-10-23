@@ -7,7 +7,7 @@ import { createServer } from "./server.js";
 import { closeDb } from "./db/connection.js";
 
 async function main(): Promise<void> {
-  const server = createServer();
+  const server = createServer({ agentIdFromInstall: true });
   const transport = new StdioServerTransport();
 
   // Clean shutdown

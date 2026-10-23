@@ -53,6 +53,7 @@ import { resolveApiKey, fixedTierResolver } from "./entitlements.js";
 import { runCrawler } from "./crawler/run.js";
 import { handleSiteCheck, handleSiteCheckGet } from "./site-check.js";
 import { reportOutcome } from "./tools/report-outcome.js";
+import { uuidMaterial } from "./agent-id.js";
 import { createNotesHandlers } from "./notes/routes.js";
 import { createAskHandlers } from "./ask/routes.js";
 import { candidateSourceCounts } from "./ask/engine.js";
@@ -1243,6 +1244,8 @@ app.post(
 
       try {
         const result = reportOutcome(db, {
+          // Optional caller session (UUID only). Hashed, never stored as-is.
+          agent_material: uuidMaterial(body.session_id),
           service_id: serviceId, success, task_type: taskType ?? undefined,
           error_type: errorType ?? undefined, agent_type: agentType as any,
           is_retry: isRetry, context: context ?? undefined, attempt_id: attemptId,
