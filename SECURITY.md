@@ -39,7 +39,22 @@ All text submitted via `context` field is processed through PII masking before s
 
 ## What ships where
 
-- The **npm package** (`@kansei-link/mcp-server`, stdio server) makes **no outbound network calls by default** — it serves a local bundled SQLite dataset. The single exception is opt-in: if you set `KANSEI_API_KEY`, the server validates that key against `GET /api/validate-key` (tier check only, cached 10 min; no usage data is sent).
+- The **npm package** (`@kansei-link/mcp-server`, stdio server) makes **no outbound network calls by default** — it serves a local SQLite dataset built from the **public copy** of the catalogue (`src/data/public/`, since 1.3.0: one card per service, recipes, API guides, last 90 days of the changelog; no internal scores, probes, voices or raw registry data). The single exception is opt-in: if you set `KANSEI_API_KEY`, the server validates that key against `GET /api/validate-key` (tier check only, cached 10 min; no usage data is sent).
+
+### What the server can see
+
+| | Now (stdio, local DB) — 1.3.0 | Planned (stage 2: tools answer from the hosted API) |
+|---|---|---|
+| Tool names called | not visible to the server | visible |
+| Service id looked up / searched for | not visible | visible (id only, not your intent text) |
+| Error type passed to `ask` | not visible (local match) | the error *key* (layer / status / provider code) — never the raw text, which is masked and not stored |
+| Who you are | not visible | a salted `agent_id_hash` of a session id you choose to send (optional), never the raw value |
+| Package version | not visible | visible |
+| Your question text, file contents, prompts | never sent | never sent |
+| IP address | not applicable | not stored (rate limiting only) |
+| Opt-in telemetry (`--share`, `kansei-link-report-hook`) | scalar aggregates / masked error category, as today | same |
+
+The right-hand column is a **plan**, not the current behaviour; it will be revised in the stage-2 release notes before it ships.
 - The **hosted HTTP facade** (Railway) exposes the dashboard read APIs, Stripe billing, auth/entitlements, and the opt-in `report-outcome` / `telemetry` sinks.
 
 ## Billing & Access Endpoints (hosted facade)

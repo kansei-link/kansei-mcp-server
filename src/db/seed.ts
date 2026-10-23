@@ -88,6 +88,66 @@ function loadJson<T>(filename: string): T {
   return JSON.parse(readFileSync(filePath, "utf-8"));
 }
 
+// ─── Disclosure stage 1 (2026-10-23) ───────────────────────────────
+// The npm package no longer ships the full seed. It carries the public (①) copy under
+// src/data/public/ (written by scripts/export-public-data.mjs): one slim record per service,
+// the recipes, the API guides and the last 90 days of the changelog. The hosted server is built
+// from the repo, where the full files still exist, so it keeps seeding exactly as before.
+// Resolution: full file (src/data or dist/data) → public copy → (services/recipes/guides) error,
+// (changelog) empty. KANSEI_SEED_PUBLIC_ONLY=1 forces the public copy (tests / clean-room checks).
+const PUBLIC_FILES: Record<string, string> = {
+  "services-seed.json": "services.json",
+  "recipes-seed.json": "recipes.json",
+  "api-guides-seed.json": "api-guides.json",
+  "changelog-seed.json": "changelog.json",
+};
+export function seedSourceFor(filename: string): { path: string; layer: "full" | "public" } | null {
+  const publicOnly = (process.env.KANSEI_SEED_PUBLIC_ONLY ?? "").trim() === "1";
+  const full = [
+    path.join(__dirname, "..", "..", "src", "data", filename),
+    path.join(__dirname, "..", "data", filename),
+  ];
+  if (!publicOnly) for (const p of full) if (existsSync(p)) return { path: p, layer: "full" };
+  const pub = PUBLIC_FILES[filename];
+  if (pub) {
+    for (const p of [path.join(__dirname, "..", "..", "src", "data", "public", pub), path.join(__dirname, "..", "data", "public", pub)]) {
+      if (existsSync(p)) return { path: p, layer: "public" };
+    }
+  }
+  return null;
+}
+function loadSeed<T>(filename: string): { rows: T; layer: "full" | "public" } {
+  const src = seedSourceFor(filename);
+  if (!src) throw new Error(`seed file not found: ${filename} (neither the full seed nor src/data/public/${PUBLIC_FILES[filename] ?? "?"})`);
+  return { rows: JSON.parse(readFileSync(src.path, "utf-8")) as T, layer: src.layer };
+}
+
+/** A slim public record (src/data/public/services.json) → the ServiceSeed shape the insert expects. */
+interface PublicServiceRecord {
+  id: string; name: string; namespace?: string; category?: string | null; tags?: string; summary?: string;
+  api_url?: string | null; docs_url?: string | null; api_auth_method?: string | null; mcp_status?: string;
+  mcp_endpoint?: string; mcp_repo_url?: string | null; grade?: string | null; archived?: number; confirmed_on?: string;
+}
+function fromPublicService(p: PublicServiceRecord): ServiceSeed {
+  return {
+    id: p.id,
+    name: p.name,
+    namespace: p.namespace ?? "",
+    description: p.summary ?? "",
+    category: p.category ?? "",
+    tags: p.tags ?? "",
+    mcp_endpoint: p.mcp_endpoint ?? "",
+    mcp_status: p.mcp_status ?? "unknown",
+    api_url: p.api_url ?? undefined,
+    api_auth_method: p.api_auth_method ?? undefined,
+    // Internal scores are not shipped: the column default (0.5) applies and axr_score stays NULL.
+    trust_score: 0.5,
+    axr_grade: p.grade ?? undefined,
+    archived: p.archived ?? 0,
+    mcp_repo_url: p.mcp_repo_url ?? undefined,
+  };
+}
+
 /**
  * Parse a tags field tolerantly. The seed source-of-truth historically stored
  * tags in TWO formats — CSV ("crm,sales,marketing") and JSON-array-string
@@ -135,9 +195,13 @@ function mergeSeedTags(
 }
 
 export function seedDatabase(db: ReturnType<typeof getDb>): void {
-  const services = loadJson<ServiceSeed[]>("services-seed.json");
-  const recipes = loadJson<RecipeSeed[]>("recipes-seed.json");
-  const apiGuides = loadJson<ApiGuideSeed[]>("api-guides-seed.json");
+  const servicesSrc = loadSeed<ServiceSeed[] | PublicServiceRecord[]>("services-seed.json");
+  const services: ServiceSeed[] = servicesSrc.layer === "public"
+    ? (servicesSrc.rows as PublicServiceRecord[]).map(fromPublicService)
+    : (servicesSrc.rows as ServiceSeed[]);
+  const recipes = loadSeed<RecipeSeed[]>("recipes-seed.json").rows;
+  const apiGuides = loadSeed<ApiGuideSeed[]>("api-guides-seed.json").rows;
+  if (servicesSrc.layer === "public") console.error("[seed] public data copy (src/data/public): slim service records; full catalogue at https://kansei-link.com/services/<id>/");
 
   // Auto-detected changelog entries from refreshExistingServices (regen-seed.mjs
   // exports them into changelog-seed.json). Falls back to empty when file is
@@ -145,7 +209,7 @@ export function seedDatabase(db: ReturnType<typeof getDb>): void {
   // entries below via INSERT OR IGNORE in seed logic.
   let autoChangelog: ChangelogSeed[] = [];
   try {
-    autoChangelog = loadJson<ChangelogSeed[]>("changelog-seed.json");
+    autoChangelog = loadSeed<ChangelogSeed[]>("changelog-seed.json").rows;
   } catch {
     /* file optional */
   }

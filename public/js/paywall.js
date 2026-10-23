@@ -14,7 +14,7 @@
  *     - magic-link sign-in (subscription/login.html)
  *
  * Adding new gated articles: wrap the section with data-tier, then run
- *   node scripts/extract-premium-sections.mjs && node scripts/upload-premium-content.mjs
+ *   (the extract / upload scripts moved to the internal repo on 2026-10-23; see POST /admin/premium-content)
  */
 (function () {
   "use strict";

@@ -1,7 +1,7 @@
 {
   "name": "@kansei-link/mcp-server",
   "mcpName": "io.github.kansei-link/kansei-mcp-server",
-  "version": "1.2.5",
+  "version": "1.3.0",
   "description": "Reduce your AI agent's token waste with collective intelligence — SaaS integration recipes, error resolution, and monthly efficiency reports",
   "type": "module",
   "main": "dist/index.js",
@@ -19,15 +19,7 @@
   },
   "files": [
     "dist",
-    "src/data/services-seed.json",
-    "src/data/recipes-seed.json",
-    "src/data/api-guides-seed.json",
-    "src/data/changelog-seed.json",
-    "src/data/voices-seed.json",
-    "src/data/service-stats-seed.json",
-    "src/data/github-issues-30d-tips.json",
-    "src/data/github-issues-180d-tips.json",
-    "src/data/recipes-new-75.json",
+    "src/data/public",
     "src/data/jp-watchlist.txt",
     "src/data/ard-entries.json",
     "src/data/ard-openapi.json",
@@ -52,7 +44,6 @@
     "smoke:notes": "tsc && node scripts/smoke-notes-loop.mjs",
     "smoke:data": "npm run build && node scripts/smoke-data-architecture.mjs",
     "smoke:migration": "npm run build && node scripts/smoke-existing-db-migration.mjs",
-    "smoke:testpack": "node scripts/smoke-testpack.mjs",
     "smoke:freshness": "npm run build && node scripts/smoke-freshness-provenance.mjs",
     "articles:auto": "node scripts/generate-articles-auto.mjs",
     "videos:generate": "node scripts/generate-video-insights.mjs",
@@ -75,7 +66,9 @@
     "gate:release": "node scripts/release-gate.mjs",
     "smoke:hygiene": "node scripts/smoke-dist-hygiene.mjs",
     "smoke:stats-rebuild": "node scripts/smoke-stats-rebuild.mjs",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "data:public": "node scripts/export-public-data.mjs",
+    "test:public-seed": "tsc && node --test scripts/test-public-seed.mjs"
   },
   "keywords": [
     "mcp",

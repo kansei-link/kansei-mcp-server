@@ -6,13 +6,18 @@ import { generateArticle } from "../dist/tools/generate-aeo-article.js";
 import fs from "node:fs";
 
 const db = getDb();
-const json = generateArticle(db, { quarter: "Q2 2026", format: "json", topN: 100 });
+// Disclosure stage 1 (2026-10-23): the public JSON is a summary — top 50 overall, top 10 per category.
+// The full list is not a public bulk export (see DESIGN-disclosure-layers-v1 §4-5).
+const TOP = 50, PER_CATEGORY = 10;
+const full = generateArticle(db, { quarter: "Q2 2026", format: "json", topN: TOP });
+const category_rankings = Object.fromEntries(Object.entries(full.category_rankings || {}).map(([k, v]) => [k, { ...v, rankings: (v.rankings || []).slice(0, PER_CATEGORY), total_in_category: (v.rankings || []).length }]));
+const json = { ...full, meta: { ...full.meta, note: `Public summary: top ${TOP} overall and top ${PER_CATEGORY} per category. Totals are in summary. Per-service cards: https://kansei-link.com/services/<id>/` }, summary: { ...full.summary, overall_listed: (full.overall_top || []).length }, category_rankings };
 fs.writeFileSync("public/aeo-data.json", JSON.stringify(json, null, 2));
 
 const rankings = json.overall_top;
 fs.writeFileSync(
   "public/rankings-raw.json",
-  JSON.stringify({ rankings, summary: json.summary, catRankings: json.category_rankings }, null, 2),
+  JSON.stringify({ rankings, summary: json.summary, catRankings: json.category_rankings }, null, 2), // same summary shape as aeo-data.json
 );
 
 const withRate = rankings.filter((r) => r.success_rate !== null);

@@ -33,6 +33,7 @@ npx -y -p @kansei-link/mcp-server kansei-link-wrapped
 
 ## Data Policy
 
+- The npm package carries the public copy of the catalogue (1.3.0+): service cards, recipes, API guides. Internal scores, probes, voices and raw registry data are not shipped; a lookup miss points to https://kansei-link.com/services/<id>/ and to `ask`.
 - All context in report is PII-masked before storage
 - Agent identity is anonymized (hashed)
 - Usage measurement stays local unless user opts in with --share

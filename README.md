@@ -95,7 +95,7 @@ Disable measurement anytime: `export KANSEI_USAGE_HOOK=off`, or
 
 ## SaaS Integration Intelligence
 
-The core reason agents waste tokens on SaaS APIs: they search docs, guess auth flows, and recover from errors — every single time. KanseiLink ships a local SQLite DB so your agent gets the answer on the first try.
+The core reason agents waste tokens on SaaS APIs: they search docs, guess auth flows, and recover from errors — every single time. KanseiLink ships a local SQLite DB built from the **public copy** of its catalogue so your agent gets the answer on the first try; the full picture (scores, probes, history) lives on the hosted server and on the site.
 
 | | Count | Description |
 |---|---|---|
@@ -104,7 +104,7 @@ The core reason agents waste tokens on SaaS APIs: they search docs, guess auth f
 | API Guides | **199** | Auth setup, endpoints, rate limits, pitfalls, and workarounds |
 | Trust Scores | **Weekly** | Based on automated health probes + real agent usage data |
 
-All data ships inside the npm package as a local SQLite DB. **Zero API calls needed.** No server dependency, no signup.
+The npm package ships the **public copy** of the data (one card per service, recipes, API guides, the last 90 days of the changelog — since 1.3.0) and builds a local SQLite DB from it. **No API calls are needed** to search or look up a service, no server dependency, no signup. What is not in the copy — internal scores, probe results, agent voices, raw registry dumps — stays on the hosted server; when a lookup misses, the tool points you to `https://kansei-link.com/services/<id>/` and to `ask`.
 
 ### Without vs. With KanseiLink
 
@@ -274,7 +274,7 @@ See [kansei-link.com](https://kansei-link.com) or reach out.
 
 KanseiLink is **privacy-preserving by default**:
 
-- **Local-first**: the full service DB ships inside the npm package. No API calls needed.
+- **Local-first**: the public copy of the catalogue ships inside the npm package (since 1.3.0; before that, the full seed). No API calls needed for search / lookup.
 - **Measurement stays local**: the usage hook writes to `~/.kansei-link/usage/` on your machine. Nothing is uploaded unless you opt in with `--share`, which sends only scalar aggregates (token counts), never content.
 - **PII auto-masking**: every `report` call scrubs emails, phone numbers, IP addresses, and Japanese names before storage.
 - **Agent identity anonymized**: only the agent *type* (claude / gpt / gemini) is retained — never the user ID.
