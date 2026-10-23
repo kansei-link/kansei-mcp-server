@@ -62,7 +62,8 @@ import { adminSiteChecks, siteCheckRows, siteChecksCsv, parseDays as parseSiteCh
 import { jsonBodyErrorHandler } from "./utils/json-body-errors.js";
 import { isVendorOfficial } from "./utils/vendor-official.js";
 import { listWindow } from "./utils/list-window.js";
-import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
+import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats, classifyUserAgent } from "./ard.js";
+import { ensureUsageLogSchema, describeUsage, usageRecorder, usageLogEnabled } from "./mcp-usage-log.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
@@ -1483,15 +1484,30 @@ app.post("/mcp", async (req: Request, res: Response) => {
   // Public endpoint: NEVER expose the internal admin tools (inspect/analyze)
   // here, regardless of server env — arbitrary clients hit this route.
   const server = createServer({ tierResolver: fixedTierResolver(tier), exposeAdminTools: false });
+  // Usage log (stage 2a): one row per initialize / tools/call — tool name, validated service id,
+  // mode, outcome, client (initialize only), UA class, version, salted session hash. Never the
+  // arguments, IP, raw UA or the response. See src/mcp-usage-log.ts. A log failure never fails the call.
+  const usage = usageLogEnabled()
+    ? usageRecorder(getDb(), describeUsage(getDb(), req.body), {
+        uaClass: classifyUserAgent(req.header("user-agent") ?? "").uaClass,
+        serverVersion: PACKAGE_VERSION,
+        sessionId: req.header("mcp-session-id"),
+      })
+    : null;
   try {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless
     });
+    if (usage) {
+      const send = transport.send.bind(transport);
+      transport.send = (message, options) => { usage.onSend(message); return send(message, options); };
+    }
 
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
 
     res.on("close", () => {
+      usage?.onClose();
       transport.close();
       server.close();
     });
@@ -1675,6 +1691,7 @@ function dailyMaintenance(reason: string): void {
   }
 }
 dailyMaintenance("startup");
+try { ensureUsageLogSchema(getDb()); } catch (e) { console.error("[usage-log] schema:", e); }
 setInterval(() => dailyMaintenance("interval"), 6 * 3600 * 1000).unref();
 
 // Reject GET/DELETE on /mcp (stateless mode)

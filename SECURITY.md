@@ -43,18 +43,23 @@ All text submitted via `context` field is processed through PII masking before s
 
 ### What the server can see
 
-| | Now (stdio, local DB) — 1.3.0 | Planned (stage 2: tools answer from the hosted API) |
+Two ways to use the tools, two different footprints:
+
+| | By URL (`https://mcp.kansei-link.com/mcp`, hosted) | npm (`npx @kansei-link/mcp-server`, stdio) |
 |---|---|---|
-| Tool names called | not visible to the server | visible |
-| Service id looked up / searched for | not visible | visible (id only, not your intent text) |
-| Error type passed to `ask` | not visible (local match) | the error *key* (layer / status / provider code) — never the raw text, which is masked and not stored |
-| Who you are | not visible | a salted `agent_id_hash` of a session id you choose to send (optional), never the raw value |
-| Package version | not visible | visible |
-| Your question text, file contents, prompts | never sent | never sent |
-| IP address | not applicable | not stored (rate limiting only) |
+| Tool name called, and the lookup / report *mode* | one row per call (counts) | not visible to us |
+| Service id looked up / reported on | the id only — and only when it is one in the catalogue; an unknown id is counted, not kept | not visible |
+| Your intent text, `goal`, `q`, error text, note bodies, file contents, prompts | **never stored** (used to answer, then dropped) | never sent |
+| Outcome | an enumerated value (`ok`, `tool_error`, `invalid_params`, …), not the response | not visible |
+| Client | `clientInfo.name` / `version` from `initialize` (plain text up to 64 chars, else `other`); a UA *class* (`mcp_client` / `browser` / `ai_crawler` / `unknown`), never the raw user agent | not visible |
+| Who you are | a salted hash of the `Mcp-Session-Id` header when a client sends one (most do not); never the raw value, never an IP | not visible |
+| Server version | yes | not visible |
+| IP address | not stored (rate limiting only) | not applicable |
+| Time | rounded to the minute | — |
+| Retention | 180 days, same as `ask` | — |
 | Opt-in telemetry (`--share`, `kansei-link-report-hook`) | scalar aggregates / masked error category, as today | same |
 
-The right-hand column is a **plan**, not the current behaviour; it will be revised in the stage-2 release notes before it ships.
+The hosted log can be switched off by the operator (`USAGE_LOG_ENABLED=0`); a failure to write it never fails a call. Policy record: `founder-ops/SEC-REVIEW-2026-10-24-001_UsageLog.md`.
 - The **hosted HTTP facade** (Railway) exposes the dashboard read APIs, Stripe billing, auth/entitlements, and the opt-in `report-outcome` / `telemetry` sinks.
 
 ## Billing & Access Endpoints (hosted facade)

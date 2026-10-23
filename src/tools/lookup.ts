@@ -51,7 +51,7 @@ interface LookupParams {
   runtime?: string;
 }
 
-function detectMode(params: LookupParams): Mode | null {
+export function detectMode(params: LookupParams): Mode | null {
   // 1. Explicit mode override
   if (params.mode) return params.mode;
 
