@@ -2,6 +2,18 @@
 
 ## v1.3.0 (2026-10-23)
 
+### Front door — connect by URL first
+- The hosted server is the recommended way in: `claude mcp add --transport http kansei-link
+  https://mcp.kansei-link.com/mcp` (or `{ "url": "https://mcp.kansei-link.com/mcp" }` in any client
+  that takes one). Same tools, no key, always the current data. The npm package stays as the
+  offline copy. README, CLAUDE.md, AGENTS.md, `server.json` remotes and the docs say so.
+- The hosted `/mcp` now keeps a usage log: one row per `initialize` / `tools/call` with the tool
+  name, the service id (only when it exists), the mode, an enumerated outcome, the client name
+  from `initialize`, a UA class, the server version and a salted hash of `Mcp-Session-Id` when
+  there is one. Arguments, IPs, raw user agents and responses are never stored. 180-day
+  retention; `USAGE_LOG_ENABLED=0` turns it off. Counts show up in `GET /admin/activity`
+  (`mcp_usage`). See `SECURITY.md` → *What the server can see*.
+
 ### Changed — the package ships the public copy of the data, not the full seed
 - `src/data/public/` (written by `npm run data:public`) is what the npm package carries now:
   one slim card per service (id, name, category, tags, one-line summary, api_url, docs_url, auth

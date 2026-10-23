@@ -5,39 +5,37 @@ description: "Get up and running with KanseiLink in 2 minutes"
 
 ## Installation
 
-**Fastest (Claude Code):**
+**Add by URL (hosted, current data, no key):**
 
 ```bash
-claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
+claude mcp add --transport http kansei-link https://mcp.kansei-link.com/mcp
 ```
-
-**Or add to your config manually:**
 
 ::: code-group
 
-```json [Claude Desktop (claude_desktop_config.json)]
+```json [Cursor / Windsurf / Cline (.cursor/mcp.json)]
 {
   "mcpServers": {
-    "kansei-link": {
-      "command": "npx",
-      "args": ["-y", "@kansei-link/mcp-server"]
-    }
+    "kansei-link": { "url": "https://mcp.kansei-link.com/mcp" }
   }
 }
 ```
 
-```json [Cursor / Windsurf (.cursor/mcp.json)]
-{
-  "mcpServers": {
-    "kansei-link": {
-      "command": "npx",
-      "args": ["-y", "@kansei-link/mcp-server"]
-    }
-  }
-}
+```text [Claude Desktop]
+Settings → Connectors → Add custom connector → https://mcp.kansei-link.com/mcp
 ```
 
-```json [Cline / other MCP clients]
+:::
+
+**Offline (no network calls at all):** the npm package runs locally on a small public copy of the catalogue.
+
+::: code-group
+
+```bash [Claude Code CLI]
+claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
+```
+
+```json [Any MCP client]
 {
   "mcpServers": {
     "kansei-link": {
@@ -49,6 +47,8 @@ claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
 ```
 
 :::
+
+What the hosted server keeps about a call: [SECURITY.md → What the server can see](https://github.com/kansei-link/kansei-mcp-server/blob/main/SECURITY.md#what-the-server-can-see).
 
 ## Your First Call
 
