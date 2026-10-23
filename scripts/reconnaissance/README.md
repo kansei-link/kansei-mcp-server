@@ -87,7 +87,7 @@ node scripts/reconnaissance/run.mjs --dry-run # don't write report
 
 ## CI
 
-`.github/workflows/reconnaissance.yml` runs the script daily and commits
+(2026-10-23: the daily workflow and the `data/reconnaissance/` output moved to the internal repository; nothing in this public repo runs it any more.) It used to run the script daily and commit
 the report to `data/reconnaissance/reports/`.
 
 ## Why dogfood²

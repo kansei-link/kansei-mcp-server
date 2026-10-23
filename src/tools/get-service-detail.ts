@@ -4,6 +4,7 @@ import { z } from "zod";
 import { kanseiAppLink } from "../utils/app-link.js";
 import { computeFreshness, FRESHNESS_LEGEND } from "../utils/freshness.js";
 import { displayMcpStatus, MCP_STATUS_LEGEND } from "../utils/mcp-status.js";
+import { notFoundHint } from "../utils/not-found-hint.js";
 
 interface ServiceRow {
   id: string;
@@ -110,9 +111,7 @@ export function getServiceDetail(db: Database.Database, serviceId: string): obje
     .get(serviceId) as ServiceRow | undefined;
 
   if (!service) {
-    return {
-      error: `Service '${serviceId}' not found. Use search_services to find valid service IDs.`,
-    };
+    return notFoundHint(serviceId);
   }
 
   // Track search-to-detail conversion (selection) for funnel analytics

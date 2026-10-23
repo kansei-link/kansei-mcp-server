@@ -394,13 +394,18 @@ export function register(
           local_attempt_id: attemptId,
         });
       }
+      // The handle references services(id). For an id this installation does not have (a miss —
+      // since 1.3.0 the local DB is the public copy), store the handle without the link instead of
+      // failing the whole call with a FOREIGN KEY error; the result already carries the miss hint.
+      const knownService = typeof params.service_id === "string"
+        && !!db.prepare("SELECT 1 FROM services WHERE id = ?").get(params.service_id);
       db.prepare(`
         INSERT INTO execution_attempts
           (attempt_id, service_id, recipe_id, recipe_version)
         VALUES (?, ?, ?, ?)
       `).run(
         attemptId,
-        params.service_id ?? null,
+        knownService ? params.service_id : null,
         firstRecipe?.id ?? null,
         firstRecipe?.version ?? null
       );

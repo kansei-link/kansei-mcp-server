@@ -8,6 +8,7 @@ import {
 } from "../utils/reliability-source.js";
 import { wrapUntrusted } from "../utils/untrusted.js";
 import { displayMcpStatus, MCP_STATUS_COLUMNS, MCP_STATUS_LEGEND } from "../utils/mcp-status.js";
+import { notFoundHint } from "../utils/not-found-hint.js";
 
 interface ServiceRow {
   id: string;
@@ -111,9 +112,7 @@ export function getServiceTips(db: Database.Database, serviceId: string): object
     .get(serviceId) as ServiceRow | undefined;
 
   if (!service) {
-    return {
-      error: `Service '${serviceId}' not found. Use search_services to find valid service IDs.`,
-    };
+    return notFoundHint(serviceId);
   }
 
   // Get API guide if available

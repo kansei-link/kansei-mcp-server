@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.3.0 (unreleased — disclosure stage 1)
+
+### Changed — the package ships the public copy of the data, not the full seed
+- `src/data/public/` (written by `npm run data:public`) is what the npm package carries now:
+  one slim card per service (id, name, category, tags, one-line summary, api_url, docs_url, auth
+  method, mcp_status, mcp_endpoint, repo, grade, confirmed date), the 200 recipes with their
+  gotchas, the 199 API guides, and the last 90 days of the changelog.
+- **Not shipped any more**: internal scores (trust / AXR score and dimensions), agent voices,
+  service stats, GitHub-issue tips, raw registry / audit / watchdog outputs, archived (dead)
+  services, and the duplicate `recipes-new-75.json`. Why: those are either internal working data
+  or things the hosted server answers better and more freshly (see `SECURITY.md` → *What ships
+  where*). The hosted server is unchanged (it is built from the repo and keeps the full seed).
+- When `lookup` misses a service, the reply now includes `see` (the public card
+  `https://kansei-link.com/services/<id>/`) and `ask` (`/api/v1/ask`) instead of only an error.
+  Tool names, arguments and result shapes are otherwise unchanged.
+- Local search ranks on the shipped data: without internal scores every service carries the
+  default trust score, so ordering can differ slightly from the hosted server.
+
+### Removed from the public repository (moved to the internal repository)
+- Reconnaissance data and workflow, agent-army harness and reports, exec-harness task packs and
+  evidence bundles, target lists, raw registry / audit / issue dumps and premium-content scripts.
+
 ## v1.2.5 (2026-10-21)
 
 ### New — `ask`: read-only error lookup
