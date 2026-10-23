@@ -59,6 +59,7 @@ import { candidateSourceCounts } from "./ask/engine.js";
 import { adminActivity } from "./admin/activity.js";
 import { adminSiteChecks, siteCheckRows, siteChecksCsv, parseDays as parseSiteCheckDays } from "./admin/site-checks.js";
 import { jsonBodyErrorHandler } from "./utils/json-body-errors.js";
+import { isVendorOfficial } from "./utils/vendor-official.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats } from "./ard.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -278,12 +279,16 @@ app.get("/api/dashboard/stats", apiLimiter, (_req: Request, res: Response) => {
     const serviceStats = db.prepare(`
       SELECT
         COUNT(*) as total,
-        ROUND(AVG(CASE WHEN axr_score IS NOT NULL THEN axr_score / 100.0 END), 2) as avg_aeo,
-        -- 2026-10-22: 「公式 MCP の有無」で数える。以前は mcp_endpoint があれば数えていたため、
-        -- community の npx 指定まで含んで 11,293/11,293 = 100% と出ていた（集計の定義の直し・経路は不変）。
-        SUM(CASE WHEN mcp_status = 'official' THEN 1 ELSE 0 END) as mcp_count
+        ROUND(AVG(CASE WHEN axr_score IS NOT NULL THEN axr_score / 100.0 END), 2) as avg_aeo
       FROM services
     `).get() as any;
+    // 2026-10-23: mcpCount = vendor_official（提供元の公式 MCP）だけを数える。判定は utils/vendor-official.ts の 1 か所。
+    // 10/22 版は mcp_status='official' を数えていたが、その大半は MCP Registry 由来の個人・小規模サーバーで、
+    // 1,995/11,293 = 18% は過大だった（さらに前は mcp_endpoint があれば数えて 100%）。集計の定義の直し・経路は不変。
+    serviceStats.mcp_count = (db.prepare(
+      `SELECT id, mcp_status, namespace, api_url FROM services WHERE mcp_status = 'official'`
+    ).all() as Array<{ id: string; mcp_status: string; namespace: string | null; api_url: string | null }>)
+      .filter(isVendorOfficial).length;
 
     const recipeCount = (db.prepare(`SELECT COUNT(*) as c FROM recipes`).get() as any).c;
 
@@ -309,13 +314,16 @@ app.get("/api/dashboard/stats", apiLimiter, (_req: Request, res: Response) => {
       LIMIT 10
     `).all();
 
-    // MCP adoption rate
+    // Vendor-official MCP rate (one decimal: 58/11,293 rounds to 1% as an integer, which hides the size)
     const mcpRate = serviceStats.total > 0
-      ? Math.round((serviceStats.mcp_count / serviceStats.total) * 100)
+      ? Math.round((serviceStats.mcp_count / serviceStats.total) * 1000) / 10
       : 0;
 
     res.json({
-      services: { total: serviceStats.total, avgAeo: serviceStats.avg_aeo || 0, mcpCount: serviceStats.mcp_count, mcpRate },
+      services: {
+        total: serviceStats.total, avgAeo: serviceStats.avg_aeo || 0, mcpCount: serviceStats.mcp_count, mcpRate,
+        mcpCountDefinition: "vendor_official: mcp_status='official', id not MCP-Registry-namespace-shaped, api_url on the provider's own domain (not github/npm)",
+      },
       recipes: { total: recipeCount },
       grades,
       // この分布は AXR Runtime のもの。ARI Award の AI Access Level 0 とは別尺度
