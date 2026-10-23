@@ -141,7 +141,7 @@ if (process.argv.includes("--clock-child")) {
 
   const port = process.env.KANSEI_CLOCK_PORT;
   const http = spawn(process.execPath, ["--import", process.env.KANSEI_FAKE_CLOCK_URL, "dist/http-server.js"], {
-    env: { ...process.env, KANSEI_DB_PATH: dbPath, PORT: port, KANSEI_HOST: "127.0.0.1", RESEND_API_KEY: "" },
+    env: { ...process.env, KANSEI_DB_PATH: dbPath, PORT: port, KANSEI_HOST: "127.0.0.1", RESEND_API_KEY: "", DASHBOARD_MAX_LIMIT: "1000", DASHBOARD_MAX_OFFSET: "100000" }, // local smoke only: page through every row
     stdio: ["ignore", "pipe", "pipe"],
   });
   let log = ""; http.stdout.on("data", (d) => (log += d)); http.stderr.on("data", (d) => (log += d));
@@ -436,7 +436,7 @@ try {
     // /api/dashboard/rankings — the HTTP services listing (there is no /api/services route)
     const PORT = 3627;
     http = spawn(process.execPath, ["dist/http-server.js"], {
-      env: { ...process.env, KANSEI_DB_PATH: join(DIR, "main.db"), PORT: String(PORT), KANSEI_HOST: "127.0.0.1", RESEND_API_KEY: "" },
+      env: { ...process.env, KANSEI_DB_PATH: join(DIR, "main.db"), PORT: String(PORT), KANSEI_HOST: "127.0.0.1", RESEND_API_KEY: "", DASHBOARD_MAX_LIMIT: "1000", DASHBOARD_MAX_OFFSET: "100000" }, // local smoke only: page through every row
       stdio: ["ignore", "pipe", "pipe"],
     });
     let log = ""; http.stdout.on("data", (d) => (log += d)); http.stderr.on("data", (d) => (log += d));
