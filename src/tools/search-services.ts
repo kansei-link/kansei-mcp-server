@@ -13,6 +13,7 @@ import {
   type FreshnessMeta,
 } from "../utils/freshness.js";
 import { displayMcpStatus, MCP_STATUS_LEGEND, type McpStatusBasis, type McpLivenessDisplay } from "../utils/mcp-status.js";
+import { isVendorOfficial } from "../utils/vendor-official.js";
 
 interface ServiceRow {
   id: string;
@@ -625,7 +626,9 @@ const TAG_MATCH_BOOST = 0.3;
 /**
  * Evidence boost (2026-10-23, INSTRUCTION-agent-search-ranking): in intent searches, services an
  * agent can actually use rank above look-alikes. Not "higher grade = higher rank" — only evidence:
- *   official   … the provider ships an official MCP (mcp_status = 'official')
+ *   official   … the provider itself ships the MCP — vendor_official (utils/vendor-official.ts):
+ *                mcp_status='official', id not Registry-namespace-shaped, api_url on the vendor's own
+ *                domain (not github/npm). Registry-imported 'official' rows get nothing here.
  *   handshake  … our probe completed an MCP handshake with the current endpoint within 30 days
  *                (mcp_status_basis = 'handshake'; absent or stale → nothing)
  *   reported   … ≥ EVIDENCE_MIN_REPORTS publishable external reports (user_reported / kansei_measured
@@ -775,7 +778,9 @@ export function searchServices(
     // Evidence boost (intent searches only). Each part is small and needs real evidence.
     if (!namedSearch) {
       let boost = 0;
-      if (r.mcp_status === "official") boost += EVIDENCE_BOOST.official;
+      // vendor_official only: the provider's own MCP, not a Registry-imported community server
+      // (utils/vendor-official.ts — 58 of the 1,995 'official' rows in the seed).
+      if (isVendorOfficial({ id: r.service_id, mcp_status: r.mcp_status, namespace: r.namespace, api_url: r.api_url })) boost += EVIDENCE_BOOST.official;
       if (r.mcp_status_basis === "handshake") boost += EVIDENCE_BOOST.handshake;
       if (relSource.public_reports >= EVIDENCE_MIN_REPORTS && relSource.public_success_rate != null) {
         boost += EVIDENCE_BOOST.reported * relSource.public_success_rate;
