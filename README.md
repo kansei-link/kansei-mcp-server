@@ -26,13 +26,31 @@ If KanseiLink saves your agent tokens, [give it a star ⭐](https://github.com/k
 
 ## Quick Start
 
+**Add by URL** — the hosted server, always on the current data. No key, no sign-up.
+
 ```bash
-npx @kansei-link/mcp-server
+claude mcp add --transport http kansei-link https://mcp.kansei-link.com/mcp
 ```
 
-Works with **Claude Code, Cursor, Cline, Zed, Windsurf** — any MCP client.
+Cursor, Windsurf, Cline, Zed — any client that takes a URL (`.cursor/mcp.json` and the like):
 
-Add to your config (`claude_desktop_config.json`, `.cursor/mcp.json`, etc.):
+```json
+{
+  "mcpServers": {
+    "kansei-link": { "url": "https://mcp.kansei-link.com/mcp" }
+  }
+}
+```
+
+Claude Desktop: *Settings → Connectors → Add custom connector* → `https://mcp.kansei-link.com/mcp`.
+
+What the hosted server keeps about a call is one line of counts — tool name, service id, outcome — never your text. The full list is in [SECURITY.md → What the server can see](SECURITY.md#what-the-server-can-see).
+
+**Offline, or no network calls at all** — the npm package runs locally on a small public copy of the catalogue (one card per service, recipes, API guides) and sends nothing:
+
+```bash
+claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
+```
 
 ```json
 {
@@ -45,11 +63,7 @@ Add to your config (`claude_desktop_config.json`, `.cursor/mcp.json`, etc.):
 }
 ```
 
-Or with Claude Code CLI:
-
-```bash
-claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
-```
+Works with **Claude Code, Claude Desktop, Cursor, Cline, Zed, Windsurf** — any MCP client.
 
 ## Wrapped: Your Monthly Agent Fuel-Efficiency Report
 
@@ -295,8 +309,9 @@ See [SECURITY.md](SECURITY.md) for full details.
 2. Restart Claude Code. Skills are indexed on session start.
 3. Check that the MCP is registered under the name `kansei-link`:
    ```bash
-   claude mcp add -s user kansei-link -- npx -y @kansei-link/mcp-server
+   claude mcp add --transport http kansei-link https://mcp.kansei-link.com/mcp
    ```
+   (or the `npx` form above for the offline copy)
 </details>
 
 <details>

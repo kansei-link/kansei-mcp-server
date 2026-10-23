@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 import { notesWritesEnabled, notesDailyLimits, countToday } from "../notes/store.js";
 import { askLogEnabled, askCandidates, dailyCap, dailySlotsUsed } from "../ask/engine.js";
+import { ensureUsageLogSchema, usageSummary } from "../mcp-usage-log.js";
 
 // GET /admin/activity — one read-only summary for the founder's watch screen.
 // Counts and already-public note text only. Never returns IPs, raw user agents, or
@@ -21,6 +22,7 @@ type Count = { n: number };
 const ratio = (used: number, cap: number) => (cap > 0 ? Math.round((used / cap) * 1000) / 1000 : null);
 
 export function adminActivity(db: Database.Database, now = new Date()) {
+  ensureUsageLogSchema(db); // idempotent; the summary below reads the table
   const one = (sql: string, ...args: unknown[]) => (db.prepare(sql).get(...args) as Count).n;
   // created_at / asked_at are stored as UTC 'YYYY-MM-DD HH:MM:SS' (datetime('now')).
   const since = (mod: string) => `datetime('now', '${mod}')`;
@@ -106,6 +108,8 @@ export function adminActivity(db: Database.Database, now = new Date()) {
       daily_cap: { day: "UTC", used: askUsed, limit: askCap, ratio: ratio(askUsed, askCap), note: "in-process counter; resets on restart" },
       top_unmatched_30d: topUnmatched,
     },
+    // ─── hosted /mcp usage (stage 2a) — counts only; see src/mcp-usage-log.ts for what a row holds ───
+    mcp_usage: usageSummary(db, 7),
     alerts,
     thresholds: ACTIVITY_ALERTS,
   };
