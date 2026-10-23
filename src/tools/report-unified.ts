@@ -3,7 +3,7 @@ import type Database from "better-sqlite3";
 import { z } from "zod";
 
 import { reportOutcome } from "./report-outcome.js";
-import { sessionMaterial } from "../agent-id.js";
+import { outcomeAgentMaterial } from "../agent-id.js";
 import { emitEvent, toModelFamily, toErrorClass } from "../usage/telemetry.js";
 import { submitFeedback } from "./submit-feedback.js";
 import { recordEvent } from "./record-event.js";
@@ -41,6 +41,7 @@ interface ReportParams {
   note_id?: unknown;
   provider_request_id?: unknown;
   provider_request_id_source?: unknown;
+  session_id?: unknown;
   provider_error_code?: unknown;
   // feedback params
   feedback_type?: string;
@@ -274,6 +275,7 @@ export function register(server: McpServer, db: Database.Database, options: Repo
         note_id: z.unknown().optional().describe("[outcome] Field-note ID this report belongs to (format AWT-000). Stored as null if the format does not match."),
         provider_request_id: z.unknown().optional().describe("[outcome] Request or error ID the provider returned (e.g. from an x-request-id header). If present and well-formed, the record becomes traceable in the provider's own logs. Stored as null if the format does not match."),
         provider_request_id_source: z.unknown().optional().describe("[outcome] Where the provider request ID came from: 'header:<name>' (e.g. header:x-request-id) or 'body:<field>' (e.g. body:id)."),
+        session_id: z.unknown().optional().describe("[outcome] Optional. A UUID you generate once and reuse for every report during one task, so reports from the same task count as one agent (only a salted hash is stored, never this value). Anything that is not a UUID is ignored."),
         provider_error_code: z.unknown().optional().describe("[outcome] Provider's error code string (e.g. expired_access_token) or an RFC 9457 problem type URI (https://…, max 200 chars). Stored as null if the format does not match."),
 
         // --- Feedback mode ---
@@ -382,9 +384,13 @@ export function register(server: McpServer, db: Database.Database, options: Repo
           result = dispatchOutcome(
             db,
             params,
-            options.installMaterial ??
-              sessionMaterial(extra?.sessionId) ??
-              sessionMaterial(extra?.requestInfo?.headers?.["mcp-session-id"])
+            // Mcp-Session-Id → the tool's session_id (UUID) → stdio install id → anonymous
+            outcomeAgentMaterial({
+              transportSessionId: extra?.sessionId,
+              sessionHeader: extra?.requestInfo?.headers?.["mcp-session-id"],
+              argSessionId: params.session_id,
+              installMaterial: options.installMaterial,
+            })
           );
           break;
         case "feedback":

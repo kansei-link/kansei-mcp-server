@@ -5,7 +5,9 @@ import type Database from "better-sqlite3";
 //
 // agent_id_hash = first 32 hex chars of sha256(AGENT_HASH_SALT + ":" + material).
 // The material is never stored; only the hash is. Material, by caller:
-//   - HTTP MCP:            the Mcp-Session-Id of the request (Streamable HTTP session)
+//   - HTTP MCP:            the Mcp-Session-Id of the request (Streamable HTTP session); the hosted
+//                          /mcp is stateless and sends none, so the `report` tool's optional
+//                          session_id (UUID, same value for one task) is the next material
 //   - /api/report-outcome: an optional session_id (UUID) in the body
 //   - stdio (local npm):   one random id created once per installation, kept in
 //                          the local DB (agent_install_identity)
@@ -50,6 +52,26 @@ export function uuidMaterial(value: unknown): string | null {
 export function sessionMaterial(value: unknown): string | null {
   const v = Array.isArray(value) ? value[0] : value;
   return typeof v === "string" && SESSION_RE.test(v) ? v : null;
+}
+
+/**
+ * The material for an outcome reported through the `report` tool, in this order (first one wins):
+ *   1. Mcp-Session-Id (transport session, or the request header)
+ *   2. the tool's optional `session_id` argument — a UUID the agent keeps for one task
+ *      (the hosted /mcp is stateless and issues no Mcp-Session-Id, so this is what counts there)
+ *   3. the stdio per-installation id
+ *   → none of them: null, and the report is stored as 'anonymous'
+ */
+export function outcomeAgentMaterial(src: {
+  transportSessionId?: unknown;
+  sessionHeader?: unknown;
+  argSessionId?: unknown;
+  installMaterial?: string | null;
+}): string | null {
+  return sessionMaterial(src.transportSessionId)
+    ?? sessionMaterial(src.sessionHeader)
+    ?? uuidMaterial(src.argSessionId)
+    ?? (src.installMaterial || null);
 }
 
 /** The per-installation random id for stdio, created once and kept in the local DB. */
