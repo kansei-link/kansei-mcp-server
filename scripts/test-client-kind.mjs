@@ -24,7 +24,7 @@ const OBSERVED = [
 test('the shipped list: every observed name is sorted, and only confirmed clients are agents', () => {
   const k = clientKinds();
   const unknown = OBSERVED.filter(([n]) => classifyClient(n, k) !== 'probe').map(([n]) => n);
-  assert.deepEqual(unknown, ['moonglade-shadows', 'heldfast'], 'two names give no hint of what they are: stay unknown');
+  assert.deepEqual(unknown, ['moonglade-shadows'], 'a name with no public trace of what it is stays unknown');
   assert.equal(classifyClient('claude-code', k), 'agent');
   assert.equal(classifyClient('codex-mcp-client', k), 'agent');
   assert.equal(classifyClient('Claude-Code', k), 'agent', 'case-insensitive');
@@ -68,13 +68,13 @@ test('usageSummary: by_client_kind over every client, probe-free counts and list
   assert.equal(u.initializes, 50 + 2 + 1 + 21);
   assert.equal(u.by_client.length, 20, 'the existing top-20 field is unchanged');
   assert.deepEqual(u.by_client_kind, {
-    probe: { initializes: 47 + 21, clients: 18 + 21 },
+    probe: { initializes: 48 + 21, clients: 19 + 21 },
     agent: { initializes: 2, clients: 1 },
-    unknown: { initializes: 3 + 1, clients: 3 },
+    unknown: { initializes: 2 + 1, clients: 2 },
   });
-  assert.equal(u.initializes_excluding_probes, 2 + 4);
+  assert.equal(u.initializes_excluding_probes, 2 + 3);
   assert.deepEqual(u.clients_excluding_probes.map((c) => [c.client_name, c.kind, c.n]), [
-    ['claude-code', 'agent', 2], ['moonglade-shadows', 'unknown', 2], ['heldfast', 'unknown', 1], ['other', 'unknown', 1],
+    ['claude-code', 'agent', 2], ['moonglade-shadows', 'unknown', 2], ['other', 'unknown', 1],
   ]);
   assert.equal(u.calls, 1, 'tools_call rows are untouched (no client on them)');
   db.close();
@@ -85,8 +85,8 @@ test('/admin/activity carries the split', () => {
   db.pragma('foreign_keys=ON');
   ensureNotesSchema(db); ensureAskSchema(db); resetDailyCapForTests();
   const a = adminActivity(db).mcp_usage;
-  assert.equal(a.by_client_kind.probe.initializes, 68);
-  assert.equal(a.initializes_excluding_probes, 6);
+  assert.equal(a.by_client_kind.probe.initializes, 69);
+  assert.equal(a.initializes_excluding_probes, 5);
   assert.ok(Array.isArray(a.clients_excluding_probes));
   db.close();
 });
