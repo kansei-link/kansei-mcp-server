@@ -146,3 +146,14 @@ test('HTTP: /admin/activity needs the admin secret; with it the shape matches an
     try { rmSync(dir, { recursive: true, force: true }); } catch {}
   }
 });
+
+test('discovery v1: /admin/activity ask section carries unknown_service_ids_7d (ids + malformed count, no content)', () => {
+  const db = setup();
+  const o = { uaClass: 'unknown', maxErrorLength: ASK_POST_MAX };
+  for (const s of ['sansan-mcp', 'sansan-mcp', 'Weird.Id']) assert.throws(() => ask(db, { service: s, error: 'HTTP 404 not here' }, o));
+  const a = adminActivity(db);
+  assert.deepEqual(a.ask.unknown_service_ids_7d.ids.map((r) => [r.service_id, r.asks]), [['sansan-mcp', 2]]);
+  assert.equal(a.ask.unknown_service_ids_7d.malformed, 1);
+  const text = JSON.stringify(a);
+  assert.ok(!text.includes('Weird.Id') && !text.includes('not here'), 'malformed id and question text never appear');
+});

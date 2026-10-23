@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { notesWritesEnabled, notesDailyLimits, countToday } from "../notes/store.js";
-import { askLogEnabled, askCandidates, dailyCap, dailySlotsUsed } from "../ask/engine.js";
+import { askLogEnabled, askCandidates, askUnknownServiceIds, dailyCap, dailySlotsUsed } from "../ask/engine.js";
 
 // GET /admin/activity — one read-only summary for the founder's watch screen.
 // Counts and already-public note text only. Never returns IPs, raw user agents, or
@@ -105,6 +105,9 @@ export function adminActivity(db: Database.Database, now = new Date()) {
       last_7d: { asks: ask7d.asks, matched: ask7d.matched, unmatched: ask7d.asks - ask7d.matched },
       daily_cap: { day: "UTC", used: askUsed, limit: askCap, ratio: ratio(askUsed, askCap), note: "in-process counter; resets on restart" },
       top_unmatched_30d: topUnmatched,
+      // service ids asked for that do not exist (problem service-not-found), last 7 days, top 20;
+      // malformed = strings that did not look like an id (count only, no content kept)
+      unknown_service_ids_7d: askUnknownServiceIds(db, 7, 20),
     },
     alerts,
     thresholds: ACTIVITY_ALERTS,

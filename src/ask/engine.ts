@@ -349,6 +349,37 @@ export function ensureAskSchema(db: Database.Database): void {
   if (!askCols.some((c) => c.name === "code_known")) db.exec("ALTER TABLE ask_log ADD COLUMN code_known INTEGER");
   // 180-day retention, applied at startup (no raw text is kept, but demand data is still bounded).
   db.prepare(`DELETE FROM ask_log WHERE asked_at < datetime('now', ?)`).run(`-${ASK_LOG_RETENTION_DAYS} days`);
+  // 2026-10-22 (discovery v1): which service ids were asked for but do not exist. Only an id that matches
+  // UNKNOWN_ID_RE is stored; anything else is counted as "malformed" with no content. No question text, no IP.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ask_unknown_service (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asked_at TEXT NOT NULL DEFAULT (datetime('now')),
+      service_id TEXT,
+      malformed INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_ask_unknown_service_time ON ask_unknown_service(asked_at);
+  `);
+  db.prepare(`DELETE FROM ask_unknown_service WHERE asked_at < datetime('now', ?)`).run(`-${ASK_LOG_RETENTION_DAYS} days`);
+}
+
+/** Shape an unknown service id must have to be stored at all (otherwise only the malformed count grows). */
+export const UNKNOWN_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
+
+function recordUnknownService(db: Database.Database, service: string): void {
+  if (!askLogEnabled()) return;
+  if (UNKNOWN_ID_RE.test(service)) db.prepare(`INSERT INTO ask_unknown_service (service_id, malformed) VALUES (?, 0)`).run(service);
+  else db.prepare(`INSERT INTO ask_unknown_service (service_id, malformed) VALUES (NULL, 1)`).run();
+}
+
+/** Admin: service ids asked for that do not exist (last `days`), most frequent first; malformed = count only. */
+export function askUnknownServiceIds(db: Database.Database, days = 7, limit = 20) {
+  const ids = db.prepare(`SELECT service_id, count(*) AS asks, max(asked_at) AS last_asked_at
+    FROM ask_unknown_service WHERE malformed = 0 AND asked_at >= datetime('now', ?)
+    GROUP BY service_id ORDER BY asks DESC, last_asked_at DESC LIMIT ?`).all(`-${days} days`, limit) as Array<{ service_id: string; asks: number; last_asked_at: string }>;
+  const malformed = (db.prepare(`SELECT count(*) AS n FROM ask_unknown_service WHERE malformed = 1 AND asked_at >= datetime('now', ?)`)
+    .get(`-${days} days`) as { n: number }).n;
+  return { window_days: days, ids, malformed };
 }
 
 export function askLogEnabled(): boolean {
@@ -423,7 +454,10 @@ export function ask(db: Database.Database, raw: unknown, opts: AskOptions): AskR
       ? `error exceeds ${ASK_GET_MAX} characters; send it as JSON with POST /api/v1/ask (up to ${ASK_POST_MAX})`
       : `error exceeds ${ASK_POST_MAX} characters; send only the error message, not the whole trace`);
   }
-  if (!db.prepare("SELECT 1 FROM services WHERE id = ?").get(input.service)) throw new AskError(404, "service_not_found", "unknown service id; use search_services to find the id");
+  if (!db.prepare("SELECT 1 FROM services WHERE id = ?").get(input.service)) {
+    recordUnknownService(db, input.service);
+    throw new AskError(404, "service_not_found", "unknown service id; use search_services to find the id");
+  }
   if (!takeDailySlot()) throw new AskError(429, "daily_limit", "ask has reached today's global capacity; try again tomorrow");
 
   const masked = cleanText(input.error, opts.maxErrorLength);
