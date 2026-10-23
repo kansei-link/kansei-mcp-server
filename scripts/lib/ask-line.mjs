@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-export const ASK_BASE = 'https://kansei-link-mcp-production.up.railway.app/api/v1/ask';
+export const ASK_BASE = 'https://mcp.kansei-link.com/api/v1/ask';
 export const OPEN = '<!-- ask-line -->';
 export const CLOSE = '<!-- /ask-line -->';
 export const WRITE_DOCS = 'https://kansei-link.com/agents/write.html';

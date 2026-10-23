@@ -44,7 +44,7 @@ if (!DATE_RE.test(TODAY)) throw new Error(`--as-of は YYYY-MM-DD: ${TODAY}`);
 const ARD_SPEC = 'ards-project/ard-spec spec/ard.md v0.91 (b76f235, 2026-09-12)';
 const ARD_BASE_CONTEXT = 'https://agenticresourcediscovery.org/context/v1';
 const NS = `${SITE}/ns/ard/v1#`;
-const SERVER = 'https://kansei-link-mcp-production.up.railway.app';
+const SERVER = 'https://mcp.kansei-link.com';
 const MANIFEST_URL = `${SITE}/.well-known/ard.json`;
 const AUTHOR = 'kansei-link.com';
 const VERIFIER = 'human:synapse-arrows';

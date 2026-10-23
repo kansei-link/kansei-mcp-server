@@ -15,7 +15,8 @@
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import { clientIp } from "./utils/client-ip.js";
 import { scaleLegend } from "./scales.js";
 import { statusProvenance } from "./crawler/sources/publisher-match.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -78,6 +79,10 @@ const app = express();
 // setting — `true` would trust arbitrarily many proxies and let clients
 // forge their IP.
 app.set("trust proxy", 1);
+// Behind Cloudflare (mcp.kansei-link.com, 2026-10-24) req.ip is the Cloudflare edge, so every limiter
+// and every IP hash keys on clientIp(req): CF-Connecting-IP, trusted only when req.ip is a Cloudflare
+// address (src/utils/client-ip.ts). On the direct railway.app path nothing changes.
+const perVisitor = { keyGenerator: (req: Request) => ipKeyGenerator(clientIp(req)) };
 
 // Every response carries X-Request-Id (Railway edge id when present, else a uuid),
 // so a caller can quote one value and we can find the same request in our logs.
@@ -106,6 +111,7 @@ app.use(helmet());
 
 // Rate limiting — general (100 req/min per IP)
 const generalLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,
   limit: 100,
   standardHeaders: "draft-7",
@@ -116,6 +122,7 @@ app.use(generalLimiter);
 
 // Strict rate limit for sensitive API endpoints (20 req/min per IP)
 const apiLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,
   limit: 20,
   standardHeaders: "draft-7",
@@ -199,6 +206,7 @@ app.get("/api/config", (_req: Request, res: Response) => {
 // Each scan makes up to ~4 outbound fetches to the target site, so it
 // gets a tighter limiter than the general API bucket.
 const siteCheckLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,
   limit: 5,
   standardHeaders: "draft-7",
@@ -210,6 +218,7 @@ const siteCheckLimiter = rateLimit({
 // その全部が外部サイトへの取得なので、こちらがスキャナと見なされてIPを弾かれる。
 // 金額よりもそちらが痛い（診断そのものが動かなくなる）ため、日次でも締める。
 const siteCheckDailyLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 24 * 60 * 60 * 1000,
   limit: 40,
   standardHeaders: "draft-7",
@@ -261,6 +270,7 @@ app.post("/admin/claim/approve", handleClaimAdminApprove);
 // Magic-link requests get an extra-tight limiter: each request can trigger an
 // outbound email, so 5/min/IP on top of the per-email throttle in auth.ts.
 const magicLinkLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,
   limit: 5,
   standardHeaders: "draft-7",
@@ -711,6 +721,7 @@ app.get("/ard/stats.json", handleArdStats);
 // the linksee-memory README. We never accept conversation content,
 // only aggregated/hashed signals.
 const linkseeTelemetryLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,        // 1 minute
   max: 30,                    // up to 30 submissions per minute per IP
   standardHeaders: true,
@@ -758,7 +769,7 @@ app.post(
       };
 
       // Hash IP for abuse detection only (one-way, never raw)
-      const ip = (req.header("x-forwarded-for") || req.ip || "").split(",")[0].trim();
+      const ip = clientIp(req);
       const ipHash = ip
         ? createHash("sha256").update(ip + "|linksee-tel-salt").digest("hex").slice(0, 16)
         : null;
@@ -798,6 +809,7 @@ app.post(
 const WRAPPED_MIN_POPULATION = 20; // below this, ranks are noise — report cohort size only
 
 const wrappedLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,
   max: 10, // one submission per report run — 10/min is generous
   standardHeaders: true,
@@ -836,7 +848,7 @@ app.post(
         error_stuck_tokens: cap(body.error_stuck_tokens, 10_000_000_000),
       };
 
-      const ip = (req.header("x-forwarded-for") || req.ip || "").split(",")[0].trim();
+      const ip = clientIp(req);
       const ipHash = ip
         ? createHash("sha256").update(ip + "|wrapped-salt").digest("hex").slice(0, 16)
         : null;
@@ -1058,6 +1070,7 @@ async function sendLeadConfirmation(email: string, source: string): Promise<bool
 // contact details. Stores the lead, answers with the CSV inline — the
 // client triggers the download from the response.
 const rankingLeadLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,
   max: 5,
   standardHeaders: true,
@@ -1068,6 +1081,7 @@ const rankingLeadLimiter = rateLimit({
 
 // 1件ごとに確認メールを送る＝従量課金。分単位に加えて日次でも締める。
 const rankingLeadDailyLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 24 * 60 * 60 * 1000,
   limit: 20,
   standardHeaders: true,
@@ -1097,7 +1111,7 @@ app.post(
       const source =
         typeof body.source === "string" ? body.source.slice(0, 64) : "ari-award-2026-summer";
 
-      const ip = (req.header("x-forwarded-for") || req.ip || "").split(",")[0].trim();
+      const ip = clientIp(req);
       const ipHash = ip
         ? createHash("sha256").update(ip + "|ranking-lead-salt").digest("hex").slice(0, 16)
         : null;
@@ -1128,6 +1142,7 @@ app.post(
 // ?format=csv export. Guarded by KANSEI_ADMIN_KEY — endpoint answers
 // 503 until that env var is set, and the key is compared timing-safe.
 const adminLeadsLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,
   max: 30,
   standardHeaders: true,
@@ -1202,6 +1217,7 @@ th,td{border:1px solid #E5E7EB;padding:8px 12px;text-align:left}th{background:#F
 // they make flows into KanseiLink's trust-score feedback loop without
 // any per-call boilerplate.
 const reportHookLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,
   max: 120, // agents can burst — more generous than telemetry
   standardHeaders: true,
@@ -1533,6 +1549,7 @@ app.post("/mcp", async (req: Request, res: Response) => {
 // rate limit. All rows land as provenance=user_reported, forever unverified.
 
 const eventsIngestLimiter = rateLimit({
+  ...perVisitor,
   windowMs: 60 * 1000,
   limit: 300, // per-IP
   standardHeaders: "draft-7",

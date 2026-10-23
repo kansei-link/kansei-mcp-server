@@ -29,7 +29,7 @@ import { METHODOLOGY_NOTES_JA, METHODOLOGY_NOTES_EN } from "../usage/baselines.j
 import { WRAPPED_DIR, ensureDirs, getAnonId } from "../usage/paths.js";
 
 const DEFAULT_API_BASE =
-  process.env.KANSEI_ENDPOINT_BASE || "https://kansei-link-mcp-production.up.railway.app";
+  process.env.KANSEI_ENDPOINT_BASE || "https://mcp.kansei-link.com";
 
 // Illustrative input-token rates per 1M tokens (USD) by model family.
 // Savings are input-side (avoided web research results), so input rates apply.
