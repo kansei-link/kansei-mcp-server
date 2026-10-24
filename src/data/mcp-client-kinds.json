@@ -1,0 +1,17 @@
+{
+  "_readme": "clientInfo.name → kind for the hosted /mcp usage log (src/mcp-usage-log.ts → /admin/activity mcp_usage.by_client_kind). Edit by hand: add a name to agent.names or probe.names, or a word to probe.patterns. Order of checks: agent.names (exact, case-insensitive) → probe.names (exact, case-insensitive) → probe.patterns (case-insensitive regex on the name) → unknown. agent.names holds ONLY names confirmed from the client itself or its official source; each has a `confirmed` note. Never add an agent name by guess — an unconfirmed real client stays 'unknown' until it is checked. Design: founder-ops/research/Disclosure_2026-10/INSTRUCTION-agent-usage-probe-split.md (2026-10-24).",
+  "agent": {
+    "names": [
+      { "name": "claude-code", "client": "Claude Code", "confirmed": "2026-10-24 local run of Claude Code 2.1.301 against a logging endpoint: clientInfo.name 'claude-code', User-Agent 'claude-code/2.1.301 (…)'" },
+      { "name": "codex-mcp-client", "client": "Codex CLI", "confirmed": "2026-10-24 local run of codex-cli 0.153.4 against a logging endpoint: clientInfo.name 'codex-mcp-client' (title 'Codex'), User-Agent 'codex-mcp-client/0.153.4'" }
+    ]
+  },
+  "probe": {
+    "names": [
+      { "name": "mcpbeat", "seen": "2026-10-24" },
+      { "name": "glama", "seen": "2026-10-24" },
+      { "name": "heldfast", "seen": "2026-10-24", "note": "tool-definition change monitor; github.com/rufat325/heldfast src/heldfast/probe.py sets this clientInfo name" }
+    ],
+    "patterns": ["probe", "index", "catalog", "scanner", "crawler", "bot", "rank", "bench", "verify", "collector", "marketplace", "directory", "monitor", "uptime", "health-?check"]
+  }
+}

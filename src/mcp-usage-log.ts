@@ -2,6 +2,7 @@ import type Database from "better-sqlite3";
 import { agentIdHash, ANONYMOUS_AGENT, sessionMaterial } from "./agent-id.js";
 import { detectMode as detectLookupMode } from "./tools/lookup.js";
 import { detectMode as detectReportMode } from "./tools/report-unified.js";
+import { classifyClient, clientKinds, type ClientKind } from "./utils/client-kind.js";
 
 /**
  * Usage log for the hosted /mcp (disclosure stage 2a, 2026-10-24).
@@ -216,6 +217,36 @@ export function usageRecorder(db: Database.Database, pending: PendingUsage[], ct
 
 const TOP = 20;
 
+/**
+ * initialize rows split by client kind (probe = directories, quality/ranking probes and crawlers;
+ * agent = confirmed real clients; unknown = the rest). Computed over every client name in the window,
+ * not only the top 20 shown in by_client. Reads client_name only; nothing new is collected.
+ */
+export function clientKindSummary(db: Database.Database, since: string) {
+  const kinds = clientKinds();
+  const all = db.prepare(`SELECT client_name, client_version, count(*) AS n FROM mcp_usage_log
+    WHERE kind = 'initialize' AND called_at >= ${since} GROUP BY client_name, client_version`).all() as Array<{
+      client_name: string | null; client_version: string | null; n: number }>;
+  const byKind: Record<ClientKind, { initializes: number; clients: number }> = {
+    probe: { initializes: 0, clients: 0 }, agent: { initializes: 0, clients: 0 }, unknown: { initializes: 0, clients: 0 },
+  };
+  const seen: Record<ClientKind, Set<string>> = { probe: new Set(), agent: new Set(), unknown: new Set() };
+  const nonProbe: Array<{ client_name: string | null; client_version: string | null; kind: ClientKind; n: number }> = [];
+  for (const r of all) {
+    const k = classifyClient(r.client_name, kinds);
+    byKind[k].initializes += r.n;
+    seen[k].add(r.client_name ?? "");
+    if (k !== "probe") nonProbe.push({ ...r, kind: k });
+  }
+  for (const k of Object.keys(byKind) as ClientKind[]) byKind[k].clients = seen[k].size;
+  nonProbe.sort((a, b) => b.n - a.n || String(a.client_name).localeCompare(String(b.client_name)) || String(a.client_version).localeCompare(String(b.client_version)));
+  return {
+    by_client_kind: byKind,
+    initializes_excluding_probes: byKind.agent.initializes + byKind.unknown.initializes,
+    clients_excluding_probes: nonProbe.slice(0, TOP),
+  };
+}
+
 export function usageSummary(db: Database.Database, days = 7) {
   const since = `datetime('now', '-${Math.max(1, Math.floor(days))} days')`;
   const rows = <T>(sql: string): T[] => db.prepare(sql).all() as T[];
@@ -249,6 +280,7 @@ export function usageSummary(db: Database.Database, days = 7) {
       WHERE agent_hash IS NOT NULL AND called_at >= ${since}`),
     calls_without_agent_hash: one(`SELECT count(*) AS n FROM mcp_usage_log
       WHERE kind = 'tools_call' AND agent_hash IS NULL AND called_at >= ${since}`),
+    ...clientKindSummary(db, since),
     note: "hosted /mcp is stateless: clientInfo only arrives with initialize, and Mcp-Session-Id is rarely sent, so most tools_call rows have no client and no agent hash",
   };
 }
