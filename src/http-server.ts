@@ -65,6 +65,7 @@ import { isVendorOfficial } from "./utils/vendor-official.js";
 import { listWindow } from "./utils/list-window.js";
 import { requestIdMiddleware, handleArdEntry, handleArdOpenapi, handleArdStats, classifyUserAgent } from "./ard.js";
 import { ensureUsageLogSchema, describeUsage, usageRecorder, usageLogEnabled } from "./mcp-usage-log.js";
+import { uaFamily } from "./utils/ua-family.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const HOST = process.env.KANSEI_HOST ?? "0.0.0.0";
@@ -1506,6 +1507,7 @@ app.post("/mcp", async (req: Request, res: Response) => {
   const usage = usageLogEnabled()
     ? usageRecorder(getDb(), describeUsage(getDb(), req.body), {
         uaClass: classifyUserAgent(req.header("user-agent") ?? "").uaClass,
+        uaFamily: uaFamily(req.header("user-agent")), // one enumerated word; the raw UA is not passed on
         serverVersion: PACKAGE_VERSION,
         sessionId: req.header("mcp-session-id"),
       })

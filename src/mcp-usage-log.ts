@@ -3,6 +3,7 @@ import { agentIdHash, ANONYMOUS_AGENT, sessionMaterial } from "./agent-id.js";
 import { detectMode as detectLookupMode } from "./tools/lookup.js";
 import { detectMode as detectReportMode } from "./tools/report-unified.js";
 import { classifyClient, clientKinds, type ClientKind } from "./utils/client-kind.js";
+import { UA_FAMILIES, type UaFamily } from "./utils/ua-family.js";
 
 /**
  * Usage log for the hosted /mcp (disclosure stage 2a, 2026-10-24).
@@ -53,6 +54,11 @@ export interface PendingUsage {
 
 export interface UsageContext {
   uaClass: string;
+  /**
+   * One enumerated word derived from the User-Agent (src/utils/ua-family.ts; SEC-2026-10-24-001
+   * addendum A). The raw User-Agent is never passed here. Anything outside UA_FAMILIES is stored as NULL.
+   */
+  uaFamily?: UaFamily;
   serverVersion: string;
   /** The Mcp-Session-Id header (or transport session id), if any. */
   sessionId?: unknown;
@@ -83,6 +89,9 @@ export function ensureUsageLogSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_mcp_usage_log_called_at ON mcp_usage_log(called_at);
     CREATE INDEX IF NOT EXISTS idx_mcp_usage_log_tool_time ON mcp_usage_log(tool, called_at);
   `);
+  // Addendum A (2026-10-24): ua_family. Rows written before it keep NULL; they are not rewritten.
+  const cols = db.pragma("table_info(mcp_usage_log)") as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === "ua_family")) db.exec("ALTER TABLE mcp_usage_log ADD COLUMN ua_family TEXT");
   db.prepare(`DELETE FROM mcp_usage_log WHERE called_at < datetime('now', ?)`).run(`-${USAGE_LOG_RETENTION_DAYS} days`);
 }
 
@@ -167,10 +176,11 @@ export function recordUsage(db: Database.Database, pending: PendingUsage, outcom
   if (!usageLogEnabled()) return false;
   try {
     const hash = agentIdHash(sessionMaterial(ctx.sessionId));
+    const family = ctx.uaFamily && (UA_FAMILIES as readonly string[]).includes(ctx.uaFamily) ? ctx.uaFamily : null;
     db.prepare(`INSERT INTO mcp_usage_log (called_at, kind, tool, service_id, service_unknown, mode, outcome,
-        client_name, client_version, ua_class, server_version, agent_hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+        client_name, client_version, ua_class, server_version, agent_hash, ua_family) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .run(minuteOf(), pending.kind, pending.tool, pending.service_id, pending.service_unknown, pending.mode, outcome,
-        pending.client_name, pending.client_version, ctx.uaClass, ctx.serverVersion, hash === ANONYMOUS_AGENT ? null : hash);
+        pending.client_name, pending.client_version, ctx.uaClass, ctx.serverVersion, hash === ANONYMOUS_AGENT ? null : hash, family);
     return true;
   } catch (e) {
     console.error("[usage-log] write failed:", e instanceof Error ? e.message : String(e));
@@ -274,6 +284,11 @@ export function usageSummary(db: Database.Database, days = 7) {
       GROUP BY client_name, client_version ORDER BY n DESC, client_name, client_version LIMIT ${TOP}`),
     by_ua_class: rows<{ ua_class: string } & N>(`SELECT ua_class, count(*) AS n FROM mcp_usage_log
       WHERE kind = 'tools_call' AND called_at >= ${since} GROUP BY ua_class ORDER BY n DESC, ua_class`),
+    // Addendum A: both kinds of row; ua_family NULL = written before the column existed.
+    by_ua_family: rows<{ kind: string; ua_family: string | null } & N>(`SELECT kind, ua_family, count(*) AS n FROM mcp_usage_log
+      WHERE called_at >= ${since} GROUP BY kind, ua_family ORDER BY kind, n DESC, ua_family`),
+    tools_calls_excluding_probe: one(`SELECT count(*) AS n FROM mcp_usage_log
+      WHERE kind = 'tools_call' AND ua_family IS NOT 'probe' AND called_at >= ${since}`),
     by_server_version: rows<{ server_version: string } & N>(`SELECT server_version, count(*) AS n FROM mcp_usage_log
       WHERE called_at >= ${since} GROUP BY server_version ORDER BY n DESC, server_version`),
     distinct_agent_hashes: one(`SELECT count(DISTINCT agent_hash) AS n FROM mcp_usage_log
