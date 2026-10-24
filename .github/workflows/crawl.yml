@@ -7,7 +7,7 @@
 # the same secret every day and succeeds, so the trigger now lives next to it: one secret, one place,
 # and a failed run shows up as a red "scheduled Actions" row on the watch screen.
 #
-# What it does: POST /admin/run-crawler (202) → poll /admin/last-crawl-run for up to 30 minutes →
+# What it does: POST /admin/run-crawler (202) → poll /admin/last-crawl-run for up to 90 minutes →
 # the job FAILS unless the run finished with status "success". 409 (a crawl is already running) is
 # tolerated only if that run started less than an hour ago; then we wait for it instead.
 # Only counts (discovered / accepted / review_queue / errors) go to the job summary — never the
@@ -34,7 +34,7 @@ permissions: {}
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 100 # 90 minutes of polling + trigger and summary
     steps:
       - name: Trigger /admin/run-crawler and wait for the result
         env:
@@ -87,9 +87,10 @@ jobs:
               ;;
           esac
 
-          # Poll up to 30 minutes for the run to finish.
+          # Poll up to 90 minutes for the run to finish (2026-10-24: a full run took 67 minutes and the
+          # old 30-minute wait reported failure while production finished with success).
           final=""
-          for i in $(seq 1 30); do
+          for i in $(seq 1 90); do
             sleep 60
             now=$(last)
             id=$(echo "$now" | j 'o?.last_run?.id ?? 0')
@@ -101,7 +102,7 @@ jobs:
             fi
           done
           if [ -z "$final" ]; then
-            echo "::error::the crawl did not finish within 30 minutes"
+            echo "::error::the crawl did not finish within 90 minutes"
             exit 1
           fi
 
